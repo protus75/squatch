@@ -1,16 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "The review found missing tests. Add route() tests for three cases: retry that hits the same gate code climbs a rung; retry that clears the code returns Routing(None, None) with no marker; spent cap plus escalate returns the MARKER with the spent-cap reason.",
-    "Add a test_terminal case: seed a retry draw at rung {tier: high, effort: max}, then run with escalate. Assert the terminal has routed reject_queue, a reject_reason naming the exhausted ladder, and the reject_queue_arrival signal.",
-    "Add a drain test where escalating to the top of the ladder puts the stem under 'reject queue:' and it is not re-offered.",
-    "Do not copy caps.consume into drain.py. consume(journal, repo, git, stem, cap, run_seq) has no rung parameter, and caps.py is outside the fence. The ticket's Definition of rejected makes this premise_failed: answer premise_failed rather than forking the writer.",
-    "Do not catch RoutingError in reject.route and fall back to Routing(None, None); that fails open. Give the scripted drain/terminal tests a routing config instead of bending production code to fit them.",
-    "The terminal reason that identical() compares must come from codes only (outcome, stage, sorted finding codes), never from delivery.reason free text. Add a test: same codes with different detail text count as identical."
-  ],
-  "reason": "Every review snag is fixable: missing acceptance tests, a fail-open catch, and a free-text comparison key. The one blocker, consume() having no rung field, has a stated premise_failed road, so no more capability is needed.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
