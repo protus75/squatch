@@ -10,12 +10,12 @@ grows without bound.
 import json
 import os
 import re
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-Clock = Callable[[], datetime]
+from squatch.seams import Clock
 
 EVENT_TYPES = frozenset({
     "effect_intent",

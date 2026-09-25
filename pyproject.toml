@@ -13,6 +13,9 @@ dev = [
     "pytest-asyncio",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [build-system]
 requires = ["uv_build>=0.11,<0.12"]
 build-backend = "uv_build"
