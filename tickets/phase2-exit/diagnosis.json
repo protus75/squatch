@@ -1,14 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Requisition review rejected tickets/phase3-continue/ticket.md line 6: its Context names tests/test_seeded_phase3_core.py, which this branch creates. Context may list only paths that already exist on main. Remove that entry.",
-    "Fix the test too. EXISTING_AT_AUTHORING in tests/test_seeded_phase3_core.py includes tests/test_seeded_phase3_core.py, so it pins a file this branch creates. Drop it so the pinned read-closure set contains only files that exist on main.",
-    "Before finishing, check every authored seed's Context entries against the base commit (git ls-tree main), not the worktree. A file created on this branch exists in the worktree but not in the seed path's review, so it fails requisition review.",
-    "Everything else passed and should be kept: the exit-read tests, the three core stems, the owner fences, the depends edges, and the ordered remainder. Also keep each seed's Context small enough to fit the render-headroom bound noted in the run record."
+    "Requisition review rejected daemon-scheduler: its dormancy criterion never names the scan. Name it: the transitive squatch.* import closure from squatch/__main__.py, parsed with ast, covering both import forms. The test must fail if squatch.scheduler or squatch.watcher is in it.",
+    "daemon-scheduler Context: add squatch/__main__.py but keep it out of the fence. Drop config.yaml and squatch/journal.py unless a criterion reads them.",
+    "phase3-continue Context must not be empty. List files that exist on main: squatch/tickets.py, squatch/config.py, config.yaml, squatch/merge.py, and the seeded-batch test it copies (tests/test_seeded_phase2.py). Check each with git ls-tree main.",
+    "Add phase3-continue criteria. Its test must assert: each existing fence file appears in that seed's Context and exists on main; the merge-queue seed names squatch/mergequeue.py's owner as section 19 states it; and no merge-queue criterion contradicts an unfenced existing test.",
+    "Update EXISTING_AT_AUTHORING in tests/test_seeded_phase3_core.py to the new Context set. It must contain only files on main, never files this branch creates. Keep the exit-read tests, the three stems, owner fences, depends edges, and the ordered remainder."
   ],
-  "reason": "One fixable authoring oversight: a Context entry names a file this branch creates rather than one already on main, and the finding says exactly what to change.",
+  "reason": "Every finding is a requisition-review Context or criteria gap in the authored seeds, each with a concrete paved road. It is fixable at the same capability.",
   "detail": null
 }
