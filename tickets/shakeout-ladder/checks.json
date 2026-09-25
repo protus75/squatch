@@ -1,0 +1,118 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "2a0c03f1f43e66f2911dcfbb24289e60b066967e",
+  "stem": "shakeout-ladder",
+  "branch": "shakeout-ladder",
+  "base": "a48a467bd7914f5b338b5aad8d2010154f3c07c8",
+  "head": "2a0c03f1f43e66f2911dcfbb24289e60b066967e",
+  "changed_files": [
+    "eval/shakeout/ladder_group.py",
+    "eval/shakeout/registry.py",
+    "tests/test_ladder.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_ladder.py",
+            "tests/test_shakeout.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "eval.shakeout",
+            "run",
+            "--outbox",
+            "tickets/shakeout-ladder",
+            "--prior",
+            "tickets/shakeout-drain/shakeout-report.json"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "eval.shakeout",
+            "check",
+            "tickets/shakeout-ladder/shakeout-report.json"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "git",
+            "diff",
+            "--name-only",
+            "main...shakeout-ladder"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
