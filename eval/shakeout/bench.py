@@ -127,6 +127,11 @@ class Bench:
         path.write_text(text)
         return path
 
+    def configure(self, *, fake: FakeLLM, sleep: Sleep = asyncio.sleep) -> None:
+        """Select the scripted model and deadline wake seam for the next public run."""
+        self.fake = fake
+        self.sleep = sleep
+
     def commit(self, paths: Sequence[str | Path], subject: str) -> str:
         rels = tuple(str(path) for path in paths)
 

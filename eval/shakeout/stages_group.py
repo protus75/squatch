@@ -256,17 +256,27 @@ def _run_timeout_dead_ends(bench: Bench) -> str:
         Hang(), _answer("premise_failed", "second prompt captured"),
         actions=(_write(bench.git, record=_record(dead_ends=marker)),
                  _write(bench.git, record=_record("premise_failed"))))
-    timed = Bench(bench.repo, fake=fake, clock=bench.clock, env=bench.env)
-    _install(timed, stem, fake, ticket=_ticket(stem, stuck=0))
-    timed.run(stem)
-    first = timed.terminal(stem, 0)
-    timed.run(stem)
+
+    expired = False
+
+    async def expire_once(seconds: float) -> None:
+        nonlocal expired
+        if not expired:
+            expired = True
+            await asyncio.sleep(0)
+            return
+        await asyncio.sleep(seconds)
+
+    bench.configure(fake=fake, sleep=expire_once)
+    bench.write_ticket(stem, _ticket(stem, stuck=1))
+    bench.run(stem)
+    first = bench.terminal(stem, 0)
+    bench.run(stem)
     prompt = next(request.rendered for request in fake.requests
                   if request.surface == "implement" and marker in request.rendered)
-    attempt = timed.repo / "tickets" / stem / "attempts" / "0" / "run.md"
+    attempt = bench.repo / "tickets" / stem / "attempts" / "0" / "run.md"
     prior = prompt.index('<<<squatch:data name="prior_attempts"')
     context = prompt.index('<<<squatch:data name="context"')
-    bench._remember_last_run(stem)
     if (first == "timeout" and attempt.is_file() and prompt.count(marker) == 1
             and prior < prompt.index(marker) < context):
         return "timeout:dead_ends_rendered"
