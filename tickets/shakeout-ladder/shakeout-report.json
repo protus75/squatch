@@ -208,11 +208,11 @@
       "auditor": "green",
       "detail": "tickets/<stem>/diagnosis.json",
       "expected": "identical:climbed",
-      "fault": "the fake fails the same Verification command on three consecutive attempts",
+      "fault": "the fake fails the same verification command on three consecutive public runs",
       "green": true,
       "group": "shakeout-ladder",
       "member": "shakeout-ladder.identical_terminals_climb",
-      "observable": "the third gate_failed is followed by a retry draw carrying a rung above the authored tier before run 3 dispatches",
+      "observable": "the third gate_failed routes to the ladder and its next retry draw carries a rung above the authored tier before run 3 dispatches",
       "observed": "identical:climbed",
       "producing_run": "identical-terminals-climb/3"
     },
@@ -220,11 +220,11 @@
       "auditor": "green",
       "detail": "tickets/<stem>/diagnosis.json",
       "expected": "identical:rejected_exhausted",
-      "fault": "the fake fails the same Verification command three times at the top rung of a single-model route",
+      "fault": "the fake repeats one verification failure three times at the top rung of a single-model fixture",
       "green": true,
       "group": "shakeout-ladder",
       "member": "shakeout-ladder.identical_terminals_reject_when_exhausted",
-      "observable": "the third gate_failed routes to reject_queue for an exhausted ladder and drain reports the stem in the Reject queue",
+      "observable": "the third gate_failed routes to the Reject queue with an exhausted-ladder reason and drain reports the queued stem",
       "observed": "identical:rejected_exhausted",
       "producing_run": "identical-terminals-reject-when-exhausted/2"
     }
@@ -239,6 +239,6 @@
     "shakeout-drain",
     "shakeout-ladder"
   ],
-  "produced_at_sha": "2a0c03f1f43e66f2911dcfbb24289e60b066967e",
+  "produced_at_sha": "e683e2ce069955207b930f00cc72577198c0f64f",
   "schema_version": 1
 }
