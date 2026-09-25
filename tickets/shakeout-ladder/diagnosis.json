@@ -1,15 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "The landed eval/shakeout/bench.py has no public routing-fixture seam: Bench.configure takes only fake and sleep, and the Config is loaded once in __init__ and handed to Runner and Drain. This matches the ticket's Definition of rejected exactly.",
-    "Do not set bench.config, bench.runner._config or bench._drain._config from a member module. Review rejects private-attribute patching, which can also desync state_dir, the Redactor and the journal path.",
-    "A bench change needs filing before this ticket reruns, e.g. Bench.configure(config=...) or a Config accepted at construction that rebuilds Runner and Drain. It is outside this ticket's fence, so gate this ticket on it via depends.",
-    "Everything else was green: scope fence, verification, run_record and diff_budget passed. Both unit pins in tests/test_ladder.py call reject.route directly and need no bench seam, so keep them on rerun.",
-    "The same-wall detector fires after the second identical verification wall in a drain. The climb member separated the K-identical rule from it by using three public run calls and then one drain. Keep that ordering on rerun."
-  ],
-  "reason": "The ticket's premise_failed condition holds: the bench as landed cannot run under a non-instance routing fixture without changing a file outside the fence.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
