@@ -2,10 +2,9 @@
 ok
 
 ## Surprises / judgment calls
-The production composer constructs its routed CLI effect internally, so the bench composes it first and replaces only the stage and diagnosis LLMEffect references with the supplied FakeLLM-backed effect; Runner, Drain, Stages, Merge, and their shared journal remain the production object graph.
+The prior implementation commit was no longer on the fresh ticket branch but remained available in the object database, so it was restored unchanged before applying the review's focused provenance correction. Report provenance now resolves the invoking checkout's HEAD once even when the registry is empty, and disposable bench commit dates are pinned for reproducibility.
 
 ## Dead ends
-The first two-ticket bench fixture reused a parent directory without `exist_ok`, causing the second scripted implementation to fail and enter diagnosis; the fixture action was corrected and the bench now also routes diagnosis through the fake effect.
 
 ## Second problems filed
 
@@ -13,4 +12,4 @@ The first two-ticket bench fixture reused a parent directory without `exist_ok`,
 OpenAI Codex, GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 45m.
+Expected 75m; this re-entry took approximately 15m after reusing the prior reviewed implementation.
