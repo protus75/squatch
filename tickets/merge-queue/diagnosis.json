@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Make `rebase_continue` non-interactive in its own argv, e.g. `-c core.editor=true rebase --continue`. The engine child env has no GIT_EDITOR. Remove `GIT_EDITOR` from the test `git_env` so the rung-1 test shows the wrapper works without it.",
+    "`rebase_stop_at_conflict` must raise RebaseConflict only when the rebase actually stopped with conflicted paths. Re-raise any other GitError (dirty worktree, bad upstream) unchanged, so `_rebase` never calls `rebase_abort` when no rebase is in progress.",
+    "`admit` must return a typed Admission for a rebase failure that is not a conflict (a typed refusal with a finding and paved road), never a raw GitError. Add a test with a dirty-worktree candidate that proves no abort runs and the serial slot is released.",
+    "Keep what review accepted: serial slot, post-rebase re-gate before the integration check, tree-hash refusal, and the rung-2 handoff after unwind. Change only git.py's three additions, mergequeue.py's rebase path, and the tests. `rebase` and `rebase_abort` stay untouched."
+  ],
+  "reason": "Checks all passed; review found two fixable robustness oversights with concrete paved roads, none of which require more capability or a ticket change.",
+  "detail": null
+}
