@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "6a9c8c94fa3d30008abeff48202f86e625e1f0f1",
+  "produced_at_sha": "faa44206cef11f350d75f6bea609886183593e58",
   "stem": "phase3-continue",
   "branch": "phase3-continue",
-  "base": "22679a41f1267b87f13be8bb6681a62daa00b5ae",
-  "head": "6a9c8c94fa3d30008abeff48202f86e625e1f0f1",
+  "base": "44960c773f8b972d73769101792231f7237e1ed5",
+  "head": "faa44206cef11f350d75f6bea609886183593e58",
   "changed_files": [
     "tests/test_seeded_phase3_01.py"
   ],
@@ -15,29 +15,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/merge-queue/ticket.md",
-      "sha": "a5f76d7e8ef62a1f6fb4f11abd81f910075c7daa",
+      "sha": "b767514117cd6f82c541dbeba455378ca0eb0c50",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/merge-queue/ticket.md",
-          "line": null,
-          "message": "The scope and first criterion require a 'final candidate tree-hash assertion before integration' but never say what happens on a mismatch. Section 20 names the 'tree-hash admission pause' as a hold released only by an identity-bound `resume`, and that release lands later in `pause-resume-activation`. An implementer who reads the assertion as a pause would ship a hold with no reachable release. An implementer who picks any other outcome would be guessing untested behavior.",
-          "paved_road": "Add a criterion stating that a tree-hash mismatch refuses only that candidate: a typed finding carrying its paved road, main untouched, the admission unwound, and the serial slot released to the next candidate. State that no admission pause or hold is raised, because the pause activates together with its `resume` release in `pause-resume-activation`. Cover the mismatch case in `tests/test_mergequeue.py`."
+          "line": 126,
+          "message": "Rung 1 requires the queue to resolve a fixture conflict inside the queue using the configured regenerate/union strategies. It also requires conflict facts to be recorded before resolution. The shipped wrapper cannot do either: `Git.rebase` runs `rebase --abort` before it raises `RebaseConflict`, so the conflicted state is gone before the queue sees it. The wrapper also has no op to stop at a conflict, list the conflicted paths, or run `rebase --continue`. The ticket's Scope out forbids a 'new git wrapper operation', squatch/git.py is not in the fence, and CLAUDE.md sends all git through git.py. The criterion is therefore unsatisfiable. The rung also hooks the git seam, and the ownership rule says a ticket that hooks a seam must fence the module that owns it.",
+          "paved_road": "Add squatch/git.py to the fence and to Context. Replace the 'no new git wrapper operation' scope-out with one that allows only additive ops, for example: a rebase that stops at a conflict and leaves it in place, a list of conflicted paths, and `rebase --continue`. Keep the existing `rebase` and `rebase_abort` behavior unchanged, so no existing git test needs editing. Add the owned additive ops to the ownership block as hooks under squatch/git.py."
         },
         {
           "code": "requisition_review",
           "path": "tickets/merge-queue/ticket.md",
-          "line": null,
-          "message": "The registry grants `merge-queue` 'two typed resolution rungs'. The Why says the queue owns 'both conflict-resolution rungs', but the scope builds only the mechanical rung plus an unresolved-conflict handoff, and the criteria never name the second rung's type. That leaves open whether the second rung is built here or deferred to `rework-stage`, which also fences `squatch/mergequeue.py`.",
-          "paved_road": "Name both rung types explicitly in the scope and criteria. For example: rung 1 is mechanical resolution, settled in-queue; rung 2 is the typed Rework handoff record, emitted after unwind. State that `rework-stage` consumes the rung-2 record without redefining it, and assert both rung types in `tests/test_mergequeue.py`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue/ticket.md",
-          "line": null,
-          "message": "`squatch/merge.py` is imported by `squatch/__main__.py` (`from squatch.merge import compose_pipeline`). A module-level import of `squatch.mergequeue` for `compose_merge_queue` therefore makes the queue reachable from the production root. If `squatch/mergequeue.py` in turn imports `squatch.scheduler` or `squatch.watcher`, the existing `tests/test_scheduler.py::test_scheduler_and_watcher_are_unreachable_from_the_production_root` goes red. That test is outside the fence, and the ticket forbids editing it.",
-          "paved_road": "Add a scope-out line saying `squatch/mergequeue.py` must not import `squatch.scheduler` or `squatch.watcher`, so the existing reachability proof stays green without editing a test outside the fence."
+          "line": 129,
+          "message": "The criteria read the configured integration checks (`Config.merge.safety_checks`) and the regenerate/union strategies (`Config.merge.strategies`, where regenerate requires `argv`). squatch/config.py owns both, but it is missing from Context. config.yaml, which is in Context, declares no `merge` block at all. So the ticket's own evidence does not show where the 'configured' values come from, or that tests must supply them through a fixture Config.",
+          "paved_road": "Add squatch/config.py to Context, not to the fence. State that the tests build a fixture Config whose `merge.safety_checks` and `merge.strategies` feed the integration check and rung 1, with no config.yaml or schema change."
         }
       ],
       "commands": []
@@ -47,7 +40,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-02/ticket.md",
-      "sha": "ffb11b8b443576a4dca6477ed869c0af7e200863",
+      "sha": "4757aefe86ea35222776d9c95ae3ad0e38b08a00",
       "bypassed": false,
       "findings": [],
       "commands": []
