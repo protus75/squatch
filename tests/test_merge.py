@@ -9,6 +9,8 @@ the journal.
 
 import subprocess
 
+import pytest
+
 from test_stages import (
     EXISTS,
     PLAN,
@@ -32,7 +34,7 @@ from test_stages import (
 from squatch.config import load
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
-from squatch.git import Git
+from squatch.git import Git, GitError
 from squatch.journal import Journal
 from squatch.merge import (
     CODE_LANE_ROAD,
@@ -54,9 +56,9 @@ BOTH = (f'{PYTHON} -c "import pathlib, sys; '
         "pathlib.Path('squatch/existing.py').read_text() == 'EXISTING = 1\\n' else 1)\"")
 
 
-def merge_of(h: Harness) -> Merge:
+def merge_of(h: Harness, git: Git | None = None) -> Merge:
     redact = Redactor.from_config(h.config, h.env)
-    return Merge(repo=h.repo, config=h.config, git=h.git, process=SubprocessExec(),
+    return Merge(repo=h.repo, config=h.config, git=git or h.git, process=SubprocessExec(),
                  fs=LocalFilesystem(), effects=Effects(h.journal), journal=h.journal,
                  log=EngineLog(h.state, clock=h.clock, redact=redact), redact=redact, env=h.env)
 
@@ -96,6 +98,19 @@ def commit_on_main(h: Harness, rel: str, content: str, subject: str) -> str:
     git(h.repo, h.env, "add", "--", rel)
     git(h.repo, h.env, "commit", "-q", "-m", subject)
     return git(h.repo, h.env, "rev-parse", "main").strip()
+
+
+class FailingBranchDeleteGit(Git):
+    def __init__(self, *, env: dict[str, str], delete_branch: bool):
+        super().__init__(SubprocessExec(), env=env, timeout=60.0)
+        self.delete_branch = delete_branch
+        self.error: GitError | None = None
+
+    async def branch_delete(self, repo, name: str) -> None:
+        if self.delete_branch:
+            await super().branch_delete(repo, name)
+        self.error = GitError(["git", "branch", "-D", name], 1, "", "forced delete failure")
+        raise self.error
 
 
 # --- admission: squash + trailers, both lanes, the journal record ------------------
@@ -157,6 +172,29 @@ async def test_already_satisfied_settles_merged_without_a_code_commit(repo, env)
     assert git(repo, env, "rev-parse", "main").strip() == before, "nothing to integrate"
     assert transitions(h) == [{"to": "merged", "run_seq": 0, "commit": None, "reviewed_sha": None}]
     assert not branch_exists(h) and not h.worktree().exists()
+
+
+async def test_retire_tolerates_a_failed_delete_when_the_branch_is_already_gone(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await deliver(h)
+    failing_git = FailingBranchDeleteGit(env=env, delete_branch=True)
+
+    a = await merge_of(h, failing_git).admit(ticket_of(h), d, run_seq=0)
+
+    assert a.outcome == "ok" and not branch_exists(h)
+
+
+async def test_retire_re_raises_a_failed_delete_when_the_branch_still_exists(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await deliver(h)
+    failing_git = FailingBranchDeleteGit(env=env, delete_branch=False)
+
+    with pytest.raises(GitError) as raised:
+        await merge_of(h, failing_git).admit(ticket_of(h), d, run_seq=0)
+
+    assert raised.value is failing_git.error and branch_exists(h)
 
 
 async def test_a_re_entry_worktree_with_a_modified_tracked_outbox_still_rebases(repo, env):

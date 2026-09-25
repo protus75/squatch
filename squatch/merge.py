@@ -254,8 +254,13 @@ class Merge:
                 await self._git.worktree_prune(self._repo)
             try:
                 await self._git.branch_delete(self._repo, stem)
-            except GitError:
-                await self._git.rev_parse(self._repo, f"refs/heads/{stem}")  # re-raise if it exists
+            except GitError as error:
+                try:
+                    await self._git.rev_parse(self._repo, f"refs/heads/{stem}")
+                except GitError:
+                    pass
+                else:
+                    raise error
             return {"branch": stem}
 
         return await self._effects.run(action, key=effect_key("retire", stem, run_seq), ticket=stem)
