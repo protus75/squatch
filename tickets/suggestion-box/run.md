@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The corrected ticket fences the git wrapper and its test. I reused the prior green implementation, renamed its `common_dir` method to the contract's exact `git_common_dir` API, and added direct seam plus real main/worktree resolution tests. The instance state already contained all 257 bootstrap suggestions from the prior idempotent ingestion, so I preserved those records and committed the required source-file deletion without duplicating them.
+The attempt branch was recreated from current main, so I recovered the prior fenced implementation from its still-addressable commit before applying the two carried review fixes. Harvest now redacts the run record before parsing second problems, and the parser uses the shared list-marker grammar while treating a backticked box id as a citation. The instance box already contained all 257 bootstrap messages, so I did not re-ingest them.
 
 ## Dead ends
-The two prior attempts stopped on a scope-fence omission; the re-authored ticket resolved it. No implementation dead end remained in this attempt.
+An initial attempt to feed a raw git diff to the patch tool was rejected because the tool requires its own patch envelope; I reapplied the same committed file contents through supported patch operations instead.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The two prior attempts stopped on a scope-fence omission; the re-authored ticket
 OpenAI Codex / GPT-5 / implement spec 1.1
 
 ## Predicted vs actual
-Expected 90m; actual approximately 20m, including base verification, prior-diff audit, correction, and the full verification pass.
+Expected 90m; actual approximately 15m, including recovery of the prior implementation, the two review fixes, and all verification passes.
