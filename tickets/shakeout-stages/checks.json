@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "97e08cc4a02eda414310cf94088dcfe88c78e6db",
+  "produced_at_sha": "d76e436deb4d7e0226d07d99272dcd66d0b4b42b",
   "stem": "shakeout-stages",
   "branch": "shakeout-stages",
-  "base": "5ad613532540f324e0971c731e74dcdc15700ebd",
-  "head": "97e08cc4a02eda414310cf94088dcfe88c78e6db",
+  "base": "f0f5330a7a0c8af7cfa0917cb32f8448ce9a0774",
+  "head": "d76e436deb4d7e0226d07d99272dcd66d0b4b42b",
   "changed_files": [
     "eval/shakeout/registry.py",
     "eval/shakeout/stages_group.py",
