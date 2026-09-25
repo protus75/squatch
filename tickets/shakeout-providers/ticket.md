@@ -21,9 +21,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 6
-- section 13
-- section 11
 
 ## Goal
 The provider shakeout group pins `squatch/providers.py`: an agent-CLI authentication expiry yields a classified `infra_error` whose reason carries the class `auth_error` and the re-authentication road for that CLI, drawing the `infra` cap like every failed call -- with the one classification the member needs added to the adapter base, and every prior group's entries re-confirmed before this one appends its own.

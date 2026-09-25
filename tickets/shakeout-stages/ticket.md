@@ -23,10 +23,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 11
-- section 7
-- section 9
-- section 6
 
 ## Goal
 The stage-layer shakeout group pins `squatch/stages.py`: scope escape, false premise, a branch-only red command, a pre-existing base red, an empty committed diff, a review reject, the criteria-position re-entry of review findings, a timed-out attempt's dead ends visible to the next attempt, and a planted secret reaching no ticket-plane artifact all reach their exact terminal or artifact field with zero human input, re-confirming the tickets group's entry before appending its own.

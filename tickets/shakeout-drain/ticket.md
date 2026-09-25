@@ -20,9 +20,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 18
-- section 11
-- section 13
 
 ## Goal
 The drain shakeout group pins `squatch/drain.py`: a ticket red on attempt one and green on attempt two merges in ONE drain invocation with exactly one `retry` draw, and a premise-failed stem is skipped across invocations until its committed `ticket.md` changes, then runs -- re-confirming every prior group's entries before appending its own.

@@ -20,8 +20,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 11
-- section 9
 
 ## Goal
 The last shakeout battery group pins `squatch/ladder.py`: K identical terminal reasons short-circuit past a same-rung re-offer to the ladder while rungs remain and to the Reject queue when none do -- re-confirming every prior group's entries before appending its own, so its committed `shakeout-report.json` is the cumulative copy the Phase 2 exit reads.

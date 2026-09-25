@@ -21,9 +21,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 5
-- section 11
-- section 15
 
 ## Goal
 The driver shakeout group pins `squatch/driver.py`: unparseable or schema-invalid stage output exhausts the bounded re-prompt and terminals `invalid_artifact`, and a stage past its stuck budget is killed by the driver's `wait_for`, harvested, and terminals `timeout` while the drain proceeds to the next ticket -- re-confirming every prior group's entries before appending its own.

@@ -20,8 +20,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 11
-- section 6
 
 ## Goal
 The reconcile shakeout group pins `squatch/reconcile.py`: an engine death mid-call leaves a `running` with no terminal, the next entry reaps it `abandoned` after harvesting its worktree, and the stem re-enters findings-fed with a fresh run sequence -- re-confirming every prior group's entries before appending its own.

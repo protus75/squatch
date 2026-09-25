@@ -20,9 +20,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 9
-- section 10
-- section 11
 
 ## Goal
 The merge shakeout group pins `squatch/merge.py`: a conflicted rebase is refused, aborted, and leaves no half-rebased worktree, the stem terminals `gate_failed` drawing retry and stays re-runnable on its own branch head -- re-confirming every prior group's entries before appending its own.
