@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-The prior reviewed implementation was recoverable as an unreachable commit, so I restored that in-fence design and changed only the remaining partial-lift fold. Partial seed intakes now accumulate across repeated open lift intents and clear only when a lift completes.
+The prior reviewed implementation was recoverable as an unreachable commit, so I restored that in-fence design and changed only the remaining attribution defect. Seed intake signals now carry their seeder, and interrupted-lift replay exempts only matching signals; ordinary intake signal bodies remain unchanged.
 
 ## Dead ends
 None.
@@ -11,7 +11,7 @@ None.
 None.
 
 ## Resolved engine/model
-OpenAI / GPT-5 Codex
+OpenAI / Codex
 
 ## Predicted vs actual
-Expected 90m; actual approximately 15m on this re-entry.
+Expected 90m; actual approximately 12m on this re-entry.
