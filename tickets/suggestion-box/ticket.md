@@ -24,6 +24,7 @@ agent_effort: medium
 - tests/test_terminal.py
 - tests/test_drain.py
 - tests/test_cli.py
+- tests/test_seeded_phase2.py
 
 ## Plan contract
 - section 12
@@ -69,6 +70,7 @@ No consumer: no `squatch triage`, no `specs/triage.md`, no semantic dedup, no po
 - In `tests/test_terminal.py`, the terminal order harvest -> draws -> diagnosis -> terminal -> wipe is unchanged with the enqueue inside the harvest step, and a harvest whose enqueue raises still journals the terminal with `harvest_error` set and still wipes the worktree.
 - In `tests/test_drain.py`, with one pending message under `<state_dir>/box/` a drain over two tickets runs to quiescence, exits 0, leaves that file byte-identical and still `pending`, journals no event naming the box, and prints no line naming the message.
 - In `tests/test_cli.py`, `squatch status` with two pending messages prints a `box` section with the count and both ids.
+- In `tests/test_seeded_phase2.py`, the pinned authoring-time material remains historical after `bootstrap/suggestions.md` is deliberately retired: deriving the Context-refused set treats a now-absent pinned file as unavailable Context and never attempts a live read of it.
 - `git diff --name-only main...suggestion-box` lists `bootstrap/suggestions.md`, and `git ls-files bootstrap/suggestions.md` prints nothing on the branch.
 - `uv run pytest -q` exits 0.
 

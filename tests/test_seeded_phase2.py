@@ -101,7 +101,8 @@ EXISTING_AT_AUTHORING: dict[str, int] = {
 # author's belief and goes green over a seed the engine parks.
 CONTEXT_REFUSED = frozenset(
     p for p in EXISTING_AT_AUTHORING
-    if p.startswith("specs/") or DATA_MARKER in (REPO / p).read_text())
+    if p.startswith("specs/") or not (REPO / p).is_file()
+    or DATA_MARKER in (REPO / p).read_text())
 
 
 def _path(stem: str) -> Path:
