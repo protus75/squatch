@@ -1,9 +1,16 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Restore the driver's single `run_gates(stage.gates, ...)` call. Per-gate short-circuiting drops findings for every multi-gate stage and falls outside the ticket's driver allowance.",
+    "Put grammar-first in squatch/author.py: the RequisitionGate target resolver returns () when lint_ticket rejects artifact.ticket, so an ungrammatical attempt makes no review call.",
+    "Keep only a minimal terminal_findings hook in driver.py for the rma stop. State in the run record why the rma case needs it; the review suspects the ticket's driver condition is too narrow for it.",
+    "Never record a stale verdict: reset `_ReviewCapture.last` per gate check (e.g. in the resolver), or record only when the final failing findings are requisition_review findings.",
+    "In tests/test_triage.py, both pass scenarios that reach Author must assert the requisition_review call itself, via the full request-surface sequence or an llm/requisition_review/<stem>/ effect key. Adding a reply to the script is not enough.",
+    "Add a test: snag on attempt 1, then a grammar-invalid attempt 2 until the allowance runs out, and assert no stale snag lands on the message's triage field."
+  ],
+  "reason": "Checks passed, and review found three concrete, fixable defects, each with a paved road; nothing shows the ticket is infeasible or needs more capability.",
+  "detail": null
 }
