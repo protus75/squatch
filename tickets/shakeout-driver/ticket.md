@@ -14,8 +14,10 @@ agent_effort: medium
 ## Context
 - squatch/driver.py
 - squatch/llmeffect.py
+- squatch/seams.py
 - squatch/llm.py
 - squatch/drain.py
+- eval/shakeout/bench.py
 - tests/test_driver.py
 - tests/test_drain.py
 
@@ -29,10 +31,10 @@ The driver shakeout group pins `squatch/driver.py`: unparseable or schema-invali
 Section 19 names both members and their owner: the schema-invalid re-prompt loop and the per-stage `wait_for` stuck-budget kill are the Phase 0 driver's (section 5 invariant 2, section 15's seam ladder), so one group fences `squatch/driver.py` plus its test file. The discriminating observables are the exact effect-key count -- a bounded loop makes exactly `retry_cap + 1` calls under consecutive `call_seq` keys and a faked loop cannot -- and the `timeout` terminal preceded by the fake's abort with the harvest dir present, while the drain's next ticket still reaches `merged` in the same invocation (section 11.2's handler and section 18's park-and-continue).
 
 ## Scope in
-A new member module `eval/shakeout/driver_group.py` with `GROUP` = `shakeout-driver` and `MEMBERS`: `schema_invalid_exhausts_reprompt` -- the fake review answers a verdict outside its vocabulary on every call; observable: exactly `caps.retry + 1` review effect completions under consecutive `call_seq` keys and the terminal `to: invalid_artifact`; expected `invalid_artifact:reprompt_exhausted`; detail `tickets/<stem>/attempts/<n>/harvest.json`. `stuck_budget_killed` -- a resisting `Hang` past a ticket whose stuck budget is one minute under the injected clock; observable: `FakeLLM.aborted` is 1, the terminal `to: timeout`, `tickets/<stem>/attempts/<n>/harvest.json` committed, and a second green ticket in the same drain reaches `merged`; expected `timeout:killed_harvested_drain_continued`; detail `tickets/<stem>/attempts/<n>/harvest.json`. `eval/shakeout/registry.py`'s `GROUPS` gains `("shakeout-driver", "eval.shakeout.driver_group")` after the stages group. `tests/test_driver.py` gains a unit pin for each observable where the existing tests carry none. The report is produced by this ticket's own `## Verification` with `--prior tickets/shakeout-stages/shakeout-report.json`.
+A new member module `eval/shakeout/driver_group.py` with `GROUP` = `shakeout-driver` and `MEMBERS`: `schema_invalid_exhausts_reprompt` -- the fake review answers a verdict outside its vocabulary on every call; observable: exactly `caps.retry + 1` review effect completions under consecutive `call_seq` keys and the terminal `to: invalid_artifact`; expected `invalid_artifact:reprompt_exhausted`; detail `tickets/<stem>/attempts/<n>/harvest.json`. `stuck_budget_killed` -- one original `Bench` is built through the public `Bench.make(..., sleep=...)` seam with a fake sleep that advances its injected clock by the requested duration; a resisting `Hang` crosses a one-minute stuck budget, then the SAME bench's public `drain()` continues to a second green ticket without any private provenance steering; observable: `FakeLLM.aborted` is 1, the terminal `to: timeout`, `tickets/<stem>/attempts/<n>/harvest.json` committed, and the second ticket reaches `merged`; expected `timeout:killed_harvested_drain_continued`; detail `tickets/<stem>/attempts/<n>/harvest.json`. `eval/shakeout/registry.py`'s `GROUPS` gains `("shakeout-driver", "eval.shakeout.driver_group")` after the stages group. `tests/test_driver.py` gains one unit pin per observable where the existing tests carry none. The report is produced by this ticket's own `## Verification` with `--prior tickets/shakeout-stages/shakeout-report.json`.
 
 ## Scope out
-No change to `squatch/driver.py` or any production module. No members owned by other modules. No hand-written entry, no edit of a prior group's entries, no wall-clock wait: the stuck budget elapses on the injected clock and the fake's cancellation.
+No change to `squatch/driver.py` or any production module. No members owned by other modules. No hand-written entry, no edit of a prior group's entries, no wall-clock wait, no event-loop monkeypatch, and no call to a private `Bench` method: the stuck budget elapses through the merged clock/sleep seam and the fake's cancellation.
 
 ## Scope fence
 - eval/shakeout/driver_group.py
@@ -56,7 +58,7 @@ uv run pytest -q
 ```
 
 ## Definition of rejected
-Stop and answer `premise_failed` naming the member if the merged engine does not produce a member's stated observable, if the bench's injected clock cannot elapse a stuck budget without wall time, if a prior group's committed entry cannot be re-confirmed byte-for-byte, if any file outside the fence must change, or if `uv run pytest -q` is red on the base commit before any edit.
+Stop and answer `premise_failed` naming the member if the merged engine does not produce a member's stated observable through the public clock/sleep and bench APIs, if a prior group's committed entry cannot be re-confirmed byte-for-byte, if any file outside the fence must change, or if `uv run pytest -q` is red on the base commit before any edit.
 
 ## Time budget
 - expected: 60m
