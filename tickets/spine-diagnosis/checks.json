@@ -1,0 +1,56 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "dccd9f4cfbcd593e00590cf4088300d34f4d18ce",
+  "stem": "spine-diagnosis",
+  "branch": "spine-diagnosis",
+  "base": "64bd192e91c4be93da74f9193bb1e146c0130d87",
+  "head": "dccd9f4cfbcd593e00590cf4088300d34f4d18ce",
+  "changed_files": [
+    "specs/diagnose.md",
+    "squatch/artifacts.py",
+    "squatch/diagnose.py",
+    "squatch/drain.py",
+    "squatch/driver.py",
+    "squatch/merge.py",
+    "squatch/runner.py",
+    "squatch/stages.py",
+    "tests/test_cli.py",
+    "tests/test_diagnose.py",
+    "tests/test_drain.py",
+    "tests/test_drain_reentry.py",
+    "tests/test_drain_upgrade.py",
+    "tests/test_driver.py",
+    "tests/test_terminal.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    }
+  ]
+}
