@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "3cf17613d4a83aae621a55c03197e685a2298781",
+  "produced_at_sha": "2d9b5bccfa77731ae52e9e4848423dbb5aa69a9a",
   "stem": "spine-harvest",
   "branch": "spine-harvest",
-  "base": "da184a7279b3efc0f0321f1b2495f26ea99d746f",
-  "head": "3cf17613d4a83aae621a55c03197e685a2298781",
+  "base": "8a788ee8f155ad8f4736327b8bc6c1d03d796c5c",
+  "head": "2d9b5bccfa77731ae52e9e4848423dbb5aa69a9a",
   "changed_files": [
     "squatch/git.py",
     "squatch/harvest.py",
