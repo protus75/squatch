@@ -21,7 +21,9 @@ agent_effort: medium
 - squatch/config.py
 - squatch/providers.py
 - squatch/runner.py
+- squatch/git.py
 - eval/harness.py
+- tests/test_git.py
 - tests/test_eval_harness.py
 - tests/test_tickets.py
 - tests/test_gates.py
@@ -46,6 +48,8 @@ Section 4 names Author as the stage that consumes a triaged box message and emit
 
 Effect-key correction: the shorter key shorthand in the preceding paragraph is superseded by the landed universal seam. Pass the count of prior `triage_pass` signals as `run_seq` and the numeric box-message sequence as `attempt`, producing `llm/author/<pass>/author/<message seq>/<call_seq>` and `spools/author/<message seq>/`; `Driver` and `LLMEffect` remain unchanged.
 
+Input-seam correction: `squatch/box.py` adds backward-compatible nullable `bug_origin` (`self_diagnosed | player`) and `has_repro` fields to `Message` and enqueue; a `bug_report` requires both while every other class requires both null. Author resolves and validates those policy inputs before `driver.run`, so an invalid item stays pending without a paid call. `squatch/git.py` adds the named `ls_files(repo)` argv operation for the tracked Author tree; `Author` never calls the private git runner.
+
 ## Scope out
 No `requisition_review` call, no feasibility verdict, no `specs/requisition_review.md` (the next three seeds); the authored ticket passes grammar only, exactly the bootstrap floor of section 19. No human-intake change: `Intake.run` and its `source: human` stamping are untouched, and no advisory review runs at the front door. No new CLI verb, no daemon-era continuous consumer, no auto-confirm exemption, no GO recording. No dedup here: triage already deduplicated against open work, merged work, and decisions. No evidence copy, no host bug intake. No new frontmatter field, config key, cap, or journal event type: the authoring commit is the existing `ticket_intake` signal.
 
@@ -55,7 +59,11 @@ No `requisition_review` call, no feasibility verdict, no `specs/requisition_revi
 - squatch/tickets.py
 - squatch/triage.py
 - squatch/policy.py
+- squatch/box.py
+- squatch/git.py
 - tests/test_author.py
+- tests/test_box.py
+- tests/test_git.py
 - tests/test_tickets.py
 - tests/test_triage.py
 - tests/test_policy.py
@@ -65,6 +73,9 @@ No `requisition_review` call, no feasibility verdict, no `specs/requisition_revi
 ## Acceptance criteria
 - In `tests/test_author.py`, `specs/author.md` loads through `load_spec` with surface `author`, consumes `AuthorInput`, emits `AuthoredTicket`, gates exactly `ticket_schema`, and slots exactly `message`, `triage`, `ticket_contract`, `plane`, `tree`, `context_files` with the last optional; a rendered `AuthorInput` carries the message inside an untrusted data block and the plan section 13 text inside an engine data block.
 - In `tests/test_eval_harness.py`, the baseline signal now records Author spec major version `1` from the newly landed `specs/author.md` instead of the Phase 1 pre-Author null.
+- In `tests/test_box.py`, `bug_report` requires `bug_origin` in `self_diagnosed | player` and boolean `has_repro`, non-bug messages refuse either field, and existing message JSON without the additive nullable fields still loads.
+- In `tests/test_git.py`, `ls_files` invokes the named `git ls-files` operation and returns tracked paths; Author-tree construction uses it without a private `_run` call.
+- In `tests/test_author.py`, an invalid or missing bug-policy input is refused before `driver.run` (zero LLM requests), leaves the message pending with its triage verdict, and does not prevent the pass from processing later items.
 - In `tests/test_author.py`, `AuthoredTicket` refuses a `stem` outside the section 13 stem regex, and `TicketSchemaGate` fails an authored ticket missing `## Verification`, one whose stem already exists on disk, and one whose `Context` names a path that does not exist, each finding carrying a paved road.
 - In `tests/test_author.py`, under a `FakeLLM` scripted first with a ticket missing `## Time budget` and then with a valid ticket, `Author` makes exactly two calls (keys `llm/author/<id>/0/1` and `llm/author/<id>/0/2`), the second request carries the first's `ticket_schema` finding, `tickets/<stem>/ticket.md` is committed on main with `source: box:suggestion` and `state: draft`, one `ticket_intake` signal names the stem with that source, and the message is `authored` with `link` the stem.
 - In `tests/test_author.py`, under config `caps: {retry: 1, diagnosis: 1}` a fake that answers an invalid ticket twice leaves the message `pending` with its `author` verdict intact, no ticket dir on disk, and the report naming the retry allowance; a fake `Hang` past `AUTHOR_STUCK_SECONDS` is aborted and leaves the message `pending`.
