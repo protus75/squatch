@@ -1,9 +1,16 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag only; checks passed. The shape of the seed path, lift and SeedSafety was judged sound. Keep that design and close the four specific findings rather than redesigning.",
+    "Add a test_terminal.py case that drives an ordinary ticket to merge. Assert that no signal has body kind `seed_lift` and that no journal event key starts with `llm/requisition_review/`. This is AC5, second half.",
+    "Add a test_merge.py case that admits a branch with no `seed_lift` signal and no checks.json present. Assert that admission is ok and the requisition_review gate result is a finding-free pass. This is AC6, third clause.",
+    "In the four-seed terminal test, assert that the last transition is `gate_failed`. Also assert that checks.json holds a requisition_review finding naming `seeding.max_seeds_per_admission` with the `-continue` split road, and that no review-surface request was made. This is AC4.",
+    "SeedSafety must read the committed `main:tickets/<stem>/checks.json` through the Git wrapper, not raw from the working tree with read_text(). Read squatch/git.py for the blob-read verb before writing. A missing blob is a failing finding with SEED_SAFETY_ROAD.",
+    "Before answering, map every acceptance criterion to one named test, including the test_seeds.py drain case where a lifted seed is dispatched in the same invocation. Reviewers snag on unasserted clauses."
+  ],
+  "reason": "Every finding is a missing or partial test assertion, plus one fixable wrong read source in SeedSafety. The findings now steer the fix, so re-run at the same capability.",
+  "detail": null
 }
