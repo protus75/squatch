@@ -1,0 +1,50 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "3df2d6ac6b2aeb0c81e6e0ca3fc8a6535cb5df28",
+  "stem": "spine-caps",
+  "branch": "spine-caps",
+  "base": "c57502916fa9c20e56326f8cb2ea2ef38dd98b7e",
+  "head": "3df2d6ac6b2aeb0c81e6e0ca3fc8a6535cb5df28",
+  "changed_files": [
+    "squatch/caps.py",
+    "squatch/config.py",
+    "squatch/drain.py",
+    "squatch/driver.py",
+    "squatch/runner.py",
+    "tests/test_caps.py",
+    "tests/test_config.py",
+    "tests/test_drain.py",
+    "tests/test_terminal.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    }
+  ]
+}
