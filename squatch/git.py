@@ -61,6 +61,9 @@ class Git:
     async def rev_parse(self, cwd: Path, rev: str) -> str:
         return (await self._run(cwd, "rev-parse", "--verify", rev)).strip()
 
+    async def git_common_dir(self, cwd: Path) -> str:
+        return (await self._run(cwd, "rev-parse", "--git-common-dir")).strip()
+
     async def diff_names(self, cwd: Path, base: str, branch: str) -> list[str]:
         out = await self._run(cwd, "diff", "--name-only", f"{base}...{branch}")
         return [line for line in out.splitlines() if line]

@@ -29,6 +29,7 @@ from test_cli import (  # noqa: F401 -- `checkout` is a fixture
 
 from squatch.__main__ import main
 from squatch.artifacts import Cost
+from squatch.box import Box
 from squatch.diagnose import DiagnosisRecord
 from squatch.git import Git
 from squatch.journal import Journal, read_events
@@ -421,6 +422,24 @@ def test_an_empty_queue_reports_and_exits_zero(checkout):
     assert rc == EXIT_OK
     assert "quiescence: nothing eligible" in out and "0 merged this drain" in out
     assert fake.calls == []
+
+
+def test_bootstrap_drain_never_scans_or_mutates_the_box(checkout):
+    committed(checkout, "first")
+    committed(checkout, "second")
+    queue = Box(checkout / STATE, fs=LocalFilesystem(), clock=FakeClock())
+    message = queue.enqueue(message_class="suggestion", summary="leave this pending",
+                            detail="leave this pending", origin="test")
+    path = next((checkout / STATE / "box").glob("*.json"))
+    before = path.read_bytes()
+    fake = Scripted({"first": ["ok"], "second": ["ok"]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK and fake.calls == [("first", 0), ("second", 0)]
+    assert path.read_bytes() == before and queue.get(message.id).status == "pending"
+    assert message.id not in out
+    assert all("box" not in repr(event) for event in read_events(checkout / STATE))
 
 
 def test_drain_is_refused_when_the_lockfile_is_held(checkout):

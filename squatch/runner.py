@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Protocol
 
 from squatch.artifacts import OUTCOMES, Finding
+from squatch.box import Box
 from squatch.caps import INFRA_CAP, consume
 from squatch.config import Config
 from squatch.diagnose import DIAGNOSIS_FILE, DiagnosisRecord
@@ -193,7 +194,9 @@ class Runner:
                     run_seq=run_seq, worktree=delivery.worktree, base=delivery.base,
                     outcome=outcome, stage=delivery.stage, reason=delivery.reason,
                     findings=delivery.findings, cost=delivery.cost,
-                    wall_seconds=max(0.0, (self._clock() - started).total_seconds()))
+                    wall_seconds=max(0.0, (self._clock() - started).total_seconds()),
+                    box=Box(self.state_dir, fs=self._fs, clock=self._clock),
+                    redact=self._log._redact)
                 await lift_ticket_files(
                     repo=self._repo, git=self._git, fs=self._fs, effects=Effects(journal),
                     redact=self._log._redact, stem=stem, run_seq=run_seq, kind="harvest",

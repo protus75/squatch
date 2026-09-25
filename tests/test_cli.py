@@ -21,10 +21,12 @@ import pytest
 
 from squatch.__main__ import main
 from squatch.artifacts import Cost
+from squatch.box import Box
 from squatch.diagnose import DiagnosisRecord
 from squatch.journal import read_events
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET
+from squatch.seams import LocalFilesystem
 from squatch.stages import Delivery
 from squatch.tickets import PLAN_FILE, TEMPLATE, lint_ticket
 
@@ -273,6 +275,58 @@ def test_status_names_unparsed_and_pending_tickets_before_intake(checkout):
     assert head[0] == "unparsed tickets (failed intake lint) (1)"
     assert head[1].startswith("  bad-one: frontmatter key 'kind' is missing --")
     assert "pending intake (1)\n  good-one\n" in out
+
+
+def test_status_lists_pending_box_messages(checkout):
+    queue = Box(checkout / STATE, fs=LocalFilesystem(), clock=clock)
+    first = queue.enqueue(message_class="suggestion", summary="first message", detail="one",
+                          origin="test")
+    second = queue.enqueue(message_class="failure_report", summary="second message", detail="two",
+                           origin="test")
+
+    rc, out = cli(checkout, "status")
+
+    assert rc == EXIT_OK
+    assert "box (2)" in out and first.id in out and second.id in out
+
+
+def test_status_uses_the_state_dir_from_the_selected_config(checkout, tmp_path):
+    default = Box(checkout / STATE, fs=LocalFilesystem(), clock=clock).enqueue(
+        message_class="suggestion", summary="default box", detail="default", origin="test")
+    selected_state = Path(".selected/state")
+    selected = Box(checkout / selected_state, fs=LocalFilesystem(), clock=clock).enqueue(
+        message_class="suggestion", summary="selected box", detail="selected", origin="test")
+    config = tmp_path / "selected.yaml"
+    config.write_text(CONFIG.replace(str(STATE), str(selected_state)))
+
+    rc, out = cli(checkout, "--config", str(config), "status")
+
+    assert rc == EXIT_OK
+    assert f"box (1)\n  {selected.id}: suggestion: selected box" in out
+    assert default.id not in out
+
+
+def test_status_refuses_a_corrupt_box_message(checkout):
+    path = checkout / STATE / "box" / "000001-deadbeef.json"
+    path.parent.mkdir(parents=True)
+    path.write_text("not json")
+
+    rc, out = cli(checkout, "status")
+
+    assert rc == EXIT_REFUSED
+    assert "refused: box corruption:" in out and str(path) in out
+    assert "repair or remove the named corrupt box message" in out
+
+
+def test_status_does_not_mislabel_a_journal_read_error_as_box_corruption(checkout, monkeypatch):
+    import squatch.__main__ as cli_module
+
+    def broken(_state_dir):
+        raise OSError("journal unavailable")
+
+    monkeypatch.setattr(cli_module, "read_events", broken)
+    with pytest.raises(OSError, match="journal unavailable"):
+        cli(checkout, "status")
 
 
 def test_status_projects_in_flight_ready_blocked_stopped_and_merged(checkout):

@@ -15,7 +15,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from squatch.artifacts import TERMINAL_RUN_STATES
+from squatch.box import Box, Message
 from squatch.journal import Event
+from squatch.seams import LocalFilesystem
 from squatch.tickets import (INTAKE_SIGNAL, PLAN_FILE, RESERVED_STEMS, TICKET_FILE, TICKETS_DIR,
                              TicketLintError, depends_of, lint_ticket)
 
@@ -47,9 +49,10 @@ class Status:
     intake: tuple[Intaken, ...] = ()
     spend_usd: float = 0.0
     calls: int = 0
+    box: tuple[Message, ...] = ()
 
 
-def project(events: Iterable[Event], *, repo: Path) -> Status:
+def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
     repo = Path(repo)
     intake: dict[str, Intaken] = {}
     latest: dict[str, dict] = {}   # stem -> latest state_transition body
@@ -107,11 +110,14 @@ def project(events: Iterable[Event], *, repo: Path) -> Status:
         elif last is None or last.get("to") in TERMINAL_RUN_STATES:
             ready.append(stem)
 
+    box = Box(state_dir, fs=LocalFilesystem(),
+              clock=lambda: (_ for _ in ()).throw(AssertionError("status never writes")))
+    box_messages = tuple(box.pending())
     return Status(
         unparsed=tuple(unparsed), pending=tuple(pending), in_flight=tuple(in_flight),
         ready=tuple(ready), blocked=tuple(blocked), stopped=tuple(stopped),
         merged=tuple(sorted(merged)), intake=tuple(intake[s] for s in sorted(intake)),
-        spend_usd=spend, calls=calls)
+        spend_usd=spend, calls=calls, box=box_messages)
 
 
 def render(status: Status) -> str:
@@ -131,6 +137,7 @@ def render(status: Status) -> str:
     section("stopped", (f"{s}: {t}" for s, t in status.stopped))
     section("merged", status.merged)
     section("intake", (f"{i.stem}: {i.source}, {i.state}, {i.commit[:12]}" for i in status.intake))
+    section("box", (f"{m.id}: {m.message_class}: {m.summary[:80]}" for m in status.box))
     lines.append(f"spend: ${status.spend_usd:.4f} over {status.calls} metered calls")
     return "\n".join(lines) + "\n"
 

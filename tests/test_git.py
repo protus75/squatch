@@ -105,6 +105,12 @@ async def test_rev_parse_strips_output():
     assert argv(px) == ["git", "-C", "/repo", "rev-parse", "--verify", "main"]
 
 
+async def test_git_common_dir_strips_output():
+    px, git = make([(0, ".git\n", "")])
+    assert await git.git_common_dir(REPO) == ".git"
+    assert argv(px) == ["git", "-C", "/repo", "rev-parse", "--git-common-dir"]
+
+
 async def test_diff_names_uses_three_dot_range():
     px, git = make([(0, "a.py\nb/c.py\n", "")])
     names = await git.diff_names(REPO, "main", "stem-1")
@@ -270,6 +276,7 @@ async def test_real_repo_ticket_branch_roundtrip(tmp_path):
     git = Git(SubprocessExec(), env=_git_env(tmp_path), timeout=60.0)
 
     await git.init(repo)
+    assert Path(await git.git_common_dir(repo)) == Path(".git")
     (repo / "a.txt").write_text("base\n")
     await git.add(repo, ["a.txt"])
     base = await git.commit(repo, "base")
@@ -281,6 +288,7 @@ async def test_real_repo_ticket_branch_roundtrip(tmp_path):
 
     wt = tmp_path / "worktrees" / "stem-1"
     await git.worktree_add(repo, wt, "stem-1", "main")
+    assert Path(await git.git_common_dir(wt)).resolve() == (repo / ".git").resolve()
     (wt / "b.txt").write_text("feature\n")
     (wt / "tickets" / "stem-1").mkdir(parents=True)
     (wt / "tickets" / "stem-1" / "run.md").write_text("outbox\n")

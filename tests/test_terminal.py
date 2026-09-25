@@ -427,6 +427,28 @@ async def test_harvest_failure_is_soft_and_the_worktree_is_still_wiped(
     assert not d.worktree().exists() and d.branch_exists()
 
 
+async def test_second_problem_enqueue_failure_is_a_soft_harvest_error(repo, env, monkeypatch):
+    from squatch.box import Box
+
+    def broken(self, **kwargs):
+        raise RuntimeError("box unavailable")
+
+    monkeypatch.setattr(Box, "enqueue", broken)
+    record = "".join(
+        f"## {name}\n{'ok' if name == 'Outcome' else '- adjacent bug' if name == 'Second problems filed' else ''}\n"
+        for name in ("Outcome", "Surprises / judgment calls", "Dead ends",
+                     "Second problems filed", "Resolved engine/model", "Predicted vs actual"))
+    author(repo, ticket(verify=RED))
+    d = Drive(repo, env, Agent(answer("implemented"), diagnosis(),
+                               actions=[implementer(env, WIDGET, record=record), None]))
+
+    assert await d.run() == EXIT_TICKET
+    terminal = d.transitions()[-1]
+    assert terminal["harvest"] is None
+    assert terminal["harvest_error"] == "RuntimeError: box unavailable"
+    assert not d.worktree().exists()
+
+
 async def test_a_non_ok_stem_stays_eligible_and_re_enters_on_a_fresh_run_sequence(repo, env):
     """Left in place is not parked forever: the next `run` takes the next
     run sequence and fresh keys (section 6), tearing the old branch down."""

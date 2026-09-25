@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import TextIO
 
 import squatch
+from squatch.box import BoxCorruption
 from squatch.config import ConfigError, load
 from squatch.drain import Drain
 from squatch.enginelog import EngineLog
@@ -88,11 +89,15 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
 
 def _status(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     config = _config(args, cwd)
+    state_dir = cwd / config.state_dir
     try:
-        status = project(read_events(cwd / config.state_dir), repo=cwd)
+        status = project(read_events(state_dir), repo=cwd, state_dir=state_dir)
     except JournalCorruption as e:
         raise Refusal(f"journal corruption: {e}",
                       "a corrupt record is never skipped; inspect the named segment line") from None
+    except BoxCorruption as e:
+        raise Refusal(f"box corruption: {e}",
+                      "repair or remove the named corrupt box message, then re-run `status`") from None
     out.write(render(status))
     return 0
 

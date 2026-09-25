@@ -6,7 +6,9 @@ from pathlib import Path
 from pydantic import Field
 
 from squatch.artifacts import Artifact, ClosedModel, Cost, Finding
+from squatch.box import Box, enqueue_second_problems
 from squatch.git import Git
+from squatch.redact import Redactor
 from squatch.specs import DATA_MARKER
 from squatch.tickets import TICKETS_DIR
 
@@ -33,6 +35,7 @@ class Harvest(Artifact):
     run_seq: int = Field(ge=0)
     diff_stat: str
     spool_tails: dict[str, str]
+    filed: tuple[str, ...] = ()
 
 
 def _without_diff_blocks(text: str) -> str:
@@ -61,7 +64,8 @@ def _without_diff_blocks(text: str) -> str:
 
 async def extract(*, repo: Path, state_dir: Path, git: Git, stem: str, run_seq: int,
                   worktree: Path, base: str, outcome: str, stage: str, reason: str | None,
-                  findings: list[Finding], cost: Cost, wall_seconds: float) -> Mapping[str, bytes]:
+                  findings: list[Finding], cost: Cost, wall_seconds: float,
+                  box: Box | None = None, redact: Redactor | None = None) -> Mapping[str, bytes]:
     """Return the complete closed file set for one attempt; never copy diff content."""
     spool = state_dir / "spools" / stem / str(run_seq)
     tails: dict[str, str] = {}
@@ -73,19 +77,25 @@ async def extract(*, repo: Path, state_dir: Path, git: Git, stem: str, run_seq: 
                 name = path.relative_to(spool).as_posix()
                 safe = _without_diff_blocks(path.read_text(errors="replace"))
                 tails[name] = safe[-TAIL_CHARS:]
+    run_record = worktree / TICKETS_DIR / stem / RUN_RECORD
+    if run_record.is_symlink():
+        raise ValueError("run record is a symlink")
+    filed: tuple[str, ...] = ()
+    if box is not None and run_record.is_file():
+        text = run_record.read_text()
+        filed = tuple(enqueue_second_problems(
+            box, redact(text) if redact is not None else text,
+            stem=stem, stage=stage, outcome=outcome, run_seq=run_seq))
     artifact = Harvest(
         outcome=outcome, stage=stage, reason=reason, findings=tuple(findings),
         cost=HarvestCost(usd=cost.usd, tokens=cost.tokens, provider=cost.provider,
                          model=cost.model),
         wall_seconds=wall_seconds, run_seq=run_seq,
-        diff_stat=await git.diff_stat(worktree, base), spool_tails=tails,
+        diff_stat=await git.diff_stat(worktree, base), spool_tails=tails, filed=filed,
         produced_by_spec_version="harvest-1.0", produced_at_sha=base)
     prefix = f"attempts/{run_seq}"
     files: dict[str, bytes] = {
         f"{prefix}/{HARVEST_FILE}": artifact.model_dump_json(indent=2).encode()}
-    run_record = worktree / TICKETS_DIR / stem / RUN_RECORD
-    if run_record.is_symlink():
-        raise ValueError("run record is a symlink")
     if run_record.is_file():
         files[f"{prefix}/{RUN_RECORD}"] = run_record.read_bytes()
     return files
