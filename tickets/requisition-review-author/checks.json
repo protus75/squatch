@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "12711ad5331e5933a08cbb08f856f147771e096a",
+  "produced_at_sha": "efba5192aab5fd00c348a1d10a3970257b958d05",
   "stem": "requisition-review-author",
   "branch": "requisition-review-author",
-  "base": "f63a82e53b5d85dd31c620e6a12a4c0a29fc8837",
-  "head": "12711ad5331e5933a08cbb08f856f147771e096a",
+  "base": "6c0d2cac922e9515c636df5189363d9381345048",
+  "head": "efba5192aab5fd00c348a1d10a3970257b958d05",
   "changed_files": [
     "specs/author.md",
     "squatch/author.py",
