@@ -1,0 +1,2016 @@
+# squatch -- implementation plan (seed document)
+
+Status: design plan. This file seeds a NEW, separate repository and is self-contained: every load-bearing rule, contract, and decision is stated here; implementer-owned internal schemas are delegated where marked (sections 6 and 13). Nothing depends on any other document existing. "squatch" is the project name (unique so agents never confuse this system's rules with another project's).
+
+**Two eras -- a reading rule.** Every rule below binds ONE of two systems; conflating them produces wrong builds and wrong reviews.
+
+- BOOTSTRAP era (Phases 0-2): the conductor then the continuous self-hosting drain, the NO-GO resting state; tuned for unattended forward progress under the good-enough bar. Its UNATTENDED conduct is not confined to Phases 0-2 -- it governs squatch building ITSELF and runs holds-exempt through the whole self-hosted build to Phase 6 (section 19), bounded by the section 18 safety envelope, never a per-phase `confirm`; the daemon is a component built and soak-proven in Phase 3, not a supervisor the still-building engine hands itself to.
+- DAEMON era (Phase 3+): the continuous daemon machinery, and -- once the operator CUTS OVER to running on HOST work (GO first RECORDED, the daemon started on that work via `squatch serve`) -- the supervised product carrying the full gate set.
+
+The split is contractual -- section 19's bootstrap contract is the authority. Bind every requirement, build decision, and review finding to its era before applying it:
+
+- A product supervision surface never gates squatch's own self-build (through Phase 6). Supervised-merge holds, GO-gated auto-confirm, and the phase-boundary/box draft gate govern HOST work under a recorded GO; the self-build is bounded by the section 18 safety envelope, never a `confirm`. The GO-grade eval's Author-graph check runs from a harness-local author prompt, NOT the production `specs/author.md` (a Phase 2 seed).
+- A bootstrap convenience never ships as engine code (section 0).
+
+Why: holding one era to the other era's contract is wrong by construction.
+
+## 0. Cold start (bootstrap this repo from this document)
+
+Given only this file on a Linux box, the steps below stand up the repo and the environment Phase 0 (section 19) builds into. Everything here is a ONE-TIME human bootstrap the operator runs before any agent or daemon exists, distinct from the engine's own runtime, which never shells these bootstrap conveniences (one named exception: the drain's self-upgrade re-exec through `uv run`, D1).
+
+**Prerequisites.** Two are required by the engine at runtime; the BOOTSTRAP CLI -- shipped default `claude`, retargetable per the paragraph below -- is required by the BOOTSTRAP (the conductor shells it per deliverable -- preflight-checked; a nonzero exit halts the run, never a silent skip); the rest are setup-only. Host #1 -- the operator-declared host project Phase 6 onboards (BoardGameUI in this plan's reference environment) -- is a declared setup input, not a binary: declare it here at setup or declare none. EITHER WAY Phase 6 scaffolds the committed fixture host and runs its wiring and exit reads against it (section 19); the declared host bears only on the operator's post-cutover onboarding and acceptance reads, and with none declared live onboarding simply waits at the cutover. `gh` is a convenience for repo creation ONLY -- the engine never shells it (no `gh`, no PRs in the loop; section 18, D8).
+
+The bootstrap CLI is a declared constant at the top of `bootstrap/conductor.py` (shipped default `claude`; any agent CLI with a headless prompt mode satisfies it -- for `codex`, `codex exec` with the prompt on stdin). The conductor shells that one CLI per deliverable through a single adapter row (argv shape, prompt delivery, exit-code read), and deliverable 1 authors the conduct file THAT CLI loads -- CLAUDE.md for `claude`, AGENTS.md for `codex` (section 17's curated-subset rule then runs in the opposite direction) -- so retargeting the bootstrap is a one-constant edit plus that mapping, never a rewrite of this section.
+
+| Tool | Version | Role | Required |
+|---|---|---|---|
+| Python | 3.14+ (floor; D1) | interpreter the squatch venv pins -- provided by uv, not the system | yes -- runtime |
+| git | any recent | every ref/commit op goes through `git.py` (section 10) | yes -- runtime |
+| claude | any recent, logged in | the conductor shells `claude -p` per deliverable (build + review contexts); engine runtime touches it only as a configured `cli` provider (section 6) | yes -- bootstrap |
+| uv | any recent | creates the venv and installs deps; runtime-shelled ONLY by the drain's self-upgrade re-exec (section 18, D1) | setup + one exception |
+| gh | any recent | one-command repo creation below; engine NEVER shells it | no -- convenience |
+
+Runtime deps are deliberately tiny (goal 1): stdlib (`asyncio`, `argparse`, `tomllib`, `json`) plus `PyYAML` (config parse, section 15) and `pydantic` (artifact + journal-body schema validation, section 5). Journal projections are stdlib read-time folds (D3); an analytics engine (DuckDB) is a D10 return at the first projection measured too slow as a fold. Provider SDKs are pulled per the provider layer (section 6), never hardcoded here.
+
+Verify prerequisites, then let uv provide Python (uv fetches a standalone CPython from Astral's python-build-standalone, so the system Python version is irrelevant):
+
+```bash
+git --version      || echo "install git (required)"
+command -v claude  || echo "install + log in claude (required: the conductor shells it)"
+command -v uv      || echo "install uv:  curl -LsSf https://astral.sh/uv/install.sh | sh"
+command -v gh      || echo "gh optional -- repo-create convenience only"
+uv python install 3.14   # Python comes from uv, not the system
+```
+
+Create and seed the repo -- the `python3` block extracts both `bootstrap/conductor.py` and the pointer README from this document, so neither is hand-pasted and SQUATCH_PLAN.md stays canonical:
+
+````bash
+mkdir -p ~/source/squatch && cd ~/source/squatch
+git init -b main
+mv ~/Downloads/SQUATCH_PLAN.md .            # this document
+mkdir -p bootstrap
+python3 - <<'PY'
+import re
+plan = open("SQUATCH_PLAN.md").read()
+def extract(name):                       # one minimal pattern for every embedded source
+    return re.search(r"# BEGIN_%s\n(.*?)\n# END_%s" % (name, name), plan, re.S).group(1)
+open("bootstrap/conductor.py", "w").write(extract("CONDUCTOR") + "\n")
+open("README.md", "w").write(extract("README") + "\n")
+PY
+git add README.md SQUATCH_PLAN.md bootstrap/conductor.py
+git commit -m "Seed: squatch plan + generated README + bootstrap conductor"
+````
+
+**Generated files (conductor + README).** The `python3` extractor materializes TWO files from this document's appendix (section 21) with one pattern -- the lines between a `# BEGIN_<NAME>` / `# END_<NAME>` sentinel pair, read straight from SQUATCH_PLAN.md (already on disk after the `mv`): `bootstrap/conductor.py` from `# BEGIN_CONDUCTOR` (the phase-playbook driver) and `README.md` from `# BEGIN_README` (a deliberate POINTER -- identity, read-first link to this plan, and the lifecycle run commands (bootstrap, drain, serve) -- never a parallel run-book). README.md is GENERATED, never hand-edited: a README change edits the `# BEGIN_README` block in the appendix and re-runs the same extractor. Keep both sentinel pairs intact; the extractor keys on them.
+
+Publish -- one command with gh, or the git-only path if gh is absent:
+
+```bash
+gh repo create squatch --private --source=. --remote=origin --push
+```
+
+```bash
+# git-only fallback: create an empty PRIVATE repo in the GitHub web UI first, then
+git remote add origin git@github.com:<owner>/squatch.git
+git push -u origin main
+```
+
+Environment + first build. From the seeded repo, create the venv and start Phase 0:
+
+```bash
+uv venv --python 3.14
+uv pip install pyyaml pydantic   # the non-stdlib runtime deps
+```
+
+Phase 0 formalizes these in a `uv`-managed `pyproject.toml` with `requires-python = ">=3.14"`; the manual install above only gets the first session running. Then drive the whole bootstrap -- Phase 0 then Phase 1 -- WITHOUT hand-pasting; `bootstrap/conductor.py` (seeded above) is the automation, and with no `--phase` it runs every conductor-owned phase end to end:
+
+```bash
+python3 bootstrap/conductor.py             # default: Phase 0 then Phase 1, end to end
+python3 bootstrap/conductor.py --auto      # same, unattended (no verdict pauses)
+```
+
+The conductor parses this document's Phase N prompt playbook and runs each deliverable in a FRESH `claude -p` context (a separate scoped context -- the anti-wander property -- carrying a standing preamble with the verify-in-place and file-don't-ask rules), then GATES by the prompt's own stop-condition, layered fail-closed:
+
+- The `claude` call MUST exit zero. Transient nonzero exits are retried with backoff a bounded number of times; a persisting failure (a dead or unauthenticated CLI) halts, never a phantom completion.
+- The playbook item's `expects:` files MUST exist on disk (the agent-did-nothing check).
+- The conductor re-runs `uv run pytest` itself, never trusting the agent's claim.
+- A SECOND fresh context adversarially reviews the uncommitted diff, failing ONLY the good-enough bar's spine-breaking classes (section 19): state corruption, deadlock or permanent stall, secret exposure, false-green verification (tests that mirror the implementation instead of pinning behavior). A blocking finding must be REPRODUCIBLE, must attach to the CURRENT deliverable's diff (never pre-existing code or later-phase scope), and the finding set FREEZES after buying exactly one bounded reimplementation pass -- a reviewer that raises a new blocking objection each pass is the churn failure mode, and its later findings are advisory. Every other finding is appended to `bootstrap/suggestions.md`, never a halt. The same admissibility bounds apply to the pipeline's `correctness_review` REJECT from the day it exists (section 7): a bare unstructurable verdict, a pre-existing-defect complaint, or a scope-expanding demand does not block.
+- Gate findings (red suite or spine-class review fail) are fed back up to twice before halting for the operator -- both rounds servicing the FROZEN first-pass blocking set per the freeze law above; a new blocking objection raised on a later pass files to `bootstrap/suggestions.md` instead of halting.
+
+A real-model deliverable (its exit is a recorded verdict, not a green suite -- Phase 1 prompts 2 and 9) runs, commits on journal evidence, then pauses for the operator to read the verdict (`--auto` continues without pausing). A bootstrap run records at most NO-GO -- the GO-grade baseline is a Phase 6 deliverable run immediately before cutover, where GO is first read (section 19) -- leaving daemon-era machine authoring supervised until GO is recorded; the bootstrap drain itself never holds (section 19).
+
+The single cold-start paste above is the ONLY hand-paste; from here the conductor drives every deliverable. It is section-0 bootstrap tooling, never engine code (D1 governs the engine, not these cold-start conveniences), and it retires once the Phase 1 walking skeleton lands and squatch runs its own tickets. Phases 0-1 are built by the conductor, not by squatch itself.
+
+Automation is the default, in three rungs: no `--phase` runs every conductor-owned phase (0 then 1); `--phase N` runs one phase; `--phase N --deliverable K` runs exactly that one deliverable and stops. Coarser rungs run the finer one in order, gating each the same way, and compose through `bootstrap/state.json`. A deliverable that persistently exceeds its fix attempts halts naming that finest rung: the paved road is narrowing or splitting ITS playbook prompt in this document, then re-running exactly that deliverable -- never hand-pasting, never restarting the phase.
+
+**First session (VSCode + Claude Code).** After cold start the repo holds this document, the README, and `bootstrap/conductor.py` -- no engine code. The operator does NOT hand-paste the build (the cold-start paste above is the only one). Why: pasting the whole plan and saying "go" is the wander trap the conductor exists to avoid -- each deliverable gets a fresh, scoped `claude -p` context instead.
+
+- Open the repo (`code ~/source/squatch`); approve permissions once (`/permissions`) to watch in the panel, but the conductor invokes `claude -p` headless, so no panel interaction is required.
+- Create the venv and deps (above), then run `python3 bootstrap/conductor.py` (no `--phase` runs Phase 0 then Phase 1 end to end; `--phase 0` runs just Phase 0; `--phase 0 --deliverable K` just that one step). It walks each phase's prompt playbook deliverable by deliverable: a fresh context per prompt, the layered gate above, a commit per green deliverable, a halt on red. Deliverable 1 authors the seed conduct file (CLAUDE.md, section 17; AGENTS.md waits for the first deliverable that routes a non-Claude agent CLI); once CLAUDE.md lands every later `claude -p` auto-loads it.
+- The default run continues into Phase 1 (the walking skeleton) after Phase 0; `--phase 1` runs it alone. Two of its deliverables are real-model runs whose exit is a recorded verdict, not a green suite (the catastrophic-NO-GO spike and the first real ticket merge); the conductor runs them, then pauses for the operator to read the verdict before continuing (`--auto` skips the pause; GO itself is not earnable during the bootstrap -- the GO-grade baseline is a Phase 6 deliverable at cutover, section 19). Export the provider key first (see the Phase 1 prereqs below).
+- Re-running over existing work is expected, not an error. The gates check outputs, not authorship, so the conductor cannot tell a deliverable it just built from one an earlier lineage already committed; a deliverable whose output is already present is VERIFIED in place (the conductor's standing preamble carries that instruction into every context) and `commit()` no-ops on the clean tree. Progress lives in `bootstrap/state.json`; a re-seed can leave it desynced from the tree (state says done N while the code is further along), which self-heals as the run advances. To restart a phase clean, delete `bootstrap/state.json`.
+- A deliverable that notices an out-of-scope problem appends it to `bootstrap/suggestions.md` (the pre-Phase-2 stand-in for the Suggestion Box, section 11) and moves on -- it never stops to ASK, because a pytest-gated step does not pause and the question would be lost. The stand-in has a consumer: the Phase 2 Suggestion Box deliverable ingests this file as the box's first messages and retires it (section 19).
+- The conductor's final Phase 1 deliverables -- the prompt 14-17 handoff, four seed batches -- author Phase 2's tickets (specs only) into a seeded queue, then it retires. After that the loop flips: the operator runs ONE `squatch drain` and squatch builds Phase 2 AND every later phase through its own pipeline -- each phase's last ticket seeds the next as `confirmed` INTO the same running drain, which carries the whole self-build to quiescence with no per-phase re-run (section 19).
+
+**Phase 0 prompt playbook.** These are the conductor's input -- parsed in order from this section by `bootstrap/conductor.py --phase 0`, not hand-pasted. The conductor runs each in a fresh `claude -p` context, re-runs `uv run pytest` as the gate, and commits per deliverable (halting on red). Each assumes CLAUDE.md is loaded (deliverable 1 authors it). Prompt 1 is the seed-files step; 2-11 build Phase 0 to its exit gate (section 19). Keep every block's format intact -- an "N -- Title:" line, then an "expects:" line naming the space-separated files whose on-disk existence the conductor verifies after the run -- EVERY source file the deliverable creates, its production modules as well as its tests, so the check covers every output and no created module is left undeclared and unowned (`-` waives the check for journal-gated deliverables), then one fenced prompt -- because the conductor parses exactly that shape.
+
+1 -- Seed conduct file (CLAUDE.md):
+expects: CLAUDE.md
+
+```
+Read SQUATCH_PLAN.md section 17 plus the design law in sections 2-3. Author the root
+CLAUDE.md exactly per section 17: a 3-5 line
+identity block (what squatch is, engine plane vs host plane), ONE read-first pointer
+to SQUATCH_PLAN.md, seed rule sets A and B as terse behavioral rules, hard cap
+<= 120 lines. Do NOT author AGENTS.md: every bootstrap context is claude -p,
+which loads CLAUDE.md -- the AGENTS.md curated subset is authored per section 17
+by whichever deliverable first routes a non-Claude agent CLI. Write
+no engine code. Stop when CLAUDE.md exists so I can review.
+```
+
+2 -- Project scaffold:
+expects: pyproject.toml uv.lock .gitignore squatch/__init__.py tests/test_scaffold.py
+
+```
+Set up the project skeleton per SQUATCH_PLAN.md (design law sections 2-3, D1 pure
+Python, Phase 0 in section 19). Create a uv-managed pyproject.toml with
+requires-python = ">=3.14", runtime deps pyyaml and pydantic (the full
+section 0 runtime set), dev deps pytest and
+pytest-asyncio; a squatch/ package plus tests/ dir; a .gitignore covering .venv/,
+__pycache__/, and .squatch/ (the instance state dir: journal, spools, worktrees;
+sections 10, 15).
+Ship the project's first test (tests/test_scaffold.py) proving the harness:
+the squatch package imports, and pyproject.toml parses (tomllib) with
+requires-python ">=3.14" and the declared runtime deps -- enough that the suite
+is green and every later pytest gate runs on a proven harness.
+No other engine logic yet. Commit uv.lock
+(this is an app -- pin it for reproducible sync). No kernel logic yet. Verify uv
+run pytest is green, then stop.
+```
+
+3 -- journal.py (TDD):
+expects: squatch/journal.py tests/test_journal.py
+
+```
+Implement squatch/journal.py per SQUATCH_PLAN.md (D3 and the Phase 0 kernel list in
+section 19): segmented append-only JSONL under the host state dir (the
+segmented journal/ layout and ordered segment naming, section 6 -- but NO roll
+trigger: size/age rotation and its roll test are a Phase 3 seed with the
+daemon, rotation's first retention consumer), glob-ordered read across
+segments, write-ahead fsync, torn-tail
+tolerance (a truncated final line is skipped on read, not fatal), the pinned
+`ts` rendering (section 6). TDD: write
+tests/test_journal.py first, including one that reads every event back in
+order across MULTIPLE pre-seeded segments (glob-ordered read is layout
+behavior, not roll behavior), and one that appends a torn final line and
+still reads the rest. Pure stdlib only. Stop when uv run pytest is green.
+```
+
+4 -- effects.py (once-semantics):
+expects: squatch/effects.py tests/test_effects.py
+
+```
+Implement squatch/effects.py per SQUATCH_PLAN.md (mechanical-sandwich in section 2, the
+Phase 0 list in section 19): an effect wrapper that journals intent, executes
+once, journals the result, and on replay returns the recorded result instead of
+re-executing. Use the injectable seams (clock, process-exec, filesystem) as
+Protocols so tests drive fakes. TDD tests/test_effects.py first: once-semantics is completion-keyed per
+section 6 -- an effect whose key already has a completed event is not
+re-executed on restart (a crash AFTER the completion is journaled does not
+double-execute, and replay returns the recorded result). The intent-only
+crash window (intent journaled, completion not yet) is closed by Phase-1
+reconcile-on-entry (section 11), NOT the Phase-0 primitive, so do not build
+intent-suppression into the primitive. Stop when uv run pytest is
+green.
+```
+
+5 -- git.py:
+expects: squatch/git.py squatch/seams.py tests/test_git.py
+
+```
+Implement squatch/git.py per SQUATCH_PLAN.md section 10 and D1: every git call through
+argv lists (no shell, no string assembly), dir-pinned with git -C <dir>. Cover
+the ops Phase 1 needs (init, status, rev-parse, add, commit, branch, worktree
+add/remove/prune, rebase, merge --squash, and describe --tags --always --dirty
+for the section-6 lockfile identity) as thin typed wrappers over the
+process-exec seam. Worktree cleanup is worktree remove + prune, never rm -rf. TDD
+tests/test_git.py against a fake process-exec seam plus one test against a real
+temp repo. Stop when uv run pytest is green.
+```
+
+6 -- Lockfile guard:
+expects: squatch/lockfile.py tests/test_lockfile.py
+
+```
+Implement the single-writer lockfile guard (squatch/lockfile.py) per SQUATCH_PLAN.md
+(D2, sections 6 and 15): one advisory flock per project checkout carrying
+instance identity, acquired before any write, refused if already held, and
+RELEASABLE by the holder -- the drain's self-upgrade handoff releases it
+before spawning its child (section 18). TDD tests/test_lockfile.py first,
+including lock-contention-refused and release-then-reacquire. Stop when uv
+run pytest is green.
+```
+
+7 -- config loader:
+expects: squatch/config.py tests/test_config.py
+
+```
+Implement the config loader (squatch/config.py) per SQUATCH_PLAN.md section 15: parse
+config.yaml at the
+checkout root (or --config path) with PyYAML safe_load, validate fail-closed
+against the top-level schema in section 15, enforce the schema_version handshake
+(refuse a NEWER schema_version, accept equal; refuse an OLDER one with a paved
+road naming migrate-config -- migration is explicit per section 15, the verb
+itself Phase 6's), and emit precise errors naming the
+bad key. TDD tests/test_config.py first: valid config, missing required key, and
+newer plus older schema_version
+all covered. Stop when uv run pytest is green.
+```
+
+8 -- Artifact models + Gate runner:
+expects: squatch/artifacts.py squatch/gates.py tests/test_gates.py
+
+```
+Implement the Artifact models and StageResult/Outcome types (squatch/artifacts.py),
+and the Gate protocol +
+runner + gate-lint (squatch/gates.py) per SQUATCH_PLAN.md sections 5 and 7 and the
+Phase 0 list in
+section 19. Gates are a closed protocol; every gate finding ships a paved-road
+message, and gate-lint FAILS a gate that lacks one. Prove the machinery with a
+gate-lint test over a stub gate (the first real content gate arrives with a
+Phase 1 deliverable that earns it). The runner applies hard/soft severity from
+review.gate_severity (invariant 3); with no config loaded in Phase 0 it
+defaults to the shipped all-hard map (every v1 hard-set code hard at merge,
+section 15). TDD tests/test_gates.py first, including
+gate-lint rejecting a
+paved-road-less gate. Stop when uv run pytest is green.
+```
+
+9 -- LLM interface (fake) + stage driver:
+expects: squatch/llm.py squatch/driver.py squatch/enginelog.py squatch/redact.py tests/test_driver.py
+
+```
+Implement the LLM interface with a scripted fake (squatch/llm.py), and the one
+LLM-stage driver (squatch/driver.py)
+per SQUATCH_PLAN.md section 5 (invariant 2) and section 6. The driver renders the
+prompt, writes it to the attempt spool BEFORE the call (a call that raises or
+hangs must leave the sent prompt on disk), calls the LLM seam, captures each
+attempt to the spool, writes
+structured events to the engine log (never the journal), and runs every captured
+stream through the redaction seam scrubbing configured secret VALUES before
+persisting. Per invariant 2 the driver then validates the emitted artifact and
+runs the stage's gates, feeding a hard-gate failure back as an in-stage
+re-prompt on the SAME workspace bounded by the retry cap (section 11.1, shipped
+default 6 from caps.retry); Phase 0 exercises this loop with the echo stage's
+empty gate list. The fake returns scripted responses for deterministic tests. TDD
+tests/test_driver.py first, including a secret value that must not appear in any
+spooled/logged output. Stop when uv run pytest is green.
+```
+
+10 -- spec renderer + spec lint:
+expects: squatch/specs.py tests/test_specs.py
+
+```
+Implement the spec renderer + spec lint (squatch/specs.py) per SQUATCH_PLAN.md
+section 8. The renderer keeps untrusted host content in
+the DATA channel, never the instruction channel; spec lint fails a spec that
+folds data into instructions. The renderer also owns the `Plan contract`
+resolver (section 13): a ticket's numeric plan-section ids resolve verbatim
+against SQUATCH_PLAN.md's `## N.` headings, deduplicated, injected as the sole
+channel for plan bytes -- an unresolvable id is a fail-closed refusal. TDD
+the renderer + lint (tests/test_specs.py), including a lint failure on a spec
+that renders injected content outside the data-block form, a `Plan contract`
+id that resolves to its section's bytes exactly once when cited twice, and an
+unknown section id refused. Stop when uv run pytest is green.
+```
+
+11 -- Phase 0 exit gate:
+expects: tests/test_echo_stage.py tests/test_fault_injection.py
+
+```
+Wire the Phase 0 exit gate per SQUATCH_PLAN.md section 19. Build a toy echo stage
+(tests/test_echo_stage.py):
+consumes a stub artifact, emits one, running end-to-end under
+the LLM-stage driver with the fake LLM. Then build the crash-point / fault-
+injection harness (tests/test_fault_injection.py) over the state layer (journal +
+effects) that induces crashes
+at each write point and asserts torn-tail tolerance and effect once-semantics.
+Phase 0 is done when the echo stage runs green end-to-end AND the fault harness
+passes. Stop when uv run pytest is green.
+```
+
+**Phase 1 prompt playbook.** Same conductor as Phase 0 -- `bootstrap/conductor.py --phase 1` parses and runs these in order, gating and committing per deliverable -- with two differences. Phase 1 is FIRST real-model contact (a real provider key enters, key-scoped; see the operator prereqs below), and per the section 19 ordering exception the review-baseline eval runs FIRST, before the walking skeleton, because a NO-GO verdict is cheapest to find before the kernel is wrapped in a pipeline. Prompts 1-2 stand up real-model review and run the catastrophic-NO-GO spike; 3-8 build the walking skeleton; 9 is the exit gate; 10-17 are the handoff, one independently-gated deliverable per subsystem -- reconcile-on-entry (10); the `drain` verb's dispatch loop and park/retry accounting (11); the findings-fed re-entry rendering (12); the self-upgrade re-exec and premise park (13); and the seeded Phase 2 queue as four batches (14 caps+harvest, 15 diagnosis+its eval, 16 box+ladder+triage, 17 Author+requisition_review+battery+auditor+exit seed), the conductor's final acts -- no handoff prompt bundles two independently-testable subsystems into one coding context. Prompts 2 and 9 are the real-model deliverables (exit is a recorded verdict / a merged ticket, not a green suite) -- the conductor runs them, then pauses for the operator to read the verdict before continuing (`--auto` skips the pause). After 17 the queue is seeded and the loop flips: the operator runs ONE `squatch drain` that carries Phase 2 and every later phase to quiescence (section 19), each phase's final ticket seeding the next into the same running drain, and the conductor is retired.
+
+**Phase 1 prerequisites (operator, before `--phase 1`).** Phase 1 adds one runtime dependency section 0 did not need -- a reachable model provider -- since Phase 0 ran the scripted fake. Before running `--phase 1`, and required by prompt 2's live run: pick the provider set and each provider's access `kind` (`api` or `cli` -- they degrade differently, section 6); make each reachable (an `api` SDK pulled into the venv, a `cli` agent binary on PATH behind its argv wrapper, D1); export the key under the env-var NAME the config provider registry declares in `auth`, never a literal secret in any file (an `api`-keyed provider; a `cli` provider on ambient CLI login declares no `auth` and needs no export -- sections 6, 15); record the chosen per-tier model ids -- each provider's `models_by_tier` values and the strongest-model pin REVIEW takes at every tier -- where prompt 1's authoring agent can read them (a setup note, or a pre-authored `providers:` block in config.yaml that prompt 1 then treats as operator-owned truth), so the authored config carries operator-chosen ids, never agent guesswork; and set each no-usage `cli` provider's `limits.est_cost_per_call_usd` (recommended 1.00 USD for a flat-subscription agent CLI whose stream reports no cost, e.g. codex -- section 6). Pinning the (provider, model) rows for REVIEW and AUTHOR is part of the config.yaml prompt 1 AUTHORS (no earlier deliverable creates the instance config); switching later is a config edit, never a ticket edit. If prompt 1 finds NO operator-provided values (no setup note, no pre-authored `providers:` block), it does not guess and does not halt: it authors every operator-owned value as the literal placeholder `OPERATOR-SETS-THIS` (model ids, `auth` env-var names, `est_cost_per_call_usd`) -- schema-valid, so every offline deliverable builds and tests -- and the provider layer REFUSES a live call whose resolved row still carries a placeholder, a config/setup refusal naming this prerequisite (section 6; fail-closed: a placeholder can never reach a model, and inventing a real-looking value is the guesswork this paragraph bans).
+
+1 -- Provider layer + real LLM adapter (first real-model contact):
+expects: squatch/providers.py config.yaml tests/test_providers.py
+
+```
+Implement the provider layer (squatch/providers.py) per SQUATCH_PLAN.md section 19
+(Phase 1) and section 6:
+a provider registry, routing parse (validation includes the
+implement-requires-cli rule, section 6), and the FIRST routed candidate only, with
+key-scoped injection (a surface's key reaches only the call that needs it, never
+the wider process). Add a real client implementing the Phase 0 LLM
+interface behind the routing. The engine ships one `cli` provider adapter per
+agent CLI it can drive -- from the start, `claude` AND `codex` -- over a shared
+base that owns the write-grant derivation, the redaction of both sinks, and the
+cost floor (the trust boundary, so it lives ONCE, never a copy per adapter).
+Each adapter is its own argv contract and event-stream parse: `claude` via
+`-p --output-format stream-json` (model via `--model <model>`; effort has no
+claude flag, so it is recorded in provenance only; write grant
+`--permission-mode bypassPermissions`
+for implement, the literal read-tool allowlist `--allowedTools Read Grep Glob LS`
+elsewhere; text/usage/cost from the terminal
+`result` event); `codex` via `exec --json` (model via `-m <model>`, effort via
+`-c model_reasoning_effort=<effort>`; write grant
+`--dangerously-bypass-approvals-and-sandbox` for implement, `--sandbox read-only`
++ `approval_policy=never` elsewhere; the prompt on stdin via a trailing `-`; text
+from the last `agent_message` item, usage from `turn.completed`, NO cost reported
+so the declared flat estimate charges, and a `turn.failed`/`error` event is the
+failure signal BECAUSE codex exits 0 even on a failed turn). TDD each adapter's
+LIVE contract against a scripted fake subprocess (section 6):
+the per-surface write-grant allowlist reaches the invocation, the invocation
+runs in the passed worktree, and usage/cost is parsed from the event stream
+-- a client that omits the write grant must fail THIS suite, never surface
+for the first time at the first real ticket. AUTHOR the instance's config.yaml at the checkout
+root IF IT IS ABSENT (no earlier deliverable creates it); config.yaml is
+HOST-PLANE (section 15), so an existing one is operator-owned truth this
+deliverable READS for its routing and never overwrites: schema_version, state_dir
+.squatch/state, the provider registry, and routing rows for the REVIEW, AUTHOR,
+and IMPLEMENT surfaces at EVERY tier of the closed low|medium|high|max scale --
+route IMPLEMENT to codex and AUTHOR to claude, each naming only its provider and
+inheriting models_by_tier[tier] (section 6) so it scales with the ticket's
+agent_tier with no per-row model, and REVIEW to claude pinned to its strongest
+model at every tier. Routing review to a different provider or model than the
+implementer is the PREFERRED diversity setting (section 6), never a hard gate:
+the only hard requirement is that review runs in a SEPARATE session from
+implement (the driver enforces it), so same-model-different-session is allowed
+and the operator may route implement to any model (a config edit). The IMPLEMENT
+rows pin a kind: cli
+provider (the implement-requires-cli rule fails the config at load otherwise,
+section 6). All
+four tiers are declared so a seed authored at any agent_tier (section 13)
+resolves to a route, never a routing hole that terminals infra_error and PARKS
+the drain on an operator config edit -- a stop the bootstrap contract forbids
+(section 19); shipped defaults may stand elsewhere. Parse ONLY limits.est_cost_per_call_usd from the limits block
+(cost stamping needs it, section 6); the rest of limits is Phase 3's to
+parse and enforce. If any routing row pins a non-Claude agent CLI, author
+AGENTS.md (the section 17 curated subset) in this same deliverable AND reconcile
+CLAUDE.md's note that AGENTS.md now exists (a both-files change, section 17) --
+the first non-Claude context must start with conduct rules.
+TDD the registry + routing parse and key-scoping against
+fakes (tests/test_providers.py); keep the suite offline -- no real call in uv run
+pytest. Stop when uv run
+pytest is green.
+```
+
+2 -- Review-baseline eval: fixtures + harness (the catastrophic-NO-GO spike):
+expects: specs/review.md eval/harness.py eval/fixtures
+
+```
+Build the review-baseline eval per SQUATCH_PLAN.md section 19 (Phase 1 exit) -- run
+it now, before the walking skeleton. First author specs/review.md (the REVIEW
+prompt-spec, section 8) if absent -- the SAME spec prompt 6 later wires
+unchanged, so the baseline measures the spec the skeleton will run. Commit
+eval/fixtures/<name>/ with 15-20
+planted defects spanning logic, hidden-info leak, acceptance mismatch, and scope
+escape; each fixture dir holds diff.patch (the planted diff) and expected.json
+carrying the expected verdict, the defect-class tag, and the author identity
+(provider, model, tier) -- authored via a (provider, model) DIFFERENT from the one routed to
+REVIEW (at minimum a different tier), the fixture-author identity recorded in
+the baseline signal: same-family fixtures share the reviewer's blind spots and
+inflate the catch rate (section 6). Implement eval/harness.py: drive
+specs/review.md over each fixture
+through the provider layer and score catch rate and known-bad false-approve.
+Record the run as a journal signal event carrying the baselined identity -- the
+resolved (provider, model) rows serving REVIEW and AUTHOR at every tier the eval
+exercised, plus those surfaces' spec-major versions -- and the verdict. The
+scored run records NO-GO, the only verdict this spike can support: it is
+catastrophic-NO-GO detection -- a reviewer that misses gross planted defects is
+cheapest to find now, before the kernel is wrapped in a pipeline -- not GO
+grading, which needs the >= 50-fixture set and the operator's Author-graph
+judgment and is a Phase 6 deliverable run immediately before cutover, where GO
+is first read (section 19; section 13 touchpoint 7). NO-GO is a designed state
+(section 12 supervised mode; the bootstrap drain is exempt, section 19), not a
+blocker. Do not discard the harness or fixtures -- they are the base the
+Phase 6 GO-grade baseline extends. This is a real-model run: stop when the eval
+records a verdict.
+```
+
+3 -- LLM call as effect:
+expects: squatch/llmeffect.py tests/test_llm_effect.py
+
+```
+Move the LLM call behind the @effect wrapper per SQUATCH_PLAN.md section 19 (Phase 1)
+and the effects contract in section 2: idempotency key ticket+run_seq+surface+
+attempt+call_seq -- run_seq derived per section 6 as the count of the stem's
+prior terminal events -- a cost-event journaled per call, and replay returning
+the recorded result instead of re-calling (the Phase 0 driver called the seam
+directly -- this replaces that path). TDD tests/test_llm_effect.py with the
+scripted fake: a replay that does NOT re-call,
+and exactly one cost-event per call. Stop when uv run pytest is green.
+```
+
+4 -- Ticket contract + runner intake:
+expects: squatch/tickets.py tests/test_tickets.py
+
+```
+Implement the ticket contract and runner intake (squatch/tickets.py) per
+SQUATCH_PLAN.md section 13 and
+section 19 (Phase 1). Ticket frontmatter carries only fields the scheduler, a
+gate, or the authoring/triage policy reads; ordering lives in depends and
+priority, never prose. Runner intake: at invocation, validate pending hand-
+authored ticket FILES and ticket-plane-commit them, standing in for the Phase 3
+watcher. Intake lint enforces the full section 13 grammar, including the
+`Plan contract` section-id form and `Context`'s structural refusal of the
+plan file itself. TDD tests/test_tickets.py: a valid ticket validates and
+commits; a bad-schema ticket is refused with a paved-road message; a ticket
+citing SQUATCH_PLAN.md in `Context` is refused naming the `Plan contract` road;
+a `Plan contract` bullet with an unresolvable section id is refused. Stop
+when uv run pytest is green.
+```
+
+5 -- CLI verbs: status, new, run <stem>:
+expects: squatch/__main__.py squatch/status.py squatch/runner.py tests/test_cli.py
+
+```
+Implement the CLI verbs per SQUATCH_PLAN.md section 18 and section 19 (Phase 1):
+status projects current state from the journal (a projection, never
+authoritative); new authors a ticket file; run <stem> drives one ticket through
+intake + the single-writer lockfile + the stage-dispatch seam, in the single
+process holding the lock -- the stages and merge behind that seam are prompts
+6-7's deliverables, so dispatch reaching the seam with the locked, validated
+stem IS the tested behavior here (a scripted fake stands in). Expose the
+verbs through a `python -m squatch` module entry (squatch/__main__.py); keep the project
+virtual (no console script until the release path, section 13 touchpoint 6). TDD
+tests/test_cli.py against a temp checkout, including run refused when the
+lockfile is already held and run provably dispatching the locked stem to the
+stage seam.
+Stop when uv run pytest is green.
+```
+
+6 -- Stages: Implement / Check / Review:
+expects: squatch/stages.py specs/implement.md tests/test_stages.py
+
+```
+Build the Implement, Check, and Review stages (squatch/stages.py;
+specs/implement.md) per SQUATCH_PLAN.md sections 4
+and 5 and section 19 (Phase 1), as prompt-specs run through the LLM-stage driver,
+single worker, full artifacts + provenance per stage. Review WIRES the existing
+specs/review.md from prompt 2 UNCHANGED -- a spec-major rewrite here silently
+drifts the just-recorded baseline identity (section 19). The live pipeline runs
+IMPLEMENT-onward on one hand-authored ticket. Do NOT build the Author stage or
+specs/author.md: nothing in Phase 1 executes them -- their machine input, the
+triaged Suggestion Box, does not exist until Phase 2 -- so they are a seeded
+Phase 2 ticket beside the triage consumer that feeds them (prompts 16-17). TDD
+tests/test_stages.py: the stage
+transitions with the scripted
+fake. Stop when uv run pytest is green.
+```
+
+7 -- Merge: hard gate set + single-admission:
+expects: squatch/merge.py tests/test_merge.py
+
+```
+Implement MERGE (squatch/merge.py) per SQUATCH_PLAN.md section 9, section 10, and
+section 19 (Phase 1):
+the v1 hard gate set MINUS the bug gate (kind: bug, the ## Regression grammar,
+and the merge-base overlay defer to the Phase 6 report inbox, their first
+bug-intake consumer -- sections 7, 19), then a synchronous single-admission
+merge -- ticket-plane restore (git restore of tickets/** to main's content,
+section 9), rebase
+onto main, mechanical hard-set re-run, pinned-approval check, squash + trailers,
+and journal the admission's state_transition with body to: merged through the
+Journal seam (the promoted envelope field, section 6 -- D3 reconcile and the
+prompt 9 gate both key on it).
+Both writer lanes (squash-merge to main + ticket-plane commits) run inline in the
+one CLI process under the single-writer lockfile; the dedicated serial merge task,
+red-streak pause, and tree-hash assert are Phase 3. All git through git.py. TDD
+tests/test_merge.py against a temp repo: a passing ticket merges with trailers; a
+failing hard gate
+blocks admission. Stop when uv run pytest is green.
+```
+
+8 -- Non-ok terminal:
+expects: tests/test_terminal.py
+
+```
+Implement non-ok terminal handling per SQUATCH_PLAN.md section 11 and section 19
+(Phase 1): a non-ok terminal -- a spent cap or any non-ok terminal state --
+journals its state transition and exits 1 (the section 18 exit-code contract:
+1 = a ticket outcome, 2 = an engine-plane refusal), leaving the ticket and branch in
+place. Retry, diagnosis, and auto-harvest arrive with the Phase 2 spine, so build
+none of them here (the reject-findings re-entry RENDERING ships with the
+prompt 11-12 drain pair, section 11.2). TDD tests/test_terminal.py: a stage returning non-ok leaves
+branch + ticket intact,
+journals the transition, and the process exits 1 (an engine-plane refusal exits 2 --
+section 18's exit-code contract). Stop when uv run pytest is
+green.
+```
+
+9 -- Phase 1 exit gate:
+expects: -
+
+```
+Drive the Phase 1 exit per SQUATCH_PLAN.md section 19. Author ONE real ticket and run
+it IMPLEMENT-onward to a local merge on main -- single worker, real model,
+complete artifacts + provenance events, both writer lanes inline (`run <stem>`,
+operator-invoked, is itself the supervised-merge go-ahead, section 12). The
+prompt 2 baseline record STANDS as the bootstrap-era record -- do NOT re-run
+the harness here: its outcome changes nothing the bootstrap does (the drain
+is exempt, section 19), the section 12 policy reads identity at read time so
+prompt 6's wired specs already resolve any drift to supervised mode, and the
+GO-grade baseline is earned immediately before cutover, where GO is first read
+(the Phase 6 deliverable; section 13 touchpoint 7). Phase 1 is done when the real ticket is merged
+with complete artifacts and events. After this, squatch consumes its own
+tickets -- stop hand-prompting and start authoring tickets.
+```
+
+10 -- Reconcile-on-entry (reap orphaned in-flight runs):
+expects: squatch/reconcile.py tests/test_reconcile.py
+
+```
+Implement reconcile-on-entry per SQUATCH_PLAN.md section 11 and section 19 (Phase 1):
+when a `run`/`drain` scaffold acquires the single-writer lockfile, BEFORE it
+dispatches, reap any orphaned in-flight run an interrupted predecessor left -- a
+ticket the journal shows `running` with no terminal transition, or an
+`effect_intent` with no matching `effect_completion`. The scaffold holds the sole
+writer lock and no daemon exists, so such a run is provably dead. Reap is
+fail-closed and minimal here: journal an `abandoned` terminal state_transition for
+each orphaned ticket (never hand-edit the journal -- APPEND through the Journal
+seam) and remove its orphan worktree via git worktree remove + prune through
+git.py (never bare rm -rf). This is the foreground form of the Phase 3
+restart-reconcile; auto-harvest of the orphan (section 11.2) folds in with the
+Phase 2 spine, not here -- build no harvest. TDD tests/test_reconcile.py against a
+temp checkout: a journal
+with a `running` and no terminal is reconciled to `abandoned` and its worktree
+removed on the next `run`/`drain`; a clean journal is a no-op. Stop when uv run
+pytest is green.
+```
+
+11 -- Drain verb (run the ready queue: dispatch, park, retry accounting):
+expects: squatch/drain.py tests/test_drain.py
+
+```
+Implement the `drain` verb per SQUATCH_PLAN.md section 18 and section 19 (Phase 1):
+drive every ELIGIBLE ticket -- validated, committed, depends satisfied, not
+blocked -- through the same path as `run <stem>`, one at a time in the single
+process holding the single-writer lockfile, in `depends`-constrained
+(priority, age) order, to QUIESCENCE: a non-ok ticket terminal PARKS that stem and the drain continues;
+a merge landed mid-invocation satisfies depends edges in the same invocation;
+at quiescence -- nothing eligible and unparked -- each parked stem whose
+`retry` cap (section 11.1) still holds budget is RE-OFFERED, one retry unit
+drawn per re-offer, each draw journaled as a `cap_consumed` event and
+remaining budget derived from the journal at entry (a LIFETIME budget per
+stem, never an in-memory counter -- section 11.2), eligible work always
+running ahead of re-offers, and
+quiescence re-evaluated after every re-offer merge so unblocked dependents run
+in the same invocation. After EVERY merge, RE-SCAN the committed tickets dir, so
+a ticket authored or confirmed DURING the invocation -- a seeding ticket's
+output committed to main via the ticket-plane lane -- becomes eligible in the
+SAME invocation (section 18's true quiescence, tickets-dir half ONLY; the
+Suggestion-Box re-consume is the Phase 2 box consumer's job, NOT this verb's).
+The drain ends when nothing is eligible, unparked, re-offerable, or newly
+authored, reporting every still-parked red with its findings. Two config bounds
+(section 15, the `drain:` block) stop an unattended drain short of quiescence:
+the overall wall-clock ceiling `config.drain.max_runtime_hours` -- on trip,
+admit no NEW ticket, let the in-flight one reach its stage terminal, journal the
+halt, report progress, and name the continuing `squatch drain` (a runaway
+backstop, distinct from a quiescence stop, never a mid-stage kill); and the
+per-ticket ceiling `config.drain.max_ticket_minutes` -- a ticket whose authored
+`Time budget` stuck exceeds it PARKS at dispatch with a paved road (lower the
+budget), never running. The reject-findings re-entry RENDERING is prompt 12's
+deliverable, completed BEFORE this drain ever runs a seeded queue (section
+11.2's re-entry-ships-with-the-drain law binds the 11-12 pair): leave the
+render call as a seam here and build no folding logic. Engine-plane
+refusals (lock contention, journal corruption, config/setup refusals) still
+stop the drain. Fail closed:
+an empty ready set is reported, not an error; a depends cycle is refused with a
+paved road; no ticket runs before the tickets it depends on have merged. This is
+the foreground precursor to the Phase 3 daemon's dispatch loop --
+build no async, no worker pool, no queue persistence. The self-upgrade
+re-exec and the premise_failed park are prompt 13's deliverable: leave the
+re-exec trigger as a called seam here and build neither. TDD tests/test_drain.py
+against a temp checkout:
+two tickets with a depends edge run parent-first; two equal-priority stems with
+distinct authoring-clock events dispatch older-first, and a stem with no
+authoring event sorts after any stem with one (section 9's age term); a red
+INDEPENDENT first ticket
+parks and the second still runs, the red reported at the end; a ticket red on
+its first attempt and green on its re-offer merges in the SAME invocation,
+exactly one retry unit drawn, and a dependent blocked only on it runs in that
+same invocation; a stem whose retry cap is spent stays parked and
+is reported, never re-offered; a retry unit drawn in one invocation is still
+spent in the NEXT invocation -- budget re-derived from the journal by counting
+retry-NAMED `cap_consumed` events (never all caps, so a later cap in the
+vocabulary never perturbs a retry-budget assertion -- section 11.2), never
+carried in memory; a child whose
+parent merges mid-invocation runs in the same invocation; a ticket committed to
+the tickets dir DURING the invocation (a running ticket's ticket-plane commit of
+a new `confirmed` stem) runs in the SAME invocation with no re-run; a fake clock
+advanced past `max_runtime_hours` stops the NEXT dispatch, names the ceiling in
+the report distinct from quiescence, and leaves the in-flight stage
+un-interrupted; a ticket whose `Time budget` stuck exceeds `max_ticket_minutes`
+parks at dispatch with its paved road and never runs; an empty queue
+reports and exits zero, quiescence with parked reds still exits zero, and a
+ceiling halt exits 1 (the section 18 exit-code contract). Stop when
+uv run pytest is green.
+```
+
+12 -- Reject-findings re-entry (findings-fed re-offers):
+expects: squatch/drain.py tests/test_drain_reentry.py
+
+```
+Complete the `drain` verb's re-entry per SQUATCH_PLAN.md section 11.2 and
+section 19 (Phase 1), behind the render seam prompt 11 left: a stem
+re-entering after a non-ok terminal folds the prior terminal's findings
+artifacts already durable in its ticket dir (review.md reject findings, a
+failing checks.json) into the prior-attempts data section of the next
+attempt's render -- rendered fresh each attempt IN CRITERIA-POSITION per
+section 11.2, never written into ticket.md -- so no drain is ever
+findings-blind (a blind re-run repeats its failure unchanged and parks; this
+11-12 pair IS section 11.2's re-entry-ships-with-the-drain law, and no seeded
+queue runs before both land). TDD tests/test_drain_reentry.py against a temp
+checkout: a re-offer's rendered prompt provably contains the prior attempt's
+reject findings, positioned in the same prompt section as the acceptance
+criteria; a first attempt's render carries no prior-attempts section. Stop
+when uv run pytest is green.
+```
+
+13 -- Drain self-upgrade re-exec + premise park:
+expects: tests/test_drain_upgrade.py
+
+```
+Finish the `drain` verb per SQUATCH_PLAN.md section 18 and section 19 (Phase 1),
+behind the seam prompt 11 left. An admission whose diff touches squatch/** or
+specs/** re-execs
+the drain through the process-exec seam as `uv run python -m squatch drain` --
+ONE form, dependency changes included, D1's named runtime exception -- the parked
+set carried in argv, via the section 18 HANDOFF: journal the handoff, close
+journal handles, RELEASE the single-writer lock, spawn with timeout=None and
+inherited stdio, await, exit with the child's code. A stem whose last
+terminal was premise_failed stays parked across invocations until its
+ticket-plane ticket.md commit changes (section 18) and is never re-offered.
+TDD tests/test_drain_upgrade.py against a temp checkout: a self-upgrading
+admission re-execs before the next dispatch (fake the exec seam; assert the
+HANDOFF ORDER -- lock released and journal closed BEFORE the spawn -- plus
+the uv-run argv form, timeout=None, and that the parked set survives); retry
+budget spent before the re-exec is still spent in the child -- journal-derived
+per section 11.2, never re-armed by the exec; a premise_failed stem is
+skipped by the next invocation
+and runs again after a ticket edit lands. Stop when
+uv run pytest is green.
+```
+
+14 -- Phase 1 -> Phase 2 handoff, batch 1 of 4 (caps + auto-harvest):
+expects: tickets
+
+```
+As the first of the conductor's four final seeding acts (prompts 14-17 author
+the Phase 2 queue in `depends` order; nothing dispatches until the operator
+launches `squatch drain` after prompt 17), author the first Phase 2 seeds per
+SQUATCH_PLAN.md section 19 (Phase 2) and section 11: one ticket.md per
+deliverable, written under tickets/<stem>/ as real specs -- caps FIRST, scoped
+to diagnosis and the infra budget (the `retry` cap with its journal-derived
+`cap_consumed` accounting already shipped with the Phase 1 drain, as did the
+reject-findings re-entry -- section 11.2 -- so every spine ticket runs
+findings-fed and retry-bounded; this ticket rebuilds NEITHER; the
+`premise_bounce` cap and its DRAW land with the escalation ladder + Reject
+queue seeds of prompt 16's batch, beside the confirm/reject release verbs -- a
+hold never lands before its release, section 2), then auto-harvest before wipe
+(allowlist extraction, attempts/ dirs; harvest EXTENDS the section 11.2
+rendering, never a second path). AUTHORING LAW, binding every seed in prompts
+14-17 (sections 9, 13, 18, 19): every seed is a real spec written under
+tickets/<stem>/; each '## Context' bullet a repo-relative path
+that EXISTS (the read-first set), plan prose entering only through `Plan
+contract` section ids (section 13), never a whole-plan path; each '## Scope
+fence' includes every file the acceptance criteria force AND fences the module
+that OWNS each hooked seam (section 9 ownership law); seeds ordered by
+`depends`/priority so `squatch drain` runs them in a sound order; `Time budget`
+by rule, never feel -- expected sized to the deliverable, stuck = 2x expected
+-- and every seed DISPATCHABLE under this instance's drain envelope: a stuck
+budget over `config.yaml`'s `drain.max_ticket_minutes` parks at dispatch
+(section 18), so size that ceiling to at least the largest seed's stuck --
+the shipped default (90) sits below the spine's biggest tickets, the envelope
+that admits the seeds ships WITH them (never lowering a ticket's authored
+stuck threshold, its real hang bound, to fit a dispatch gate), and RAISING
+that one key (upward only) is the ONE sanctioned edit of the operator-owned
+config.yaml (prompt 1's never-overwrites rule governs every other key -- the
+specific command here wins over the general rule); every seed stamped
+`confirmed` at authoring (bootstrap seeds are the build plan, never
+suggestions -- nothing waits at a draft gate or on a `confirm` verb the seeded
+phase has not built yet); the pre-ladder tier rule of section 19 (HIGH tier
+until the ladder merges; known-hard seeds high/high with cited evidence).
+Author SPECS only; implement none of the code -- squatch does that when the
+human runs `squatch drain`. Do NOT author Phase 3+ tickets: their specs depend
+on what Phase 2 builds and learns (D10). Stop when the batch's stems exist
+under tickets/ and uv run pytest is green.
+```
+
+15 -- Phase 1 -> Phase 2 handoff, batch 2 of 4 (diagnosis + its eval):
+expects: tickets
+
+```
+Author the second Phase 2 seed batch per SQUATCH_PLAN.md section 19 (Phase 2)
+and section 11.3, depends-ordered after prompt 14's stems: the diagnosis call
+with `lessons` over the harvested material (the sandwich's one model judgment
+-- closed verdict vocabulary, mechanical short-circuits), and the diagnosis
+real-model eval as its TWO chained deliverables (section 19): first the
+harness + committed fixture set, its expected verdicts proven reachable under
+the fake LLM and its budget/timeout enforcement pinned by tests against the
+committed report artifact; then the spend ticket that only EXECUTES the
+already-merged harness. Prompt 14's AUTHORING LAW binds every seed here (it
+restates sections 9, 13, 18, 19 -- read those sections). Author SPECS only;
+implement none of the code. Stop when the batch's stems exist under tickets/
+and uv run pytest is green.
+```
+
+16 -- Phase 1 -> Phase 2 handoff, batch 3 of 4 (Suggestion Box + ladder + triage):
+expects: tickets
+
+```
+Author the third Phase 2 seed batch per SQUATCH_PLAN.md section 19 (Phase 2) and
+sections 11-12, depends-ordered after prompt 15's stems: the Suggestion Box
+BEFORE anything that files into it (durable queue, signature dedup, decision
+registry, and the harvest wiring that enqueues each run record's second
+problems -- the mailbox exists before its first letter; its spec includes
+one-time ingestion of bootstrap/suggestions.md, the section 0 stand-in, as the
+box's first messages -- ONE suggestion-class message per non-empty line --
+that file then retired: deleted in the box deliverable's own reviewed code
+diff, its `## Scope fence` naming `bootstrap/suggestions.md` (section 19),
+never a ticket-plane commit; the storm-control circuit breaker is a Phase 3
+seed beside the daemon's continuous producers, and tombstone auto-reopen +
+retro itemization are Phase 5's, with the retro stage that reads them --
+section 19), then the escalation ladder ending at the Reject queue WITH its
+confirm/reject verdict verbs AND the `premise_bounce` cap and its draw landing
+before any hold can fire (a hold never lands before its verdict verbs or its
+release -- section 2, enforced by `depends` chaining across these seeds; every
+seed that WRITES a marked terminal fences the terminal-write owner
+(squatch/runner.py, section 9 ownership law) plus the stage layer whose
+outcomes feed it (squatch/stages.py), and the Reject queue itself is a
+journal-derived projection that writes no terminal -- section 19; the
+pre-daemon default is auto-keep while retry budget remains, section 11.4),
+then the box's sequential triage consumer (the machine route from a filed
+problem to a ticket change) -- invoked ONLY by the operator verb `squatch
+triage` (BOOTSTRAP era): ONE pass over every pending box item -- author,
+tombstone, or decision-record each -- then STOP. The bootstrap drain NEVER
+scans the box itself: no scan before dispatch, none after a merge (sections
+12, 18). A box-authored ticket takes its section 12 table default -- almost
+always `draft` -- and the operator who ran `squatch triage` confirms only the
+few worth building; there is NO self-build auto-confirm exemption, because a
+human is present at every scan and nothing from the box need run unattended.
+`squatch/policy.py` resolves box starting-state from the table plus scope
+override in BOTH eras with NO drain special-case; the seeds pin
+`tests/test_policy.py` (a bootstrap box ticket resolves `draft`) and
+`tests/test_drain.py` (a drain does NOT scan the box). PHASE SEEDS are NOT
+box-authored -- a phase's final ticket authors the next phase's `ticket.md`
+files DIRECTLY as confirmed ticket-plane output (sections 12, 19); the
+DAEMON-era continuous box consumer and its GO-gated auto-confirm (sections 9,
+12) are a SEPARATE era, built with the daemon, never folded in here. Prompt
+14's AUTHORING LAW binds every seed (the box and ladder seeds cap out at stuck
+150-180m). Author SPECS only; implement none of the code. Stop when the
+batch's stems exist under tickets/ and uv run pytest is green.
+```
+
+17 -- Phase 1 -> Phase 2 handoff, batch 4 of 4 (Author + requisition_review + battery + auditor + exit seed):
+expects: tickets tests/test_seeded_phase2.py
+
+```
+Author the final Phase 2 seed batch per SQUATCH_PLAN.md section 19 (Phase 2),
+depends-ordered after prompt 16's stems: the Author stage + specs/author.md
+the triage consumer feeds (deferred from Phase 1, where nothing executes them
+-- sections 4-5 and 8); `requisition_review` as its THREE chained deliverables
+(section 19: the pure review call + spec + gate registration, then the
+Author-path consumer, then the seed-path consumer at the seeding ticket's
+Check stage with MERGE-SAFETY enforcement, each fencing the module that OWNS
+its seam); then the phase's Emits as seeds of their own -- the invariant
+auditor, and the shakeout battery as its per-owning-module chained groups plus
+the report-lane deliverable (section 19: machine-produced shakeout-report.json
+lifted by the one stage-terminal lift path, double-gate re-confirmation; the
+battery's pass condition is that auditor) -- then LAST the Phase 2 exit
+ticket, its depends transitively covering EVERY Phase 2 seed: it performs the
+section 19 exit read and authors Phase 3's seeds in the section 19 core-first chain
+(Phase 3's first foundational core batch plus one phase3-continue seeding ticket), by
+DIRECT ticket-plane authoring -- its Implement stage writes Phase 3's
+ticket.md files `confirmed`, intake-lint validated AND feasibility-reviewed
+(`requisition_review`) at its own Check stage, picked up by the drain's
+after-every-merge tickets-dir re-scan (section 18) -- NEVER by filing a
+Suggestion Box message (the box carries filed problems, never a known
+build-plan ticket), and every later phase boundary seeds the same way. Prompt
+14's AUTHORING LAW binds every seed. Author SPECS only; implement none of the
+code. Do NOT author Phase 3+ feature tickets beyond that core batch and its `-continue` tail (D10). Add a
+test (tests/test_seeded_phase2.py) that every seeded Phase 2 ticket passes
+intake lint, that every seed's stuck budget is at or under the configured
+`drain.max_ticket_minutes` (section 18), AND that the seeded depends edges
+realize the deliverable order stated above (section 13 authoring law) -- the
+test NAMES its phase's seed stems explicitly and asserts only over those named
+stems, never a `source: seed` pattern-match over the tickets plane (every
+later phase's seeds carry the same stamp, so a scan would be reddened by a
+later seeding from outside this test's own fence); each seeding ticket ships its own per-BATCH named-stem test FILE the same way -- section 19's bounded-batch seeding puts SEVERAL seeding tickets in one phase (the phase-exit core batch, `<phase>-continue`, and any further continuation), and two writers of one per-phase file are a guaranteed conflict in the serial merge queue's rebase -- while the rung-1 resolution machinery is itself a downstream batch: each batch writes its OWN new test file (its Scope fence, never Context), reading the prior batch's merged file for the idiom. PIN GRAIN is law for every such test: it pins IDENTITY and STRUCTURE -- the named stem set, `depends` edges, `source: seed` and other frontmatter values, grammar validity -- and NEVER byte prose, phrase substrings, or criteria counts, because sanctioned machinery legitimately rewrites what byte pins freeze: the section 13 `reject <stem>` kill stamps `rejected`, Rework update/split rewrites criteria and supersedes stems (sections 4, 11.4), and the section 18 premise-park road releases a stem only through a new `ticket.md` content commit. So a state or existence assert accepts the full lifecycle (a later `rejected` stamp or supersedes-map entry is history, not drift); a live-queue assert (dispatchability, awaiting-terminal) is banned outright -- the test classifies only the CLOSED list of its own batch's stems as historical, and a confirmed later-phase stem mid-run is never required to show a terminal event; the section 19 known-hard tier pin asserts the frontmatter tier values and THAT the citing evidence exists, never its wording; and the section 19 invariant-to-test closure obligates tests of the built rule's BEHAVIOR, never a string-match over the prose that states it. Two further closure rules the batched form forces: (1) PINNED MATERIAL -- a seed test's rendered material is a permanent deterministic fixture (the section 15 replay-corpus law), never live engine bytes: a test that renders live files reddens later, historical, and out-of-fence when any named module grows past the section 8 bound; (2) AUTHORED-STATE ONLY -- it asserts the seed's authored content and `confirmed` birth, never byte-identity against lifecycle state: the section 13 terminal `rejected` stamp into an authored seed's `ticket.md` is a sanctioned later transition that must not redden a merged seeding test. Stop when uv run
+pytest is green. After this the conductor is retired: the human runs ONE
+`squatch drain` that carries Phase 2 and every later phase to quiescence
+(section 19), each phase's final ticket seeding the next as `confirmed` into
+the same running drain.
+```
+
+## 1. What squatch is
+
+A continuously running orchestration engine that authors and runs tickets against host project repos, including itself: it drafts the ticket set for a feature, wires dependencies, runs implement -> check -> review -> merge, harvests failures, and files follow-ups.
+
+The ticket lifecycle is named after a business procurement cycle, with code development activities in place of the business activities:
+
+| Procurement stage    | Dev activity                | Actor      |
+|----------------------|-----------------------------|------------|
+| Requisition          | Author ticket(s)            | LLM        |
+| Fulfill & Ship       | Implement code              | LLM        |
+| Invoicing            | Lint / acceptance checks    | script     |
+| Inspect & Accept     | Code review                 | LLM        |
+| Rework               | Update/split/escalate ticket| LLM        |
+| Reject               | Human keep/edit/kill queue  | human      |
+| Approve & Pay        | Approval record             | script     |
+| Settle Payment       | Merge to local main         | script     |
+| Reconcile            | Retrospective + cost ledger | LLM        |
+
+The table is also the operator vocabulary: every operator-facing surface (CLI output, escalation text, README) speaks it or plain English; scheduler jargon stays in the spec and the code.
+
+Design goals, in priority order:
+
+1. Simple and robust over feature-rich; check/feature accretion is the primary failure mode designed against.
+2. Automated: human touchpoints are enumerated and small.
+3. Continuous queue, not batches, with live re-prioritization.
+4. One consistent pattern for every stage, gate, and handoff.
+5. Every failure path is designed.
+
+Non-goals for v1: multi-machine execution, a composition/plugin engine, a web UI, GitHub PRs in the loop, deterministic re-execution recovery, fleet management (section 15).
+
+## 2. Design law and anti-goals
+
+Design law -- principles every section below must satisfy:
+
+- **Rule surfaces fail closed.** Allowlists and closed vocabularies, never denylists; a paved road ships inside every prohibition; mechanical enforcement backs prose; exactly one narrow, auditable exception valve per gate.
+- **A hold ships with its release.** Any state that suspends a ticket pending an outside verdict or change -- the Reject queue, a premise park, a poison quarantine -- lands WITH OR AFTER its release path -- in the same deliverable, or in a deliverable whose `depends` chain guarantees the release merged first -- and its paved road never names a verb that is not yet built. A hold whose only release is a ticket change may not precede the machinery that machine-produces ticket changes (sections 11, 12). A hold that can strand a ticket with no reachable release is fail-stuck, not fail-closed.
+- **Failure recovery is a mechanical sandwich.** Deterministic machinery outside, exactly one model judgment call in the middle, deterministic dispatch out; caps are checked before the model is called. Two distinct retry senses: cross-attempt retry (section 11.4) is a fresh workspace from the top, never resume; the in-stage re-prompt loop (section 5, invariant 2) feeds gate findings back against the SAME workspace, bounded by the retry-like-action cap. When the deterministic layer can tell that asking the model is pointless, it does not ask.
+- **The ticket is the contract; the run record is the receipt** (section 13), with predicted-vs-actual divergence as the calibration signal.
+- **No dual-path code.** No compat shims, defensive parallel codepaths, or deprecation layers for internal surfaces; rename in place and update every call site in the same change; recovery is git revert.
+- **Executed work is fenced by gates, not jailed.** v1 does not sandbox agent subprocesses or ticket-authored commands; on a single-operator personal box they run with the operator's own privileges (section 16). Gates and review are the trust boundary, never the goodwill of executed code.
+- **Operator surfaces speak plain language.** Names a human reads or types -- CLI verbs and options, report lines, error text, ticket stems -- use ordinary words, parseable without this plan; plan-internal shorthand (spine, box, plane, quiesce) never reaches an operator surface. Internal vocabulary (journal event types, outcome enums) may stay terse. An existing violator renames via ticket when next touched, per the dual-path law.
+
+Anti-goals -- failure modes this design prevents, each addressed by a numbered decision:
+
+- No consistent pattern between steps for gates and handoffs (-> D4).
+- Feature/check accretion that makes automation brittle (-> D10).
+- Batch-oriented scheduling fighting a continuous queue (-> D6).
+- One author-declared path list overloaded to do both conflict prediction and scope bounding (-> D7).
+- A remote code host's PR machinery inside the dev loop (-> D8).
+- Shell scripting as orchestration glue (-> D1).
+- Metadata accreting to serve subsystems that do not exist yet (-> the anti-bloat law, section 13).
+
+## 3. Core decisions
+
+- **D1 -- Pure Python.** No bash anywhere: no shell scripts, no `shell=True`, no string-assembled commands. External binaries (git, agent CLIs) are exec'd with argument lists through dedicated wrapper modules. One squatch-owned venv, created and populated with `uv` (setup only, with ONE named runtime exception: the bootstrap drain's self-upgrade re-exec runs `uv run python -m squatch drain` through the process-exec seam, section 18), on Python 3.14+ (the pinned floor); startup refuses any other interpreter or a lower Python. Why: a stopped drain waiting for a human to retype the command is the failure the bootstrap contract bans (section 19); 3.14 raised from 3.11 for currency and EOL runway to Oct 2030, above the language features actually used (`tomllib` at 3.11, PEP 604 unions at 3.10).
+- **D2 -- Single asyncio daemon.** One process, ONE in-flight ticket run (single-flight dispatch) -- through the entire self-build and the first daemon era. A concurrent worker pool is a post-cutover D10 return earned by measured queue starvation on host work; it multiplies the review surface and the conflict surface faster than any other knob, so it is never a default. No leases, no heartbeat protocols, no distributed locks. Crash recovery is restart + rescan + reconcile against the journal. A single-writer lockfile per project checkout (carrying instance identity) fences the orchestration write surfaces -- ref mutation, commits, the journal, dispatch state -- against a second daemon or a chat session; hand-editing FILES under the tickets dir is OUTSIDE the fence (the human intake path, section 13, safe because only the daemon commits). Reconcile scans from the journal tail; an additive `checkpoint` event shape is RESERVED (not built in v1) so bounding the scan later is a new event type, not a schema rewrite -- it ships per D10 only when a full rescan actually hurts.
+- **D3 -- Files + journal are the source of truth.** Tickets and artifacts are markdown/JSON files in the host repo, committed via the serial writer's ticket-plane lane (section 10); every state transition and external action is an event in an append-only JSONL journal. Derived views (status, backlog, ledger, scorecard) are projections, never authoritative; no index builder -- every projection is a stdlib read-time fold over the JSONL (an analytics engine such as DuckDB is a D10 return at the first projection measured too slow as a fold). Crash precedence: for an externally observable effect the WORLD wins (a branch/file/main row that exists is truth) and reconcile re-derives the journal note -- a merged ticket specifically from the squash commit's `squatch-ticket` / `squatch-reviewed-sha` trailers (section 10), the identity a deleted branch no longer carries; the journal is authoritative only for intent and non-observable effects. Durability: artifact and ticket writes are atomic (temp file, fsync, rename); the journal is append-only, one JSON object per line, and every reader tolerates a torn trailing line -- a crash mid-append drops the partial record, no reader aborts.
+- **D4 -- One stage contract** (section 5). Stages communicate only through schema-validated artifacts on disk plus the journal. One driver runs every LLM stage. One gate shape. One outcome vocabulary.
+- **D5 -- Fail-closed gates only** (section 7).
+- **D6 -- Continuous scheduler** (section 9). No waves, no groups, no batch verbs. Ordering comes only from `depends` and `priority`; a file watcher makes priority edits and new tickets take effect at the next dispatch.
+- **D7 -- Scope is fenced by a gate; conflicts are resolved at merge** (section 9). No author-time conflict prediction anywhere; the serial merge queue is the one place conflicts are resolved. Scheduling may AVOID manufacturing a conflict only on observed facts, never on estimates -- the overlap law and its dispatch-skip / pre-review-hold checkpoints (section 9).
+- **D8 -- GitHub out of the dev loop** (section 10). Local main is the blessed line; merges are local; GitHub is a non-blocking checkpoint sidecar.
+- **D9 -- Thin primitives kernel** (section 6). Journal, Effect, Signal, Timer adopted in minimal form; re-execution recovery, hash chains, blob stores, and the composition engine refused.
+- **D10 -- Every feature earns its place with an incident.** The only way a gate, check, or subsystem is added is the surprise -> rule -> gate promotion path, with the incident cited in its docstring. Retro reports catch-rates and proposes deleting gates with zero catches over N tickets. Gate count is a managed budget, not a ratchet. The v1 core set is the one seed grant, chosen by design rather than incident; D10 governs every addition beyond it, and retro's prune path applies to the seed set the same as to earned additions.
+
+## 4. Lifecycle and artifacts
+
+Every stage consumes one typed artifact and emits one typed artifact; the procurement documents are the artifacts:
+
+- Requisition consumes a triaged Suggestion Box message (section 12 -- the one machine route into authoring; human intake authors ticket files directly, section 13) and emits the **ticket** (one or more, with a dependency graph).
+- Implement emits the **packing slip**: a branch plus a run record.
+- Invoicing (mechanical) emits the **invoice**: a structured check report.
+- Inspect emits an **approved invoice**, a **snag list** (to Rework), or an **RMA** (to the human Reject queue).
+- Rework emits a **rework order**: updated ticket, split tickets, and/or a model-tier escalation (the escalation element is consumed by the section 11.4 ladder's journal-derived rung, never written into ticket frontmatter).
+- Approve (mechanical) emits an **approval record** -- an attestation (approver surface identity + reviewed SHA + the spec versions + the resolved gate set: the plain list of gate codes, review-surface names, and severities in effect at approval time), not a cryptographic signature -- pinned to the reviewed commit SHA. The approval record persists in the JOURNAL, as the body of the admission's `state_transition` (its pydantic model, section 13) -- never a ticket-dir file: the section 13 ticket-dir listing is closed, and `review.md`'s pinned verdict is the merge gate's on-disk input.
+- Settle (mechanical) merges via the merge queue.
+- Reconcile emits **retro findings** into the Suggestion Box.
+
+LLM stages: Author, Implement, Review, Rework, Suggestion-Box triage, Retro. A second engine review surface, `requisition_review`, judges an AUTHORED TICKET rather than a diff -- the feasibility review that runs before a ticket commits confirmed (section 7). Everything else is a script. Judgment goes in LLMs; verdicts go in scripts.
+
+## 5. Kernel contracts
+
+```python
+class Stage(Protocol):
+    name: StageName          # closed vocab: author|implement|check|review|
+                             #   rework|merge|triage|retro
+    kind: Literal["mechanical", "llm"]
+    consumes: type[Artifact] # pydantic v2 model, schema-validated on read
+    emits: EmitSpec          # ONE type, OR an emits_by_verdict map for branch
+                             #   stages (review: approved-invoice | snag-list
+                             #   | RMA; triage's verdict-keyed set, section 12;
+                             #   rework emits ONE composite rework-order type,
+                             #   section 4); keys are stage-local verdicts,
+                             #   NOT Outcome values; schema-validated on the
+                             #   branch taken
+    gates: list[GateCode]    # gates that validate the emitted artifact
+
+@dataclass(frozen=True)
+class StageResult:
+    outcome: Outcome         # ok | already_satisfied | invalid_artifact |
+                             #   gate_failed | premise_failed | timeout |
+                             #   infra_error | budget_exceeded
+    artifact: Artifact | None
+    findings: list[Finding]  # {code, path, line, message, paved_road}
+    cost: Cost               # tokens, seconds, attempts, plus usd + provider +
+                             #   model on LLM calls (usd=0, provider/model=None
+                             #   for non-LLM effects); the effect_completion
+                             #   event carries the same fields (section 6 ledger)
+
+class Gate(Protocol):
+    code: GateCode           # engine-shipped closed vocab (section 7 v1 set):
+                             #   ticket_schema | scope_fence | verification |
+                             #   run_record | diff_budget | post_rebase_regate |
+                             #   bug_evidence | core_drift (both land Phase 6:
+                             #   bug_evidence v1-deferred to its first
+                             #   consumer, core_drift additive per D10,
+                             #   sections 7, 8, 19) | correctness_review |
+                             #   requisition_review. Host review surfaces
+                             #   register more codes (own gate budget).
+                             #   correctness_review at merge = the pinned-
+                             #   approval check for the admitted SHA, never a
+                             #   re-executed model call (section 9).
+    def check(self, artifact, workspace) -> GateReport
+    # GateReport: {code, verdict, findings, autofix_applied}; verdict is
+    #   the closed pair pass | fail -- hard/soft severity is applied by
+    #   the runner from config (invariant 3), never carried in the report
+```
+
+Invariants:
+
+1. Stages communicate only through artifacts on disk plus the journal. No side channels, no shared mutable state. Every artifact EXCEPT the ticket (exempt per the versioning policy below) records the spec version and commit SHA that produced it (provenance): base-model fields `produced_by_spec_version` and `produced_at_sha`. `produced_at_sha` is the HOST-repo commit the stage's workspace was at (main for author/triage-time artifacts, the branch HEAD for implement/review-time ones) -- in the self-hosted case that commit legitimately IS an engine-repo SHA; what it never records is the running instance's own release identity.
+2. One driver runs every LLM stage: render spec -> call model -> validate artifact schema -> run gates -> on hard failure feed structured findings back and RE-PROMPT the same workspace within caps -> escalate. A schema-INVALID artifact -- including a verdict value outside its closed vocabulary -- is a validation failure that takes this same bounded re-prompt loop (the validation error fed back as the finding) before any terminal, never a full-cycle burn. Stages differ only in spec file, artifact type, and gate list. For Implement, call-model may be an agent-CLI subprocess executing in the ticket worktree behind the LLM seam (`kind: cli`, section 6), granted write access to that worktree because Implement is the one surface that mutates the tree (the grant is per-surface and fail-closed, section 6); a re-prompt is a re-invocation of that subprocess with the structured findings appended.
+3. Gate severity (hard/soft) lives in config, not gate code: for engine-shipped codes the `review.gate_severity` map (MERGE context, section 15; shipped default: the v1 hard set of section 7 is hard at merge), and for host-declared mechanical checks the per-entry `severity` field (section 7). Author-context severity is an engine constant (soft) until a configuration actually needs the second dimension -- the per-context map is a D10 return. Soft failure emits a Suggestion Box message and continues; hard failure feeds the retry loop.
+4. `premise_failed` is a first-class outcome: Implement may return "the bug does not reproduce / this conflicts with X", routing back to Requisition with feedback instead of grinding out a bad implementation. `already_satisfied` is the complementary first-class short-circuit: an Implement that finds every acceptance criterion ALREADY holds on the base -- proven by running the ticket's own `## Verification` commands green, never by judgment alone -- terminates `already_satisfied`, and the ticket settles as a no-op (journaled `to: merged` with no code diff; regenerated or reseeded work frequently arrives already built, and parking it as a false premise turns recovery into churn).
+5. Autofix lints must be idempotent: run twice, assert fixpoint.
+6. Branch stages (review, triage) emit one of several artifact types by stage-local verdict via `emits_by_verdict` (rework emits ONE composite rework-order type, section 4). Two named steps sit OUTSIDE the `StageName` vocab on purpose: `diagnose` is a failure-spine substep (section 11.3) and `approve` is a mechanical substep of `merge` (section 4). Model-facing config is keyed by `llm_surface`, a closed vocab (the LLM stage names plus `diagnose` and the engine review surface `requisition_review` of section 7, extended at config load with each host-declared review surface's `name`), used by prompt-spec frontmatter (section 8) and the provider routing table (section 6) -- so the diagnosis call gets a governed, versioned spec and a routing row without becoming a Stage, and a host surface can route to its own provider. A surface with no routing row of its own inherits the `review` row.
+
+Every `Finding` carries a REQUIRED `paved_road` field -- a gate that cannot tell the agent what to do instead does not pass gate-lint; `path` and `line` are OPTIONAL (nullable), since a frontmatter- or schema-level finding has neither.
+
+**Versioning policy** (one rule at every durable boundary): every persisted format that crosses a boundary carries a schema version, every reader refuses-newer and migrates-or-tolerates-older, and evolution is additive-only within a version (a field's meaning is never repurposed). Stamped surfaces: journal events (`v` per event); the base `Artifact` model (one inherited version field, `artifact_schema_version`, carried alongside and distinct from the invariant-1 provenance fields the base model also holds); the host config (`schema_version` handshake, section 15); the report inbox (engine refuses newer, tolerates older); the rendered `squatch:core` block (version + hash stamp); prompt specs (section 8). Ticket frontmatter deliberately carries NO version field -- and the ticket is likewise the ONE stage-emitted artifact exempt from the base-model `artifact_schema_version`/provenance fields (its provenance lives in the journal and the authoring stage's StageResult, so the closed frontmatter list in section 13 stays complete): tickets are ephemeral and flow between instances through git (successive engine versions operating one repo line -- concurrent divergence is excluded by the one-writing-instance rule, section 15), so a version-refusing parser would deadlock mixed-instance operation. Additive-only evolution plus strict closed-vocab authoring lint IS the ticket versioning provision; a breaking ticket-schema change ships by quiescing the queue and letting old tickets drain, never by migrating them. Quiesce = the section 9 kill-switch pause applied to DISPATCH only: stop admitting tickets, let in-flight ones finish and merge, so "drain" is a bounded, observable state. Across concurrent instances a breaking change is coordinated by pausing each instance's dispatch before the schema flip -- a manual v1 operator step.
+
+## 6. Primitives kernel (adopt thin, refuse the rest)
+
+The kernel decomposes onto seven durable-execution primitives (the set Temporal, Restate, and DBOS converged on). Verdict per primitive:
+
+| Primitive  | Adopt? | v1 form |
+|------------|--------|---------|
+| Journal    | yes    | JSONL event log, schema-versioned events. NO hash chain, NO content-addressed blob store (no v1 consumer). |
+| Effect     | yes -- biggest win | one wrapper (`@effect(key=...)`) for every external action: git ops, LLM calls, ticket emission, notify, push. Owns journaling, idempotency key, cost capture, once semantics. |
+| Signal     | yes -- as convention | human inputs (confirm, reject verdict, kill switch) are journal events. Completes the human-oversight audit trail. |
+| Timer      | yes -- tiny module | journaled deadlines re-armed at daemon startup ("retro after M days", checkpoint pushes, stuck thresholds surviving restart). Built in Phase 3 with the daemon, its first consumer (D10). |
+| Lease      | mostly no | ONE single-writer lockfile per checkout with instance identity; in-process asyncio locks otherwise. No general subsystem. |
+| Step       | already have | it is the Stage protocol + driver. Skip the determinism formalism. |
+| Projection | as a rule | derived views never authoritative. Satisfied by stdlib read-time folds over the JSONL. |
+
+Explicitly refused: DBOS-style deterministic re-execution recovery. Why: the discipline tax (all nondeterminism through injected seams) buys nothing over the proven model (retry = fresh worktree from the top, daemon recovery = rescan + reconcile); without re-execution, hash-chaining and Step formalism have no consumer.
+
+**Journal file layout and rotation.** The journal is a `journal/` directory of append-only JSONL SEGMENTS under the host's config-declared state dir (never a hardcoded path, section 15). One ACTIVE segment is appended and rolls at a size/age threshold (engine constants: 64 MiB or 24 hours, whichever first). The roll trigger ships with its first retention consumer, the Phase 3 daemon (section 19) -- the segmented layout and readers land in Phase 0, and pre-daemon the active segment simply grows. Rolled segments are IMMUTABLE, so the append-only law and torn-tail tolerance apply only to the active segment's tail. Segment names sort in write order (zero-padded sequence + roll date, e.g. `000001-20260804.jsonl`), so `read_json_auto` over a `journal/*.jsonl` glob reconstructs the ordered stream (D3's no-index-builder rule holds). v1 NEVER deletes or compacts a segment; retention/GC is the deferred ARCH block, returning via D10. Reconcile and status read newest-segment-first; the reserved `checkpoint` event (D2) later bounds that scan to a suffix of segments.
+
+Durability is write-ahead: an effect's intent event is fsync'd BEFORE the effect executes, completion events are fsync'd before anything dispatches on them, and background appends fsync at least every 3 seconds (an engine constant, not config) -- a crash can cost buffered non-load-bearing events but never an intent record, a Timer, a Signal, or a cap-consumption event the system acted on.
+
+Both readers obey ONE law: tolerate exactly a torn FINAL line of the ACTIVE segment; any other malformed line -- mid-segment or in a rolled segment -- is a hard error surfaced as corruption, never skipped. The WRITER's startup dual: truncate a torn final line of the active segment before appending (append-only applies to records, not bytes), so a resumed append never creates a mid-segment malformed line and a roll never seals a torn tail into an immutable segment. (Bootstrap-surfaced hazard, filed to the sink per section 11: the startup dual runs only at startup, so a LIVE writer that tears its own active tail without dying -- a short write under `ENOSPC` -- then rolls that segment before any restart WOULD seal the torn tail into an immutable one. v1 does not guard the live path; repair-before-roll is the earned fix when it first fires.) Every projection reader validates rolled segments strictly and applies tail-tolerance only to the active segment (never a blanket ignore-errors read).
+
+**Journal event envelope.** Every line is one JSON object with a fixed top-level shape -- `v` (event-schema version, per `type`, per the versioning policy above), `type` (a value from the closed `EventType` set below), `ts` (UTC from the clock seam in ONE pinned rendering: RFC 3339 with a `+00:00` offset, exactly an aware-UTC Python `datetime.isoformat()` -- pinned so lexicographic order IS chronological order, and readers, projections, and the bootstrap conductor may compare `ts` as a string), `ticket` (owning ticket stem or null), `key` (the effect idempotency key or null), and `body` (a `type`-specific object) -- so every type-varying field lives in `body`, never at top level. The closed `EventType` set (extended additively per D10, each type carrying its own `v`):
+
+| `type` | emitted |
+|--------|---------|
+| `effect_intent`     | before an effect executes (write-ahead) |
+| `effect_completion` | after it completes, carrying the result |
+| `signal`            | a human input lands (confirm, reject, kill) |
+| `timer_armed`       | a deadline is scheduled |
+| `timer_fired`       | a deadline elapses |
+| `cap_consumed`      | a failure-spine or budget cap is spent (section 11) |
+| `state_transition`  | a ticket or run changes state |
+| `checkpoint`        | RESERVED, not emitted in v1 (D2) -- bounds the reconcile scan later |
+
+An unknown `type` on read is a hard corruption error, never skipped (the fail-closed law). Per-type `body` schemas are implementer-owned pydantic models, validated at the write seam and versioned by each type's `v` -- deliberately not enumerated here (same status as the non-`run.md` artifact bodies, section 13); the ENVELOPE, not the bodies, is the cross-version contract -- with TWO promoted body fields. First: every `state_transition` body carries `to`, the destination state's name from the closed RUN-STATE vocabulary -- `running`, plus the terminal states `merged`, `abandoned`, `rejected`, and each non-`ok` `Outcome` value (section 5) used as a terminal state name -- the vocabulary the section 15 invariant auditor validates against, because D3's world-wins reconcile and the bootstrap conductor's verdict gate both key on it. Second: a terminal `state_transition` that routes its stem to the Reject queue also carries the marker `routed: reject_queue` -- the field the section 9 eligibility fold reads. Everything else in a body stays implementer-owned.
+
+**Effect contract (the once semantics reconcile depends on).** `@effect(key=...)` -- decorator sugar over the `Effects.run(action, *, key, ticket)` primitive, deferred to its first call site (the Phase 1 LLM call) while Phase 0 ships only the primitive -- is once-per-KEY against the surviving journal: on restart, an effect whose key already appears as a completed event is not re-run. That completed-key check reads the journal directly (D3, no index builder) -- the daemon holds an in-memory set of completed keys, scanned from the journal at startup and appended to as effects complete.
+
+The key DOMAIN is chosen per effect class:
+- attempt-EXCLUDING for user-visible side effects that must fire once across retries (notify / page / GitHub push key on ticket+event, so a retried run never double-alerts);
+- reviewed-SHA for merge (merging a given approved SHA is idempotent);
+- attempt-scoped for re-runnable work (a fresh worktree's git ops key on ticket+attempt, and an LLM call on ticket+surface+attempt+call_seq -- a monotone per-attempt sequence -- so each call records and replays deterministically and a re-prompt takes a fresh key, never a replayed result).
+
+Every per-run key -- the attempt-scoped class and the ticket-plane RUN-artifact commits (run record, checks, review; the intake ticket commit is once per file and stays run-blind) -- additionally carries the RUN SEQUENCE: the count of this stem's prior terminal events (completed terminals and `abandoned` reaps) in the journal, derived at run entry by a read-time fold (D3, no counter file). Same-sequence replay is a WITHIN-PROCESS guard: only a re-entry with no intervening terminal replays, and every cross-process entry path reconciles FIRST (scaffold on-entry, daemon restart-reconcile -- section 11), reaping an interrupted run to `abandoned` -- so crash recovery is always a fresh sequence doing real work, and the cross-run once-guarantees live in the run-BLIND domains below (notify, merge). A run that reached ANY terminal is history: the next entry takes the next sequence, every key is fresh, and the re-run is real work. Keys are never retired and never deleted -- a superseded run's completions are inert journal history, unreachable by construction.
+
+The attempt-excluding class and the reviewed-SHA merge key keep their domains run-BLIND on purpose: an alert fires once per ticket+event across all runs, and merging a given approved SHA is idempotent -- with ONE named exception: the spiral-warning notify key carries the run sequence, because a fresh run's spiral is fresh spend and must re-page (section 9).
+
+Effects also split by OBSERVABILITY for reconcile: an externally observable effect (branch exists, file on disk, row in main) is reconciled by observing the world; a non-observable effect (notify) that crashed between acting and journaling is reconciled conservatively -- re-send beats a missed alert, and the attempt-excluding key prevents a storm. A fresh run's worktree creation is defined as TEARDOWN-AND-CREATE: any worktree and branch a prior run left are removed first (worktree remove + prune + branch delete, through git.py), then created fresh from current main -- so a fresh keyspace can never trip over a dead run's leavings.
+
+Do NOT add a separate idempotency-class enum: the key already encodes the class. The `key=` argument is a callable over the effect's own arguments (`(args) -> str`; a bare string is allowed for a singleton effect), and the arguments it closes over ARE what select the domain above -- an attempt-excluding key omits the attempt number, an attempt-scoped key includes it. Key components join with `/` (the `key=retro/<seq>` convention, section 14): keys persist across restarts and self-upgrades, so the join is pinned, never per-call-site taste.
+
+**Single-writer lockfile (the Lease row).** One advisory `flock` on the lockfile `<state_dir>/squatch.lock` fences the orchestration write surfaces (ref mutation, commits, journal, dispatch state) against a second daemon or a chat session. `flock` is chosen over an `O_EXCL` pidfile precisely because it needs no liveness protocol (D2 refuses leases and heartbeats): the kernel releases the lock when the holder dies, so a crashed daemon's lock is free at restart with no stale-pid reclaim. The file records the holder identity -- `{instance_id, pid, host, state_dir, started_at}` (instance_id is the installed release tag, or for an untagged dev instance the engine checkout's `git describe --tags --always --dirty`) -- for diagnostics and the "someone else holds it" error, but correctness comes from `flock`, not from reading those fields. In-process asyncio locks serialize tasks within the one daemon; the lockfile is the only cross-process lock.
+
+**Operational logging (the journal is not a debug log).** The journal records intents, effects, signals, timers, caps, and state transitions -- never diagnostic chatter: it is versioned, corruption-strict, and never deleted. Diagnostic capture is two instance-local surfaces under the state dir, neither ever authoritative (no gate or dispatch decision reads them; harvest quotes them as informational material only), plus one shared filter:
+
+- **Engine log.** Daemon diagnostic output -- unexpected exceptions, watcher/debounce noise, reconcile detail -- goes to one line-oriented engine log, size-rotated (shipped default 16 MiB x 4 files; an engine constant, not config). Load-bearing failures are ALSO journaled as events (a watcher parse failure, a harvest error); the engine log is the human-readable detail behind the event, never the record.
+- **Attempt spool.** The driver tees each stage attempt's full output -- subprocess stdout/stderr, the agent adapter's JSONL event stream (section 9), check and verification command output -- to a per-attempt spool at `<state_dir>/spools/<stem>/<attempt>/` (`<attempt>` is the RUN SEQUENCE above -- one attempt per run entry, so a run's spool dir and its `attempts/<n>/` harvest dir share the number, section 11.2). The rendered prompt is written to the spool BEFORE the model call executes: a call that raises or hangs must leave on disk exactly what was sent. That spooled prompt file is ALSO the sole prompt-delivery channel: the agent-CLI adapter hands the prompt to the child by connecting THAT FILE as its standard input (section 15's `stdin_path`), and the rendered prompt is NEVER a command-line argument -- a prompt is unbounded while an argv element is capped by the OS argument limit, so a large ticket's prompt on argv aborts the call before the model is reached (the failure a file avoids by construction); argv carries only the fixed flags. The spool is what the section 11 harvest cuts its capped tails from and what spiral detector fixtures are cut from (section 9). Spools are deleted at the run's post-harvest cleanup; a spiral warning or poison quarantine PINS the run's spool (never auto-deleted) until an operator releases it, so fixture material survives the wipe.
+- **Redaction seam.** Configured secret VALUES (the env vars named by the provider registry's `auth` fields) are redacted from every captured stream -- journal bodies, engine log, spools, harvested artifacts -- by one shared filter at the write seam that replaces each resolved secret value, matched as a literal substring, with the token `[REDACTED:<NAME>]`, so a subprocess that echoes its environment cannot persist a secret. The filter is wired at CONSTRUCTION time, before the first spool write, into EVERY production writer: the four streams above resolve to a maintained WRITER-SITE checklist (the journal writer, the engine-log writer, the attempt-spool writer, harvest serialization -- one stream may have several writers, and every writer of a listed stream appears here), and a deliverable adding a captured stream or a new writer of an existing stream extends this checklist in the same change; the regression test exercises the CONFIG-to-writer path end to end -- a test that passes the secret in manually proves nothing and is a banned test shape (it satisfies the letter of the Phase-0 prompt-9 secret test, section 0, while the wiring is absent). An effect RESULT is scrubbed exactly once, BEFORE it becomes the effect's return value and its completion record: the executing path and a later replay of the same key return the SAME post-scrub bytes by construction -- the recorded result is the only version that ever exists.
+
+A 16-code block catalog names the orchestration building blocks. It is a NAMING SCHEME and coverage checklist, not a plugin system:
+
+| Code   | Block                                                      | v1?      |
+|--------|------------------------------------------------------------|----------|
+| AUTH   | ticket authoring (schema + closed vocabularies)            | core     |
+| HGATE  | human gate (draft->confirmed, reject verdicts, quarantine release) | core |
+| PLAN   | scheduler (gutted to deps + priority dispatch, section 9)  | core     |
+| WORK   | workspace-per-ticket + engine-agnostic agent adapter       | core     |
+| GATE   | gate-check harness (hard/soft config, check-runner)        | core     |
+| SHIP   | merge queue (rebase, re-gate, squash-merge, section 9)     | core     |
+| EMIT   | dedup-then-emit shared ticket writer (the Suggestion Box)  | core     |
+| THRESH | threshold-then-escalate (caps, budgets, circuit breaker)   | core     |
+| WDOG   | watchdog (stuck/spiral detection, external heartbeat)      | core     |
+| DIAG   | the single failure-diagnosis step (section 11)             | core     |
+| HARV   | harvest-from-artifact on failure (section 11)              | core     |
+| JUDGE  | standalone LLM judgment step (verdict + confidence)        | deferred |
+| CLUS   | failure-cause clustering (signature normalize + group)     | deferred |
+| HOOK   | lifecycle hook registry (isolated terminal side effects)   | deferred |
+| STEW   | steward composition (idempotent maintenance chains)        | deferred |
+| ARCH   | archive / reconcile GC (terminal-artifact relocation)      | deferred |
+
+Deferred codes return only via D10. The table is a coverage checklist; module naming is the implementer's.
+
+The fake-LLM adapter is a first-class kernel component: the `LLM` interface has a scripted-fake implementation from day one, and journaled effects returning recorded results IS the record/replay mechanism -- replay fixtures fall out of the kernel, keyed by the effect key itself, never a separate fixture id.
+
+**LLM interface (the one seam every model call crosses).** One async method behind the `@effect` wrapper, with a `cli` implementation plus the scripted fake; the `api` implementation is a D10 return built at the first configured `api` provider (section 18), and the interface's `kind` field reserves its place. This is a kernel contract the driver and cost capture both call, so its shape is fixed here, not implementer-owned:
+
+```python
+class LLM(Protocol):
+    kind: Literal["api", "cli"]
+    async def call(self, req: LLMRequest) -> LLMResult: ...
+    # abort_current is the synchronous kill seam, deliberately NOT behind
+    # @effect (the one-async-method-behind-@effect law above stays true): it
+    # returns only after the external writer (the CLI subprocess and its
+    # process group) can no longer mutate the worktree. The driver calls it
+    # BEFORE harvest and BEFORE recording any timeout terminal -- proven by a
+    # test with a cancellation-resistant fake.
+    def abort_current(self) -> None: ...
+
+@dataclass(frozen=True)
+class LLMRequest:
+    surface: LlmSurface      # closed vocab (section 5): selects spec + routing
+    rendered: str            # rendered prompt (spec renderer); the agent-CLI
+                             #   invocation input for kind: cli
+    tier: AgentTier          # low|medium|high|max -> models_by_tier
+    effort: AgentEffort      # low|medium|high|max, passed through to the model
+    ticket: str | None       # owning ticket stem (keying + provenance)
+    worktree: Path | None    # the writable tree; set for a cli Implement run
+                             #   only, the one surface granted write (invariant 2)
+
+@dataclass(frozen=True)
+class LLMResult:
+    text: str                # model / agent output
+    input_tokens: int | None # None when a cli stream reports no usage
+    output_tokens: int | None
+    provider: str            # which provider served (journal + run-record stamp)
+    model: str               # which model served
+    usd: float               # metered cost, or the cli est_cost_per_call_usd
+                             #   fallback (below); feeds effect_completion cost
+```
+
+The routing table (below) resolves `(tier, surface)` to the concrete `(provider, model)` BEFORE the call; a resolution landing on a row still carrying the section 0 placeholder value is refused pre-call as a config/setup refusal (the placeholder convention -- never a live call); a `kind: cli` provider fills the token fields from the adapter event stream when present and falls back to `limits.est_cost_per_call_usd` otherwise.
+
+**Provider layer.** The `LLM` interface is multi-provider. Instance config declares a provider registry -- `{name, kind: api | cli, auth (an env-var NAME, never a literal secret), models-by-tier, limits}` -- plus a routing table mapping each (`agent_tier`, `llm_surface`) to an ORDERED candidate list of (provider, model) pairs. A candidate names a provider and MAY pin an explicit `model`; when it omits one, the provider's `models_by_tier[tier]` supplies it, so `models_by_tier` is the per-provider default and a candidate's `model` is an optional per-route override, never a second independent source (Phase 1's authored config pins a model only where the row demands it -- REVIEW at every tier -- while its implement/author candidates name only a provider and inherit `models_by_tier[tier]` from the start, per the section 0 prompt 1 authoring order). Tickets ask for semantic capacity only (section 13); the routing table is the single place semantics resolve to a concrete provider, so switching providers is a config edit, never a ticket edit. Tier resolution is uniform, and the PREDICATE decides -- the parentheticals are examples, never enumerations: every surface invoked FOR a ticket (implement, review, rework, its diagnose, `requisition_review` of that authored ticket) resolves at that ticket's `agent_tier`; calls no ticket owns (triage, retro, Author) resolve at the config's `routing_default_tier` (section 15; shipped default medium). The journal and run record stamp which provider and model served each attempt. A provider key is injected ONLY into the agent-CLI or API call that needs that specific key; every other child process -- verification commands, checks, evidence replay -- is spawned without that key in its environment and never inherits it. The child base environment is INHERIT-MINUS-SECRETS: every child gets the parent's full environment (an ambient-login CLI needs HOME and PATH) minus every env var any provider's `auth` names, with exactly the serving call's key restored for that one call -- never an allowlist rebuild. **The provider set is a bootstrap INPUT, collected up front and carried through unchanged.** The operator's setup (the Phase 1 prerequisite, section 0), BEFORE the conductor and seeds run, collects EVERY input the build needs -- which providers, each provider's STYLE (`kind: cli` or `kind: api`), its models by tier, and its key. The CONTRACT covers both styles and any provider count the config declares, but v1 SHIPS only the `cli` style: a `cli` provider is a subprocess behind its argv wrapper (D1); the `api` client (an operator-installed venv SDK import, fail-closed if absent -- the api analog of the section 15 seam's unresolvable-`argv[0]`) is a D10 return built, together with its spend ceiling and token buckets (below), at the first configured `api` provider -- until it ships, a config declaring `kind: api` is REFUSED at load with an error naming the unshipped client (fail-closed, never a silent fallback). Neither a CLI binary nor an SDK is ever a squatch runtime dependency in `pyproject.toml`. The specific set is the operator's CHOICE, never hardcoded in a seed -- this repo happens to run two `cli` providers (codex, claude), but a seed builds GENERICALLY over whatever the config declares. Once the conductor and seeds start there are NO human gates of any kind: everything the build needs was gathered at setup, so no seed stops to ask for input, and none adds, removes, re-declares, or switches away from a configured provider. A provider or model change is a `config.yaml` edit BETWEEN runs, never a ticket edit and never mid-run. Phase 4's provider work (routing, failure classification, cooldowns, failover) builds the engine handling over the configured set -- `cli` classified from exit code + stderr, `api` from HTTP status (below) -- adding no provider and no dependency.
+
+- **Rate limiting is deterministic and pre-call.** Per-provider CONCURRENCY caps are enforced by the dispatcher BEFORE the effect executes; a call that would exceed the cap waits or spills to the next candidate instead of burning a provider-side rejection. The wait-vs-spill rule is deterministic: spill when the next candidate can serve the call NOW and the primary's projected wait exceeds 60 seconds (an engine constant, not config); otherwise wait, FIFO. Token buckets (requests/min, tokens/min) are `api`-metering machinery, deferred with the `api` client -- a `cli` provider exposes no enforceable TPM/RPM surface (below). Time spent waiting at a cap is journaled and EXCLUDED from the ticket's time budget and the watchdog's wall-clock regions, so a starved run never reads as stuck.
+- **Spend is stamped in v1; spend ENFORCEMENT ships with the `api` client.** Every completion event carries its cost (metered usage when the stream reports it, else the declared `est_cost_per_call_usd` flat estimate) -- the LEDGER is the read-time fold over `effect_completion` cost fields (D3), and reconcile reports it. On a FLAT-SUBSCRIPTION `cli` provider a USD ceiling is meaningless backstop -- marginal per-call cost is ~0 (the CLI reports a NOTIONAL equivalent-API cost, as Claude Code's `total_cost_usd` does, or none, as Codex does) -- so the operative backstops are the provider's own rate/quota limits (`rate_limited` | `quota_exhausted`, below), the concurrency caps, and the circuit breaker, and a flat-subscription instance carries NO USD spend cap by design. The cumulative spend ceiling -- global and per-provider over a rolling window, the pre-call check whose crossing returns `budget_exceeded` (section 5), pauses dispatch, and fires the budget-exceeded escalation (section 13) -- protects real per-token dollars and is deferred WITH the `api` client to the first configured `api` provider; the config-load refusal above keeps that fail-closed (no `api` provider can run unmetered before the ceiling exists). The `budget_exceeded` outcome and escalation stay defined in their vocabularies; their producer ships with the ceiling.
+- **Provider failures classify into a closed vocabulary:** `rate_limited | quota_exhausted | outage | auth_error | model_error | unclassified`. `rate_limited`: honor retry-after, retry same provider, spill under queue pressure. `quota_exhausted`: mark the provider cooling-down until its window resets (a journaled Timer whose duration is `limits.quota_window_minutes`, section 15 -- a `cli` provider exposes no retry-after, so the window length needs this declared source), fail over for subsequent calls, emit a soft Suggestion Box report. `outage`: per-provider circuit breaker -- K consecutive failures opens the circuit for T minutes (shipped defaults K=3, T=10) -- with failover. `auth_error`: fail over AND alert (a section 13 escalation) -- a dead credential never self-heals, so failover must not silently mask it. `unclassified` -- a `cli` exit matching no known class -- is a first-class member, never a raw `infra_error` loop: it draws from the stem's `infra` budget (section 11.1), counts toward the same circuit breaker, and at budget spent the stem PARKS with a paved road naming the provider and the captured exit/stderr tail, so an unrecognized CLI failure mode is bounded and visible instead of retried blind.
+- **Failover granularity is the attempt, never mid-run.** An in-flight run is not migrated; if it dies, the normal fresh-workspace retry re-resolves routing and lands on the next healthy candidate.
+- **All candidates exhausted for a tier:** a DROUGHT is a ROUTING outcome, never a spine failure -- no call was possible, so nothing is metered. The dispatcher consults breaker/cooldown/quota state BEFORE dispatch; a stem whose resolved route has no available candidate parks COST-FREE, the dispatcher journaling the drought-park event (the journal-derived source of section 9's `not parked (provider drought)` eligibility term): no model call, no cap draw, no diagnosis, no Reject-queue arrival -- the `budget_exceeded` park's exact shape (section 11.3) -- and the stem re-enters eligibility automatically once routing resolves, an open circuit's cooldown expiry included (section 9). A drought DISCOVERED MID-RUN (a stage call refused pre-call because the resolved tier's candidates are all unavailable -- open breaker, cooling quota, exhausted tier) terminals the attempt `infra_error` with the drought reason so the section 11.2 handler still runs (harvest -> journal -> wipe), but that reason draws NO cap, gets NO diagnosis, and is EXEMPT from section 11.4's identical-terminal ladder and Reject routing -- it drought-parks exactly like the pre-dispatch case (capability cannot fix weather; the headless auto-keep must never convert a drought into a spend loop or a terminal rejection of healthy work). What survives for the resumed attempt is section 11.2's harvest -- run record, findings, committed-candidate sha in the prior-attempts render; the unreviewed diff never enters the ticket spec, and failover granularity stays the attempt (this section). Every provider failure from a call that actually RAN (outage, model_error, unclassified, auth_error) still terminals `infra_error` and draws the infra cap per section 11.1 -- a failed call is always metered; only the absence of a callable provider is free, its bound the routing-resolves re-entry gate rather than a cap. A fleet-wide provider drought raises the escalation alert (section 13).
+- Implementer and reviewer always run in SEPARATE SESSIONS -- distinct stage calls each with their own context, never one session grading its own output. That separation is the HARD requirement, enforced structurally by the one-call-per-stage driver (section 5). Routing the review surface to a DIFFERENT provider or model than implement is a PREFERENCE layered on top -- it reduces shared model-family blind spots -- never a hard gate: the same model in two separate sessions is allowed, and which model serves each surface is the operator's config choice (a config edit, section 15).
+- **`kind: api` and `kind: cli` degrade differently.** An `api` provider (once its client ships) exposes per-call token usage and HTTP status: full contract above. A `cli` provider is a subprocess black box: per-provider CONCURRENCY caps and classification from exit code + stderr only, no enforceable TPM/RPM buckets, no retry-after (spill-on-pressure and the circuit breaker still apply). Cost is never unmetered -- Implement typically runs as a `cli` subprocess and is the largest spender: a `cli` provider's completion events carry usage parsed from the adapter event stream when the CLI reports it, and a provider whose stream carries no usage MUST declare `limits.est_cost_per_call_usd`, a conservative flat estimate charged to the ledger per call; declaring neither is a config error (fail-closed). Phase 4's quota-exhaustion exit is exercised over whatever providers the config declares -- a `cli` provider classifies rate-limit/quota from exit code + stderr, an `api` provider from HTTP status. Failover PROOF is fixture-scoped: the failover deliverable's verified runs exercise a multi-candidate FIXTURE registry in which the failing candidate fails over to the next, and the section 19 Phase 4 exit read -- "lands the next attempt on the failover candidate" -- is read from THAT verified run's served-identity stamps, never from a provider added to the live config for the occasion. The live config is never the fixture: a SINGLE-candidate live route (a legal operator choice -- the set is the operator's CHOICE, above) never invents, adds, or switches to a provider to satisfy an exit read; its live quota evidence is instead the `quota_exhausted` classification, the armed journaled cooldown Timer (above), and that Timer's journaled `timer_fired` event after the window resets, the served identity remaining the sole configured candidate throughout -- a quota with no remaining candidate parks per the candidates-exhausted rule (above); either style's access (a `cli` binary, an `api` SDK) is operator-installed at setup, never a squatch runtime dependency (section 0).
+- **A `kind: cli` call's write grant is per-SURFACE, never per-directory, and fail-closed.** Implement is the one surface that mutates the tree, so its `worktree` is set (above) and the agent-CLI subprocess is invoked as a WRITING surface -- the adapter's write jail OFF, running with the operator's own privileges per section 16. A directory-scoped grant ("write access to exactly the worktree") cannot serve Implement: a worktree's git metadata lives in the parent checkout's `.git`, and a `## Verification` toolchain writes caches outside the workspace root, so a jailed subprocess can neither commit nor verify and terminates `ok` on an EMPTY diff. Every other surface -- Author, Review, each host review surface, and the ticket-less triage/retro calls -- runs the agent CLI READ-ONLY and writes no file (they emit an artifact the driver writes, invariant 1). The grant is a closed allowlist of the tree-writing surfaces, derived by the client build from the request's `surface`, never a global default a subprocess carries: a surface off the allowlist gets read-only, so a new writing surface adds itself deliberately. This is a kernel contract, not an adapter default. Routing validation enforces the same rule fail-closed at config load: a candidate serving the `implement` surface must be `kind: cli` -- an `api` provider returns text, and no apply-patch machinery exists to turn text into worktree edits (a D10 addition if ever earned) -- so a config that routes Implement to `api` is a config error.
+- **The reliability knobs are a D10 seam.** Circuit breaker, cooldown Timers, and diversity routing ship in their simplest working form; each tightening waits on a cited incident.
+
+Event vocabulary note (deferred, not v1): if external anchoring ever matters, align journal event fields with OpenTelemetry GenAI attributes and the EU AI Act Article 12 logging bar. The AI audit trail (a v1 refusal, section 18) returns as projections over the journal -- trajectory/reward/preference exports, per-merge attestations -- never as ticket frontmatter.
+
+## 7. Gates: fail closed, one valve, earn your way in
+
+Every gate is built to the five-rung shape:
+
+1. Prose explains WHY (the only rung that teaches intent).
+2. Never a denylist. Allowlist semantics and closed vocabularies only; unlisted means stop. The Gate base class offers `allowed:`-style helpers, not pattern-ban helpers.
+3. Every finding carries its paved road (required field).
+4. Mechanical enforcement is the only road to merge: the merge stage is the single writer to main and re-runs the hard gate set itself (mechanical codes; the review surface participates as the pinned approval, section 9). Prose compliance is never load-bearing.
+5. Exactly one valve, uniform everywhere: `gate_bypass: [{code, reason}]` in ticket frontmatter, surfaced at the draft->confirmed human gate, visible forever, auto-reported to the Suggestion Box. K bypasses of the same gate code (shipped default K=3 within one retro window) auto-files a rule-defect report (an `override_report` box message, section 12). There are NO env-var bypasses; the config namespace does not contain them.
+
+v1 hard gate set (each cites its motivating incident; parenthesized stage = whose emitted artifact the code validates): ticket schema + closed vocab (Requisition); ticket feasibility (`requisition_review`; Author and seed authoring, section 13); scope fence (section 9; Check); the ticket's own `## Verification` commands pass (Check; executed like every ticket-authored command, section 16), attributed by BASE DIFF (the attribution machinery ships with the Phase 2 spine beside its filing consumer, the Suggestion Box -- the Phase 1 gate fails on any red, section 19) -- a `## Verification` command that fails on the branch is re-run at the branch's MERGE BASE, and one that ALSO fails there is a PRE-EXISTING base failure: filed as a second problem (section 11.7) and charged to neither the Check nor the retry budget, so a full-suite command never fails a stem for a red it did not introduce. A command green at the base and red on the branch is the branch's own regression and fails the Check; the merge-time INTEGRATION CHECK on a green main (section 9) is the backstop for any command the base excused. Attribution is per COMMAND, never per test -- the engine ships no per-runner output parsing (section 18); run record present + schema-valid (Check); diff budget (Check) -- a mechanical cap on the reviewable diff: changed-file count and inserted-line count against engine constants (shipped: 30 files / 1,500 inserted lines), sized so every rendered review prompt fits the serving provider's context bound (the section 8 render contract is the same law at the prompt seam) -- an over-budget diff terminals `gate_failed` with the paved road "split the ticket (diagnosis verdict `split`, section 11)", so an unreviewably large diff is split at the gate, never dispatched to a review call that cannot hold it; post-rebase gate re-run (merge); bug gate (Check) -- a `kind: bug` ticket must carry evidence in its ticket dir and a regression check that failed pre-fix, verified mechanically: the gate runs the ticket's `## Regression` command (section 13) at the branch head, which must PASS, and at the merge base WITH the branch's `carries:` paths overlaid (section 13), which must FAIL -- the overlay exists because the regression test usually arrives WITH the fix, and a bare base run would fail for the vacuous reason that the test file does not exist yet, satisfiable by any new test regardless of the defect (heavier bug machinery -- commit-order enforcement, spec-first ordering, device matrices -- is excluded until earned per D10). The bug gate ships with its first bug-intake consumer, the Phase 6 report inbox (section 19); bootstrap-era merges run the hard set without it. Two engine LLM review surfaces in v1: `correctness_review` (correctness / acceptance-criteria review of an implemented diff, participating at merge as the pinned approval, section 9) and `requisition_review` (the feasibility review of an AUTHORED TICKET before it commits confirmed -- run at AUTHORING for every machine-authored ticket whatever its starting state: a draft-starting box ticket carries the verdict on its draft, and the later human `confirm` flip re-runs nothing -- the semantic complement to the grammar-only `ticket_schema` gate: it judges the ticket BUILDABLE against the shipped engine and the plan it renders, catching a criterion that contradicts merged behavior, a `## Scope fence` missing a file the acceptance criteria force, mutually unsatisfiable criteria, an authored base Implement render over the section 8 bound (RENDER FEASIBILITY, measured mechanically at authoring -- section 19), or -- for a phase-exit/seeding ticket, which is IN SCOPE like any machine-authored ticket -- an exit criterion reading a signal or artifact that no deliverable of its phase emits (the exit-read closure, section 19), verdicts approve | snag | rma mirroring code review -- a snag re-authors within caps, an rma parks for a human, section 13). Always-run vs diff-triggered is a config map from path prefixes to gate codes (`review.trigger_map`, section 15 -- it governs ENGINE-shipped gate codes; host-declared checks and surfaces carry their own per-entry `trigger`). Everything else starts soft and must earn hard status (D10).
+
+**Host-declared review surfaces.** The engine ships the generic gates above; everything project-specific comes from the HOST's config (data plane), in a `review` section validated fail-closed (unknown codes, shapes, or vocab are config errors, not skips):
+
+- **Mechanical checks:** each entry is `{code, argv command, trigger: always | path-prefixes, severity: hard | soft}`. The engine runs the argv through the check-runner contract (any stack): exit status plus OPTIONAL structured findings JSON on stdout -- a JSON array of section 5 `Finding` objects (`{code, path, line, message, paved_road}`; `paved_road` optional in this one producer, defaulted to the generic road) -- wrapped into the uniform GateReport. A bare nonzero exit with no JSON becomes a single finding whose message is the captured stderr/stdout tail and whose paved_road is generic, so an off-the-shelf linter (ruff, eslint, clippy) drops in without a per-tool adapter. A check that CRASHES fails closed -- routed like a hard failure, never a silent skip.
+- **LLM review surfaces:** for CODE the engine ships exactly one (`correctness`; the authored-ticket feasibility surface `requisition_review` of section 7 is the separate authoring-time review, not a diff surface); the host declares additional surfaces as `{name, trigger, rules_doc, severity: hard | soft}`, where `rules_doc` is a host-owned review-rules file the engine's generic review spec renders in as content. Composition is conjunction: each triggered surface runs as its own review call under the one driver (routed by its `llm_surface` name, section 5); a hard surface's snag-list routes to Rework exactly like `correctness`'s; a soft surface's findings go to the Suggestion Box without blocking; and the merge-admissible approval (section 9) exists only when EVERY triggered hard surface has approved the same SHA -- the approval record's resolved surface list (section 4) pins "which surfaces approved", never implicit. New surfaces earn their way in per D10 within the host's own gate budget, and every surface is measured by the section 14 catch/escape scorecard.
+
+## 8. Prompt specs
+
+Every LLM stage is defined by a prompt spec file -- one engine-plane file per `llm_surface` at `specs/<surface>.md`: YAML frontmatter (closed vocab: `llm_surface` (section 5), consumes/emits artifact types, model tier, effort, gate list, version) plus fixed prose sections (Role, Task, Inputs, Output format, On-failure -- every spec tells the model what to do when it cannot comply).
+
+- Spec lint validates frontmatter schema, vocab, section presence, size budget (shipped default: 200 lines). Structured feedback with paved roads, bounded AI re-run.
+- Rendered-prompt size is a render CONTRACT: the renderer measures every rendered prompt against the serving provider's context bound -- for CLI providers exposing no tokenizer, ONE engine-owned conservative character-count bound keyed by resolved reasoning effort (stage-local bounds are forbidden) -- and REFUSES an over-bound render as a named stage terminal -- a MECHANICAL PRE-CALL SHORT-CIRCUIT like `budget_exceeded` (section 11.3): ticket-text arithmetic, never implementer failure, so no diagnosis call and no cap draw; the stem parks like `premise_failed` (paved road: shrink the inputs or split the ticket), released only by a ticket-plane content change, and dispatches mechanically to Rework `split` once Rework is live -- never dispatching a prompt for the provider to crash on. The diff budget gate (section 7) keeps review prompts inside this bound by construction; prompt delivery is always the spooled stdin file (section 6), never argv.
+- Untrusted-origin content never enters a prompt as instructions. Host docs render inside delimited data blocks; player-report text and evidence files render only as quoted data marked untrusted (and only summarized-by-triage text reaches ticket prose, section 12). Spec lint checks that templates wrap injected content in the data-block form -- the data/instruction boundary is a rendering contract, not stage-local vigilance.
+- Specs are code: versioned as MAJOR.MINOR (a MAJOR bump is the "spec-major change" that fires the section 19 re-baseline trigger), golden-tested (render from fixture inputs, snapshot), and every artifact records the producing spec version.
+- Spec changes ship as ordinary tickets through the pipeline (self-hosting). Formal canary/shadow rollout is deferred until a spec change causes harm.
+
+**The two rule planes.** squatch defines ticket structure and control; the target repo defines the what/content of implementation:
+
+- **Engine plane (squatch-owned): HOW work runs.** Ticket schema and closed vocabularies, stage prompt specs, gate discipline, workspace/git rules, the run-record contract. Versioned with the engine, propagated to hosts by bootstrap refresh, never host-edited.
+- **Host plane (target-repo-owned): WHAT to build.** Architecture and domain rules, tech stack, design docs, review-rules docs, verification conventions. Never engine-edited. It enters the pipeline AS DATA: rendered into Implement/Review prompts via host-declared context files and review surfaces (section 7), with provenance stamping the engine spec version and the host-doc SHAs in each prompt.
+
+The planes meet in exactly two places: the rendered root AI files (managed `squatch:core` block + project-owned remainder, section 15) and prompt rendering. Conflict rule: the engine plane wins on process, the host plane wins on content -- and "redefines process" is a CLOSED MECHANICAL predicate, never a semantic judgment: the drift lint normalizes the project-owned remainder into paragraphs (Markdown list prefixes stripped, nonblank continuation lines joined -- a rule split across physical lines is ONE paragraph), and a normalized paragraph FAILS the lint exactly when it opens with the subject `squatch` followed by a directive from the closed modal list (must, must not, should, should not, shall, shall not, will, will not, may, may not) or by an imperative from the closed engine-process predicate vocabulary the drift-lint deliverable declares; every other subject and ordinary project rule passes, proven by refusal AND acceptance fixtures (a lint that reddens `The squatch dashboard must use dark mode.` is as broken as one that greens an override). The managed block is fail-closed on its own markers: a duplicated, reordered, or UNTERMINATED `squatch:core` marker -- or stray marker-like text anywhere in the file -- refuses both render and lint (corruption is never green); a routed CLI's file with NO marker and NO marker-like text is FIRST ADOPTION (section 19 Phase 6): the managed block is inserted with every existing byte preserved as project-owned remainder; a missing marker WITH marker-like text present still refuses; repair never erases a project-owned byte, and a second render over a clean file is byte-identical (idempotence, a named test). The renderer manages the conduct file of every CLI the RESOLVED ROUTING names, via section 17's mapping (the `claude` CLI loads CLAUDE.md; any other agent CLI loads AGENTS.md): a routed CLI's file is always rendered, an unrouted CLI's file is never created (an unread copy to drift, section 17) -- never an assumed provider's file. This machinery lands as chained deliverables -- the renderer (carrying the marker and idempotence contract), drift DETECTION (the pure classifier), then gate ACTIVATION -- never one ticket (section 19 Phase 6; it proved unbuildable bundled). Reflexive case (squatch developing squatch): the `squatch:core` render and drift lint run against the TICKET BRANCH's engine version, and the branch's golden snapshot is the authority, so an engine-plane template change ships with its own updated block instead of drift-failing against the running instance's older version. The golden snapshot is REGENERATED by a mechanical render target, never hand-edited: the drift lint compares the committed block against a fresh render of the branch's template, so a snapshot a fresh render does not reproduce fails.
+
+Rule ROUTING is three-way: orchestration-generic -> the engine's core template (propagated by bootstrap refresh); project-specific -> that host's project section; personal machine-wide preference -> the operator's global agent config. Engine rules NEVER go in the personal global config. Why: concurrent instances may run different engine versions, and a global copy of one version's rules would leak into the other's sessions.
+
+## 9. Scheduler, scope fence, merge queue
+
+**Continuous dispatch.** Eligible = `state: confirmed` + all `depends` merged + not quarantined + not parked (provider drought) + not awaiting a Reject-queue verdict -- the last two journal-derived, like quarantine (the Reject fold: a stem awaits a verdict when its latest terminal `state_transition` body carries the Reject-routing marker `routed: reject_queue` -- stamped by the spine when it terminates a stem to the queue, section 11 -- with no later `confirm`/`reject` `signal`; the bootstrap drain's auto-keep journals the same signal with a MACHINE actor stamped on its body, section 11.4 -- either actor's signal resolves the awaiting-verdict hold; only the operator's bounds the cap fold (section 11.2); no new run state exists for this). Drought-parked tickets re-enter eligibility automatically at the next dispatch cycle once routing resolves; the OPERATOR'S Reject-queue `keep` re-enqueues the ticket and re-arms its spent failure-spine caps; the bootstrap drain's auto-keep (section 11.4) re-enqueues only -- it DRAWS DOWN remaining budget and NEVER re-arms a spent cap. Sort by (priority, age) -- the age term is the starvation guard; age = time since the journal event of the stem's first ticket-plane `ticket.md` commit -- and EVERY authoring path emits it: human intake (section 13 touchpoint 1), the Author stage, box triage, and phase seeding all journal the same per-stem authoring-commit event, else the starvation guard is silently dead for machine-authored stems -- journal-derived, D3, never a file mtime, with lexicographic stem order as the final deterministic tiebreak, a stem with no event sorting as `None` (never a synthetic now: no event means no seniority); the deliverable that lands the age term also lands its consumer, demoting the stem-name comparison to the final tiebreak in the eligibility sort, proven by a test with DISTINCT per-stem clocks (an equal-clock test cannot discriminate a working sort from a broken one). A file watcher on the tickets dir re-sorts the pending queue on any edit (live re-prioritization). It DEBOUNCES so a half-written ticket is never scheduled, and parses FAIL-CLOSED: a ticket that does not parse holds its last-known-good sort position (a NEW ticket with no parsed state stays out of the queue), and the parse failure is journaled. No preemption of running work (a P0 takes the next free slot).
+
+**Dependency liveness.** A dependency edge can die: its predecessor is killed at the Reject queue or abandoned. Terminal-without-merge is an event the scheduler consumes: the daemon journals a dead-dependency event for every confirmed ticket whose `depends` names the dead stem and emits one `failure_report` per dependent into the Suggestion Box (pre-daemon, the Phase 2 `reject` verb emits exactly these -- the dead-dependency events and per-dependent reports -- INLINE at the kill, the handling shipping with its trigger, section 19; the daemon's continuous scan takes over in Phase 3), so stranded work resurfaces as schedulable revision (re-wire, re-scope, or kill) instead of silting. When Rework splits a ticket, it journals a supersedes map (old stem -> successor stems); the scheduler satisfies a dependency on a superseded stem once ALL successors merge, and the terminal-without-merge scan resolves stems THROUGH that map in both directions -- a dead successor also marks the superseded stem dead, so dependents of the ORIGINAL stem get their dead-dependency events too.
+
+**Ordering and scope metadata.** One author-declared path list must never do two jobs (conflict prediction and scope bounding). Why: path predictions are guesses that over-serialize the queue and miss real collisions. Two separate mechanisms:
+
+- `depends`: explicit predecessor stems, minimal, the only ordering mechanism.
+- `## Scope fence`: the implement stage's WRITE ALLOWLIST. After implement, a mechanical gate checks `git diff --name-only` is a subset of the declared prefixes; outside edits fail closed, with the `gate_bypass` valve for genuine surprises. AUTHORING law: the fence includes every file the acceptance criteria force -- criteria that compel an out-of-fence edit are an authoring defect, and the correct implement outcome is premise_failed, never a compat shim. The forced set is JUDGED at authoring, never left to run-time discovery: `requisition_review` checks the fence CLOSURE before a ticket commits confirmed -- its prompt directs the reviewer to trace the reference closure of every symbol the scope-in changes (callers and importers, aliases included) and the recorded-value closure of every constant or version it bumps (the artifacts and assertions carrying the old value) -- and rejects a fence omitting any, naming them, so a forced-file gap is caught at authoring time rather than as a runtime premise_failed. The closure is LLM judgment under that review's prompt, never a shipped static analyzer (the engine carries no per-stack reference tooling, section 18); a mechanical closure check is a D10 return at the first fence-gap escape this review misses. Behavioral fan-out that only a run reveals is absorbed at the gate, not by pre-widening: the scope-fence gate auto-admits an out-of-fence edit ONLY when it is confined to a TEST file and a mechanical anti-weakening check passes (no test deleted, skipped, or xfailed; assertion count non-decreasing) with the full suite green -- a TEST file matches the engine-constant patterns (a `tests/` path component, or basename `test_*` / `*_test.*`), and the anti-weakening check is language-aware for PYTHON only, stdlib `ast` over both sides of the diff (the self-host's language; no per-stack tooling accretes, section 18): a file those patterns claim but the parser cannot own FORFEITS auto-admission, fail-closed to the `gate_bypass` valve, never a heuristic pass -- a test edit cannot balloon the shipped surface, and loosening one is separately detectable. Every other out-of-fence edit -- any production file outside the derived closure -- stays fail-closed: a genuine surprise takes the `gate_bypass` valve, and reach with no reference, value, or dependency link to the scope-in is the authoring defect the fence exists to stop. One authored exception is structural, not a defect: a phase-SEEDING ticket (section 19) writes not-yet-authored `ticket.md` files -- the next phase's core batch, or its own phase's `-continue` feature batches -- whose stems are unknowable when its own fence is authored, so its fence is necessarily the whole `tickets` plane -- pre-naming the stems would be speculative seeding (D10). The broad prefix bounds writes to the ticket plane; that a seeding run only CREATES new stems and never rewrites an existing ticket is Review's to confirm, not the fence's. And the whole-plane fence is a WRITE bound ONLY, never review material: `requisition_review`'s material for a seeding ticket is PER AUTHORED SEED -- that seed's own text and Context closure, one render per seed, each under the section 8 bound -- never one union blob over the whole authored set or the plane's history (sections 7, 19).
+- Conflicts are RESOLVED at the merge queue, the one place they are real; single-flight dispatch (D2) makes them rare by construction, and the deferred overlap checkpoints (section 18) are the D10 return if a future worker pool starts manufacturing them.
+
+**Merge queue (one serial async task).** The queue admits ready branches in (priority, age) order -- the same sort as dispatch -- and an in-flight admission is never interrupted (a P0 takes the next free slot). Per branch, in order, all BEFORE main moves: RESTORE the branch worktree's ticket plane to main's content (`git restore` of `tickets/**` through git.py -- stage terminals lift-and-unlink ticket-plane artifacts, section 10, so a worktree born from an earlier main carries tracked deletions of the already-lifted copies, and an un-restored tree refuses the rebase) -> rebase onto main -> fast MERGE-SAFETY tier -> full INTEGRATION CHECK -> squash-merge -> delete branch. The MERGE-SAFETY tier is the cheap subset a rebase can invalidate -- rebase-clean, scope fence, run-record present, plus host-designated fast checks (`merge.safety_checks`, section 15) -- run first so an inadmissible candidate is rejected before paying the full run. The INTEGRATION CHECK is the FULL always-run hard set -- every engine-shipped hard gate plus every host mechanical entry with `trigger: always` and `severity: hard` (the host's own test suite belongs in that class; the green-main guarantee is exactly as strong as this set) -- AND the ticket's own `## Verification`, executed against the rebased candidate tree. That tree is content-identical to what the squash-merge will put on main, so checking it pre-admission catches semantic conflicts (green alone, red together) while main stays green by construction: a red candidate is not admitted -- main is untouched, the branch routes back through the failure spine with the integration findings as context (rework with conflict/semantic context, re-review per the risk routing below), and the next branch is admitted immediately. No freeze machinery exists because the failure mode it would manage cannot occur on this path.
+
+Merge-time gate scoping: the re-run set is the MECHANICAL codes only, validating the admission's code diff, not every declared-binary evidence file already on main; integration-shaped checks (the ticket's verification) run against the tree; `correctness_review` participates as the pinned-approval requirement for the admitted SHA, never as a re-executed model call. Auto-admission is additionally GO-COVERED: the review effect's completion stamps the (provider, model) that actually SERVED (section 6), and the queue compares that served identity -- never just the routing config -- to the currently binding GO identity; an approval served off-baseline (a spill or failover landed the review call on an unbaselined candidate, section 6) queues for the operator's `confirm` exactly like supervised merge (section 12), dispatch and other candidates' checks continuing. A green candidate is squash-merged; the pinned review approval carries across a clean rebase (the deliberate, stated exception to approval-SHA strictness -- MERGE-SAFETY plus the INTEGRATION CHECK bound the carry's risk to what mechanical checks can see; the residual, a byte-identical diff whose meaning changed under a moved main, is an accepted risk the section 14 escape attribution measures, and an escape of that shape is the cited incident that would earn re-review-after-rebase per D10). Daemon era only: when no GO baseline currently binds, a green candidate queues for the operator's `confirm` before admission (supervised merge, section 12) while dispatch and review continue -- the bootstrap drain never holds (section 19). The hold itself is a Phase 6 deliverable, built at the first daemon-on-host-work cutover (section 19); through the entire self-build no admission holds, so the Phase 3 soak and every phase-exit seed exercise the merge queue without it, and no self-build seed (Phase 4 provider failover included) may require it. After the merge the queue asserts main's tree hash equals the checked candidate's tree hash; a mismatch is an engine defect and escalates immediately (section 13). One full verification run per admitted ticket is the deliberate serialization cost of a permanently green main. That cost has a stated capacity: admissions per day are bounded by rebase + MERGE-SAFETY + INTEGRATION CHECK wall-clock (a 30-minute suite caps at ~48/day), and the host's always-run hard set must be sized so capacity comfortably exceeds worker throughput. Backpressure is explicit, not emergent: at `scheduler.max_unmerged` completed-but-unmerged branches (section 15; shipped literal default `2` -- v1 has no `workers` key, and the `2 x workers` formula returns WITH the worker pool, section 18) dispatch stops admitting NEW tickets until the merge queue drains. If K consecutive DISTINCT tickets go integration-red (shipped default K=3), that is a systemic signal: merge admissions pause and the red-streak escalation fires (section 13); `resume` re-opens admissions. A conflicted rebase walks a cheapest-first resolution ladder; whatever rung resolves it -- and whenever every rung refuses -- the worktree is NEVER left mid-rebase: a refusal runs `rebase --abort` before it returns (section 10), so the branch the refusal names stays re-runnable:
+
+1. **Mechanical resolution.** git's own merge machinery absorbs non-overlapping edits; on top of it, host-declared per-path strategies (closed vocab: `regenerate: <command>` -- take either side and re-run the generator, for lockfiles and generated fixtures; `union` -- for append-only files). Deterministic and fail-closed: only declared paths get a strategy. Strategy-resolved content is derived output and needs no re-review beyond the post-rebase gates. A generated path has exactly ONE owner: either the ticket's `## Scope fence` (agent regenerates in-branch, the default) or a host-declared merge-time `regenerate:` path -- never both; the scope-fence gate exempts host-declared strategy paths. The same ownership law governs FENCE AUTHORING: a deliverable that hooks, writes, or reads an engine seam fences the module that OWNS that seam -- the run's terminal `state_transition` write and the section 11.2 terminal handler (harvest -> dispatch -> journal -> wipe) are the driver's (`squatch/runner.py`); the stage-terminal OUTBOX lift and stage-evidence gathering are the stage layer's (`squatch/stages.py`), and section 10's "the driver lifts the outbox" means the driver INVOKES that one stage-layer lift path, never a second copy; admission is the merge queue's (`squatch/merge.py`); the eligibility sort is the scheduler's (`squatch/drain.py`); a cap draw is owned by the module that journals its `cap_consumed` event -- never only the module that calls into a seam or the helper that computes for it; `requisition_review` treats an outside-owner hook as a forced-file closure gap and rejects the ticket at authoring. Wherever a deliverable's `expects:` list names a file, the deliverable prose states what that file OWNS and the tests must import and exercise the production module -- a near-empty stub satisfying a file-existence check is the false-green shape this rule exists to refuse. (A rerere replay cache with its custody protocol, and a conflict-only micro-rework mode, are D10 returns at the first chronically re-resolved conflict the conflict facts show -- section 18.)
+2. **Full Rework** with conflict context and invalidated approval (re-review) for every conflict the mechanical rung leaves.
+
+Strategy caveat: an auto-resolved path can stay green while silently changing meaning, so retro watches strategy-resolved merges -- a resolution later implicated in an integration-red or a bug ticket revokes that path's strategy declaration.
+
+**Cross-ticket overlap: resolved at merge, measured for the future.** Author-time path prediction (fence-vs-fence) stays rejected, and under single-flight dispatch (D2) no second in-flight run exists to overlap. The dispatch-time overlap skip and the pre-review hold -- spend optimizations that only pay off under a concurrent pool -- are DEFERRED with that pool (section 18); their law is recorded here for the return: never act on estimate-vs-estimate; act only when at least one side is an OBSERVED fact. What ships now is the MEASUREMENT: the scope-fence gate already computes `git diff --name-only` per branch, the driver journals each branch's observed changed-file set at implement-terminal, and every merge admission journals its CONFLICT FACTS -- the conflicted file list, the resolving rung (counting strategy hits, because a path that repeatedly needs mechanical resolution is chronically contended even though every merge "succeeded"), and integration-red implicated paths. Those facts are the evidence stream that earns the deferred checkpoints, a dispatch-serialization knob, or a retro-proposed refactor-split back via D10 -- measured contention, never a guess.
+
+**Watchdogs: liveness and progress are different questions.** Per-stage `asyncio.wait_for` using the ticket's time budget with an expected-to-stuck floor (guard against expected==stuck authoring mistakes); process-group kill for agent subprocesses. A heartbeat answers only "is the run alive?" -- the wasted hours live in busy-but-spinning runs -- so the watchdog also runs SPIRAL detection over the agent adapter's event stream. The adapter CONTRACT requires one JSONL event per tool call from any integrated agent CLI, recorded to the run's attempt spool (section 6). Three time regions per ticket size class: healthy (below expected x 1.5) -- log, do nothing; soft band (expected x 1.5 up to stuck) -- notify on the signal; stuck -- the hard timeout path. v1 ships ONE cheap deterministic signal, no model calls ("declared output file" = any path matching the ticket's `## Scope fence` prefixes):
+
+- **Spend-without-progress:** token/cost burn since the last mutation to a declared output file crosses a threshold -- an ENGINE CONSTANT, never a new config knob: spend since that mutation exceeding 3 x the serving row's per-call cost basis (metered usage, else `limits.est_cost_per_call_usd`, section 6) -- the shape-blind signal that catches a thrasher whatever its thrash looks like (debris accumulation, command repetition, poll loops, or file-diverse spinning alike burn spend without moving a declared output).
+
+Additional signal SHAPES -- throwaway-file accumulation, tool-call repetition, mutation-entropy stall, poll-loop match -- and a degraded-watch mode for a stream-less CLI are D10 returns, each earned by a pinned spiral fixture the shipped signal misses (section 18). The cross-ATTEMPT analog -- the same terminal reason repeating across attempts -- is the failure spine's identical-terminal short-circuit (section 11.4), not a watchdog signal.
+
+The signal tripping in the soft band pushes ONE notification per run (the notify key carries the run sequence, section 6: re-tripping within a run never re-pages, a NEW run's spiral pages again). NO AUTO-KILL: the human decides -- kill (`squatch kill <run>`, SIGKILL of the run's process group, section 16), inject guidance (edit the ticket THEN kill: attempt renders are immutable per invariant 2, so an edit reaches the next attempt's render, never a running one), or let it cook. Every observed spiral becomes a permanent detector fixture (the recorded event stream from the run's pinned attempt spool, section 6, plus the expected verdict), so the signal set is regression-tested against a corpus and each deferred signal shape returns citing the fixture that earned it; an LLM-as-judge signal stays unbuilt until a spiral appears that no cheap pattern can express. The bottom layer is a dumb external heartbeat (systemd timer / cron) checking the daemon's heartbeat file -- touched by the main loop each cycle ONLY while its watched core tasks (workers, merge queue, box consumer, watcher) are live, so a dead or wedged core task stops the touch and the mtime check catches it; unrelated to the reserved journal `checkpoint` event (D2). No LLM in the bottom layer. One kill-switch flag pauses all workers at the next safe checkpoint.
+
+## 10. Git and GitHub
+
+- Local `main` is the blessed line. Branch per ticket in a worktree off one shared `.git`, created at `<worktree_root>/<stem>` under the config-declared `worktree_root` (section 15; shipped default `<state_dir>/worktrees` -- instance-local and gitignored with the state dir; the stem names the worktree dir exactly as it names the branch). The merge queue SQUASH-merges locally and deletes the branch: main history is one commit per ticket (per-ticket bisect granularity, no agent WIP-commit noise); intra-ticket history is disposable, the durable detail lives in the journal and run record. The branch name is the ticket STEM verbatim -- no `ticket/` or other prefix (section 13: the one identity reused as dir name, branch name, and squash trailer). Each squash commit's subject is `squatch(<stem>): <ticket Goal line>` and it records `squatch-ticket: <stem>` and `squatch-reviewed-sha: <sha>` trailers, so reconcile and dependency-eligibility can map an integrated commit back to its ticket and approved SHA after the branch is deleted -- the identity D3's world-wins reconcile needs. No PRs, no `gh`, no PR-state failure modes in the loop.
+- **Two admission lanes, one writer.** The serial merge task is the single writer to main; everything reaching main goes through one of two lanes: (a) squash-merges of reviewed ticket branches -- code; (b) TICKET-PLANE COMMITS -- mechanical, path-fenced to `tickets/**` -- by which stages persist process artifacts directly: authored tickets (Author, box triage, human intake), run records, check reports (`checks.json`), review verdicts, harvest `attempts/` dirs, evidence copies, decision records, retro reports (section 14). Ticket-plane commits need no branch and no review (process record, not code); a ticket-plane commit touching anything outside `tickets/**` is refused, with one named exception: the rendered root AI files of the `squatch:core` bootstrap refresh (section 15), a deterministic drift-linted render the daemon commits mechanically after an engine upgrade. (Seed `ticket.md` files reach main through this ticket-plane lane; their REFUSABLE review point is the seeding ticket's own Check stage, section 19 -- a refused seed never commits, so no code-lane exception exists or is needed for `tickets/**`.) The lane's writer validates what it commits: schema checks for artifacts it knows; evidence files are declared binary data and exempt. Failed-attempt artifacts and the tickets of runs that never merge reach durable history through this lane -- custody never depends on a ticket succeeding. Ticket-plane commits interleave with code admissions in the same serial task, so "single writer to main" stays true. Custody at the worktree seam: the agent's own ticket dir (`tickets/<stem>/`) inside its worktree is its OUTBOX -- run record, `checks.json`, box-message files, evidence -- and the scope-fence gate structurally exempts `tickets/<stem>/**` EXCEPT `ticket.md`, which stays read-only to the agent (the no-self-editing rule, section 11). At every stage terminal the driver lifts the outbox into the canonical tickets dir and commits it via this lane -- ONE ticket-plane commit per stage terminal, subject `squatch(<stem>): <artifact-kind>` (e.g. `run-record`, `review`, `checks`), no trailers (trailers identify the CODE line, not the process record) -- ingesting box-message files into the Suggestion Box. Outbox files are scooped from the worktree FILESYSTEM and never committed to the ticket branch: the branch carries code only, so no rebase ever replays a `tickets/**` commit against the already-lifted copies on main, and a branch that does carry one fails MERGE-SAFETY with the paved road "leave outbox files uncommitted; the driver lifts them". The scope-fence gate reads the branch's committed diff; uncommitted worktree debris is watchdog territory (signal 1), wiped with the worktree. The squash-merge applies the CODE diff only; `tickets/**` never rides the code lane.
+- Review happens on the local diff (`git diff main...<stem>`); the verdict is a review artifact pinned to the reviewed SHA, persisted via the ticket-plane lane to `tickets/<stem>/review.md`; the merge gate requires an approval for the SHA it admits (carried across a clean rebase per section 9).
+- GitHub is a checkpoint sidecar: a mechanical Effect pushes main (and optionally a mirror) after every K merges (shipped default K=5) or daily. It can never block the loop; push failure is a soft finding to the Suggestion Box, and a FAILED push never marks its trigger window done -- the effect re-fires at the next trigger until a push lands, because an attempt that records itself as done on failure silently ends the offsite copy. The sidecar ships with the Phase 3 daemon and its Timer (section 19): the sole offsite copy of an unattended multi-phase build does not wait for the sidecar phase.
+- All git access goes through one `git.py` wrapper -- argv lists, dir-pinned (`["git", "-C", dir, ...]`), constructed with a REQUIRED keyword-only child `env` (never a `None` default: the process seam consumes a mapping, and section 6's key-injection rule needs every caller to state what a child inherits), executed through the process-exec seam as ASYNC subprocesses so nothing blocks the event loop (D2). The Phase-1 op set -- the ONE canonical enumeration, which prompt 5 (section 0) defers to so the list cannot drift from its consumers -- is `init`, `status --porcelain`, `rev-parse`, `diff --name-only <base>...<stem>` and `diff <base>...<stem>` (the scope-fence gate and Review both read the branch diff -- this section and section 9), `add`, `commit`, `branch`, `worktree add`/`remove`/`prune`, `rebase` with its `rebase --abort` dual (a refused conflicted rebase is ABORTED before the refusal returns, so the worktree sits on its own branch head -- a refusal that leaves a rebase in progress strands the very branch it tells the operator to re-run), `restore` (the merge admission's ticket-plane restore, section 9), `merge --squash`, and `describe --tags --always --dirty` (diagnostics-only: it derives the section-6 lockfile `instance_id` for an untagged dev instance, enumerated here so the D1 all-git-through-`git.py` law holds). The richer merge-queue resolution ops a conflict needs (per-path merge strategies) are Phase 3 (section 9); rerere is a D10 return (section 18). Worktree cleanup uses `git worktree remove` + `prune`, never bare `rm -rf` (orphaned-metadata lesson). An orphan sweeper reconciles worktrees at daemon startup.
+
+## 11. Failure spine
+
+Uniform routing on the outcome envelope; the recovery path is the mechanical sandwich:
+
+1. **Caps fire first, before any model call.** Max diagnosis invocations per ticket (shipped default 6); max retry-like actions (shipped default 6, never set above the diagnosis cap); max premise bounces (default 2 -- Author<->Implement round-trips on `premise_failed`, invariant 4); max infra terminals (shipped default 6 -- `infra_error` and `timeout` draw this budget, so a crashing review call or a hung subprocess is bounded exactly like a model failure, never an unbounded park-and-retry loop the retry cap cannot see; a provider failure from a call that RAN lands here by construction; a drought -- no callable candidate, pre-dispatch or discovered mid-run -- parks cost-free instead (section 6)). Every non-ok terminal draws from one of these NAMED budgets -- `gate_failed` and in-stage re-prompts from retry, `premise_failed` from premise_bounce, `infra_error`/`timeout` from infra -- so no failure class can loop outside the cap system -- the one exception is the drought-reason `infra_error`, which draws nothing and is bounded by its routing-resolves re-entry gate and the fleet-wide drought escalation (sections 6, 13). Three refusal events map onto the vocabulary explicitly, each a `gate_failed` drawing retry: a review REJECT verdict (the review surface is a gate, invariant 3); a conflicted rebase every live resolution rung refuses (pre-Rework, section 19 -- the abort leaves the branch re-runnable, section 10); and an EMPTY COMMITTED DIFF at the verification gate, unless Implement proved `already_satisfied` (invariant 4) -- the one sanctioned empty-diff settlement. The diagnosis and retry defaults are 6, not 3, because the escalation ladder (section 11.4) draws a cap unit per rung: a hard ticket climbs tier-then-effort AND must still have budget to LAND at the top rung, so a cap that only covered the climb would RMA every hard stem to a human. These spine caps are config-declared (the `caps:` key, section 15) with the shipped defaults above, checked deterministically BEFORE any model call -- never model-decided -- present from the Phase 0-2 failure spine and distinct from the Phase 3 THRESH spend and rate budgets (section 6). The retry cap counts BOTH retry senses (section 2): in-stage re-prompts and cross-attempt retries draw down the one budget, and that bound exists from Phase 0 with the driver. ONE case has no lineage to fold: an AUTHORING-time in-stage re-prompt -- the Author driver's re-prompt on a `requisition_review` snag, run BEFORE any `ticket.md` is committed and so before any stem or lineage exists (section 11.2 assigns the lineage budget at the first ticket-plane commit) -- is bounded by the DRIVER'S LOCAL per-invocation allowance sized from `caps.retry`, never by the journal cap fold (the section 11.2 in-memory ban governs LIFETIME lineage budgets; pre-lineage there is nothing durable to fold), and an exhausted authoring allowance terminates the authoring pass with the cap NAMED; the lineage fold governs the committed stem's in-stage re-prompts and cross-attempt retries from its first ticket-plane commit on. Because each cross-attempt retry rides a FRESH diagnosis (the sandwich's rung order), the retry cap is never set above the diagnosis cap: a retry the diagnosis budget cannot cover is a diagnosis-STARVED re-run -- it repeats a failure with only the raw prior findings and no new steering, at full model spend -- so a stem whose diagnosis budget is spent escalates to the Reject queue rather than drawing another retry. If any cap is spent, terminate to the human Reject queue without invoking the model -- and the recorded reason NAMES the spent cap verbatim ("diagnosis cap spent", "infra cap spent"), never a generic verdict-shape message that sends an operator chasing a phantom model failure. (The Reject queue itself arrives with the Phase 2 spine; in Phase 0-1, before it exists, a spent cap or any non-ok terminal just journals its state transition and exits nonzero, leaving ticket and branch in place -- section 19 Phase 1. The exit contract holds for FAULTS too: nothing reaches the operator as a raw traceback. A fault outside the stage vocabulary still exits as a named, stopped verb -- an unresolvable binary surfaces as the section 15 seam's config/setup refusal, and a key left mid-effect by a dead run (an intent with no completion) is reported with the key and the run that stranded it; the orphan's DISPOSITION is fixed -- restart-reconcile (Phase 3) reaps it to `abandoned` exactly like reconcile-on-entry (section 11.2) -- never a silent retry and never a traceback.)
+2. **Auto-harvest before wipe -- on EVERY non-ok terminal.** The driver's terminal handler order is fixed: harvest -> dispatch -> journal -> wipe worktree, where dispatch is the section 11.3-11.4 recovery (the one diagnosis call and its cap draw, then the deterministic routing decision) and journal writes the run's SINGLE terminal `state_transition` carrying any `routed: reject_queue` marker the routing set (section 6). Dispatch PRECEDES the terminal write for a load-bearing reason: the routing predicate reads the FINAL cap state -- including this recovery's own diagnosis draw -- so the marker rides the terminal it belongs on; a terminal journaled before dispatch cannot carry its own routing. Harvest still precedes both (the diagnosis call reads the harvested material) and the wipe still comes last: no worktree is wiped until after its terminal is journaled, and a crash mid-dispatch leaves a `running` with no terminal -- reconcile's orphan reap, below. The section 9 ownership-law parenthetical states this same order -- the two statements never diverge. Killed, stalled, and timed-out runs route through the same handler; orphan worktrees found at restart are harvested before the sweeper removes them. Before the Phase 3 daemon exists, the same reconcile runs ON-ENTRY: a `run`/`drain` scaffold, holding the sole writer lock, reaps any orphaned in-flight run -- a `running` with no terminal, an `effect_intent` with no completion -- the moment it becomes the writer, journaling an `abandoned` terminal and removing the orphan worktree (Phase 1 reaps bare; Phase 2 folds in this harvest; Phase 3 moves it to daemon startup). The `abandoned` terminal a reap journals is what FREES the stem: keys are run-scoped (section 6), so the next entry takes the next run sequence and a fresh keyspace, and teardown-and-create clears the dead run's worktree and branch. An `abandoned` or non-ok stem therefore stays ELIGIBLE, and its re-run is real work -- never a replay of the recorded failure, never a removed worktree's path handed to a stage. Re-authoring under a fresh stem is DEAD as a recovery path for a LIVE lineage: a rename is never machinery, and no rename or re-author resets caps (the lineage law below). The sanctioned retirement for ANY confirmed lineage that will never merge (obsoleted or superseded seed included) is the section 13 `reject <stem>` kill -- journal-identity resolution, `rejected` stamped, section 9's dead-dependency handling fired (it resolves THROUGH the supersedes map, both directions), caps and history preserved -- never a drain special case keyed to stem names. Distinct and SANCTIONED after that retirement: SUCCESSION -- a FRESH REVIEWED same-goal stem, narrowed or split, on a fresh branch never the rejected candidate's, authored via touchpoint 1 intake (the operator its reviewer, section 13) or a reviewed machine authoring, free to cite the rejected lineage's committed Check and review artifacts (`tickets/<old-stem>/checks.json`, `review.md` -- durable ticket-plane history, section 10) as Context evidence. A retirement WITH a named successor journals the SAME supersedes-map entry a Rework split does (old stem -> successor stems, section 9), so every dependent -- the phase exit's transitive reads included (section 19) -- resolves through the map instead of stranding on a dead edge; only a successor-less kill leaves dependents to the bare dead-dependency events. UNATTENDED AUTHORITY: when an immutable stem parks or terminally rejects SOLELY because a base-reproducible plan, engine, or test defect made its unchanged contract impossible, the recovery chain itself performs the state-only `reject` plus succession once the fix is committed and green -- this pair rides section 19's answer-a-Reject-item touchpoint, never a new authority -- and the SAME root-cause defect sanctions it ONCE: recurrence is an operator boundary, as is every park with any other cause. The cost model is stated, not hidden: under drain's park-on-red run-to-quiescence loop (section 18) and deterministic sort, a persistently red stem is re-attempted findings-fed at real model spend, down to its remaining `retry` cap, while the rest of the queue proceeds. The cap is a LIFETIME budget per stem, never per-invocation: every draw journals a `cap_consumed` event NAMING ITS CAP and recording the `ticket_sha` its run was dispatched against (section 6) -- `ticket_sha` is the git BLOB SHA of the committed `tickets/<stem>/ticket.md` content (hash-object identity, never a commit id: run-record and review ticket-plane commits move every commit id but not the ticket's blob, so only a content edit moves it) -- and each cap's remaining budget is derived at entry by the ONE journal cap fold, which counts the lineage's `cap_consumed` events that name THAT cap -- a fold that ignores the cap name draws every cap down against one budget, a single-cap assumption the next cap in the vocabulary (section 11.1) silently breaks; an in-memory counter is wrong by construction, because it forgets across invocations and across the drain's self-upgrade re-exec. Cap budgets are scoped to the STEM'S LINEAGE, assigned once at the stem's first ticket-plane `ticket.md` commit (intake or authoring, the same event section 9's age term reads) and invariant across every edit and rename: the cap fold counts every `cap_consumed` naming that cap across ALL ticket shas of the lineage, and `ticket_sha` is recorded on each draw for audit and attribution only -- it NEVER selects, clears, or refills a budget. There is no content-edit cap reset: an edit reaches the next attempt's render (an edited ticket is new work for the IMPLEMENTER, not a new budget), and the ONE re-arm is the operator's Reject-queue `keep` (`confirm <stem>`, sections 9 and 13): its journal `signal` also bounds the fold, so draws before the stem's latest OPERATOR-actor keep fall out of the count -- the auto-keep's machine-actor signal (section 11.4) resolves the verdict hold and NEVER bounds the fold, and the double-confirm refusal (section 13 touchpoint 3) keeps that re-arm finite -- and a draw recorded with NO `ticket_sha` counts against the current budget so a journal written before this mechanism never reads as refilled. That lineage-scoped count is the single cap fold, defined in the journal beside the run-state vocabulary it reads (section 6); a cap-spent stem stays parked and reported, never silently re-armed; the drain's provisional-quiescence re-offer fold, on discovering a spent cap, RECORDS the releasable Reject-queue arrival before returning exactly as the run-terminal path does (section 9's marker -- answered by the section 11.4 auto-keep only at remaining budget, by the operator's verdict otherwise), so no lineage is left releaseless, and a cap-spent stop never advertises `drain` as its own release (the section 0 prompt-11 drain text's "stays parked ... never re-offered" governs re-DISPATCH only, never the arrival record). Drain is an operator action until the Phase 3 daemon, and the Phase 2 escalation ladder is what routes a repeat offender onward -- until it lands, the journal-derived cap itself is the bound, never the operator's finger. Harvest is a fail-closed ALLOWLIST extraction (never "everything except the diff"): the run record if written; structured gate findings and the StageResult; the stage's terminal REASON when the outcome carries no findings (for `invalid_artifact`, the schema-validation error string the driver logged); a capped stage-log tail and a capped adapter event-stream tail (both cut from the attempt spool, section 6); `git diff --stat` (names and counts, never content); wall time, cost, attempt number. Every non-ok terminal NAMES where its detail lives -- the `attempts/<n>/` dir once harvest exists, the engine log path before then (Phase 1). The unreviewed code diff never enters the ticket spec. Attempt artifacts land in `tickets/<stem>/attempts/<n>/` (ticket-plane lane, section 10; `<n>` IS the section 6 run sequence -- the same number that keys the run's effects and names its spool dir -- so cross-run re-entries never collide); the renderer for attempt N+1 automatically includes a "Prior attempts (informational, unverified, not reviewed)" section built from them -- BOUNDED, so history never grows a render into the section 8 bound on exactly the lineages with the most history: once an attempt's harvest has a journaled diagnosis `lessons` (section 11.3), every later render carries that attempt's typed lessons and terminal reason (the section 11.4 comparison key), NEVER the raw harvest payload, regardless of that payload's individual size -- cumulative accretion, not any one payload, is what crosses the bound; raw harvests stay durable at `attempts/<n>/` for the operator and the diagnosis call, and only a not-yet-diagnosed attempt's harvest renders raw. -- the ticket file itself is never edited, so acceptance criteria and predictions cannot be clobbered, and nothing depends on a human running a harvest verb. POSITION is part of this contract: the prior terminal's UNRESOLVED findings and their paved roads render as an itemized clear-these-findings block in the SAME prompt position as the acceptance criteria -- criteria-position is what a re-prompted implementer acts on; an appendix is what it skims -- marked attempt-scoped and rendered fresh each attempt, never written into `ticket.md` (findings accreted into criteria harden stale attempt guidance into permanent acceptance and eventually contradict the work). The section has one SENIOR source that predates harvest: the prior run's terminal findings artifacts -- review.md's reject findings, a failing checks.json -- already durable in the canonical ticket dir when the stem re-enters (ticket-plane lane, section 10). The re-entry renderer folds them into this same prior-attempts section, untrusted data like all of it, with no harvest, no diagnosis call, and no new bookkeeping: the run-entry fold that derives the run sequence (section 6) already reads the prior terminal event, so the renderer knows a prior run ended and how. This REJECT-FINDINGS RE-ENTRY ships WITH the Phase 1 drain verb (section 19; realized as the section 0 prompt 11-12 pair, both landing before any seeded queue runs) and depends on run-scoped keys alone, so no drain over a seeded queue is ever findings-blind. Harvest EXTENDS the same rendered section with the material only the dying worktree holds -- one rendering seam, never a second path. Harvest is soft: a harvest error journals a finding and dispatch proceeds. Setup-death short-circuit: a workspace that died before doing anything skips harvest.
+3. **One diagnosis LLM call.** Context: state, ticket, run record if any, capped log tail, capped diff. One question: what should happen next? Verdict vocabulary is closed (retry | escalate | split | reject | abandon-human); a verdict outside the set is treated FAIL-CLOSED as a mechanical RMA to the Reject queue, never a silent retry. `retry` re-runs at the SAME capability (a fixable oversight the findings now steer); `escalate` says more CAPABILITY would help and hands the knob to the deterministic ladder below -- the model RECOMMENDS escalation, it never picks its own tier or effort. The verdict includes a `lessons` field, journaled and rendered as the harvest's form in every later attempt's prior-attempts section (section 11.2) -- diagnosed raw payloads never re-render; no extra model call. Synthetic short-circuit: if the workspace is gone, write `abandon-human` mechanically and never ask. `budget_exceeded` is the second mechanical short-circuit: the exhausted ceiling blocks the diagnosis call itself (section 2's pointless-call rule), so the stem parks like a provider drought -- no cap consumed, no Reject routing -- and re-enters eligibility at the first dispatch cycle whose pre-call check clears (window rolled or ceiling raised, section 6). An over-bound render refusal (section 8) is the third mechanical short-circuit: the ticket's text against the bound is arithmetic -- a ticket-text defect, never implementer failure -- so NO diagnosis call, NO cap consumed, and the stem PARKS like `premise_failed` (section 18 -- released only by a ticket-plane content change that shrinks or splits it) until Rework is live, then dispatches mechanically to Rework `split`; section 11.4's pre-Rework fail-closed split-to-Reject routing (and section 19's restatement) governs diagnosis verdicts on IMPLEMENTED attempts only -- a confirmed ticket never terminally rejects at zero attempts over prompt size.
+4. **Deterministic dispatch.** A match on the verdict string: `retry` re-runs at the authored capability; `escalate` walks the CAPABILITY LADDER one rung, deterministically and MODEL-FIRST -- raise `agent_tier` to the next tier that resolves a DIFFERENT model (a bump resolving the SAME model, e.g. `high`->`max` where the config shares them, is SKIPPED so no attempt is wasted on a no-op), and once no higher model exists raise `agent_effort` one step toward `max` -- the RUNG is journal-derived, never a ticket edit: each escalate dispatch records its rung on the body of the `cap_consumed` event its retry draw already journals, scoped to the stem's LINEAGE like the caps (folded at entry, section 11.2), dispatch resolves the effective (tier, effort) as authored frontmatter plus the folded rungs, and `ticket.md` is NEVER edited to escalate (an edit changes neither budgets nor rungs; the operator's Reject-queue `keep` is the one event that resets both, with the spent spine caps of section 13 touchpoint 3; frontmatter is the STARTING capability, section 13); Rework may choose split (Rework is a Phase 3 deliverable, landing with the merge queue whose resolution rung 2 it is -- section 19; until it lands, a `split` verdict dispatches fail-closed to the Reject queue like a spent ladder, and in Phase 1, before that queue exists, the stem just terminals non-ok -- never a silent retry); RMA to the Reject queue only when the ladder is EXHAUSTED (top model at `max` effort). Model first because the model is the dominant capability lever and nothing sits above the top one, so max effort on that model is the final rung. The failure-spine caps (section 11.1) are sized to cover the full ladder, so a stem can climb every rung before RMA; a longer model ladder raises the caps to match. Oscillation detection: consecutive snag lists alternating the same findings short-circuit to Reject, and so does a retry that comes back STILL failing the same gate code it was dispatched to clear -- returning to the identical wall is not findings-fed progress at the CURRENT capability, so it climbs the capability ladder above instead of re-running at the same rung; only when the ladder is EXHAUSTED (top model, `max` effort) does the identical wall short-circuit to Reject. The rule generalizes across the WHOLE terminal vocabulary, not just gate codes: K consecutive attempts ending with an identical terminal reason (shipped K=3) -- the same gate code, the same `infra_error` reason string, the same timeout (EXCEPT a drought reason -- open breaker or exhausted tier -- which drought-parks cost-free per section 6, never laddering or Rejecting) -- short-circuit past further same-rung retries (to the ladder while rungs remain, to park/Reject when none do) regardless of remaining budget, because repeating an identical wall is never progress whatever the wall is made of. Pre-daemon default verdict: the bootstrap drain runs headless -- zero human input (section 19), and supervised-merge holds bind the daemon era, never the bootstrap drain (section 12) -- so no hold waits on a human. A Reject-queue arrival whose `retry` cap still holds budget auto-resolves to `keep` (one findings-fed re-entry, one unit drawn -- DRAW-DOWN only: its machine-actor signal never bounds the section 11.2 cap fold and never re-arms a spent cap; re-arm is the operator's manual keep alone, bounded by the double-confirm refusal, section 13 touchpoint 3) inside the same drain; at spent budget the stem reaches a terminal-without-merge and the drain proceeds to the rest of the queue -- never a park for a verdict no headless run can deliver. The caps bound the spend; `confirm` and `reject` are the daemon-era operator surface, present only when an operator is watching, never a stop in the bootstrap drain. A findings-fed retry earns its next attempt only by CLEARING the finding it was handed, never by trading it for a new evasion of the same code -- that distinction is what stops a hard gate from merely relocating the spiral from prose-argument into evasion-invention. Cross-attempt retry is always a fresh worktree (never the in-stage re-prompt loop of section 5); only the branch name and journal history survive.
+5. **Flaky handling.** A check that fails then passes on a bare re-run (same workspace, no code change -- a third, narrow sense of "retry") is a bug signal, not a pass: auto-file a flake report (signature-deduped) and quarantine-ledger the test so it stops blocking merges while its fix ticket queues. A config cap bounds simultaneously quarantined tests (shipped default 5); crossing it halts further auto-quarantine and escalates (section 13), so environmental flakiness cannot silently gut the gate set. Release is mechanical AND identity-bound: the quarantine ledger entry stores its flake report's (signature-deduped) box message id, and the triage resolution that routes that report to a fix ticket records the minted stem in the message's status field -- the resolution record section 12 already keeps, never a decision-registry record -- so ledger entry -> message -> fix stem resolves mechanically, and it is THAT stem's MERGE whose green re-run lifts the entry: never a stem-name inference, never new ticket frontmatter. `resume` stays the manual override -- an HGATE journal Signal like `confirm` (section 13), materialized by whichever single writer holds the lock (the drain pre-cutover, the daemon after; the request reaches it through section 20's control inbox), the release decision journaled BEFORE the ledger changes. Flake handling ships with the Phase 3 merge queue (section 19).
+6. **Poison quarantine.** A ticket whose run brings down the daemon or its worker is attributed deterministically: restart-reconcile journals each crash's IN-FLIGHT SET (runs with an intent event and no completion) and every member accrues one strike -- under single-flight dispatch (D2) the set is normally a singleton and attribution is exact; if a concurrent pool ever returns (section 18) the culprit is not singly identifiable, so the whole set is striked, and the escalation prints each crash's set so the human can read the intersection. K strikes (shipped default 2) auto-quarantines: journaled, excluded from eligibility (section 9), escalated (section 13). An innocent striked alongside a culprit exits the same way as the culprit: release is a human verb (`squatch resume --ticket <stem>`, an HGATE decision).
+7. **Second problems are filed, never folded in.** When an agent notices an out-of-scope problem mid-run -- an adjacent bug, a pre-existing red test, a refactor itch -- the contract is: leave it alone, record it in the run record, emit a Suggestion Box message so it becomes schedulable work (the scope fence makes the inline fix fail closed anyway). A filed problem costs a fresh, correctly scoped run later -- strictly cheaper than a blurred diff that cannot be bisected, reviewed, or reverted cleanly. A pre-existing failure the agent did not cause routes the same way: verify it reproduces on the base commit, then file it, not fix it (unless the fix is trivially in scope).
+
+## 12. Suggestion Box and decision registry
+
+One durable queue, one sequential LLM consumer (sequential keeps dedup trivially consistent). On disk the queue is one atomic JSON file per message under `<state_dir>/box/`, named `<seq>-<sig8>.json` (zero-padded enqueue sequence + the first 8 hex chars of the failure signature), message id `box-<seq>-<sig8>` -- the id `run.md`'s `## Second problems filed` cites -- with the triage resolution recorded as a status field inside the file (atomic replace, D3). Message classes: `suggestion | failure_report | override_report | retro_finding | bug_report`; class-specific triage prompting lives INSIDE the single `specs/triage.md` (section 8's one-file-per-surface law): the one spec renders a per-class Task variant keyed by the message class, never a spec file per class.
+
+- **Producers.** A second problem never folds into the diff that found it; harvest enqueues each run record's `second_problems` into the box, so a parked stem's filed fix becomes triageable work -- the machine route to the ticket change that releases a premise park (sections 11, 13).
+- **Consumer scheduling is era-split.** BOOTSTRAP era: `drain` NEVER scans the box; the Suggestion Box is a filed-complaint queue consumed ONLY when the operator runs `squatch triage`, which triages every pending item in one pass and stops. Producers still enqueue automatically -- only the CONSUMER is human-triggered -- and the next phase's seeds do NOT route through the box (they are direct `confirmed` ticket-plane files, picked up by the drain's tickets-dir re-scan, section 18). DAEMON era (Phase 3+): the watched continuous consumer (section 9) replaces `squatch triage`, always on, no ordering knob (D10). Separate eras, separately governed -- never read one era's cadence onto the other.
+- **Never hard-delete duplicates.** Tombstone with a link to the existing ticket or decision. A registry record is ONE markdown file per decision or tombstone under `tickets/decisions/` (committed via the ticket-plane lane, section 15): YAML frontmatter carrying `id`, `kind: decision | tombstone`, `link` (the ticket or decision it resolves to), and the reopen window as `reopen_after_days: <int>` -- REQUIRED, no shipped default, set by triage per record, measured from the record's ticket-plane commit date -- with rationale and evidence as body. The Decision Registry makes every "decided not to implement" durable and searchable; dedup checks new items against open tickets, merged tickets, AND decisions (semantic match, not string match). Decisions may be re-opened after a time window with new evidence. Tombstone visibility: tombstoning a confirmed-class report -- a box record whose `message_class` resolves to a `confirmed` row in the policy table below (`failure_report`, `retro_finding`, and the confirmed `bug_report` rows), read from the record's EXISTING `message_class`; box records carry NO priority field, so nothing here reads P0/P1 (the table's `(P0/P1)` notes are the AUTHORED ticket's priority, never a field on the record) -- is surfaced in status and itemized at the next retro. K re-reports deduping onto the same tombstoned record (shipped default K=3) auto-reopen it, and the reopen's mechanics are PINNED, because every unstated reading violates a standing law: the INVOKER is the box's own dedup path -- whichever layer collapses a re-report onto the tombstoned record (the enqueue signature match, or triage's semantic match) counts it on that record, and the K-th fires the reopen in the same pass; box code owns its queue records (retro READS tombstones for itemization, it never mutates queue state), idempotent on (tombstone record id, reopen occurrence) -- a threshold crossing reopens once, never once per scan or per retro. The reopen CLEARS the tombstoned message's resolution and returns it to `pending` carrying a reopen marker (the registry record stays -- never hard-deleted, above), so ticket creation stays with the ONE machine-authoring seam -- the box consumer -> triage -> Author path (section 4) -- NEVER a second ticket-writing path in box or retro code; a reopen-marked message is never re-deduped onto the record it just reopened -- triage authors from it, and the ticket it authors starts `draft` UNCONDITIONALLY -- the valve exists to buy a human look, so a reopen never takes an auto-confirm row from the policy table below (GO-absent eras resolve `draft` anyway by that table's own rule; under a standing GO this clause overrides the row). Each reopen journals a `tombstone_auto_reopened` signal keyed by (tombstone record id, reopen occurrence), which status and the next retro's itemization read -- the false-positive escape hatch that makes a wrong dedup kill observable from inside the system (and the valve the deferred section 14 dedup-health proxies would read, section 18).
+- **Storm control.** Dedup by failure signature at enqueue -- the mechanical layer only (the semantic dedup above runs in the sequential triage consumer, never at enqueue). An ENGINE-produced message's signature is sha256 over (message class, producing stem + stage, terminal outcome or gate code, and the reason string normalized: every token containing a path separator stripped, every digit run stripped, whitespace collapsed to single spaces -- deterministic and order-stable); a bootstrap-ingested suggestion line (section 19), which has no stem, stage, or outcome, signs over (`suggestion`, the fixed origin `bootstrap-ingest`, its normalized line text); a host `bug_report` uses the intake recipe below. Plus a circuit breaker: same signature > K in window T (shipped defaults K=5, T=1 hour) TRIPS. The journaled trip PRECEDES the durable held state (a crash can never expose an unjournaled hold) and carries a trip identity. The hold suppresses the emitting stage at dispatch SELECTION -- the scheduler's seam (section 9), which keeps selecting unrelated work -- over a CLOSED pausable set of pipeline stages, a pause surface of its own, independent of the merge queue's integration-red-streak admission pause and the kill-switch pause (both section 9); a non-pipeline producer (a bootstrap-ingested suggestion, a host `bug_report`) has no emitting stage and files + alerts WITHOUT a pause. The trip is ONE journaled signal -- the section 13 `storm-breaker trip` escalation -- whose body carries the held state and the trip identity, plus ONE enqueued P0 `failure_report`: pause, P0, and alert are that one signal plus that one box message, never three separate durable records. Release is `resume` (section 18) BOUND to that trip identity, consumed exactly once within the current engine lifecycle (the running `drain` or `serve`) -- an earlier request can never release a later trip. Enqueue dedup FEEDS this counter rather than starving it: a dedup hit (an arriving item collapsing onto an existing signature) counts toward the breaker window, so upstream dedup cannot make the breaker unreachable.
+- **Outcomes:** a ticket (routed to Requisition), a tombstone, or a decision record. The starting state of a box-authored ticket is set by the policy table below -- config-declared as `box_policy` (section 15), one key per table ROW (the three `bug_report` rows are distinct keys; an ABSENT key or row takes this table's value as its shipped default -- unlike the safety inventory's deliberate no-default -- while an explicit `null` is refused per section 15), so the safety inventory fences it by path -- the single knob controlling how much unsupervised authoring authority the daemon has. The confirmed defaults BIND only while a currently recorded GO baseline stands (section 19; the GO record is a journal `signal` event carrying the baselined identity -- the resolved review/author routing rows and spec-major versions, section 19 -- compared to CURRENT routing at policy-read time); absent, revoked, or identity-drifted GO, every auto-confirm class resolves `draft` in EVERY era -- supervised mode; the bootstrap era, where no GO is ever recorded, resolves `draft` by this same rule (prompt 16's `tests/test_policy.py` pin is that rule's protected instance, not an exemption). The BOOTSTRAP era needs no exemption here: its box is consumed only by the operator's `squatch triage` (a human is present at every scan), so a box-authored ticket takes its table default -- almost always `draft` -- and the operator confirms only the few worth building; nothing from the box auto-confirms or auto-runs while squatch builds itself, and the recovery for a stalled bootstrap build is the operator editing the plan and rerunning, never an in-engine loop off the box. Phase seeds are NOT box-authored -- they are direct `confirmed` ticket-plane files (section 19). The policy table below binds the DAEMON era on host work only:
+
+  | Box item class            | Starting state      |
+  |---------------------------|---------------------|
+  | `failure_report`          | `confirmed` (P0/P1) |
+  | `retro_finding`           | `confirmed`         |
+  | `override_report` (aggregated rule defect) | `draft` |
+  | `suggestion`              | `draft`             |
+  | `bug_report` -- self-diagnosed by the host app | `confirmed` (P0/P1) |
+  | `bug_report` -- player-submitted, repro attached | `confirmed` |
+  | `bug_report` -- player-submitted, no repro | `draft` |
+
+  **Scope override (applies to every row).** Regardless of class, a box-authored ticket whose `## Scope fence` touches the ENGINE-PLANE SAFETY INVENTORY starts at `draft`, so a human sees any change that could widen the daemon's autonomy or shrink its oversight. The inventory is a closed, config-declared path list covering: gate definitions; prompt specs; closed-vocabulary lists; gate severity/trigger config; this policy table and the auto-confirm classes; host low-risk path declarations (the re-review skip list, section 9); per-path merge strategies (a `regenerate:` argv runs at merge time, section 9); MERGE-SAFETY tier membership; failure-spine caps and the quarantine caps; spend ceilings, windows, and provider routing/limits; and the inventory itself. The inventory has NO shipped default and absence FAILS CLOSED: with no declared inventory the override cannot classify a fence, so every machine-originated ticket starts `draft` until the key is declared. The override binds every MACHINE edit of a ticket, not only box authoring: a Rework-updated or Rework-split ticket whose fence NEWLY touches the inventory reverts to `draft` (split successors inherit the check), and a machine-originated ticket carrying any non-empty `gate_bypass` starts at -- or reverts to -- `draft`: the valve's surfacing point is the draft gate, and a bypass that would never pass that gate does not get to skip it.
+
+  **Supervised merge (the daemon-era half of supervised mode).** Starting state governs who CONFIRMS a ticket; it cannot govern whether an unproven reviewer merges unsupervised -- hand-authored tickets enter `source: human`, conductor-seeded bootstrap tickets are authored `confirmed` outright and stamped `source: seed` (sections 13, 19), and neither waits at the draft gate. So absent, revoked, or identity-drifted GO, the DAEMON's merge queue also holds: a green candidate queues for the operator's `confirm <stem>` instead of auto-admitting, while dispatch, review, and other candidates' checks continue -- a supervision queue, never a stop-the-world. The hold's mechanics are pinned here because each crosses a seam: (1) HELD is an ADMISSION state -- a typed result of the merge lane's admission, recorded after MERGE-SAFETY and the INTEGRATION CHECK pass and before ANY main-tree mutation -- never a new run Outcome or run state (the closed vocabularies of sections 5 and 6 do not grow); a held run records NO terminal until its admission settles, and the drain reads HELD as still-settling, never as ok-without-merged; (2) a held stem is EXCLUDED from dispatch eligibility and its worktree is KEPT -- no terminal fires at hold time, so the section 11.2 terminal handler (harvest -> dispatch -> journal -> wipe) never runs on it and the runner returns control to the drain without a wipe -- so release admits the reviewed artifact, not a rebuild; (3) release is the operator's `confirm <stem>`, sharing touchpoint 3's journal-identity resolution (a dirless stem is still confirmable) but NOT its Reject-queue keep semantics: a held release journals the admission's release event, never the `keep` signal that re-arms spine caps (section 11.2's fold), and the double-confirm refusal does not bind it; when main has advanced past the held candidate's checked sha, the release RE-RUNS rebase and the mechanical merge-time re-run set (section 9), the pinned review approval carrying across a clean rebase exactly as section 9 states -- a frozen continuation is never committed over moved main, and every remaining held candidate re-checks after a release advances main; (4) holds are DURABLE, and this clause AMENDS the orphan definitions of sections 11.2 and 15 in place: the hold is JOURNALED when it is recorded, and a `running` with no terminal whose journal shows a live hold is a HELD admission, not reconcile's orphan -- restart-reconcile preserves the held worktree and reconstructs the admission's authority from the journal and committed ticket artifacts, never from process memory; (5) the deliverable landing the hold fences EVERY seam owner it touches -- the merge lane, the hold-policy read, the `confirm`/`reject` release surfaces, the CLI entry, the stage layer, the drain's eligibility fold, and the runner's worktree lifecycle (section 9's ownership law names one owner PER SEAM; a hold crosses many seams, so its deliverable fences every owner, never one module). `run <stem>` -- one ticket, foreground, operator-invoked -- is itself the go-ahead (section 16: supervision here is an attention guard, not an authentication boundary), and the BOOTSTRAP drain never holds an admission at all (section 19). A currently-binding GO lifts the daemon hold; that is what the number gates. The hold is built in Phase 6 (section 19), its first daemon-on-host-work consumer; the self-build runs under the bootstrap drain and never holds, so no earlier phase builds it and no self-build seed depends on it. One machine actor exists on this surface: the Phase 6 exit harness's scripted confirms against its OWN fixture subprocess (section 19) -- delivered through the section 20 control inbox and journaled as machine-actor supervision evidence, never a cap re-arm; a live host operator surface never has a machine confirmer.
+
+  Why: machine-detected breakage and retro findings derived from measured history auto-confirm (self-repair should not wait on the owner; the tickets still pass review); judgment-shaped items -- rule-defect proposals, new ideas -- park at the draft gate.
+- **Advisory checks cannot become theater.** Soft-gate failures are journaled per check code; a configured unhealthy streak for the same code (shipped default: 5 consecutive failures) escalates into one confirmed repair ticket whose goal is to fix the check or remove it through the normal config-change path. Soft means non-blocking -- never invisible.
+- The box consumer is watched by the watchdog layer; its failure alerts via the external heartbeat, not via itself.
+
+**Host bug intake.** Host applications feed the same box, not a separate queue -- dedup, the decision registry, and the storm breaker are exactly what a bug stream needs. The seam is generic: the host contract declares a REPORT INBOX directory; anything host-side -- app self-diagnosis (unhandled engine exceptions, illegal-move storms, view-leak detections) or a player-facing report composer -- writes a small JSON report file there and squatch ingests it as a `bug_report`. The report schema carries origin (`self_diagnosed | player`), summary, a dedup signature (game slug + anomaly code + location + app version for self-diagnosed; semantic dedup for player text), app commit/version, optional implicated code paths, and evidence file paths.
+
+Evidence is the point of the intake: a record-actions host attaches `initial_state` plus the action log -- a deterministic repro -- plus a capped structured-log excerpt. Triage copies evidence into the authored ticket's `evidence/` dir, and the bug gate (section 7) turns the attached replay into a permanent regression fixture: report -> replay -> regression test. Player-submitted text is UNTRUSTED at every hop: triage treats it as data and writes its own SUMMARY into the authored ticket -- raw report text never enters ticket prose, and reaches later prompts only as delimited untrusted-data blocks (section 8). Evidence files are quoted, never executed outside the deterministic replay harness (section 16).
+
+## 13. Ticket contract and human touchpoints
+
+A ticket is one markdown file: frontmatter a script schedules -- YAML between `---` fences, parsed with PyYAML `safe_load` like every YAML surface (section 15) -- plus a body an agent executes. Frontmatter is the minimum the code consumes: `state` (closed vocab `draft | confirmed | rejected | merged` -- `rejected` stamped at a Reject-queue kill via the ticket-plane lane, and the draft->confirmed flip from a human `confirm` is a journal Signal the daemon materializes the same way; `merged` is recorded at settle by the admission's `to: merged` journal transition, NOT a frontmatter restamp -- the scheduler folds merged stems out of eligibility from that journal record (D3), so a settled ticket's frontmatter rests at the value it was authored with; running state is journal-derived, never frontmatter), `source` (closed vocab `human | seed | box:<class>` -- everything machine-originated routes through the box EXCEPT a phase seed, and `source: human` is what "human-requested work auto-confirms" keys on; `seed` is a phase-boundary deliverable authored directly to the ticket plane -- by the conductor or, once self-hosting, a phase-exit ticket's Implement stage (section 19) -- born `confirmed`, never through the box, asserting the seed entry path so the record never claims a human hand-wrote machine-seeded work), `priority` (`P0..P3`), `kind` (`bug | feature | chore`, set explicitly by the author or box triage, NEVER inferred by any lexical heuristic over prose -- an inference is a rule an agent can argue with; an explicit declaration is not), `agent_tier`, `agent_effort` (both on the closed `low | medium | high | max` scale -- tier keys the `models_by_tier` map, section 15; effort passes through to the routed model; an authored ticket DEFAULTS to `medium`/`medium` -- a starting capability the failure spine's ladder (section 11) can climb from on evidence, never a blanket `high`/`high` that leaves escalation nowhere to go, and an author raises the START only for a ticket it judges known-hard), `gate_bypass`. Nothing else. Frontmatter bloat is structurally prevented by the anti-bloat law: **ticket frontmatter may only contain fields the scheduler, a gate, or the authoring/triage policy reads; audit, calibration, and training data are journal-derived projections, never ticket fields.** Field classes consciously excluded -- context-size hints, engine/model pins, agent profiles, doc-ordering modes, tags, groups, lexical bug heuristics -- enter only via D10.
+
+Body sections, each existing to remove one specific way an unsupervised agent goes wrong:
+
+- **Depends on** -- the execution graph. The scheduler reads ONLY this; prose ordering does nothing. The graph is closed over consumption: a ticket whose scope consumes another unmerged ticket's deliverable carries that edge, and when a source spec states a deliverable order, an authored SET's edges must realize it -- an authoring pass that translates prose order into tickets asserts the edges, not just each ticket's lint.
+- **Context** -- the read-first files: read-only references, distinct from the scope fence, injected into the implement prompt. The habit encoded is read-before-write.
+- **Plan contract** (optional) -- the sole channel for plan prose: a bullet list of numeric plan-section ids (e.g. `section 11`) the renderer resolves verbatim, deduplicates, and injects at bounded size; `Context` structurally refuses the plan file itself (grammar below), so a seed citing the plan cites sections, never the file.
+- **Goal / Why** -- one observable post-merge outcome, plus the judgment fuel for the fork the spec did not anticipate.
+- **Scope in / Scope out** -- scope-out fences the tempting adjacent cleanups; what must NOT change is as load-bearing as what must.
+- **Scope fence** -- the write allowlist a gate enforces (section 9).
+- **Acceptance criteria** -- every item measurable ("exits 0 when...", "is unchanged"); never "improved" or "better".
+- **`## Verification`** -- the exact commands the agent runs to check its own work instead of asking a human. This is where autonomy lives; a ticket without it has to phone home.
+- **`## Regression`** (present exactly when `kind: bug`) -- the ONE command that reproduces the reported defect, plus `carries:` path prefixes naming the branch-added test/fixture files the command needs; the section 7 bug gate runs it at the branch head (must pass) and at the merge base with the `carries:` paths overlaid from the branch (must fail -- for the defect, not for a missing test).
+- **Definition of rejected** -- when to STOP and throw the branch away rather than churn down a dead end.
+- **Time budget** -- agent wall-clock anchored (expected + stuck threshold), never human-engineer hours.
+
+Every machine-read body section has a fixed grammar the Requisition gate validates: `Depends on` is a bullet list of stems (or `none`), each stem required to RESOLVE against existing ticket dirs, merged squash trailers, or the supersedes map -- an unresolvable stem fails closed -- and the same gate rejects dependency CYCLES across the authored set plus the existing graph, re-validated on every ticket write (author, rework update or split, human intake): acyclic at every insertion keeps the global graph acyclic; `Context` is one repo-relative path per bullet, each required to exist -- EXCEPT the plan file itself AND the engine's prompt-spec files (`specs/*.md`), both of which `Context` structurally refuses as governed engine prose: plan prose enters a prompt only through the `Plan contract` body section, a bullet list of numeric plan-section ids (e.g. `section 11`) that the renderer resolves verbatim, deduplicates, and injects as the sole channel for plan bytes, refused fail-closed at the grammar gate when an id does not resolve; a prompt-spec's behavior is cited the same way -- the plan section that governs the surface, never the raw `specs/*.md` file, which carries the engine's OWN data-block delimiter and so breaks the section 8 data/instruction rendering contract the moment it is injected as data; a file the ticket itself will CREATE is named in `## Scope fence` and `## Verification` ONLY -- `Context` is read-first EXISTING material, so a future path there is exactly what the existence check refuses, and a review finding demanding one is demanding the refused shape (this is the one placement rule for future paths); and `Plan contract`, optional elsewhere, is REQUIRED on a `source: seed` ticket and MUST cite the plan sections that OWN the machinery its named section-19 deliverable states (the section 9 ownership law names the owner): cited sections are the only plan bytes that inject, so a seed citing none renders an implement prompt with zero governing plan text -- a closure gap `requisition_review` rejects at authoring (section 7); `Scope fence` is one path prefix per bullet; `Verification` is a fenced command block, one argv-parseable command per line (each tokenized with `shlex.split(posix=True)`, never a shell, D1); `Regression` (present exactly when `kind: bug`, absent otherwise) is ONE argv-parseable command plus one or more `carries: <path-prefix>` lines, each required to match at least one branch-changed file -- the reproducing check the section 7 bug gate executes and the overlay set it applies at the merge base; `Time budget` is an expected/stuck minutes pair written as two bullets, `expected: <int>m` and `stuck: <int>m` (integer minutes); `Exit-read window` (present only on a phase-exit ticket, section 19) is a bullet list of closed-form journal-window declarations (event type + bounding criterion) the renderer resolves and the driver materializes as the exit ticket's consumed artifact (section 19's materialized journal window), refused fail-closed when a declaration does not parse. The same gate enforces the checkable-criteria floor at the grammar level: every acceptance criterion must name at least one `Verification` command or observable artifact that checks it, and banned adjective forms ("improved", "better", "cleaner") fail lint. Whether the commands ACTUALLY prove the criteria is judgment -- Review's duty, measured by the section 14 scorecard. Grammar is likewise necessary, not sufficient: feasibility is `requisition_review`'s duty (section 7). Every MACHINE-authored ticket -- `box:<class>` and `seed` alike -- is judged BUILDABLE against the shipped engine before it commits `confirmed` and becomes eligible; a `snag` re-authors within caps, an `rma` (a plan defect the author cannot fix) parks for a human. A `source: human` intake (touchpoint 1) runs it ADVISORY -- the operator is its reviewer -- so the front door never blocks on a model call.
+
+Layout: **one directory per ticket** (`tickets/<stem>/` holding `ticket.md`, `run.md`, `review.md`, `checks.json`, `attempts/<n>/`, evidence). Multiple artifacts per ticket are a directory listing, not a naming convention. Stems match `^[a-z0-9][a-z0-9-]{1,63}$` (lowercase kebab-case): the directory name IS the stem, reused verbatim as the branch name and the squash-trailer identity, validated fail-closed by the `ticket_schema` gate. Two reserved sibling dirs are excluded from the stem namespace by that same gate: `tickets/decisions/` (section 15) and `tickets/retro/` (section 14) -- both match the stem regex, so without the exclusion a ticket could shadow them.
+
+The run record is the co-located receipt (surprises, judgment calls, dead ends, outcome, resolved engine/model, predicted-vs-actual divergence). Run records deliberately preserve NEGATIVE information -- what failed first, what was abandoned, what was left alone on purpose. Together with the journal they are the project's queryable memory: Author and triage query them and the decision registry before creating new work.
+
+The `run.md` schema the `run_record` gate validates is a fixed section set: `## Outcome` (closed-vocab terminal state -- the section 5 `Outcome` vocabulary, no separate set, so a merged run's value is `ok`, or `already_satisfied` for a no-op settlement), `## Surprises / judgment calls`, `## Dead ends` (what was abandoned and why), `## Second problems filed` (box message ids, section 11.7), `## Resolved engine/model` (provider + model + spec versions that served), and `## Predicted vs actual` (the calibration divergence). Sections may be empty but must be present; the gate checks presence and the closed `## Outcome` vocab, not prose quality -- that is Review's duty. The other artifact bodies (packing slip, invoice, snag list, RMA, rework order, approval record, retro findings) are implementer-owned pydantic models, schema-validated at the stage seam but deliberately NOT a cross-version persisted contract the way `run.md`, the journal envelope, and config are.
+
+Human touchpoints -- the complete list:
+
+1. Idea intake. The front door is a file: hand-author `ticket.md` under `tickets/<stem>/` in the working tree, or template one with `squatch new <stem>`. File authorship is outside the lock fence (D2) by design; the watcher validates it and the daemon commits it via the ticket-plane lane with a fail-closed `source` stamp: a NEW stem commits `source: human` -- intake STAMPS it (an absent `source` is filled in; a new stem CLAIMING a machine source, `seed` or `box:<class>`, is refused with a paved road naming this rule -- only the machine writes those), and the auto-confirm is the intake commit's journal Signal materializing `state: confirmed` exactly like the human `confirm` flip (frontmatter paragraph above); a stem whose committed predecessor carries `source: seed` KEEPS it across an in-place correction (the section 19 recovery-edit path) -- intake never demotes an established seed, because a demotion falsifies the record (claiming a human hand-wrote machine-seeded work) and reddens any seed-integrity check on the next merge. The human never runs git against a checkout the daemon holds. Validation is never silent: `squatch new` lints synchronously, and tickets failing the watcher's parse are a named top-of-output category in `status`. Every intake commit is journaled and itemized in a `status` intake category: `source: human` asserts the ENTRY PATH, not an authenticated identity (section 16), so the operator can always see what claimed to be them.
+2. Draft->confirmed on machine-originated tickets (policy table decides which classes need it; `source: human` auto-confirms).
+3. The Reject queue (RMA'd tickets: keep / edit / kill; a kill triggers the dead-dependency handling of section 9 for everything that depended on it). Verb mapping is fixed: `confirm <stem>` = keep (re-enqueue, spent spine caps reset, section 9); `reject <stem>` = kill (`rejected` stamped, dead-dependency events fire); edit is not a verb -- the operator edits `ticket.md` (the intake path, touchpoint 1) and then `confirm`s. Both verbs resolve the stem against the JOURNAL identity, never by loading `ticket.md` first: a stem whose ticket dir is gone (regenerated away, section 19) is still confirmable/rejectable, and rejecting a dirless ghost clears its queue entries with a journal-only `rejected` -- a hold must never outlive its release because its file vanished (section 2). And a `confirm` on a stem with NO `ticket.md` change since its previous `confirm` is refused on the second consecutive occurrence, paved road "edit the ticket (or fix the plan and regenerate it) before re-enqueueing" -- an unchanged ticket re-fed to freshly reset caps is an infinite cap refill, not recovery.
+4. Escalations -- the ONLY push channel, a closed vocabulary: stuck-past-threshold, spiral-warning (soft band), budget-exceeded, poison-quarantined, quarantine-cap crossed, provider drought, dead credential (`auth_error`), storm-breaker trip, integration-red streak (merge admissions paused), post-merge tree-hash mismatch, box-consumer death (via the external heartbeat), and Reject-queue arrival (a terminated ticket must never die invisibly while its dependents starve). Transport is a config-declared argv notify command run as an Effect through the section 15 notifications seam; unset, escalations land in `status` and the daemon warns at startup that push is off. The transport has ONE owning deliverable: the notify-transport stem named in the section 19 Phase 4 list (the transport Effect, its section 6 notify key domains, and the section 15 `notify` config parse), ordered BEFORE its first push consumer, the watchdog soft band (section 9). Until it merges, EVERY escalation here -- Phase 3's storm-breaker trip and red streak included -- lands in `status` only as a journaled signal, and no earlier seed names or invokes a notify consumer. Each escalation names its pull-side exit (`resume`, `reject`, `kill` -- section 18). Three pinned explicitly: a tree-hash mismatch pauses merge admissions like a red streak (`resume` after inspection or revert); drought-parked tickets un-park automatically at the next dispatch cycle once routing resolves (section 9); box-consumer death exits by restarting the daemon -- an operator action, not a verb.
+5. Read-only status, pulled on demand: a `status` projection over the journal (merged, in-flight, blocked, spend, box activity, tombstone digest), consumable as a CLI verb, a written file, or a slash command; a dashboard is a possible later skin over the same projection. Never pushed on a schedule.
+6. Engine release. Merged engine work reaches a RUNNING stable instance only through the release path: cut a tag, install into the stable venv, drain (the section 5 quiesce), restart. Same loop for the pre-schema-flip pause of section 5. Recurring, deliberate, small.
+7. GO-baseline upkeep. Run the committed baseline eval (the GO-grade fixture harness -- the Phase 1 spike's set grown to GO grade in Phase 6, immediately before cutover, where GO gets its first reader -- a mechanical run), read its committed report -- the run-lane execution inside the drain has already committed it and mechanically recorded its verdict signal, at most NO-GO before cutover (section 0) -- and record GO, when the report earns it, via the harness's operator mode (`--record-go` carries your Author-graph judgment, section 19). The real 24-48h `serve` soak on a synthetic or host workload is part of this same operator cutover step -- run supervised, before GO is recorded; the Phase 3 exit's bounded synthetic soak is its drain-executable stand-in (section 19). Recurs after every model, provider, or spec-major routing change (section 19); until re-recorded the system rests in supervised mode -- a safe resting state, not a stall. A retro-shipped spec-MAJOR change (Phase 5) therefore revokes GO on merge by design, so spec-major self-improvements batch naturally ahead of one re-baseline; MINOR spec versions do not revoke. The post-cutover acceptance reads -- K >= 10 machine-authored tickets merged on host #1 and one real host bug loop, counted only from this engine's own journal and provenance stamps (section 6) -- are this same operator step's follow-through after cutover, never a phase-exit criterion (section 19).
+
+Everything else is autonomous. No pipeline's resting state is a manual step.
+
+## 14. Retro (Reconcile)
+
+- Triggers: N tickets OR M days (shipped defaults N=25, M=7) OR a signal SPIKE forcing an early retro -- PER KIND, never a summed total: any one of the four signal kinds reaching the shipped default S=5 within the CURRENT retro window (counted from the latest retro-report `effect_completion` boundary below, like every other window count) fires the trigger on its own. Each kind counts exactly ONE journal-derived identity, pinned here because an unpinned operand reads as unspecifiable and silently drops the trigger (the observed loss): override = each USED bypass (a ticket admitted carrying a non-empty `gate_bypass` entry, section 7 -- the RAW uses the valve's K=3 same-code aggregation and the scorecard's bypass count already fold, never the aggregated `override_report` box message); rework = each Rework invocation (one per emitted rework order, section 4); gate-failure = each terminal `state_transition` carrying `to: gate_failed` (the section 6 run-state vocabulary); integration-red = each admission whose journaled conflict facts carry integration-red implicated paths (section 9 -- the individual reds, never the K=3 red-streak escalation, which is a section 13 pause, not this count). All THREE trigger classes ship in v1; none is deferrable, and a build that cannot author the spike trigger has a plan defect to fix, not a trigger to drop.
+- Reads the journal/ledger: predicted vs actual cost and time per ticket, gate catch-rates, bypass aggregation, failure clusters. The driver materializes this window projection as the retro stage's consumed artifact -- the one RECURRING stage whose input is the journal itself (invariant 1's "plus the journal"; a phase-exit ticket's materialized exit-read window, section 19, rides the same driver seam); the committed retro report below is its persisted output.
+- Dedup-health proxies (near-identical-merged and reversal-rate signals over the box consumer) are a post-host-#1 D10 return (section 18): until an incident earns them, dedup regressions surface through the operator reading retro reports and through the section 12 tombstone auto-reopen valve, which stays -- the observability is the valve, the proxy metrics are the deferrable layer.
+- Conflict-hotspot trending across retro windows -- and the retro-proposed serialization stopgap and refactor-split machinery it would drive -- is a post-host-#1 D10 return (section 18). The section 9 conflict facts are journaled from Phase 3 onward, so the return arrives to an evidence stream already waiting; under single-flight dispatch (D2) conflicts are rare enough that a human reading the facts in the retro window is the v1 detector.
+- **Per-surface catch and escape instrumentation** -- the data D10 needs to promote or prune LLM review surfaces, not only mechanical gates:
+  - A CATCH is a journal-DERIVED increment per (surface, ticket), never a new emitted event: a gate or review surface raised findings -- a `state_transition` carrying `to: gate_failed` (the gate's codes in its recorded reason/findings), or the review surface's snag/rma verdict recorded in its own LLM-call `effect_completion` (keyed ticket+surface+attempt+call_seq, section 6) -- and the same stem subsequently reached `to: merged` with those findings resolved. A finding upheld at a terminal-without-merge outcome (an RMA the human confirms by killing, an abandon) ALSO counts: a surface that reliably stops the worst work must not read as prunable zero-activity. Deterministic gates and LLM review surfaces are counted the SAME way, from these fail-then-pass and upheld-at-terminal records -- NO per-catch event is emitted and no driver or stage grows a catch emitter (the section 6 EventType set carries no catch type; the scorecard below is a read-only projection, D3 and section 13's anti-bloat law), so a catch fold reading any source other than these named durable records is the fixture-only-event false green this rule exists to refuse.
+  - An ESCAPE is a defect that passed every surface: a `bug_report` (or later integration-red) attributed back through the squash trailers (section 10) to a merged ticket OR a bounded range of them. Exact introducing-commit identity is a NON-GOAL. Triage narrows the range from the report's app commit/version and implicated paths (section 12), journals it with a confidence note, and the scorecard counts the escape against the surfaces that passed the range's merges. The escape PRODUCER -- triage's bug-to-merged-range attribution and the squash-trailer read op in `git.py` it needs (a trailer-format log read -- the section 10 op enumeration grows per phase, as the Phase 3 resolution ops did; never a section 18 CLI verb) -- ships with the Phase 6 bug intake (section 19), so the scorecard's escape column is Phase-6-live while its other columns are self-build-live from Phase 5.
+  - The SURFACE SCORECARD is the journal-derived projection retro reads: per-surface catch rate, escape rate, bypass count. A projection, never ticket frontmatter (anti-bloat law, section 13). Zero catches AND zero escapes over N tickets makes a surface a prune candidate exactly like a gate; escapes clustering on one surface are the cited-incident evidence for tightening it.
+  - Run-filed follow-ups surface through backlog hygiene (below): a stale filed item resurfaces for an explicit promote-or-kill decision; an aggregate scheduled-vs-silted rate metric is a D10 return (section 18).
+- Outputs go through the Suggestion Box (dedup + decision registry for free); one single entry point for all work creation.
+- **The retro report is the committed receipt.** Each retro also persists ONE report file -- `tickets/retro/<seq>.md`, zero-padded seq so listings sort in order, committed via the ticket-plane lane (`retro/` is a reserved non-stem dir, section 13) -- snapshotting what the human reads and the next retro diffs against: the surface scorecard, spend against the ceilings, calibration divergence, the tombstone digest (section 12), and every proposal with its named fixed-failure/overcorrection pair. The journal stays authoritative -- the report is a re-derivable snapshot (D3), committed so the receipt travels with the repo the way run records do. The report's commit effect (`key=retro/<seq>`) doubles as the WINDOW BOUNDARY: the N-tickets / M-days triggers and every "within one retro window" count (section 7) measure from the latest retro-report `effect_completion` event -- no new event type needed.
+- Retro also PRUNES: proposes deleting gates with zero catches over N tickets, compressing rules, retiring unused vocab.
+- **Rule tuning guards against overcorrection.** Every retro-proposed rule or gate change must name BOTH the failure it fixes and the overcorrection it risks. Urgency and importance stay on separate axes: the urgent instance is unblocked first, the important cause is captured as its own scheduled ticket, and ordering lives in `depends` and `priority`, never in prose.
+- **Backlog hygiene.** Retro resurfaces stale draft tickets for an explicit promote-or-kill decision. STALE is pinned like every other trigger operand here: a draft ticket with no ticket-plane edit across one full retro window (the window boundary above).
+
+## 15. Engine, hosts, and instances
+
+- **Engine repo + per-project data plane.** The squatch repo contains engine code only; every host project (including squatch itself) keeps its own `tickets/`, config, and state. Rejected alternative: a hub control repo with one central cross-repo queue -- it divorces tickets from the code they change, and one hub bug breaks every project at once.
+- **Self-hosting.** squatch runs its own development tickets.
+- **Instance isolation.** An instance = one installed release + its own project checkouts, worktree roots, and state dirs. Stable = a tagged release installed in its own venv, never a symlink into a working tree; rollback = reinstall the previous tag. Stable and dev instances share only git remotes. ONE instance writes a given host repo line: the stable instance owns the host's blessed main; dev instances run against their OWN disposable host checkouts with the checkpoint push disabled; validated engine changes reach stable through the release path (tag + install + restart, section 13 touchpoint 6), never by promoting a dev instance's host main. The "tickets flow between instances through git" provision (section 5) is about SUCCESSIVE engine versions operating one repo line, not concurrent mains. Worked layout:
+
+  ```
+  ~/bin/squatch               # stable entry point, installed from tag vX.Y.Z
+  ~/source/squatch            # stable engine clone (main)
+  ~/source/squatch-next       # dev engine clone (feature branches)
+  ~/source/<host>          # host clone: daemon writes main, human authors tickets (sec 13)
+  ~/orch/<host>-work/      # stable instance: ticket worktrees + state
+  ~/orch-dev/<host>/       # dev instance: its OWN separate host checkout
+  ~/orch-dev/<host>-work/  # dev instance: ticket worktrees + state
+  ```
+- **Host contract (doc authored in Phase 6, with its machinery and first external reader; until then this section IS the schema's source).** Config schema with `schema_version` handshake (refuse newer; refuse older with a paved road naming `migrate-config` -- and that verb PERFORMS a real migration, never a vacuous no-op: version 0 IS the defined prior schema, a `config.yaml` declaring the explicit integer `schema_version: 0` (an ABSENT `schema_version` stays a missing-required-key refusal at load and under `migrate-config` alike -- fail-closed defaulting, never a migration case), and `migrate-config` carries it to the current schema (the 0->1 step rewrites `schema_version` and keeps every other key byte-for-byte) -- validating the FULL migrated candidate fail-closed before ONE atomic replace via the filesystem seam, a byte-identical no-op on a current-version config, and a no-write refusal naming the cause on everything else (missing file, missing or non-integer `schema_version`, newer, older-than-supported) -- so the loader's refusal and the verb it names agree, and every future `schema_version` bump ships its migration step in the same change); additive-only ticket frontmatter; the check-runner interface; root AI files (CLAUDE.md/AGENTS.md) rendered from engine-owned templates as ONE committed file with a managed `<!-- squatch:core begin/end -->` block plus a project-owned remainder, refreshed by bootstrap, drift-linted, never hand-edited inside the block (the committed form of the two rule planes, section 8); the single-writer lockfile with instance identity; the injectable-seams inventory -- one minimal seam each (a PRNG seam is NOT in it: nothing in the engine draws randomness; it is added with its first consumer, D10): clock (a zero-arg `Clock = Callable[[], datetime]` -- one clock convention kernel-wide, not a `now()` Protocol), process-exec (`async run(argv, *, cwd, env, timeout, stdin_path=None) -> (rc, out, err)`; every child is spawned in its OWN PROCESS GROUP (`start_new_session`) and every kill the seam performs is a GROUP kill -- an agent CLI spawns tool subprocesses of its own, and killing only the direct child leaves grandchildren writing the worktree; the seam also exposes a SYNCHRONOUS group kill that section 6's `abort_current` returns behind (signal-not-reap: the reap stays with the async spawner -- a SIGKILLed group can no longer mutate the worktree, which is all `abort_current` promises), and BOTH the seam's own timeout branch AND an outer asyncio cancellation unwinding through `run` route through that ONE kill-and-wait helper (section 19's Phase-0 per-stage `wait_for` stuck-budget kill reaches the seam as exactly that cancellation) -- a cancellation that skips the group kill exits with the CLI's grandchildren alive in a worktree the driver believes frozen; the group-kill promises of sections 6, 9, and 16 (`abort_current`'s contract, the watchdog, `squatch kill <run>`) are implementable only at this seam, which exposes `kill_group` plus a spawn-time pgid hook; the run-to-group binding is PUBLISHED at spawn, cleared at call return, consumed at most once by the `serve` kill path, threaded providers -> the LLM effect -> stages -> serve; `kill <run>` is PER-RUN and SIGKILL-on-receipt -- it never stops the daemon (the serve loop keeps running with dispatch and admission state unchanged; `serve` itself stops via the kill switch or an OS signal, section 18) and it is never a fold at dispatch checkpoints, which cannot kill a hung run that yields no checkpoint, while the kill-switch pause stays the distinct graceful path (section 16); a `kill` naming a run whose merge admission is in flight DEFERS: the admission-owned child is never aborted (the admission path holds the single ticket-plane writer lock, sections 6/9), the kill is consumed when the admission unwinds, and the run launches no further child; a kill signal from a prior daemon lifecycle never replays (the control-inbox identity binding, section 20); ONE active-work executor INSTANCE is threaded through the production composition -- `abort_current` (section 6) is meaningful only on the instance that spawned the active child, so no task identity is aliased and no process seam is shared between active work, notification, and the self-upgrade handoff; and under cancellation the abort/spawn composition STILL translates an unresolvable `argv[0]` to the seam's declared error, never an escaping `FileNotFoundError`; `env` is required and explicit at the seam and every wrapper above it; `timeout` is required but accepts None for the one unbounded caller -- the drain's self-upgrade handoff child, which also runs with INHERITED stdio, streamed to the operator, out/err empty in the result (section 18); `stdin_path` is an optional FILE path (default None) the seam OPENS and connects as the child's standard input -- the sole channel for an agent-CLI prompt, because a rendered prompt is UNBOUNDED and a command-line argument is capped by the OS argument limit, so a prompt is NEVER an argv element and reaches the CLI only as this file (the one the driver spools before the call, section 6); the unbounded handoff child passes none; and the seam FAILS CLOSED on an unresolvable `argv[0]` -- it raises its own declared error naming the missing binary, a config/setup refusal, never an escaping `FileNotFoundError` from spawn), filesystem (atomic `write` / `replace`), notifications (`notify(argv)`) -- kept for fake-driven testing even though re-execution recovery is refused; the notify command (section 13); the state-dir contents (journal, box queue, quarantine ledgers, attempt spools, engine log, heartbeat file -- instance-local, while the decision registry and tombstones live in the host repo under `tickets/decisions/`, committed via the ticket-plane lane, so dedup memory travels with the repo); config re-read at each dispatch cycle, so a ceiling, routing, or severity edit takes effect without a restart (the daemon reads it through the same watcher-and-debounce discipline as tickets; the pre-daemon scaffold verbs satisfy the same rule by RE-PARSING `config.yaml` at each dispatch cycle -- same cadence, no watcher); and an optional report-inbox path for host-app bug intake (section 12).
+
+  The host contract is ONE `config.yaml` at the host checkout root -- located via the `--config` flag, else `config.yaml` at the invocation cwd (the checkout root) -- parsed with PyYAML `safe_load` and validated fail-closed against the `schema_version` handshake (additive-only; the full field list, plus a commented EXAMPLE `review`/`merge` block a new host copies and edits, lives in the host-contract doc, authored in Phase 6). Defaulting is fail-closed: a key with a shipped default takes that default only when ABSENT; an explicit `null` is refused with a precise error naming the key, never parsed into a `None` a typed field forbids. Top-level keys:
+
+  ```yaml
+  schema_version: 1
+  state_dir: <path>                 # journal, box queue, quarantine ledgers, heartbeat
+  worktree_root: <path>             # ticket worktrees (section 10); default <state_dir>/worktrees
+                                    # (journal segment roll thresholds are engine constants, section 6)
+  providers:                        # section 6
+    - name: <str>
+      kind: api | cli               # api is REFUSED at load until its client ships (section 6)
+      auth: <ENV_VAR_NAME>          # env-var NAME, never a literal secret; OMIT for a cli
+                                    #   provider using ambient CLI login (a flat subscription)
+      models_by_tier: {low: <model>, medium: <model>, high: <model>, max: <model>}
+      limits: {concurrency: <int>,  # rpm/tpm buckets defer with the api client (section 18);
+               est_cost_per_call_usd: <usd or unset>,  # required iff cli with no usage in stream
+                                    #   (section 6; spill wait is an engine constant)
+               quota_window_minutes: <int>}  # cooldown Timer length on quota_exhausted
+                                    #   (section 6; shipped default 60 -- a cli provider has no retry-after)
+  routing:                          # (agent_tier, llm_surface) -> ordered candidates
+    - {tier: <str>, surface: <str>, candidates: [{provider: <str>, model: <str>}]}
+  routing_default_tier: medium      # tier for calls no ticket owns (triage, retro; section 6)
+  review:                           # section 7
+    mechanical:
+      - {code: <str>, argv: [<str>], trigger: always | [<path-prefix>], severity: hard | soft}
+    surfaces:
+      - {name: <str>, trigger: always | [<path-prefix>], rules_doc: <path>, severity: hard | soft}
+    trigger_map: {<path-prefix>: [<gate-code>]}
+      # always-run vs diff-triggered for ENGINE-shipped gate codes only
+      # (section 7); mechanical/surfaces entries use their own trigger
+    gate_severity:                  # section 5 invariant 3; engine-shipped codes, MERGE context
+      <gate-code>: hard | soft
+      # shipped default: every v1 hard-set code is hard at merge; author-context
+      # severity is an engine constant (soft) until a consumer exists (D10)
+  merge:                            # section 9
+    safety_checks: [<code>]         # host-designated fast checks in the MERGE-SAFETY tier
+    strategies:                     # rung-1 per-path conflict resolution
+      - {paths: [<path-prefix>], strategy: regenerate, argv: [<str>]}
+      - {paths: [<path-prefix>], strategy: union}
+      # (a low_risk_paths re-review skip list defers with micro-rework, section 18)
+  scheduler:                        # sections 2 (D2) and 9 -- single-flight dispatch;
+    max_unmerged: 2                 # dispatch backpressure: pause new admissions at this many
+                                    #   completed-but-unmerged branches
+                                    # (a workers key returns with the worker pool, section 18;
+                                    #   serialize_paths defers with the overlap checkpoints)
+  # (spend ceilings defer with the api client, section 18; cost stamping needs no key)
+  caps: {diagnosis: 6, retry: 6, premise_bounce: 2, infra: 6, quarantine: 5, poison: 2}
+  seeding: {max_seeds_per_admission: 3}  # section 19 bounded-batch seeding contract
+                                    #   (the successor seeder is included in the count)
+  circuit_breaker: {k: 3, cooldown_minutes: 10}
+  drain:                            # section 18 -- the self-build drain's unattended safety envelope (the daemon has its own THRESH bounds, section 6); replaces the per-phase `confirm` (section 19)
+    max_runtime_hours: 12           # overall drain wall-clock ceiling: a runaway backstop, NOT a phase gate -- on trip, halt at a safe checkpoint naming the continuing `squatch drain`
+    max_ticket_minutes: 90          # hard ceiling the drain refuses to DISPATCH past: a ticket whose authored `Time budget` stuck exceeds it parks with a paved road, never runs
+  engine_plane_safety_inventory: [<path-prefix>]  # section 12
+  box_policy:                       # section 12 policy table, one key per ROW:
+    # failure_report | retro_finding | override_report | suggestion |
+    # bug_report_self_diagnosed | bug_report_player_repro |
+    # bug_report_player_no_repro
+    # absent key/row: the section 12 table value is the shipped default
+    #   (explicit null refused, per the defaulting rule above)
+    <policy-row>: draft | confirmed
+  notify: <argv or unset>           # section 13 escalations
+  report_inbox: <path or unset>     # section 12 host bug intake
+  context_files: [<path>]           # host-plane content rendered as data (section 8)
+  ```
+- **No host-layout hardcoding.** Every path the engine touches comes from the host config. A check that assumes a host's directory layout is a portability bug.
+- **Test-harness ladder replaces wall-clock soaks:** (1) invariant auditor over the journal, run continuously against live runs -- a closed set of named invariants folded over the record, each carrying the law it enforces: exactly one terminal transition per run; every `cap_consumed` naming a declared cap; every `effect_intent` in a run that reached THE ok terminal `merged` carrying a matching `effect_completion` -- the pairing invariant fires at `merged` and NOWHERE else: EVERY non-ok terminal (timeout, abandoned, rejected, gate_failed, premise_failed, all of them) is exempt as closed-run history (section 11.2), and a run that reached no terminal is reconcile's orphan, not the auditor's finding; every `to: merged` transition carrying the commit it produced; every state name inside the closed run-state vocabulary (section 6); timestamps non-decreasing within a segment; (2) crash-point + fault injection on the state layer; (3) replay corpus -- every real incident becomes a permanent deterministic fixture, including journals written by older engine versions as the backward-compat check (journaled effects returning recorded results IS replay); (4) fake-agent simulation driving whole pipelines through the injected seams, pass condition = the invariant auditor; (5) shadow mode, deferred. Any phase exit that names a soak uses rung 4's fake-driven production composition with the injected clock advanced across the specified duration and recurring cycles; elapsed wall time is never the evidence. The shakeout battery (synthetic tickets with known outcomes: bad schema, scope escape, premise-false, unfixable lint, review-reject, merge conflict, orchestrator-crash) is the orchestrator's own permanent test suite.
+- **Portability proof.** After BoardGameUI runs as host #1, a deliberately different-stack second host validates the host contract with contract fixes only, no project-local hacks. A NON-BLOCKING annex to the Phase 6 exit (section 19): v1 DONE does not gate on it, and it may run any time after host #1.
+- **Fleet layer last.** A registry + merged status views only; holds no state and makes no decision a per-project instance could make. Deferred.
+
+Rejected alternatives, recorded so they are not re-litigated: provider load balancing (round-robin or least-loaded candidate selection) -- routing stays an ORDERED candidate list, primary-until-pressure with deterministic spill (section 6), because balanced routing makes the serving model nondeterministic per attempt, muddying the GO-baseline identity (section 19), provenance, and failure attribution, for no throughput the spill rule does not already recover; porting or extracting an existing orchestrator codebase (this is a fresh implementation); and sprint mode (one long-lived feature branch per feature set with a heavyweight promotion gate), which trades per-ticket merge risk for concentrated integration risk at promotion -- the serial merge queue + cheap hard gates + post-rebase re-check delivers the same blast containment without a second-class branch discipline.
+
+## 16. Threat model
+
+squatch is a single-operator personal tool: it runs on a LAN box the operator owns, against the operator's own repositories, and does NOT sandbox executed work. Agent subprocesses, `## Verification` commands, mechanical checks, and evidence replay run with the operator's own privileges.
+
+The failure modes are named so they are decisions: wrong or malicious model output (code, tickets, verdicts, verification commands); prompt injection riding data (countered by the section 8 rendering contract, which keeps untrusted content in the data channel, out of the instruction channel); and a bad dependency or repro pulled during a run. What bounds them is not an OS jail but the pipeline: the hard gate set, the correctness review, and the serial merge queue -- nothing reaches main without passing them (sections 7, 9), and mechanical enforcement is load-bearing, never prose. Two consequences of no-sandbox, named at their sharpest points: first, ticket-authored `## Verification` commands execute with operator privileges BEFORE any review exists -- the gate set bounds what MERGES, not what RUNS, and the section 8 rendering contract narrows the injection path into that execution without walling it; second, the intake front door (section 13) trusts a PATH -- any process with operator privileges, including an executing agent, can write a `source: human` ticket that auto-confirms, which is why every intake commit is journaled and itemized in status. `squatch kill <run>` SIGKILLs a run's process group; the kill-switch pause is the graceful path. Provider keys are injected only into the one call that needs them (section 6), and the redaction seam scrubs configured secret VALUES from every captured stream before it persists -- configured provider secrets only: any other credential on disk is exposed to executed work exactly as to any process the operator runs. OS containment is a D10 return if squatch is ever pointed at work the operator does not already trust.
+
+## 17. Seed root agent files (CLAUDE.md / AGENTS.md)
+
+The repo is seeded with a root CLAUDE.md written from this section by Phase 0 deliverable 1 -- the agents that build Phase 0 need standing conduct rules from the first session. AGENTS.md, the curated subset, is authored from this same section by whichever deliverable FIRST routes a non-Claude agent CLI to a writing surface: that CLI's child loads AGENTS.md and never CLAUDE.md, so the moment the config routes one, AGENTS.md is authored and both files are load-bearing -- a rule add/change/remove touches both in the same change. While every routed context is `claude -p`, CLAUDE.md alone is load-bearing and a second conduct file would be an unread copy to drift. The seed files are the v0 of the engine core template (section 8): when bootstrap rendering ships (section 15), this content becomes the first `squatch:core` block and hand-editing inside the managed block stops.
+
+Format contract -- the context-efficiency rules the seed file obeys:
+
+- Opens with a 3-5 line identity block (what squatch is, engine plane vs host plane) and ONE read-first pointer to this plan. The plan is never duplicated into CLAUDE.md: the root file carries only conduct an agent needs in-context every session, and links here for design detail.
+- Two rule kinds, maintained differently. Behavioral rules -- ones no gate can check -- keep full but terse text; the prose is the only enforcement. Gate-backed rules compress to one line: rule + author-time actionable + gate code + link. At seed time every rule is behavioral (no gates exist yet); when a rule gains its gate (Phases 0-2), compress it in the same change that lands the gate.
+- Hard size budget: target <= 120 lines. A rule earns a line only if violating it is cheap to do and expensive to unwind.
+- Every rule carries a one-line why plus its source: a section of this plan at seed time, a cited incident once D10 takes over.
+- Regeneration stop check is ROW COVERAGE, not shape: every rule-set-A row and set-B session bullet is a required semantic assertion compared against the existing file; a row the plan changed that the file still contradicts fails the check, even when identity block, pointer, and line cap already pass.
+
+Seed rule set A -- engine conduct, restated from this plan. The root file states only the conduct form; the linked section owns the design detail:
+
+| Conduct rule | From |
+|---|---|
+| Pure Python: no shell scripts, no `shell=True`, no string-assembled commands; external binaries only via argv wrapper modules; the squatch venv only | D1 |
+| Build the simplest thing that satisfies the ticket; no speculative features, gates, config knobs, or metadata -- every addition cites the incident that earned it | goal 1, D10 |
+| No dual-path code: no compat shims, deprecation layers, or defensive parallel paths; rename in place, update every call site, recover by revert | section 2 |
+| Fail closed: allowlists and closed vocabularies, never denylists; every prohibition and every gate finding ships a paved road | sections 2, 7 |
+| A hold ships with its release: the Reject queue, a premise park, or a poison quarantine lands with or after its release path (same deliverable, or `depends`-after it), its paved road never names an unbuilt verb, and a hold whose only release is a ticket change never precedes the machinery that machine-produces ticket changes | sections 2, 11 |
+| Files + journal are the source of truth; derived views are projections and never authoritative -- never hand-edit one or cite one as authority | D3 |
+| Generated files are render targets, never write targets: README.md and bootstrap/conductor.py extract from this plan's appendix sentinel blocks, CLAUDE.md is authored from section 17 by Phase 0 deliverable 1 (AGENTS.md by the first deliverable that routes a non-Claude agent CLI) -- a change edits this plan and reruns the generator, never the rendered file | section 1 |
+| The plan is the seed: a plan defect (gap, bug, wrong spec) is fixed in the plan, then regenerated from it -- rerun the owning deliverable, deleting and regenerating the affected tickets or code so the seed drives the artifact; a ticket or code file is hand-edited ONLY for a defect provably not the plan's OR under the blocking-defect fast path (a defect stopping the drain's forward progress: plan edited and committed FIRST, then the minimal congruent code fix by hand in the same session, regeneration ticket optional -- section 19), and never before the plan's status is determined | sections 1, 19 |
+| All git through `git.py` (argv lists, dir-pinned); worktree cleanup via `worktree remove` + `prune`, never bare `rm -rf`; no `gh`, no PRs in the loop | section 10 |
+| Second problems are filed (Suggestion Box), never folded into the current diff; a pre-existing failure is verified on the base commit, then filed | section 11 |
+| Read before write: no command, claim, or test is written until the artifact that owns that fact has been read | section 13 |
+| Ticket frontmatter carries only fields the scheduler, a gate, or the authoring/triage policy reads; execution ordering lives in `depends` and `priority`, never in prose | section 13 |
+| Clock, process exec, filesystem, and notifications go through the injectable seams -- never called raw in engine code | section 15 |
+| Executed work is fenced by gates and review, not jailed: v1 does not sandbox executed code; never rely on its goodwill, and never pass a provider key to a process that does not need it | section 16 |
+| The journal is the record, never a debug log: diagnostics go to the engine log and attempt spools, and configured secret values are redacted from every captured stream at the write seam | section 6 |
+| Do not start a phase until the previous phase's exit is met | section 19 |
+
+Seed rule set B -- session conduct for interactive chat in this repo. Proven in host #1's rule file; stated in full so this document stays self-contained (a human-present chat session is the one context the pipeline machinery does not govern):
+
+- **Terse communication.** Lead with the answer; cut hedging, filler, and preamble; short sentences and tight lists.
+- **Comments explain why, not what.** Comment only invariants, hazards, and deliberate-looking-wrong choices; match surrounding density.
+- **Plan prose is pure spec.** Rules stated tersely; no incident citations, session references, or change history in plan prose -- provenance lives in the Suggestion Box, the journal, and git history.
+- **Track open threads.** A reply that raises several questions or options owns that list until it is empty; restate unresolved threads every turn; the user engaging on one thread never closes the others.
+- **Announce unsolicited dives.** Name any investigation or authoring the user did not request in 1-2 sentences and get a now / after / skip decision before spending the time; the requested task always runs first. (Autonomous pipeline stages are exempt -- they file same-turn via the Suggestion Box.)
+- **Instance first, cause captured.** A reported problem yields the minimal unblock first and a separately filed cause ticket in the same session -- the chat form of the section 14 urgency/importance rule.
+- **Git session safety.** Respect the single-writer lockfile: a chat session never mutates git state in a checkout whose lock a daemon holds (authoring ticket FILES in the working tree is the sanctioned intake path, section 13, and needs no git). Stage and commit only files authored this session, by explicit path; never a tree-wide destructive verb (`clean`, `reset --hard`, `checkout -- .`) in a shared checkout. Never push or remote-mutate from a chat session unless the user explicitly says push -- pushes are the checkpoint Effect's job (section 10).
+
+AGENTS.md is a curated subset, never a mirror: only load-bearing, expensive-to-violate rules cross over; CLAUDE.md is canonical on conflict; once AGENTS.md exists, a rule add/change/remove touches both files in the same change. Once bootstrap rendering ships, both render from the same engine template and the manual sync duty dissolves into the render step.
+
+Excluded on purpose, for self-consistency with the anti-bloat law and the section 18 refusals: host-plane and product rules from any host repo; metadata taxonomies and their lints; batch/wave scheduling rules; provider or model pins; and any restatement of design this plan already owns.
+
+## 18. Explicitly not building (v1 refusals)
+
+Named so they are decisions, not omissions. Each may return only via D10 (a real incident):
+
+- Deterministic re-execution recovery; journal hash-chaining; blob store.
+- Composition/plugin engine over the block catalog.
+- GitHub PRs, `gh`, PR-state machinery in the loop.
+- Author-time conflict-prediction machinery (path-bucket tables) and wave/group batch scheduling; multiple ticket authoring modes.
+- Metadata taxonomies and their lints (code annotations, test marks, doc tags, glossary currency), producer-health manifests, semantic history search.
+- A shipped generic-check catalog. The engine ships ZERO code checks -- no ruff/eslint/complexity presets, no enable-flags: generic linters are one-line host `review.mechanical` entries (section 7), and the host-contract doc's commented example config (Phase 6, section 15) is where the typical rows live -- documentation to copy, never an engine surface, so the check-runner contract stays the only seam and the engine never accretes per-tool knowledge.
+- A sprawling CLI. The CLI stays small (stdlib `argparse`, no click/typer): status, new, confirm, reject, kill, pause, resume, retro, triage, migrate-config, doctor, core (the Phase 6 `squatch:core` bootstrap render + drift lint, sections 8, 15 -- the operator and new-host invocation of the ONE renderer whose post-upgrade refresh the daemon commits mechanically per section 10, one renderer with two invokers, never a second render path; listed here so the section 19 deliverable and this closed vocabulary agree), `serve` -- plus `run <stem>` and `drain`, the self-build's scaffold verbs (drive one ticket, or the whole ready queue, through the pipeline synchronously). `drain` carries the entire self-hosted build to quiescence (Phases 2-6, section 19); it retires when the operator CUTS OVER to the continuous daemon on host work, not at Phase 3 -- the daemon is built and soak-proven WITHIN the self-build, then takes execution over at the operator's explicit promotion: `squatch serve` STARTS that continuous daemon (section 19, Phase 3) on host work -- the long-running foreground process that holds the single-writer lock, emits the heartbeat, and is governed by `kill`/`pause`/`resume`; unlike `drain` it does not stop at quiescence but runs until stopped. `serve` is a DAEMON-ERA verb: the self-build never invokes it ON HOST WORK (the scaffold `drain` carries Phases 2-6; the two exceptions are the Phase 3 soak's in-process synthetic-checkout `serve` composition and the Phase 6 exit harness's bounded synthetic-checkout `serve` subprocess, section 19); the one operator-launched pre-cutover `serve` is touchpoint 7's supervised 24-48h soak, run before GO is recorded, so the first UNSUPERVISED `squatch serve` on host work is the cutover itself, launched only after GO is recorded (section 13 touchpoint 7).
+  - `drain` runs every eligible ticket in `depends`-constrained (priority, age) order, one at a time in the single writer process, to QUIESCENCE: a non-ok TICKET terminal PARKS that stem and the drain continues with the next eligible ticket; a merge landed mid-invocation satisfies `depends` edges in the same invocation. Quiescence is TRUE quiescence: after every merge the drain RE-SCANS the committed tickets dir -- shipped WITH the Phase 1 drain verb, needing nothing Phase 1 lacks -- so a ticket authored or confirmed mid-invocation (a seeding ticket's ticket-plane output) becomes eligible in the SAME invocation -- the seed-to-seed continuity the self-build needs (section 19). The bootstrap drain NEVER scans the box: the Suggestion Box is consumed only by the operator's `squatch triage` verb (section 12), and the daemon's continuous box consumer is a Phase 3+ era, not this drain. At quiescence -- nothing eligible and unparked -- each parked stem whose `retry` cap (section 11.1) still holds budget is RE-OFFERED -- in the same `depends`-constrained (priority, age) order as dispatch -- one retry unit drawn per re-offer, so eligible work always runs ahead of re-offers and a red stem never starves the queue; a re-offer renders FINDINGS-FED (section 11.2 -- the re-entry ships with this verb, as the section 0 prompt 11-12 pair), and quiescence is re-evaluated after every re-offer merge, so an unblocked dependent runs in the same invocation; the drain ends when nothing is eligible, unparked, re-offerable, or newly authored, reporting every still-parked red with its findings -- the stop names its continuing command (section 19), never a silent tail. Two config-declared bounds hold an unattended drain in place of an operator's finger (section 15). The overall wall-clock ceiling (`drain.max_runtime_hours`) stops it short of quiescence: on trip the drain admits no new ticket, lets the in-flight one reach its stage terminal, journals the halt, reports progress, and names the continuing `squatch drain` (which reconciles on-entry and resumes) -- a runaway backstop the operator sizes above a normal build, never a routine phase gate, and a re-run after it resumes a bounded safety stop, never the banned release for machine-retryable work (section 19). The per-ticket ceiling (`drain.max_ticket_minutes`) is checked at DISPATCH: a ticket whose authored `Time budget` stuck exceeds it PARKS with a paved road (lower the budget) rather than dispatching, so no single ticket claims an unbounded run before the Phase 4 watchdog enforces the authored threshold. The report also lists any draft tickets awaiting `confirm` (section 12) -- box-triage-authored drafts can exist mid-build; the SEEDS themselves are never draft (authored `confirmed`, section 19). Engine-plane refusals (lock contention, journal corruption, config/setup refusals) still STOP the drain; park is for ticket outcomes only. Exit codes are ONE three-value contract for both scaffold verbs: 0 = quiescence reached (parked reds included -- the report names them and their continuing command); 1 = a non-quiescent stop (`run <stem>`'s ticket at a non-ok terminal, or a drain halted by `max_runtime_hours`); 2 = an engine-plane refusal -- wrappers and the conductor key on the class, never the message text.
+  - An admission whose diff touches `squatch/**` or `specs/**` is a SELF-UPGRADE: before the next dispatch the drain re-execs itself through the process-exec seam (section 15) as `uv run python -m squatch drain` -- ONE form, dependency changes included (uv's sync is a no-op when nothing changed); this is D1's one named runtime `uv` exception. It carries the invocation's parked set in argv -- one repeated `--parked <stem>` flag per stem -- so no stage runs stale in-process code against the upgraded checkout. The re-exec is a HANDOFF with a fixed order: the parent journals the handoff, closes its journal handles, RELEASES the single-writer lockfile, then spawns the child through the seam with `timeout=None` and inherited stdio (section 15), awaits it, and exits with the child's exit code -- doing nothing else after the spawn, so the child (which reconciles on-entry and takes the now-free lock like any drain) is the only writer. Each self-upgrading admission nests exactly one such awaiting parent; the chain is bounded by the invocation's self-upgrading admissions and every process in it is idle except the leaf.
+  - Both scaffold verbs reconcile ON-ENTRY: on taking the sole writer lock they first reap any orphaned in-flight run an interrupted predecessor left (section 11), so an interrupted `run`/`drain` self-heals on the next invocation. A stem whose last run ended non-ok -- reaped (`abandoned`) or a completed non-ok terminal -- stays ELIGIBLE: keys are run-scoped (section 6), so the re-run takes a fresh keyspace and is real work, never a replay, and its re-entry prompt carries the prior findings (section 11.2). A red stem costs a drain at most its remaining `retry` cap, drawn one unit per re-offer from the one retry budget every retry sense shares (section 11.1); the operator escape begins only where that cap ends. Exception: a stem whose last terminal was `premise_failed` stays parked across invocations until its ticket-plane `ticket.md` commit changes -- the verdict answered the ticket as written, so re-asking it unchanged replays a judgment, not work (section 2's pointless-call rule). That park's paved road is `source`-keyed (section 13): a `source: seed` stem renders the plan, so its false premise is a PLAN defect -- the road names fixing the false assumption in SQUATCH_PLAN.md first (section 1), the releasing `ticket.md` change then being the plan-congruent regeneration -- the section 19 recovery-edit path (an in-place correction of the unrun seed after the plan commit), never a code-first edit that precedes the plan's status determination; a `source: human | box:<class>` stem's road names the direct `ticket.md` edit (a box stem's plan-level cause files separately, section 12). The mechanical release is the one rule both share -- the stem's committed `ticket.md` content changes -- so the road differs only in where the fix originates, never in what unparks the stem.
+  - `new` templates a ticket file (the intake front door, section 13); `serve` starts the continuous daemon loop on host work (the daemon era, section 19 Phase 3) -- the sole writer for its lifetime, reconciling on-entry like the scaffold verbs, running until `kill` or a signal stops it; `kill` hard-stops a run (section 16); `migrate-config` performs the explicit older-config migration (section 15); `doctor` is a mechanical self-check (venv, git on PATH, config schema, lock, journal readability). `resume` is the pull-side remediation for every push escalation (section 13): un-pause dispatch after a `budget_exceeded` pause (with the ceiling raised or the window rolled past, else the next pre-call check re-pauses), release a quarantined test or ticket, lift a storm-breaker hold (section 12, bound to its trip identity), and re-open merge admissions after an integration-red streak -- no escalated state is a dead end.
+  - Invocation: the CLI is a MODULE entry (`squatch/__main__.py`), run during dev and the whole bootstrap as `uv run python -m squatch <verb>` -- the same venv convention as `uv run pytest`. The project stays a VIRTUAL uv project (`package = false`, no build backend) per goal 1 and D10: a packaged `squatch` console script is not built until the release path needs one (section 13 touchpoint 6), at which point a stable release puts bare `squatch` on `$PATH` (`~/bin/squatch`, section 15). Bare `squatch` is never assumed on `$PATH` during the build.
+- The AI audit trail layer (trajectories, reward vectors, preference pairs, training exports, attestations) and its frontmatter/table surfaces. Planned to return as projections over the journal (section 6) -- the kernel already captures the raw material (model, spec version, SHA, cost per effect), so nothing is lost by deferring.
+- Formal canary/shadow rollout for prompt-spec changes (provenance measurement first).
+- Multi-daemon / multi-machine execution and general leases.
+- A feature-flag subsystem. Engine behavior knobs are explicit config keys; rollout risk is handled by the stable/dev instance split and tagged releases (a flag framework recreates the dual-path shape section 2 bans, and every flag doubles the shakeout battery's state space). Host-product feature flags are host-plane content: implemented in host code/config by ordinary ticket diffs, never set from ticket frontmatter, with flag-hygiene gates a host may add per D10.
+- A web UI.
+
+Deferred behind a NAMED trigger -- D10 returns, distinct from the refusals above and listed so deferred scope cannot silently re-accrete; each returns only when its trigger fires, citing it:
+
+- The `api` provider client, its token buckets (rpm/tpm), and the cumulative USD spend ceiling -> the first configured `kind: api` provider; until they ship together, `kind: api` is refused at config load (section 6).
+- The concurrent worker pool -- and with it the dispatch-time overlap skip, the pre-review hold, a `workers` config key, and dispatch serialization by path -> measured queue starvation or measured contention on host work, post-cutover (D2, section 9).
+- A rerere replay cache with its custody protocol, conflict-only micro-rework, and a `low_risk_paths` re-review skip list -> the first chronically re-resolved conflict shown by the journaled conflict facts (section 9).
+- Spiral-signal shapes beyond spend-without-progress (debris accumulation, command repetition, mutation-entropy stall, poll-loop match) and the degraded-watch mode -> a pinned spiral fixture the shipped signal misses / a configured stream-less CLI (section 9).
+- Dedup-health proxy metrics, conflict-hotspot trending, and the scheduled-vs-silted rate -> a post-host-#1 incident each (section 14).
+- The triage-dedup real-model eval -> daemon-era entry, beside the GO-grade baseline (section 19).
+- A mechanical scope-fence closure analyzer -> the first fence-gap escape `requisition_review` misses (section 9).
+- An analytics engine over the journal (DuckDB) -> the first projection measured too slow as a stdlib fold (D3).
+- The per-context (author/merge) gate-severity map -> the first gate needing different severities in the two contexts (section 5).
+- A PRNG seam -> its first consumer (section 15).
+
+## 19. Implementation phases
+
+Do not start a phase until the previous one's exit is met, and met is READ, never claimed: a criterion that lives in the journal or git (a merged ticket, a recorded verdict) is verified by reading that artifact before the exit is recorded done (D3). One deliberate exception: the Phase 1 review-baseline eval runs FIRST within Phase 1, before the walking skeleton -- it needs only the provider layer, the spec renderer, and the committed fixture set, not the pipeline -- because it tests the plan's load-bearing bet (real-model review quality) and a NO-GO verdict is cheapest before the kernel is wrapped in a pipeline. The spike's harness and fixtures are the base the Phase 6 GO-grade baseline extends at cutover; nothing is thrown away.
+
+Bootstrap contract: the self-hosted build runs to done, or to a plain-English stop naming the one command that continues it -- never a per-phase re-run. Each launch carries a durable `bootstrap_attempt_id` (stamped into `bootstrap/state.json` at launch -- the section 21 conductor owns it); beside the wall-clock ceiling the attempt is bounded by `MAX_ATTEMPT_CALLS` (a conductor constant beside MAX_FIX_ATTEMPTS, section 21) and -- once real-model calls flow through the engine's cost events (section 6) -- by the spend ceilings those events feed, which the launch reads as its `max_attempt_cost_usd`. The finished attempt's record is that state file plus the journal entries carrying its attempt id. At a stop, an outer context's ONLY write moves are this section's closed touchpoint list, executed in the fixed recovery order (plan status determined first); any OTHER ticket edit, `confirm`, journal write, or motion of main from outside the engine's own lanes is a P0 defect -- the conductor's builder contexts included (a builder never commits to main past its reviewer, and no deliverable's context re-enters the conductor). The legitimate second attempt after repair is the next no-flag invocation, validated against the finished attempt's record. Phases 0-1 run on `bootstrap/conductor.py`; from the Phase 1 handoff ONE continuous `squatch drain` (section 18) carries every remaining phase (2-6) to quiescence, each phase's final ticket seeding the next into the same running drain. Pre-daemon the operator touchpoints are a closed list -- start a run, scan the Suggestion Box at will (`squatch triage`), answer a Reject item whose retry budget is spent, edit a premise-failed ticket (or fix the plan and rerun -- the bootstrap recovery is the operator, not an in-engine loop), re-authenticate an expired agent login -- and a run that stops for anything else is a P0 defect the run itself files to the box. Good-enough bar: bootstrap review -- the conductor's second-context review of a deliverable and, once squatch self-hosts, the pipeline's review of a ticket -- fails the work only for spine-breaking defect classes (state corruption, deadlock or permanent stall, secret exposure, false-green verification); every other finding is filed to the box (pre-Phase-2, bootstrap/suggestions.md) and the work settles. Bootstrap-era behavior is tuned for UNATTENDED FORWARD PROGRESS, daemon-era behavior for supervised continuous operation, and a product supervision surface never gates the bootstrap. Why (encoded from the first implementation attempt, which died in Phase 2: a week of drains stopped on parked tickets whose fixes were simple, waiting on an operator to "just rerun"):
+
+- Operator recovery of a STOPPED drain has a fixed ORDER, and skipping it is the recurring failure. Read the stopped stem's artifacts -- `diagnosis.json`, `review.md`, `attempts/<n>/`, the engine log, and the journal -- for the REAL cause, never the misleading status label (a "no schema-valid verdict" park is usually a spent diagnosis cap, not a flaky diagnose surface; confirm from the lessons). DETERMINE the plan's status BEFORE editing anything: a plan defect (a gap, contradiction, orphaned behavior, or a value that should be an input) is fixed in the plan and COMMITTED first, THEN regenerated from -- a merged stem cannot re-run (drain.py folds it out forever, so ship a NEW corrective ticket), an unrun seed is edited in place and left UNCOMMITTED for the next drain's intake (its new SHA releases the park and ONLY the park: caps are LINEAGE-scoped and no edit resets them, section 11.2 -- the one re-arm is the operator's Reject-queue `keep`, section 13 touchpoint 3). A defect provably NOT the plan's -- a `## Scope fence` missing a file the criteria force (grep every reference before a rename-fence), a sound spec the model could not implement -- is a ticket or code fix, never before the plan's status is determined. ONE sanctioned exception exists for pace: the BLOCKING-DEFECT FAST PATH. A defect that stops the drain's forward progress -- an engine bug no ticket can route around, a seam fault below the failure spine -- does not wait for a regeneration cycle: the operator fixes the PLAN and commits it FIRST, then hand-applies the minimal congruent code fix with its test in the same session, and files a regeneration ticket only if the hand fix is narrower than the plan change implies. The order (plan first, code second, same session) is what keeps the fast path drift-free; a code-first patch is still the violation, and a plan-only edit that strands the working fix unapplied is the opposite failure -- both are named wrong. Never lead with a ticket edit, `confirm`, or `drain`: patching the artifact before the seed leaves the defect to reproduce (section 1).
+- No drain is ever findings-blind: the reject-findings re-entry ships WITH the Phase 1 drain verb (section 11.2; the section 0 prompt 11-12 pair), never as a later spine deliverable -- a blind re-run repeats its failure unchanged and parks.
+- "Rerun the drain" is never the release for work the machine can retry: a parked stem with remaining `retry` budget is re-offered findings-fed in the SAME invocation, quiescence is re-evaluated after every re-offer merge, and requeue-on-unblock is tested drain behavior (section 18), not an operator duty.
+- The self-upgrade re-exec is one automatic form -- `uv run python -m squatch drain` through the process-exec seam (D1's one named runtime exception) -- never a stop that waits for a human to retype it.
+- Supervised-merge holds (section 12) bind the DAEMON era only. The bootstrap drain never holds an admission: the operator launching it, the good-enough bar, and the phase exit battery are its supervision, and recovery is git revert.
+- A seed is proven BUILDABLE where it is authored, never discovered unbuildable where it is run. The Requisition gate is GRAMMAR (paths resolve, no dep cycle, checkable criteria), not feasibility, so every authored ticket -- box and seed alike -- is judged by `requisition_review` (section 7), the feasibility review that stands to an authored ticket as code review stands to a diff: it reads the engine and tests the ticket names and verifies the `## Scope fence` covers every file the acceptance criteria force -- and for a MACHINE-AUTHORED seed that closure is additionally pinned by MECHANICAL per-seed assertions in the seeding deliverable's own named test file, beside (never replacing) this review's judgment: (1) every fence entry naming an EXISTING file also appears in `## Context` -- a fenced file with no read closure hands the implementer write authority over a contract it cannot see; files the seed CREATES are exempt, because section 13's Context grammar requires Context paths to exist; (2) every EXISTING test whose assertions the criteria's behavior flip contradicts is enumerated inside the fence -- at authoring, grep the flipped symbol and the old recorded value across `tests/` -- the contradicted-test omission is the recurring shape that surfaces at run time as a premise park or a repeated scope-fence wall, and a fence wall on a criteria-FORCED path is this authoring defect: the correct implement outcome is premise_failed (section 9's own law), drawing the premise bounce back through Author (section 11.1) -- a wall more capability cannot fix; (3) an ACTIVATION seed's fence includes each predecessor construction ticket's dormancy-pinning test files, because re-pointing a dormant fixture at the now-reachable path (this section's Phase 3 discipline) is a criteria-forced edit to those files; (4) a deliverable introducing a NOT-YET-BUILT module has its owner stated in the seed's own prose, SOURCED from the phase bullet or its Seeding partition, per section 9's rule that deliverable prose states what each named file OWNS -- a bullet silent on a deliverable's owning module is a THIN bullet under section 19's SPEC DEPTH law, so the seeding ticket parks `rma` naming it and never invents the owner inline -- and the new module plus its test file are fenced from that statement, never left for a run to discover. These assertions are the seed's own tests, not an engine-shipped analyzer, and they ARE the mechanical closure check section 9 defers as a D10 return: the fence-gap escape that earns it has been paid in every prior build, so a seeding deliverable that ships without them re-litigates a settled incident. The review still judges the full forced set (section 9's authoring law, at authoring time), that no invariant or criterion contradicts already-merged behavior, and that the criteria are mutually satisfiable. The buildable bar includes RENDER FEASIBILITY: the review mechanically measures the authored ticket's base Implement render (standing inputs, zero attempt history) against the section 8 bound AT THE LADDER-TOP effort's bound (escalation re-keys the bound smaller mid-lineage, so a render fitting only its authored rung dies on the ladder), with declared headroom for attempt growth, BEFORE the ticket commits `confirmed`; an over-bound authored render is a `snag` -- shrink or split at authoring -- proven buildable where authored, never discovered over-bound where run. A `snag` re-authors within caps; an `rma` -- a genuine plan defect the author cannot fix -- parks for a human (plan-is-seed). A seed does not commit `confirmed` until it is reviewed buildable, so a grammar-valid but unbuildable seed never reaches the serial chain to `premise_failed` at Implement and park every downstream stem -- the single-step stall this whole contract exists to prevent. The one exception is the bootstrap floor: `requisition_review` is itself built during Phase 2, so the seeds authored BEFORE it is live -- Phase 2's own seeds, authored by the retiring conductor at the Phase 1 handoff, and `requisition_review`'s own deliverables, which cannot review themselves -- pass only the grammar Requisition gate and fall to the run-time premise_park (the bootstrap-drain exemption, section 19), never to review at authoring. From the Phase 2 exit ticket on, every next-phase seed is reviewed before it commits, so the gate is live before it authors the seeds it screens. Independent review at authoring, never discovery at the run.
+
+Each phase's FINAL deliverable seeds the NEXT phase CORE-FIRST: it authors the first bounded batch of the next phase's FOUNDATIONAL CORE tickets plus that batch's tail seeding ticket, and nothing else -- the handoff that swaps the retiring conductor for self-hosting. Core seeding chains along `depends` tiers into one `<phase>-continue` seeding ticket, which depends on the core stems and, once they merge, authors the phase's FEATURE tickets against the now-built core interfaces -- batch by batch: a feature set too large to author AND whole-set-review within the section 8 render bound and the ticket's time budget in ONE Implement pass is authored in dependency-ordered BATCHES, each `-continue` authoring ONE capped batch of not-yet-seeded deliverables (its sole ticket-plane writes are that batch's `ticket.md` files) plus the NEXT `-continue` seed carrying the same batched contract for the remainder -- or, when only the phase-exit seed remains unseeded, that seed as the terminal batch's SOLE payload (the phase-exit law below) -- ONE merge admission per batch, so passing batches merge INCREMENTALLY, a snag re-runs only its own batch, and one seed's closure gap never re-reviews the set (the all-or-nothing whole-set Check is the monolith this rule unwinds one level down). A batch's seeds depend only on the merged core, already-seeded batches, and within-batch stems (a forward dependency on a later batch is an authoring defect `requisition_review` refuses); each link names its chain position and the phase's REMAINING deliverable partition and seeds at least one not-yet-seeded deliverable, so the chain is finite by construction -- bounded by the phase's deliverable count, never a self-extending chain minting fresh links against no shrinking remainder -- the terminal batch authors no successor seeder, and the chain's seed definitions are owned by ONE named source the seeding tickets read and never edit: the phase bullet's own Seeding partition in this plan (or the predecessor bullet's Emits partition that names it, the Phase 5 shape -- SPEC DEPTH below), or a reviewed seed-definition module (the section 9 ownership law applied to seeding itself). Each batch entry realizes a section-19 deliverable at its stated ticket grain -- ONE ticket (core plus any staged activation), or the construction/activation pair where a phase's dormant-until-activated chain (this section) states one -- NEVER one deliverable split across a dependency chain of sub-component stems, the inversion that strands the chain at one build per link (the Phase 3 GRAIN LAW below binds seeding batches too). Bounded batching is UNCONDITIONAL, never a fallback -- the conductor's prompt 14-17 handoff is this law's Phase 2 realization, four bounded authoring passes, exempt from merge-gating and authoring-time review only because `requisition_review` is itself among its seeds: a phase small enough to specify at once seeds in one step and needs no `-continue` ticket (one batch), but a phase whose deliverables cannot all be feasibly specified at once (fences or exit-reads depending on interfaces the phase itself builds) is ALWAYS seeded core-first in this chained shape, because every seed must pass `requisition_review`'s fence- and exit-read-closure bar AT AUTHORING TIME, and a seed citing unbuilt code cannot. Every SELF-HOSTED seeding step (the Phase 2 exit ticket onward; the conductor's per-prompt Phase 2 batches are already bounded) is BOUNDED-BATCH: one seeding admission carries AT MOST `seeding.max_seeds_per_admission` authored `source: seed` files, the successor seeder included (config-declared like the `caps:` keys, section 15; shipped 3) -- one admission that authors many seeds clears only if EVERY one passes `requisition_review`, so batch size is the blast radius of one rejected seed (a batch of one is the same chain at its finest grain): a batch clears review jointly at roughly per-seed-approval^N, nine seeds in one admission never cleared in thirteen attempts (best 1/9), and interlocked seeds sharing one closed member set churn as ONE batch, the p^N fragility that thrashes an exit ticket -- batches follow `depends` tiers, each batch's seeding ticket authors the NEXT batch's seeding ticket as its tail (core batches, then `<phase>-continue`, then chained `-continue` feature batches, then the phase-exit seed), and a refused batch re-authors ONLY itself on a fresh continuation, never the whole set. And the review bound matches the batch bound: `requisition_review` at the seeding Check renders ONE target per review pass -- each seed reviewed against its own text and Context closure plus committed plan and code, never against the accumulated batch or the ticket plane's history, whose per-seed prompt otherwise grows past the section 8 render bound (sections 7, 9). A KNOWN-DEEP seed -- one whose contract crosses module seams (kill-wiring, a soak, a breaker) -- rides an admission ALONE: depth, not count, drives review churn. The PHASE-EXIT seed is always the final batch's SOLE payload and is plan-named KNOWN-HARD, carrying `agent_tier: high, agent_effort: high` at START with this sentence as its cited evidence (the known-hard pin of this section's pre-ladder tier rule and section 13's raise-the-START clause): it bundles a multi-read exit test with the next phase's first core batch, the shape that oscillates across attempts -- fixing the exit read while regressing the authored seeds and back -- without ever presenting the K-identical terminal the section 11.4 short-circuit keys on. That bar makes a thin phase bullet a BOUNDARY DEFECT -- PHASE-SPEC HARDENING guardrail: before a phase's FINAL deliverable authors phase N+1's seeds, phase N+1's deliverable bullet in this section must already carry the Phase 3 bullet's depth -- owning module inline, `## Scope fence` closure, `Plan contract` sections, this paragraph's core/`-continue` seeding partition -- and, where the phase lands activation-flavored work, the same staged construction -> proof -> activation, dormant-until-activated chain the Phase 3 bullet states: staging is a PHASE-GENERIC law, not a Phase 3 property, and an activation seed's fence includes the predecessor-landed dormant fixtures it re-points (the section 9 ownership law -- the activation ticket writes that seam). A boundary reached with a thin bullet is repaired as a PLAN defect under the plan-is-the-seed law (sections 1, 19) (plan edit committed FIRST -- never by the seeding ticket, whose output lane is the ticket plane and never this file), hardened ONCE at the boundary rather than driven out one `requisition_review` rejection per real review cycle; deeper per-deliverable content stays just-in-time, one phase ahead (D10). Seed emission remains an ordinary Implement-side, re-runnable pass -- never a hook registered to fire after its own merge. Three mechanics ride that sentence. DELIVERY: authored seeds reach main ONLY through the ticket-plane lane (section 10) -- never committed to the seeding ticket's code branch, which fails MERGE-SAFETY. RE-RUN: a re-run of the pass treats the stem's OWN previously-lifted seeds (journal-identified from its prior runs) as already-emitted output, never a collision -- any overwrite guard on seed lift exempts them, else a Check-lifted batch deadlocks its re-offer against its own prior lift; foreign stems stay protected. REJECTION: a materialized seed that later terminally rejects (`reject <stem>`, section 13 -- the sanctioned retirement, so a successor is new work, never the banned mid-lineage rename of section 11.2) leaves its unmet section-19 obligation to a fresh same-goal seed authored through this same pass; the section 9 dead-dependency handling surfaces every dependent for re-wiring -- the phase exit's `depends` edge included, so the exit can still DISPATCH once re-wired to the successor -- and the exit's read accepts `state: rejected` plus the successor's `to: merged` as that deliverable's resolution. The conductor's prompt 14-17 batches author Phase 2's tickets, then it retires; from Phase 2 on the seeding is itself a ticket squatch runs: its Implement stage writes the next phase's `ticket.md` files DIRECTLY (ticket-plane output, `confirmed`) -- the same direct authoring the conductor uses for Phase 2 -- intake-lint validated (ticket schema + closed vocab, the Requisition gate) AND feasibility-reviewed (`requisition_review`, section 7) at its own Check stage (the ONE seed-review siting -- wired and enforced by the Phase 2 `requisition_review` deliverable below), NEVER through the Suggestion Box, which carries filed problems and never a known build-plan ticket. Never seed past the NEXT phase: a later phase's specs depend on what the current one builds and learns, so writing them now is speculative work (D10). The COMPANION bound runs the other way -- SPEC DEPTH BEFORE SEEDING: a phase bullet below is seedable only at the depth of the Phase 2-3 bullets (per-deliverable owning modules and fences, staged seeding chains, exact signal semantics and threshold constants, emitter-and-artifact-named exit reads, the Context owning sections its seeds will cite, and the core/`-continue` batch partition at the grain one seed renders), and that depth is authored INTO THE BULLET -- or into the predecessor bullet's Emits partition that names it, the Phase 5 shape -- by plan commit DURING the phase before its boundary -- the plan-first recovery order above, applied proactively by the operator -- never invented inside seed prompts, which the D10 seed-grant bar in this paragraph already forbids and which otherwise grinds one full `requisition_review` cycle per missing detail at the exact moment the exit context is most loaded. A seeding ticket -- a mid-phase `-continue` link and the phase exit alike -- that finds its phase bullet under this bar never hardens the plan itself (the plan file sits outside its fence: a seeding fence is tickets-plane only, and a phase-exit ticket's is the same, so neither can add the hardening itself; hardening lives in the bullet, not in the seeding ticket): it parks `rma` naming the thin bullet as the plan defect (section 7, plan-is-seed), and seeding re-runs only after the hardening plan commit lands. And the D10 bar applies AT seed authoring, inside the seed grant: a seed realizes exactly the machinery its named section-19 deliverable states -- a seed adding machinery its deliverable does not state cites the incident that earned the addition, or does not author it. EVERY bootstrap seed -- every phase, not just Phase 2 -- is authored `confirmed` and flows straight into the RUNNING drain: the seeds ARE the build plan, who authored a ticket is irrelevant to whether it runs, and no seed waits at a draft gate or on a `confirm` verb. Phase ordering is enforced MECHANICALLY by the `depends` graph -- a phase's seeds `depend` on the prior phase's exit-gate ticket, so they cannot dispatch until it merges -- which is what "do not start a phase until the previous phase's exit is met" MEANS here: an edge read from git (D3), never an operator's per-phase judgment. The phase-exit ticket carries THREE separable obligations -- the mechanical exit READ over committed artifacts, committing the phase report, and authoring the next phase's core batch -- and lands them as a `depends`-chained pair (READ + report first, seeding second) whenever any one alone strains its context: under that split, the exit-READ sentences below read onto the READ half -- it carries the transitive-`depends` coverage and per-criterion re-read and commits the phase report -- while the seeding half `depends` on it, so its dispatch still waits mechanically on every prior-phase stem, a seeding defect never re-litigates a green exit read, and an evidence defect never re-authors green seeds. The phase-exit ticket that authors the next phase's seeds performs its exit READ the same mechanical way, never a bare suite run: every prior-phase deliverable stem is a TRANSITIVE `depends` of that ticket, so the drain cannot dispatch it until all of them merge (git-read, D3), and its Implement stage re-reads each recorded criterion against evidence that OUTLIVES its producer. Dependency completion is NOT a journal read: the exit ticket's transitive `depends` over the committed graph is the guarantee -- the drain cannot dispatch it until every stem merged (git-read, D3, the squash trailers of section 10) -- so its own dispatch IS the proof, and any authored entry-read is AT MOST that bare merged-presence check, never a `checks.json`/approval provenance cross-check on the depended stems and never a state-dir resolution through a git verb `git.py` does not ship (section 10); a continuation or exit seed inventing either over-reads the record and fails its own feasibility review (section 7). Every OTHER criterion reads a COMMITTED artifact or a WIRED-AND-SHAPED proof against merged code -- NEVER the live journal, because the exit ticket runs on a clean checkout that does not carry the instance-local, gitignored state dir (section 15) and a harness's per-member journals die with their temp dirs -- and NEVER a live occurrence of a misbehavior-conditional emitter, because a healthy drain never flakes, storms, or fails a push: harness-EXERCISED faults are read from the harness's COMMITTED report, whose writer records a member green only from that member's own evidence at run time; runtime-conditional emitters are proven WIRED-AND-SHAPED -- the emitter leaves its named durable record with the correct shape, per the emitter's OWN record-name constant and its merged tests, not a live instance this run. Where a criterion's evidence IS runtime history (a journal-sourced read a per-phase list below names), the read is over a journal WINDOW the driver MATERIALIZES into the worktree as the exit ticket's consumed artifact -- the same driver seam that materializes retro's window projection (section 14, invariant 1's "plus the journal") -- declared by the ticket body in the closed-grammar `Exit-read window` section (section 13) the renderer resolves like section 13's `Plan contract`, so the materialization is keyed to the declaration, never to a stem name (the section 11.2 no-stem-special-case rule); the exit read asserts over that materialized REAL history or the committed artifact, never over symbol-presence greps of committed code or test files, which go green whenever the named strings exist regardless of behavior (the false-green shape this closure contract bans). Each read names the emitter's REAL durable record by that constant -- or, where the emitter journals no signal, the durable artifact it does leave (a transition body, a ledger file, an effect key) -- never an invented signal name; a read demanding a record no emitter ships reddens the gate against a fixture, not the engine, and an exit test that WRITES the journal or report it then reads certifies nothing (the false-green shape). The Implement stage returns `premise_failed` naming any unmet criterion instead of seeding the next phase. The TERMINAL phase is no exception: Phase 6's FINAL deliverable is a `phase6-exit` ticket that authors no seeds and exists to PERFORM the exit reads -- seeded within the phase like every exit ticket, every Phase 6 deliverable stem a transitive `depends` -- committing the build's EXIT RECEIPT to its own ticket dir, `tickets/phase6-exit/exit-receipt.json`, registered as one of the lane writer's KNOWN artifacts (section 10) with a closed schema (per-read verdict, each cited emitter artifact's digest, the recorded verdict signal's journal identity), machine-produced by the exit run to its worktree OUTBOX, lifted by the ONE section 10 lift path, and regenerable byte-identical from the emitters it cites. "Runs to done" (bootstrap contract above) MEANS this receipt exists green, or the quiescence report names the parked exit stem and its unmet read -- a drain that goes quiescent with a phase's exit reads unperformed has not finished, it has stalled silently. Exit-read CUSTODY is one law for EVERY phase, not only Phase 2's battery: an exit-read artifact or receipt is MACHINE-PRODUCED by its emitting run and reaches main only through the engine's own lanes (section 10) -- no hand-committed copy, no out-of-lane refresh, ever; an exit certificate touched from outside those lanes is the bootstrap contract's P0 defect (above) on the exact artifact it most protects. And when a phase's seeding is staged (the `<phase>-continue` contract above), the exit seed lands LAST with its predecessor `depends` chain already MATERIALIZED as committed ticket files, so `requisition_review` verifies its transitive-dependency coverage and exit-read closure against committed tickets at authoring time, never by inferring edges through successors not yet authored. In every per-phase *Exit reads* list below, a "read from the journal / ticket plane" phrasing names the EMITTER'S record surface, never a drain-run exit ticket's read surface -- that ticket's read is always the committed artifact, the wired-and-shaped proof, or the driver-materialized journal window above -- never the live journal -- and an exit read realized as a merged TEST runs at Check and on merged main, where only committed artifacts and merged code exist, so it verifies wired-and-shaped or reads a committed artifact by construction (the conductor-performed Phase 0-1 gates run with the live state dir and may read it directly). Its acceptance criteria NAME that transitive-dependency coverage and that read, never a `pytest` run blind to them. The same closure applies to every prompt and seed in this document: an invariant a deliverable's prose states or cites (refusal boundaries, ordering laws, provenance stamps, render-position rules) appears in that deliverable's REQUIRED test list by name -- a stated rule with no named test obligation is a gap `requisition_review` flags, because a green suite that never exercises the rule is the false-green shape the good-enough bar bans. EXIT-READ CLOSURE is part of the same contract: every exit criterion NAMES the deliverable that emits the signal or artifact it reads, `requisition_review` rejects a phase-exit ticket whose exit-read has no emitter among the phase's deliverables (section 7), and the per-phase "Exit reads" lists below carry that emitter name inline -- an exit gate that demands a record nothing ships is the mis-wire that strands a whole build at a phase boundary. Emitter-NAMING alone is not closure for a COMMITTED-report read: the engine lifts and validates from merged main (section 10), so the OUTBOX registration or stage a seed adds is not live during that seed's own build, and a deliverable can never lift its OWN committed report. A committed-report exit read therefore names TWO roles inline: the report's MACHINERY (registration + writer) and its PRODUCER -- a run that strictly postdates the machinery's merge: a dedicated run-lane seed `depends`-downstream of the machinery (the Phase 3 `soak-run` / Phase 4 `reliability-run` shape), later deliverable runs over the merged machinery (the Phase 2 battery-group shape), or the exit ticket's own harness run (the Phase 6 host-loop shape, bounded like the Phase 3 soak). `requisition_review` rejects an exit read that names one deliverable as both its report's registrar and its committer, and rejects a committed-report read with no producer; where a phase bullet below names a committed report without its producer, the phase-exit authoring adds the run-lane seed under THIS sentence -- this law is that seed's section-19 grant, so the seed-grant bar above is met. Each new report artifact is registered under its OWN name among the lane writer's KNOWN artifacts (section 10) in the deliverable that defines it, never reusing `shakeout-report.json`. So ONE `squatch drain`, launched once after the conductor retires, carries Phase 2 and every later phase to true quiescence (section 18): each phase's final ticket seeds the next INTO the same running drain, whose after-every-merge tickets-dir re-scan (section 18) makes those directly-authored seeds eligible in the same invocation, so the seeds feed the live queue -- the continuous ticket queue that is the point of the engine, never a per-phase re-run of the same command (the failure that killed the first attempt, contract above). The draft gate is a DAEMON-ERA product surface (section 12 supervised mode): it bounds how much unsupervised authoring authority the daemon has over HOST work once an operator supervises continuous operation, and never gates squatch building ITSELF under the good-enough bar. Conflating the two is the bootstrap/product bleed the era split (section 0) exists to prevent -- supervision (the GO gate, draft gates, supervised merge, section 12) engages at the operator's explicit cutover to running on host work, when GO is first RECORDED, not because the daemon's CODE was built in Phase 3. The self-hosted build never holds through Phase 6; its supervision is the operator launching the drain, the good-enough bar, the mechanical phase-exit battery, and git revert -- the bootstrap-drain exemption (sections 12, 19), generalized to the whole self-build. What bounds the unattended drain in place of an operator's finger is the safety envelope: the two `drain:` ceilings (`drain.max_ticket_minutes`, `drain.max_runtime_hours`) with the trip behavior section 18 states -- a runaway backstop, not a phase gate. A seeded queue must never rely on its own recovery machinery: a `depends` edge INTO a recovery-machinery ticket declares that every ticket upstream of it fails without automated recovery, so the operator escape (a non-ok stem stays eligible and re-runs on fresh run-scoped keys -- sections 6, 11, 18) is part of the seeded phase's contract, and the author verifies it is never blocked by the very chain it unblocks. The reject-findings re-entry ships with the Phase 1 drain verb (section 11.2), so the escape is findings-fed from the seeded queue's first ticket; a recovery-machinery ticket is sized to pass the active gates with only the standing render, split before seeding when it cannot, so a rejection gate never activates before the minimal feed for its findings.
+
+- **Phase 0 -- Kernel + contracts.**
+  - *Deliverables:* `journal.py` (segmented append-only JSONL under the host state dir, glob-ordered read, write-ahead fsync, torn-tail tolerance; the roll TRIGGER at the section 6 engine constants ships in Phase 3 with its first retention consumer -- the segmented layout and readers land here); `effects.py`; the lockfile guard (release-then-reacquire proven -- the drain's self-upgrade handoff depends on it, section 18); `git.py`; the config loader (`config.yaml` parse, fail-closed validation, the `schema_version` refuse-newer check, the `kind: api` load refusal -- sections 6, 15); Artifact models, StageResult/Outcome (`already_satisfied` included, section 5), Gate protocol + runner + gate-lint (paved-road required); the one LLM-stage driver (section 5 invariant 2, including the schema-invalid re-prompt loop and the per-stage `wait_for` stuck-budget kill) with attempt-spool capture, the engine log, and the redaction seam (section 6); spec renderer + spec lint + the rendered-prompt size refusal (section 8) + the `Plan contract` resolver (section 13: numeric section ids resolved verbatim against this plan's `## N.` headings, deduplicated, injected as the sole channel for plan bytes); the LLM interface with scripted fake.
+  - *Emits:* the kernel test suite; the crash-point / fault-injection harness on the state layer (section 15).
+  - *Exit reads (each read from the named emitter's artifact, never claimed):* a toy echo stage -- consumes a stub artifact, emits one -- runs end-to-end under the driver with the fake LLM (emitter: the driver); kernel unit tests green, including a journal read back in order across multiple pre-seeded segments (emitter: `journal.py` + suite); the fault-injection harness proves torn-tail tolerance and effect once-semantics under induced crashes (emitter: the harness).
+- **Phase 1 -- Walking skeleton.**
+  - *Deliverables:* the provider layer -- registry + routing parse and the FIRST candidate only, with key-scoped injection, and BOTH `cli` adapters (`claude` and `codex`) over the shared base that owns write-grant derivation, redaction, and the cost floor (section 6; section 0 prompt 1 is the contract; cross-provider review diversity is the validated recipe and both adapters are known-buildable cost, so this is deliberately NOT deferred to the providers phase; SINGLE-PROVIDER FALLBACK: when only one provider CLI is available, route REVIEW to that provider's strongest tier, note the lost review-identity diversity as a standing open decision, and expect to need the review-authority bounds of section 7 sooner -- a same-provider reviewer shares its builder's blind spots and failure moods); the review-baseline NO-GO spike FIRST, per the ordering exception above (committed fixture set of 15-20 planted defects under `eval/fixtures/`, scored by `eval/harness.py`; fixtures authored by a different (provider, model) -- at minimum a different tier -- from the one serving REVIEW, the fixture-author identity recorded in the baseline signal); the LLM call behind the `@effect` wrapper (idempotency key ticket+run_seq+surface+attempt+call_seq, cost-event, replay; of `limits` only `est_cost_per_call_usd` parses here -- concurrency parses and enforces in Phase 3); Implement -> Check -> Review -> Merge on ONE real hand-authored ticket, single-flight, CLI-invoked (`status`, `new`, and the scaffold `run <stem>` land here, section 18); both writer lanes inline in the one CLI process holding the single-writer lock (the dedicated serial merge task lands with the Phase 3 daemon); merge = the v1 hard gate set minus the bug gate (deferred with `kind: bug` and the `## Regression` grammar to Phase 6's report inbox, its first bug-intake consumer) and including the diff budget gate (section 7) -- scoped per section 9's merge-time law: the re-run set is the MECHANICAL codes only, `correctness_review` participates as the pinned approval, and `requisition_review` is an authoring-time surface that never runs at merge -- with ticket-plane restore before rebase, mechanical hard-set re-run, pinned approval, squash + trailers (section 9); the verification gate runs WITHOUT base-diff attribution in Phase 1 (any red `## Verification` command fails the Check; the attribution and its second-problem filing land with the Phase 2 spine beside the Suggestion Box they file into -- section 7); the runner validates and ticket-plane-commits pending hand-authored tickets at invocation (standing in for the Phase 3 watcher, with the fail-closed `source` stamp of section 13; intake lint enforces the full section 13 grammar INCLUDING the `Plan contract` section-id form and the `Context` plan-file refusal); reconcile-on-entry (reaping any orphaned in-flight run -- the foreground form of Phase 3 restart-reconcile); the `drain` verb (section 18) with the findings-fed re-entry rendered IN CRITERIA-POSITION (section 11.2) and the journal-derived `retry` cap accounting; a non-ok terminal journals its state transition and exits 1 (section 18's exit-code contract), leaving ticket and branch in place. The Author stage + `specs/author.md` are a seeded Phase 2 ticket -- nothing in Phase 1 executes them. Engine and host stay COLOCATED in one repo; the host-contract indirection is not exercised until Phase 6.
+  - *Emits:* the `review_baseline` NO-GO signal carrying the baselined identity -- the resolved (provider, model) rows serving REVIEW and AUTHOR at every tier plus those surfaces' spec-major versions (the record the Phase 5 GO-binding reader tests against, and the base the Phase 6 GO-grade baseline grows); one merged real ticket with complete artifacts and provenance events; the seeded Phase 2 queue -- the conductor's FINAL act: each seed intake-lint-clean, `confirmed`, dispatchable under the drain envelope (authored `Time budget` stuck at or under `drain.max_ticket_minutes`), ordered by `depends`/`priority`.
+  - *Exit reads:* the real ticket's `to: merged` transition and squash trailers (emitters: the merge lane, the journal); the recorded NO-GO verdict signal (emitter: the spike harness); the Phase 2 seeds present and lint-green on the ticket plane (emitter: the handoff deliverable). After this the conductor retires: ONE continuous `squatch drain` carries Phases 2-6 to quiescence, each phase's final ticket seeding the next into the same running drain.
+- **Phase 2 -- Failure spine.** The reject-findings re-entry and the journal-derived `retry` accounting shipped WITH the Phase 1 drain (section 11.2, the prompt 11-12 pair), so every deliverable here runs findings-fed and retry-bounded from the first invocation.
+  - *Deliverables, in `depends` order (pre-ladder tier rule: until the escalation ladder of section 11 merges, the conductor and every code-bearing seed run at the HIGH tier -- the ladder cannot compensate for under-capability before it exists -- and a seed the plan names known-hard carries `agent_tier: high, agent_effort: high` at START, with the citing evidence recorded in the seed and pinned by the phase's seed-enumeration test):* caps -- scoped to `diagnosis` and the `infra` budget (retry is live, rebuild nothing; `premise_bounce` lands below with its release); auto-harvest before wipe (allowlist extraction, `attempts/` dirs; harvest EXTENDS the section 11.2 rendering, never a second path; worktree keys are run- and attempt-scoped, section 6); the diagnosis call with `lessons` over the harvested material (the section 11 sandwich's rung order); the Suggestion Box BEFORE anything that files into it (durable queue, signature dedup, decision registry; harvest enqueues each run record's second problems the moment the queue exists, and its first messages are the ingested `bootstrap/suggestions.md` entries -- ONE `suggestion`-class message per non-empty line, the line text as its summary -- that file then retired: DELETED in the box deliverable's own reviewed code diff, its `## Scope fence` naming `bootstrap/suggestions.md` (the enqueued messages live under the gitignored state dir, so the deletion is the repo-visible half of ingestion and rides the code lane -- never a ticket-plane commit, whose `tickets/**` fence keeps its one named exception, section 10); the storm-control breaker joins in Phase 3 beside the daemon's continuous producers, tombstone auto-reopen and retro itemization in Phase 5 with the retro stage that reads them -- section 12); the escalation ladder ending at the Reject queue WITH `confirm` and `reject` AND the `premise_bounce` cap and its draw landing before any hold can fire -- a hold never lands before its verdict verbs or its release (section 2), enforced by `depends` chaining when this lands as multiple deliverables; every deliverable that WRITES a marked terminal fences the terminal-write owner (`squatch/runner.py`, per the section 9 ownership law) plus the stage layer whose outcomes feed it (`squatch/stages.py`); the Reject queue is a journal-derived projection keyed on the `routed: reject_queue` marker (section 6), which rides the run's single terminal `state_transition` -- queue code never writes that terminal, and the verbs' own `rejected`/re-enqueue resolutions journal through the same terminal-write owner, never a second write path; the box's sequential triage consumer (operator verb `squatch triage`, section 12) -- an `author` verdict invokes the Author stage IN the same triage pass (the one machine route into authoring, section 4), and until the Author deliverable below merges, an `author`-verdict item rests `pending` with a paved road naming that deliverable, never a hand-rolled interim author; the Author stage + `specs/author.md` the consumer feeds (deferred from Phase 1); `requisition_review`, as THREE chained deliverables (this unit is known-hard for coupling, not intricacy -- it proved unbuildable as one ticket in both prior builds): first the pure review call + `specs/requisition_review.md` + gate registration, no consumers; then its box-path wiring at the Author stage; then its seed-path wiring, sited CONSISTENTLY with the seeding contract above (this section, "at its own Check stage"): the seeding ticket's own Check stage runs `requisition_review` over its authored seeds, and the PRE-ADMISSION seam in `merge.py`/`stages.py` (MERGE-SAFETY) enforces the same verdict as the last point that can refuse a seeding branch's admission -- NEVER "drain intake", which sees a seed only after it is a committed `confirmed` ticket file and can park but not refuse it; each consumer deliverable fences the module that OWNS its seam. Together they gate every next-phase seed and every Author output INCLUDING each phase-exit ticket's exit-read closure. The bootstrap floor: this phase's own conductor-authored seeds and `requisition_review`'s own deliverables cannot be so reviewed -- they pass grammar Requisition only and fall to the run-time premise park with its source-keyed road (section 18), never to review at authoring.
+  - *Emits (each its own seeded ticket, the exit ticket transitively depending on all -- section 0 prompt 17):* the cumulative shakeout battery (fake-LLM), seeded as ONE chained deliverable per owning production module (the fence law of section 9 applies to fixtures exactly as to features: a fixture ticket fences the ONE module whose behavior it pins, plus that module's test file), each member specifying (1) the fault planted, (2) the single discriminating observable -- the exact terminal, journal event, or artifact field that a correct engine produces and a faked run cannot -- and (3) which artifact carries the human-readable detail (the harvested finding, never the run's terminal REASON string, which stays a stable code-only value because it is the section 11.4 identical-terminal comparison key and the section 11.2 harvest allowlist already carries the human-readable detail). Each group's run MUST plant its faults and MACHINE-PRODUCE its report entries byte-for-byte to the worktree OUTBOX -- a hand-authored or relabelled-green entry is the false-green defect class this battery exists to catch -- and each later group re-confirms every prior group's entries before appending its own (the double gate). Membership: the spine-expressible tickets (bad schema, scope escape, premise-false, unfixable lint planted BRANCH-ONLY -- green at the merge base, red on the branch, so base-diff attribution charges it to the Check -- review-reject) all reaching correct terminals with zero human input; a review-rejected ticket whose re-entry provably renders the prior findings IN CRITERIA-POSITION (section 11.2); a timed-out ticket whose second attempt provably sees the first attempt's dead ends; the live-failure classes -- engine death mid-call reaped/harvested/re-entered findings-fed; a conflicted rebase leaves no half-rebased worktree; an empty committed diff reaches a non-ok terminal; a planted secret reaches no ticket-plane artifact; a premise-failed stem is skipped until its ticket changes, then runs; agent-CLI auth expiry yields a classified non-ok naming the re-auth road; unparseable or schema-invalid stage output exhausts the bounded re-prompt then terminals; a stage past its stuck budget is killed by the Phase 0 driver's `wait_for` (the watchdog SIGNAL is Phase 4; the KILL mechanism exists from Phase 0), harvested, and terminals while the drain proceeds; a ticket red on attempt one and green on attempt two merges in ONE drain invocation, its re-offer drawing one `retry` unit; K identical terminal reasons short-circuit per section 11.4; and per-COMMAND base-diff attribution (section 7) -- a pre-existing base red is filed and charged to no budget, a branch-only red fails the Check. PLUS the diagnosis real-model eval, as TWO chained deliverables -- first the harness + committed fixture set, merged and reviewed with the fixtures' expected verdicts PROVEN reachable under the fake LLM and the budget/timeout enforcement (hard-kill before the deadline records, cost cap checked pre-call) pinned by tests against the committed report artifact; then the spend ticket, which only EXECUTES the already-merged harness (budget-capped by a flat per-run USD constant, shipped 5.00, agreement rate recorded) -- the spend-deciding code never runs unreviewed on the first paid call (the triage-dedup eval is deferred to daemon-era entry, section 18; Rework and Retro stay unevaluated -- their production signal is the section 14 scorecard). PLUS the invariant auditor over the journal, green across the whole battery.
+  - *Exit reads:* every spine deliverable stem's `to: merged` (emitter: the merge lane, via the exit ticket's transitive `depends`); battery green including every named member (emitter: the shakeout suite's committed report -- `shakeout-report.json`, registered as one of the lane writer's KNOWN artifacts (section 10) with a closed schema declared in the report-lane deliverable: per-member entries carrying member id, planted fault, observed terminal/event, and producing run id -- written only by the battery GROUP runs to their worktree OUTBOXes (each later group re-confirming every prior group's entries before appending its own, the double gate) and lifted by the ONE existing stage-terminal lift path of section 10, whose owning module `stages.py` (and `tests/test_stages.py`) the report-lane deliverable therefore fences -- the cumulative copy resting in the ticket dir of the LAST battery group's run (each later group re-confirms and carries forward every prior entry), where the exit ticket's transitive `depends` locates it; no second lift path, no hand-committed copy); auditor green across the battery (emitter: the auditor's Check-stage-lane `checks.json`, which the auditor deliverable's Implement fence MUST NOT author or commit -- the green proof is produced by the ordinary Check lane over the auditor's merged code, never self-attested). Its FINAL ticket authors Phase 3's seeds as `confirmed` ticket-plane files -- `requisition_review`-passed, envelope-dispatchable, NEVER through the box -- eligible in the same invocation via the after-every-merge re-scan (section 18).
+- **Phase 3 -- Continuous daemon (core).**
+  - *Deliverables:* asyncio scheduler (single-flight dispatch, D2), watcher-driven re-prioritization; the serial merge queue task with post-rebase re-gate, pre-admission INTEGRATION CHECK, red-streak pause, tree-hash assert, and conflict-facts journaling (section 9; both resolution rungs live here); the Rework stage + `specs/rework.md` -- update/split/escalate and the supersedes map (sections 4, 9, 11.4), rung 2 of that queue's resolution ladder and the `split` verdict's executor. Rework is NEVER invoked inline from inside the admission path: that path holds the single ticket-plane writer lock (sections 6/9), so the mechanical rung returns a typed unresolved-conflict handoff and Rework consumes it only after the admission unwinds, on the already-lock-owning writer. Phase 3 lands as a staged, dormant-until-activated chain with a STATED EVIDENCE CONTRACT per stage: construction tickets build components unreachable from production, PROVEN by a discriminating dormancy observable (the battery's discriminating-observable rule above applies to dormancy proofs -- name the one scan a reachable component FAILS; an AST import scan missing the repo's `from squatch import X` idiom, or a byte-snapshot of files the code never touches, is the convergent false-green shape) -- and a construction ticket's evidence grade is EXPLICITLY sub-production: section 9's production-exercise rule is satisfied by exercising the dormant component directly, production composition being the ACTIVATION ticket's obligation, never the construction ticket's (read the two rules jointly -- applied separately they reject every mid-chain ticket in alternation); a dedicated proof ticket demonstrates a merged ticket registers its successor end-to-end BEFORE anything depends on it; activation tickets flip callers to the proven parts under a TRANSITION FENCE closed over the flip: Context + Scope fence + Verification name EVERY predecessor dormant-fixture file and every predecessor NEGATIVE assertion the flip invalidates (verb-absence, task-count, full-suite restoration -- migrated in the same commit that exposes the verb; section 9's closure trace cannot find these, an absence assertion has no reference edge to the new symbol, so the activation ticket names them explicitly at authoring) plus every config and composition-root file the flip forces, and acceptance is proven through the REAL production composition -- the harness CONSTRUCTS the production CLI/`serve` object graph in-process (the FIRST activation ticket lands this production-composition test harness, the rest reuse it) without launching `serve`, which stays governed by the section 18 daemon-era law -- never a test double, and the red-streak hold activates in the same landing as the `pause`/`resume` release surface it needs (a hold never lands before its release, section 2) (until here a `split` dispatches to the Reject queue, section 11.4); THRESH in its operative flat-subscription form -- per-provider concurrency caps, `cli` failure classification including `unclassified`, and the circuit breaker (section 6; pulled forward from Phase 4 because these, not dollar ceilings, are the backstops the configured providers obey); the `serve` verb + kill switch + `kill`/`pause`/`resume` -- NOT one deliverable: the control surface lands as a `depends`-chained ONE-BOUNDARY-PER-TICKET sequence (the only grain that survived review in both prior builds; every coarser 'runtime' bundle was terminally rejected on a fresh genuine race per pass): admission/task boundary, per-dispatch config snapshot, daemon core, background consumers, the crash-safe dormant control inbox, the pause-before-any-durable-dispatch-accounting boundary, `pause`/`resume` CLI activation, then the kill chain (signal journaling; executor abort atomicity; worker stop ordering; post-kill failure-path suppression; `kill` CLI/admission activation), each with its own fence and its own test file -- no control verb appears before its activation ticket; heartbeat file + external heartbeat; restart-reconcile (reaping orphans to `abandoned`) + orphan sweeper + `timers.py` (armed, persisted, re-armed at startup -- built with its first consumers) as ONE restart/timer ticket whose fence includes the production composition root (the CLI/serve constructors that invoke reconcile and re-arm before dispatch); flake handling (section 11.5) as detection THEN release; the journal segment roll trigger (thresholds are the section 6 engine constants, 64 MiB / 24h -- never a new config knob); the box's storm-control circuit breaker as occurrence ledger -> producer wiring -> notification activation -> dispatch hold (section 12); the GitHub checkpoint push with its failed-push re-fire rule (section 10 -- the sole offsite copy of the unattended build lands with the daemon, not the sidecar phase); `daemon-soak` -- the bounded deterministic soak machinery the exit reads below define -- and `soak-run`, the separate run-lane deliverable that EXECUTES the merged machinery once and commits its report (the committed-report producer split of the seeding contract above). THE GRAIN LAW, both directions: one ticket owns ONE independently provable contract -- never a multi-boundary bundle (the reviewer finds an unbounded stream of real cross-module findings until caps burn), and never a single deliverable split into a dependency chain of sub-component tickets a single context could own (one deliverable = its core plus staged activation; a micro-ticket chain builds one per continuation and stalls the phase for days).
+  - *Exit reads:* a BOUNDED DETERMINISTIC soak with NAMED phase deliverables behind it (the EXIT-READ CLOSURE law above binds this list too -- the exit ticket only READS): a `daemon-soak` deliverable ships the soak machinery, and a separate `soak-run` deliverable EXECUTES it once and commits the report (a code deliverable's build runs its tests, never the soak itself -- without the run lane no report exists and the exit parks `premise_failed`), `soak-run` sized like any ticket inside its authored `Time budget` under `drain.max_ticket_minutes` -- satisfiable because the soak spends injected-clock time, not wall time (an exit gate must be satisfiable inside the safety envelope, section 18); the soak drives the PRODUCTION `serve` composition IN-PROCESS through the injected seams (section 15's harness ladder, rung 4 -- seams cannot cross a subprocess boundary; this in-process run is the FIRST of the two sanctioned pre-cutover `serve` harness runs (the second is the Phase 6 host-loop fixture subprocess, this section), and it is not the cutover) with the injected clock advanced at least 24 hours so EVERY recurring daemon cycle fires, daily cadences included -- elapsed wall time is NEVER the evidence, for this or any later phase's soak; the induced-fault member list is CLOSED: a worker killed mid-run reconciled and its stem re-run; a scripted conflict exercising BOTH resolution rungs, the correct rung selected, main green after each; a seeded semantic conflict going integration-red WITHOUT main ever going red -- every fault landing in the box or an alert, none in silence, the disposition recorded per member, and each member recorded green ONLY when its terminal passed AND the invariant auditor is green over that member's own journal at soak time (the Phase 2 battery's machine-produced/no-hand-journaled-facts law governs EVERY fault-injection report, this one included); the report is a registered lane artifact (section 10) with the Phase 2 report's closed per-member schema (member id, planted fault, observed terminal/event, producing run id), committed by `soak-run`'s ordinary lane to rest in `soak-run`'s own ticket dir, where the exit ticket's transitive `depends` locates it -- never committed by `daemon-soak`'s own fence (no self-attestation), never a new top-level root this plan does not define -- and re-derivable byte-for-byte by the merged suite; the exit ticket READS each criterion above from the committed report's green members (emitter: `soak-run`, executing `daemon-soak`'s machinery); the real 24-48h soak stays an out-of-band pre-cutover OPERATOR step (section 13 touchpoint 7), never a drain-executable exit criterion. Its FINAL ticket authors Phase 4's seeds (same seeding contract as every phase).
+- **Phase 4 -- Reliability and providers.** Split from Phase 3 so the daemon's crash-recovery core is proven before provider and watchdog complexity is layered on.
+  - *Deliverables:* the stuck/spiral watchdog, as a staged dormant-until-activated chain (the Phase 3 discipline above -- this unit proved unbuildable as one ticket in both prior builds: one bundle spans driver, notify, and stage seams), each stem fencing its seam's OWNER (section 9) -- custody stated like the provider deliverable below: stems (1) and (3) own `squatch/watchdog.py` plus the adapter consumer seam in `squatch/providers.py`, stem (2) owns `squatch/notify.py`, stem (4) owns the production stage flip and fences each predecessor's dormancy-pinning test files: (1) the adapter EVENT-STREAM transport -- the per-tool-call JSONL events (section 9) surfaced IN-FLIGHT at the driver/provider boundary to a consumer seam, spool capture and cleanup unchanged (section 11.2's harvest tail stays a post-terminal reader) -- built dormant, no detector; (2) the NOTIFY transport -- the section 13 config-declared argv notify command run as an Effect through the section 15 notifications seam, with its section 6 key domains (attempt-excluding ticket+event; the spiral-warning key carrying run sequence; conservative re-send reconcile) and the section 15 `notify` config parse -- the ONE owning notify-transport deliverable section 13 names, landing before the detector that first pushes through it (every earlier phase's escalations land in `status` only; Phase 3's escalations route to `status` until this transport merges -- and this stem's OWN merge IS the production flip for those already-shipped escalation emitters (storm breaker, red streak): the escalation-dispatch seam lives in `squatch/notify.py`, this stem's owning module, so the chain's dormant-until-activated staging binds stems (1) and (3) only, stem (4) flipping the watchdog path); (3) the spend-without-progress DETECTOR + hard-timeout wiring, the signal stated EXACTLY: token/cost accumulated from the event stream at the driver/provider boundary (per-provider cost fields differ -- the adapter normalizes each CLI's usage shape into the one-JSONL-event contract, and a stream reporting no usage charges `limits.est_cost_per_call_usd` at call START, section 6 -- a constant per-call spend term, so for that provider the signal reduces to zero fence-path mutation inside the soft band) since the last OBSERVED mutation to a path matching the ticket's `## Scope fence` prefixes -- a tool-call REQUEST is never a mutation, the filesystem is the truth -- across section 9's three regions, tripping at section 9's engine-constant threshold (spend since that mutation exceeding 3 x the serving row's per-call cost basis, never a new config knob), ONE run-seq-keyed notification (the stuck alert stays run-BLIND, section 6), process-group kill on stuck, EVERY production driver call watched, the review stage included (further signal shapes stay section 18 deferrals); (4) the ACTIVATION stem that flips production stages to the watched path and re-points each dormant fixture in the same change. Provider cooldown Timers and failover candidate selection over the CONFIGURED set (classification and the breaker are live from Phase 3; failover exercises the routing table's ordered candidates), custody stated: `providers.py` owns ordered selection and served-identity stamps, `timers.py` + the journal own durable cooldown state, the config declares the candidates, and the one CLI process's entry wiring (`drain`/`serve`, section 18) hands the production registry its journal and Timers -- no deliverable here consumes an event path production does not emit. Seeding partition (authored into this bullet per the SPEC DEPTH law above -- phase3-exit reads it, never invents it): CORE batch: watchdog stems (1) and (2) plus ONE `phase4-continue` seeding ticket. `phase4-continue` then authors, batch by batch under the same three-seed cap: stems (3) and (4); the provider cooldown/failover deliverable (KNOWN-DEEP -- it crosses the `providers.py`/`timers.py`/entry-wiring seams, so it rides its admission ALONE); the reliability battery; `reliability-run`; and the phase4-exit seed LAST, `depends` on all of them.
+  - *Emits:* the committed reliability report -- `reliability-report.json`, the Phase 2 `shakeout-report.json` discipline verbatim (registered as one of the lane writer's KNOWN artifacts (section 10) with a closed schema: per-member entries carrying member id, injected fault, discriminating observable, and producing run id; MACHINE-PRODUCED to the worktree OUTBOX and lifted by the ONE section 10 stage-terminal lift path -- a hand-authored or relabelled entry is the false-green class the battery exists to catch), produced by TWO chained deliverables on the Phase 2 diagnosis-eval split (machinery merged and reviewed before anything runs it): the reliability battery -- fault-injection machinery + report writer -- and a separate `reliability-run` seed that `depends` on every Phase 4 machinery merge, EXECUTES the merged battery once, and leaves the report in its worktree OUTBOX for the stage terminal to lift, the committed copy resting in `reliability-run`'s own ticket dir, where the exit ticket's transitive `depends` locates it. *Exit reads (all from COMMITTED artifacts -- the exit ticket runs on a clean checkout that does not carry the live gitignored journal, and a healthy self-build's journal can never be RELIED on to hold a quota or spiral event; injected scenarios prove ONLY in the battery's recorded runs, and the absence of a live event never causes the exit to invent one):* every named member green in the committed reliability report, members at least: a simulated provider quota exhaustion lands the next attempt on the failover candidate over the battery's multi-candidate FIXTURE registry, proven by that run's recorded served-identity stamps (a single-candidate LIVE route has no failover -- a provider failure there is a metered `infra_error` or, with no callable candidate left, section 6's cost-free drought park, never a failover -- which is why the proof runs over fixtures); an injected spiral fires the soft-band notification exactly once with no auto-kill -- the discriminating observable is the watchdog's spend-without-progress signal (section 9: spend since the last declared-output mutation crossing its threshold, inside the soft band, expected x 1.5 up to stuck) with the notify effect's intent/completion pair in that run's recorded journal, never a test invoking the notify effect directly; a stage past its stuck budget is killed on the hard-timeout path, process group dead and the killed run harvested; a quota-exhaustion cooldown Timer is armed, persisted, and its matching `timer_fired` event (the section 6 envelope's timer-elapse record -- no timer "effect completion" exists in the vocabulary) lands after the window resets (emitters: the reliability battery + `reliability-run` -- the machinery under test writes fixture-run evidence, the run's stage terminal lifts the report, never self-attested). Its FINAL ticket authors Phase 5's seeds under the bounded-batch seeding contract above, at most THREE `source: seed` files per authored admission (the `seeding.max_seeds_per_admission` cap). CORE batch -- three SINGLE-SEED admissions chained by `depends`, because both core seeds are cross-seam by construction and a KNOWN-DEEP seed rides its admission ALONE (a batch of one is the same chain at its finest grain, seeding contract above): the retro stage WITH its bootstrap-era drain-invoker hook, ONE seed owning `squatch/retro.py` and fencing the driver's window-projection seam and the drain entrypoint (section 14 triggers + committed report + window boundary, PLUS the sections 13/19 `Exit-read window` renderer resolution and driver materialization, riding that same window-projection seam, + `specs/retro.md`, which consumes the section 14 window projection); then the retro-to-box activation `depends`-chained on it -- the box's tombstone auto-reopen and retro itemization the retro reads (section 12; the Phase 5 bullet's "WITH it" lands as this core pair); then ONE `phase5-continue` seeding ticket. `phase5-continue` then authors the FEATURE seeds against the merged core, chaining a further seeding ticket whenever the three-file cap forces it (the contract's `-continue` step, iterated), owning modules inline: the scorecard/reporting projections (section 14's kept core; `squatch/scorecard.py`); the status projection (`squatch/status.py`, carrying the section 13 touchpoint-5 fields), whose seed `depends` on the scorecard/reporting and retro-to-box seeds so its box-activity and tombstone-digest fields have named emitters; the GO-baseline binding reader (`squatch/baseline.py`); the `retro` verb and `doctor` (`squatch/doctor.py`, both verbs registered in `squatch/__main__.py`); and the phase5-exit seed LAST, `depends` on all of them. Every Phase 5 seed carries the owning module its partition entry here names and closes its fence per the section 9 ownership law at the same depth as Phase 3's staged chain -- the Phase 5 bullet below is a deliverable INDEX, never a seedable spec (seeded flat it proved unbuildable in both prior builds: a 27-attempt authoring grind in one, a 7-way plan re-decomposition in the other).
+- **Phase 5 -- Sidecar + self-improvement (slim).**
+  - *Deliverables:* the retro stage (count/time/signal triggers, committed retro report + window boundary, section 14) feeding the box -- WITH its BOOTSTRAP-ERA INVOKER, because without one NOTHING fires a retro before cutover and this phase's retro-finding exit read has no possible emitter: `serve`'s dispatch loop is daemon-era (section 18), the `retro` verb is an operator surface the unattended build never invokes (section 13's no-manual-resting-state law), and a run lane's ticket-plane reach is the driver's outbox lift into its own `tickets/<stem>/` plus the seeding pass's `ticket.md` lift (sections 10, 19) -- neither can produce `tickets/retro/<seq>.md` -- the faithful outcome is `phase5-exit` parked `premise_failed` with no release, the unfaithful one a phase exit satisfied by fixture-only evidence with the retro loop never fired in production. So the DRAIN is the bootstrap-era invoker: an unforced section 14 trigger check at the TOP of each dispatch iteration -- a due retro's report thereby commits on main BEFORE the next ticket, the exit ticket included, dispatches -- run in the MAIN checkout under the writer lock the drain already holds, via an injectable retro hook wired only from the drain entrypoint (default-off, so drain tests make no live call; the self-upgrade handoff's child process re-wires it, so the hook is live from the merge that lands it onward) -- a FAILED due-retro journals its failure, files ONE box message, and suppresses the trigger until the next window-boundary event, never a per-dispatch re-attempt drawing unbounded ticketless spend (section 11.1's no-loop-outside-caps law applied to this stage) -- plus ONE forced retro at quiescence AND immediately before any phase-exit ticket dispatches, whenever any merge landed after the latest report, so no window ends unreported and a phase exit's committed-report reads always have a post-feature-merge producer; `phase5-exit` `depends` on the invoker deliverable, never dispatching before a report can exist -- and WITH it the box's tombstone auto-reopen and retro itemization (section 12, deferred here because retro is their reader); the per-surface catch scorecard (the escape column ships in Phase 6 with its first producer), spend/calibration reporting, gate earn/prune reporting, bypass aggregation, and backlog hygiene (section 14's kept core; the proxy-metric batch is a section 18 deferral); pull-based status projection; the GO-baseline BINDING READER (section 12: fold the latest recorded `review_baseline` -- ONLY a GO verdict can BIND (section 0: GO is not earnable during the bootstrap), so the Phase 1 spike record, a NO-GO, resolves NO_GO and stays unbound/supervised until Phase 6 records the first GO, which then supersedes it as the latest -- compare a bound identity to current routing rows and spec-major versions at policy-read time and thread the result into machine-ticket starting-state resolution so a spec-major prompt-spec merge revokes a standing baseline per section 13.7. The reader's resolution is a CLOSED, never-raising precedence -- ABSENT (no record) / NO_GO (recorded non-GO verdict) / GO (bound, identity matches) / REVOKED (was bound, identity drifted) -- with an empty routing table or a torn journal tail resolving to the supervised side, never an escaping exception; its caller is the starting-state resolution's existing seam, and the deliverable that lands the reader NAMES how registry and spec-major versions reach it (an implementer must never guess the call graph); the Phase 6 supervised hold consumes it); the `retro` verb (force an early retro); `doctor`. Seeding partition and per-deliverable owners: the Phase 4 Emits above (phase4-exit reads them there, never invents them -- the SPEC DEPTH law's Phase 5 shape); this bullet is a deliverable INDEX, never a seedable spec.
+  - *Exit reads:* the retro->pipeline self-improvement chain is WIRED and provenance-stamped end to end, proven by merged tests driving a FIXTURE retro finding through the real seams: a `retro_finding` box message (retro itemization enqueues one per proposal, carrying the retro report key, fixed failure, overcorrection risk, and proposed prompt-spec paths -- fields this phase's retro-itemization deliverable STATES, the D10 grant for this machinery) -> the triage/Author-authored ticket carrying `source: box:retro_finding` (bootstrap-era starting state `draft`, section 12) -> a prompt-spec merge journaling a `retro_prompt_spec_change_merged` signal joining the requisition-approval box id, retro report key, ticket stem, squash SHA, and changed spec paths (the merge-lane seam this same deliverable wires emits it whenever a `source: box:retro_finding` ticket changes `specs/*.md`). Emitter: the retro-itemization deliverable, read from its committed Check evidence -- a phase-exit ticket runs in a clean checkout, so every wired-chain read here is against committed artifacts and merged tests, never the live journal or a live seeded drain. A LIVE retro finding shipping a spec change is emergent and operator-mediated (section 12: the box is consumed only by the operator's triage during the self-build, and nothing from it auto-confirms or auto-runs), so the live loop is a daemon-era observation under section 13 touchpoint 7 -- NEVER a drain-satisfiable exit criterion (an exit gate must be satisfiable inside the safety envelope, section 18), and never satisfied by binding the exit to live report truth no seeded ticket can produce on demand (an exit read is mechanical, this section); the scorecard's SELF-BUILD-LIVE metrics (catch, bypass, spend/calibration, gate earn/prune, backlog hygiene) are populated from real journal history -- every entry resolves to journal events and EXISTING stems; a fabricated or fixture-derived entry in the committed report is the false-green shape the good-enough bar bans (emitter: the scorecard sections of the committed retro report, section 14). The ESCAPE column, triage's bug->range attribution, and the squash-trailer read op in `git.py` DEFER to Phase 6 with the report inbox: section 14 defines an ESCAPE over `bug_report` intake (integration-red is a later return), whose first producer ships in Phase 6, so no escape can exist in Phase 5 and demanding one here is the record-nothing-ships mis-wire above. The binding reader resolves the LIVE Phase 1 spike record -- selected as the FIRST recorded `review_baseline` signal (the Phase 1 spike's, by construction, section 19 Phase 1 Emits), NEVER journal recency, so a later Phase 6 recording cannot re-redden this satisfied read -- to NO_GO/unbound, and NO identity comparison runs (by the reader's own closed precedence only a GO can bind, and the spike's recorded identity provably predates the Phase 2 `specs/author.md`); REVOKED is proven by the reader's merged tests against an injected GO-shaped record plus a spec-major bump, because no production GO may be recorded before cutover (section 0) (emitter: the binding reader + its merged tests). Its FINAL ticket authors Phase 6's seeds.
+- **Phase 6 -- External hosts + cutover.**
+  - *Deliverables:* the host-contract machinery deferred since Phase 1 -- the `squatch:core` bootstrap renderer (owning module `squatch/hostfiles.py`, shared with the drift classifier -- the section 8 chain; FIRST ADOPTION stated: a routed CLI's conduct file containing ZERO marker-like text gets the managed block INSERTED with every existing byte preserved as project-owned remainder, any marker-like text still refusing per section 8's fail-closed rule, and squatch's own hand-authored seed CLAUDE.md/AGENTS.md (section 17) are the named first case), the drift lint (its gate ACTIVATION lands the engine-shipped HARD code `core_drift` -- additive per D10 -- in the merge-time mechanical re-run set, triggered by the rendered root AI file paths), `migrate-config` (owner `squatch/config.py`, verb in `squatch/__main__.py`), and the host-contract doc itself, committed at `docs/host-contract.md` -- the path later reads and the second-host annex cite (the section 15 schema with a commented example `review`/`merge` block a new host copies, and the seam inventory); host #1 -- an OPERATOR-DECLARED input, named in the section 0 prerequisites beside the bootstrap CLI (BoardGameUI in this plan's reference environment; EVERY build -- host declared or not -- SCAFFOLDS the committed fixture host at `hosts/fixture/` (the plan-defined `hosts/<name>/` root, its `<name>` pinned here), and Phase 6's wiring and exit reads run against THAT fixture host unconditionally: a host-root config profile; a committed MINIATURE HOST APP -- source files, a deterministic replay-runner command, and planted-defect scenarios, one defect reproducible by an authored `## Regression` command (red at the merge base, green at the branch head, the section 7 overlay) and one INTRODUCED by a machine-merged scenario ticket so the escape column can attribute it through the squash trailers; version-1 report fixtures with bounded replay evidence; the CLOSED scenario list backing the exit reads' K>=3 machine-ticket merges, the bug loop, and the escape attribution (the Phase 3 soak's closed-member-list discipline applied to this harness); and a committed SCRIPTED AGENT-CLI -- canned per-scenario diffs and verdicts, one more `kind: cli` provider behind the existing section 6 adapter contract -- that the fixture profile's routing rows name, so the exit harness's `serve` subprocess (which no injected seam can reach, section 15's harness-ladder law) serves Author/Implement/Review deterministically at zero model spend; the DECLARED host bears only on the operator's post-cutover onboarding and acceptance reads (section 13 touchpoint 7), and a build declaring none simply waits at cutover) -- including wiring its report inbox (app self-diagnosis + player bug reports with replay evidence) into the box with EVERY loop seam OWNED: the section 12 report schema is version-1 NORMATIVE (origin `self_diagnosed | player`, summary, dedup signature, app commit/version, implicated paths capped at 32, replay `initial_state` + action log + optional structured-log excerpt; per-file byte caps -- shipped 1 MiB per replay file, 64 KiB for the log excerpt -- enforced BEFORE any unbounded read, size-checked from file metadata first); ingest COPIES each report's bounded contents into durable box storage before recording the message (a host may clear its inbox at any time -- custody transfers at ingest); and the box's sequential triage consumer (section 12) OWNS the runtime ingest caller, the section 12 evidence copy into the authored ticket's `evidence/` dir, and the `kind: bug` authoring path -- the report-inbox deliverable fences that consumer, not just the inbox reader, because without all three the exit read's report -> replay -> regression loop has no emitter. A host arriving with its own legacy process artifacts (an orchestrator, a ticket archive, a foreign report layout) is read ONLY through the declared inbox path -- adopting or migrating foreign process state is excluded until earned per D10 -- and a host-work ticket carries no `Plan contract` section (it is optional, section 13: a host repo renders no plan). And WITH that inbox the bug gate -- `kind: bug`, the `## Regression` grammar, and the merge-base overlay (section 7) join the v1 hard set here, deferred from Phase 1 to their first bug-intake consumer, and WITH the bug gate the scorecard's ESCAPE column -- triage's bug->merged-range attribution and the squash-trailer read op in `git.py` (sections 10, 14) -- deferred from Phase 5 to escapes' first producer; the supervised-merge hold (sections 9, 12), deferred through the whole self-build (which runs under the bootstrap drain and NEVER holds, section 19) to its first daemon-on-host-work consumer; and the GO-GRADE BASELINE, immediately before cutover -- the Phase 1 spike's fixture set grown to at least 50 planted defects (50, not 20, because a 20-sample catch rate cannot statistically separate a 60% reviewer from a 90% one, and this number gates unsupervised merge), scored by the same harness (`eval/harness.py`) under a flat per-run USD cap, an engine constant shipped 5.00 (the Phase 2 diagnosis-eval discipline), GO recordable only by the operator (`--record-go` carries the Author-graph judgment -- the AUTHOR-GRAPH CHECK stated: the harness runs its harness-local author prompt (NEVER the production `specs/author.md`, section 0) over a committed fixture problem set, writes the resulting authored tickets and their `depends` graph into ONE committed harness artifact, and the operator judges THAT artifact before recording; section 13 touchpoint 7; the `--record-go` operator mode itself SHIPS with this deliverable -- the Phase 1 spike harness records its NO-GO mechanically and carries no GO-recording mode) -- built HERE because cutover is where GO is first READ (nothing reads a GO record earlier, the self-build never holds, and any pre-cutover spec-major merge would revoke an earlier record unread; the permanent re-baseline trigger of section 13.7 applies from the first recording on); and the EXIT-RECEIPT machinery -- the `exit-receipt.json` closed-schema writer, the `host-loop-report.json` harness-report writer (closed per-member schema: member, driven scenario, observable, producing run -- the Phase 2 discipline), and both artifacts' lane-writer registration (section 10; the receipt schema is the seeding contract's above) -- an ordinary reviewed deliverable `phase6-exit` transitively `depends` on, so the terminal ticket only PRODUCES the receipt and report and never registers them (the committed-report two-role law of the seeding contract above). Seeding partition (authored into this bullet per the SPEC DEPTH law above -- phase5-exit reads it, never invents it): CORE batch: the renderer and the drift-detection classifier (both in `squatch/hostfiles.py`, the section 8 construction pair) plus ONE `phase6-continue` seeding ticket. `phase6-continue` then authors, batch by batch under the three-seed cap (each semicolon group below is ONE capped admission -- at most two deliverable seeds plus its successor-seeder tail): the `core_drift` gate ACTIVATION and `migrate-config` (`squatch/config.py`); the host-contract doc (`docs/host-contract.md`) and the fixture-host scaffold (`hosts/fixture/` -- profile, miniature app, closed scenario list, and the scripted agent-CLI provider row); the bug-gate grammar seed (`squatch/gates.py`) and the report-inbox/triage-consumer seed (`squatch/inbox.py`; grammar `depends`-BEFORE consumer -- triage must never author a `kind: bug` ticket intake lint refuses); the escape column (`squatch/scorecard.py` plus the squash-trailer read op in `squatch/git.py`), `depends` on that loop pair; the supervised-merge hold ALONE (`squatch/merge.py`; KNOWN-DEEP -- it crosses the merge-lane, baseline-reader, and control-inbox seams, so it rides its admission ALONE); the GO-grade machinery (`eval/harness.py`) + its run-lane pair; the exit-receipt machinery (`squatch/artifacts.py`); and the `phase6-exit` seed LAST, `depends` on all of them.
+  - *Exit reads:* the pipeline proves the host loop INSIDE the envelope (an exit gate must be satisfiable inside the safety envelope, section 18 -- the Phase 3 soak's law, applied here): the exit ticket's harness launches `squatch serve` as a supervised SUBPROCESS against the committed FIXTURE host's profile (section 15; the `hosts/fixture/` scaffolding and its scripted agent-CLI above are the stated substrate -- injected seams cannot cross a subprocess boundary, so the subprocess serves Author/Implement/Review from the fixture profile's provider rows) on a DISPOSABLE synthetic host-work checkout -- the SECOND sanctioned pre-cutover `serve`, same bounded shape as the Phase 3 exit soak, sized inside the ticket's authored `Time budget` under `drain.max_ticket_minutes` -- and, because no GO is recordable pre-cutover, that subprocess runs in supervised mode (section 12): its machine-authored fixture tickets park `draft` and its green candidates queue at the supervised-merge hold, so the harness PLAYS THE OPERATOR against its own subprocess, writing `confirm` requests into the subprocess's control inbox (section 20) for each draft-authored fixture ticket and each held green candidate, every scripted confirm journaled with a MACHINE actor as supervision evidence recorded in the committed report (analogous to section 11.4's machine-actor auto-keep: it never re-arms caps) -- and K machine-authored tickets (K >= 3) reach that checkout's main with zero engine-plane edits (MACHINERY: the exit-receipt deliverable's registration and writers; PRODUCER: the exit ticket's harness run, read from the fixture checkout's journal + git, its evidence the committed `host-loop-report.json`); a synthetic host-app bug report drives the report -> replay -> regression-fixture loop end to end on the same fixture (emitter: the report inbox + bug gate, read from the ticket plane), and the scorecard's escape column attributes that bug back to a merged ticket or bounded range via the squash trailers (emitter: the Phase 6 escape-column deliverable's scorecard projection, computed in the exit harness run over the fixture checkout's journal, its evidence the same committed report artifact as the K-tickets read -- section 14); all three fixture-loop reads rest on that one committed `host-loop-report.json` (per-member entries -- member, driven scenario, observable, producing run -- the Phase 2 schema discipline), the one durable evidence surface the receipt digests. The LIVE host reads -- K >= 10 machine-authored tickets merged on host #1 and one real host bug loop -- are the OPERATOR'S post-cutover acceptance (section 13 touchpoint 7 names them beside the real soak), never a drain-executable exit criterion, and never satisfiable by importing another system's history: host evidence counts ONLY when this engine's own journal and provenance stamps (section 6) name the merges -- serving provider, model, run and ticket identity, engine ticket-plane layout -- a hand-committed snapshot of foreign-authored merges proves nothing, and committing one outside the engine's own lanes is the section 19 bootstrap contract's P0 defect; the GO-grade scored run's report is committed and its verdict signal recorded, the committed report EMBEDDING that verdict signal's journal identity so `phase6-exit` reads only the committed artifact, never the instance-local journal a clean checkout does not carry -- GO and NO-GO are both valid exits, cutover simply waits at NO-GO (emitter: the GO-grade harness). Its FINAL deliverable is the `phase6-exit` ticket of the seeding contract above: it authors no seeds, performs these exit reads, and commits the build's exit receipt, `tickets/phase6-exit/exit-receipt.json`. *Non-blocking ANNEX, any time after host #1 (section 15):* the different-stack second host merges M >= 5 tickets with host-config and host-contract fixes only. Fleet is out of scope entirely.
+
+## 20. Open decisions
+
+Open experiments and undecided seams, each with the evidence that would close it. None blocks the build; each is a deliberate non-default awaiting data:
+
+- **Capability tiering.** This plan ships the validated configuration: ticket default `medium`/`medium`, implement->codex, review+diagnose->claude, review pinned to a fixed strong tier (never on the escalation ladder -- a climbing reviewer blurs the baseline identity). The alternative bet -- a cheap implementer started at `low`/`max` under a strong author, climbing only on evidence -- is OPEN, currently disfavored by observed per-ticket review-snag churn; it closes when a run under each configuration compares merges-per-intervention at equal scope.
+- **Single-adapter Phase 1.** Shipping one adapter in Phase 1 and deferring the second to Phase 4 would cut first-contact surface; it is OPEN and disfavored -- cross-provider review diversity from Phase 1 is part of the only lightly-attended completed recipe -- and closes only via a deliberate comparison run, never by default.
+- **Daemon control channel.** DECIDED -- Phase 3 builds it (the deferral to "first daemon-era friction" re-bought a prior generation's paid lesson, and section 19's Phase 3 bullet already ships `kill`/`pause`/`resume` with `serve`, so the friction is guaranteed, not conditional). A second CLI can never append journal signals while a daemon holds the single-writer lock (sections 6/9) -- the old interim contradicted that fence. While a live engine process -- the drain or the daemon -- holds the lock, control verbs act through a durable file-backed CONTROL INBOX of typed requests under the state dir: the CLI writes the request; the lock-holding engine process -- sole journal writer for its lifetime (section 18) -- consumes each request EXACTLY ONCE, journals its decision BEFORE mutating any state the decision governs, then applies it. Every request binds to identity: the restart-unique lifecycle id of the running engine process it targets (the running `drain` or `serve`, section 12), and for a hold release the specific hold instance it releases (a storm-breaker trip, section 12; a red-streak or tree-hash admission pause, section 9) -- a `resume` filed before a hold exists, or a request from a prior lifecycle, can never release or stop a later one. `pause` takes effect BEFORE any durable dispatch accounting of the next offer -- section 9's "next safe checkpoint" MEANS pause precedes ALL dispatch accounting, a re-offer's retry draw included, or a consumed pause still spends cap draws before blocking execution; only `resume` releases it, latest-wins. With no engine process running, each verb takes the lock itself and applies directly -- the pre-daemon bootstrap path (section 19 Phase 2) is unchanged. The closed CLI verb list does not change.
+- **Settled-ticket archive.** Merged stems currently rest in `tickets/` forever, folded out of eligibility by the journal; a physical archive (relocating settled dirs under `tickets/archive/`) is OPEN, earned by the first measured tooling pain from an unbounded tickets dir (it is the ARCH block's first plausible consumer).
+- **Journal retention.** The roll trigger ships in Phase 3; retention/GC of rolled segments stays refused (section 18's ARCH deferral) until disk pressure is actually measured.
+
+## 21. Appendix: embedded bootstrap sources (extraction blocks)
+
+Both bootstrap sources live here, at the end of the document. The section-0 cold-start extractor materializes each by pulling the lines between its `# BEGIN_<NAME>` / `# END_<NAME>` sentinel pair -- one minimal pattern, reused for both -- and writing them to disk, so the operator never hand-pastes either file. Keep the sentinel lines intact and exactly as written; the extractor keys on them.
+
+**Bootstrap conductor** -- extracted to `bootstrap/conductor.py` (section 0).
+
+````python
+# BEGIN_CONDUCTOR
+#!/usr/bin/env python3
+"""Bootstrap conductor -- ONE-TIME operator tooling that drives the phase prompt
+playbooks in SQUATCH_PLAN.md to their exit gates so the human never hand-pastes.
+
+Section-0 cold-start convenience, NOT engine code: it exists only until the
+Phase 1 walking skeleton lands and squatch runs its own tickets, and D1 governs the
+engine, not these conveniences. It still obeys the argv-list rule (subprocess.run
+with lists, never shell=True, never string-assembled commands).
+
+Automation is the DEFAULT, in three rungs the operator picks between -- coarser
+rungs just run the finer one in order and gate every deliverable the same way:
+  (no --phase)               -- run every conductor-owned phase (0 then 1) end
+                                to end; this is the one command for the whole
+                                bootstrap.
+  --phase N                  -- run all of phase N's deliverables.
+  --phase N --deliverable K  -- run exactly that one deliverable, commit it,
+                                then stop.
+`--auto` removes the designed real-model verdict pauses for a fully unattended
+run. The rungs compose through bootstrap/state.json, so hand-stepping a few
+deliverables then letting the default finish the rest resumes correctly.
+Every rung SKIPS deliverables already recorded done; to redo the whole
+bootstrap after editing the plan, delete bootstrap/state.json first. Rungs
+REFUSE to run ahead of recorded progress -- a skipped phase or deliverable
+would otherwise be ratcheted done without ever running.
+
+Per deliverable: parse the next unrun prompt from this phase's playbook in
+SQUATCH_PLAN.md (the single source -- no copied checklist), run it in a FRESH
+`claude -p` process (a separate scoped context, the anti-wander property; a
+standing PREAMBLE carries the verify-in-place and file-don't-ask rules into
+every context), then gate by the prompt's own stop-condition. Two checks bind
+EVERY gate kind: the `claude` call must exit zero (transient failures are
+retried with backoff; a persisting nonzero -- a dead or unauthenticated CLI --
+halts, never a silent phantom completion), and the playbook item's
+`expects:` files must exist on disk afterward (the agent-did-nothing check;
+`-` waives it for journal-gated deliverables). Then per kind:
+  pytest  -- re-run `uv run pytest` (never trust the agent's claim), then have
+             a SECOND fresh context adversarially review the uncommitted diff
+             against the good-enough bar's spine-breaking classes ONLY (state
+             corruption, deadlock/stall, secret exposure, false-green tests
+             that mirror the implementation -- the builder's own tests are
+             not the last word on the builder); every other finding files to
+             bootstrap/suggestions.md and passes. Verdict via
+             bootstrap/review.json, missing/unparseable = fail closed. Gate
+             findings (red suite or review fail) are fed back up to
+             MAX_FIX_ATTEMPTS times, then halt. On pass commit + advance.
+  verdict -- a real-model deliverable whose exit is a recorded verdict, not a
+             green suite (Phase 1 prompts 2 and 9): run, then VERIFY in the
+             journal that the artifact the stop-condition names appeared since
+             the deliverable started -- a `signal` event when the prompt says
+             verdict, a transition to `merged` when it says merged (the
+             `state_transition` body's `to` field is a promoted envelope
+             contract, section 6); on evidence
+             commit, then pause for the operator to read the verdict (--auto
+             continues without pausing; GO is not earnable during the
+             bootstrap -- the --record-go mode is Phase 6's, section 19); on
+             none, halt WITHOUT committing.
+  none    -- no test and no verdict (the seed-files step): run, check
+             expects, commit, advance.
+Guards, all halt-for-operator: a preflight refuses to start without git, uv,
+and claude on PATH; each phase's parsed deliverable count must match the
+plan's stated count (a playbook format drift halts -- never a short parse
+silently declared complete); a deliverable REFUSES to
+start on a dirty tree (the commit sweeps `git add -A`, so anything already
+dirty would splice into this deliverable's commit -- the halt names the
+commit-then-rerun paved road; recovery is git revert, never stash or
+reset); and a verdict deliverable
+REFUSES to record done
+until the journal carries its named artifact, never the context's claim.
+Progress is bootstrap/state.json ({"phase": N, "done": K} -- phases below N are
+complete, phase N has K deliverables done) so a halt resumes where it stopped;
+delete it to start the whole bootstrap over from the first deliverable.
+"""
+import argparse
+import json
+import re
+import shutil
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+PLAN = ROOT / "SQUATCH_PLAN.md"
+STATE = ROOT / "bootstrap" / "state.json"
+CONDUCTOR_PHASES = (0, 1)   # the phases the conductor owns; 2+ run via `squatch drain`
+MAX_FIX_ATTEMPTS = 2
+MAX_ATTEMPT_CALLS = 500   # per-launch model-call ceiling (section 19 bootstrap contract)
+ATTEMPT_ID = datetime.now(timezone.utc).strftime("bs-%Y%m%dT%H%M%SZ")  # durable per-launch id (section 19)
+CLAUDE_TRANSIENT_RETRIES = 2   # bounded backoff before a nonzero exit halts
+EXPECTED_DELIVERABLES = {0: 11, 1: 17}   # playbook counts; a parse drift halts
+REVIEW_FILE = ROOT / "bootstrap" / "review.json"
+PREAMBLE = """\
+Bootstrap deliverable for the squatch repo; SQUATCH_PLAN.md is canonical.
+If this deliverable's output already exists (a re-run over prior work),
+VERIFY it against the plan and its stop-condition and change only what
+fails them -- never rebuild green work. An out-of-scope problem is
+appended to bootstrap/suggestions.md and left alone; never stop to ask.
+
+"""
+
+CALLS = 0
+
+
+def count_call():
+    # section 19 bootstrap contract: every model call draws the attempt's
+    # MAX_ATTEMPT_CALLS ceiling; the next no-flag launch is a fresh attempt.
+    global CALLS
+    CALLS += 1
+    if CALLS > MAX_ATTEMPT_CALLS:
+        sys.exit("attempt %s exceeded MAX_ATTEMPT_CALLS=%d -- halting; "
+                 "re-run python3 bootstrap/conductor.py to start a fresh "
+                 "attempt with a fresh ceiling" % (ATTEMPT_ID, MAX_ATTEMPT_CALLS))
+
+
+
+def parse_deliverables(phase):
+    text = PLAN.read_text()
+    marker = "**Phase %d prompt playbook.**" % phase
+    start = text.find(marker)
+    if start == -1:
+        sys.exit("no playbook for phase %d in SQUATCH_PLAN.md" % phase)
+    tail = text[start + len(marker):]
+    stops = [m.start() for m in re.finditer(r"\*\*Phase \d+ prompt playbook\.\*\*", tail)]
+    sec = re.search(r"\n## \d+\. ", tail)
+    if sec:
+        stops.append(sec.start())
+    block = tail[:min(stops)] if stops else tail
+    items = re.findall(
+        r"\n(\d+) -- ([^\n]+):\nexpects: ([^\n]+)\n+```\n(.*?)\n```",
+        block, re.S)
+    parsed = [(title.strip(), expects.split(), prompt.strip())
+              for _num, title, expects, prompt in items]
+    want = EXPECTED_DELIVERABLES.get(phase)
+    if want is not None and len(parsed) != want:
+        sys.exit("phase %d playbook parsed %d deliverables, expected %d -- "
+                 "the playbook format drifted ('N -- Title:' line, 'expects:' "
+                 "line, one fenced prompt); fix SQUATCH_PLAN.md, never skip"
+                 % (phase, len(parsed), want))
+    return parsed
+
+
+def gate_of(prompt):
+    low = re.sub(r"\s+", " ", prompt.lower())
+    if "pytest" in low:
+        return "pytest"
+    if "verdict" in low or "merged" in low:
+        return "verdict"
+    return "none"
+
+
+def run(cmd, **kw):
+    return subprocess.run(cmd, cwd=str(ROOT), **kw)
+
+
+def journal_evidence(prompt, started_at):
+    """The mechanical half of a verdict gate: the artifact the stop-condition
+    names must be IN the journal since `started_at`, never the context's
+    claim. Returns the set of still-missing evidence kinds."""
+    state_dir = ROOT / ".squatch" / "state"
+    cfg = ROOT / "config.yaml"
+    if cfg.exists():
+        m = re.search(r"^state_dir:\s*(\S+)", cfg.read_text(), re.M)
+        if m:
+            state_dir = ROOT / m.group(1)
+    low = re.sub(r"\s+", " ", prompt.lower())
+    need = set()
+    if "verdict" in low:
+        need.add("signal")
+    if "merged" in low:
+        need.add("merged")
+    seen = set()
+    for seg in sorted((state_dir / "journal").glob("*.jsonl")):
+        for line in seg.read_text().splitlines():
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue        # torn tail is the reader's normal case
+            if e.get("ts", "") < started_at:
+                continue
+            if e.get("type") == "signal":
+                seen.add("signal")
+            if (e.get("type") == "state_transition"
+                    and (e.get("body") or {}).get("to") == "merged"):
+                seen.add("merged")
+    return need - seen
+
+
+def preflight():
+    missing = [b for b in ("git", "uv", "claude") if not shutil.which(b)]
+    if missing:
+        sys.exit("missing required binaries: %s -- see the prerequisites table "
+                 "(SQUATCH_PLAN.md section 0)" % ", ".join(missing))
+
+
+def claude(prompt):
+    # fresh one-shot context per deliverable; operator-owned bootstrap repo.
+    # Transient nonzero exits (overload, network) get bounded retries with
+    # backoff -- machine-retryable work never waits on an operator rerun.
+    for attempt in range(CLAUDE_TRANSIENT_RETRIES + 1):
+        count_call()
+        r = run(["claude", "-p", PREAMBLE + prompt, "--dangerously-skip-permissions"])
+        if r.returncode == 0:
+            return
+        if attempt < CLAUDE_TRANSIENT_RETRIES:
+            wait = 30 * (attempt + 1)
+            print("claude exited %d -- retrying in %ds (%d/%d)"
+                  % (r.returncode, wait, attempt + 1, CLAUDE_TRANSIENT_RETRIES))
+            time.sleep(wait)
+    sys.exit("claude exited %d after %d retries -- persistent failure (auth? "
+             "quota?); fix it and re-run the same command to continue; nothing "
+             "gated, nothing committed, state not advanced"
+             % (r.returncode, CLAUDE_TRANSIENT_RETRIES))
+
+
+def adversarial_review(title, frozen=None):
+    """Second fresh context reviews the builder's uncommitted work against
+    the section 19 good-enough bar: FAIL only spine-breaking classes; every
+    other finding files to bootstrap/suggestions.md and passes. New and
+    untracked files are part of the
+    review surface (git diff alone misses them). Transient failures --
+    nonzero exit or an unparseable verdict file -- get bounded retries;
+    a persisting one halts fail-closed. Returns [] on pass, findings on fail.
+    A re-review pass receives the FROZEN first-pass blocking set; a NEW
+    objection on a later pass is advisory (the section 0 freeze law)."""
+    verdict = None
+    for attempt in range(CLAUDE_TRANSIENT_RETRIES + 1):
+        if REVIEW_FILE.exists():
+            REVIEW_FILE.unlink()
+        count_call()
+        r = run(["claude", "-p",
+                 "You are the adversarial reviewer for one squatch bootstrap "
+                 "deliverable; SQUATCH_PLAN.md is canonical. Review the working "
+                 "tree's UNCOMMITTED work -- git status for the file set, git "
+                 "diff for tracked changes, and READ each new/untracked file "
+                 "in full (the diff does not show them) -- against the "
+                 "plan sections the deliverable cites. FAIL only for the "
+                 "bootstrap contract's spine-breaking classes (SQUATCH_PLAN.md "
+                 "section 19): state corruption, deadlock or permanent stall, "
+                 "secret exposure, or false-green verification -- tests that "
+                 "mirror the implementation instead of pinning real behavior "
+                 "(orderings, refusals, crash points). A blocking finding "
+                 "must be REPRODUCIBLE and must attach to THIS deliverable's "
+                 "uncommitted diff -- never pre-existing code or later-phase "
+                 "scope. Append every OTHER "
+                 "finding (conformance drift, style, scope) as one-line items "
+                 "to bootstrap/suggestions.md and still pass. Write EXACTLY "
+                 "bootstrap/review.json: "
+                 '{"verdict": "pass"} or {"verdict": "fail", "findings": '
+                 '["..."]}. Change no file other than those two. '
+                 + ("" if frozen is None else
+                    "RE-REVIEW: the blocking set is FROZEN to the findings "
+                    "listed after the deliverable name -- fail ONLY if one "
+                    "of them is still unresolved; any NEW problem, whatever "
+                    "its class, files to bootstrap/suggestions.md and never "
+                    "fails. Frozen findings: " + "; ".join(frozen) + ". ")
+                 + "Deliverable: " + title,
+                 "--dangerously-skip-permissions"])
+        if r.returncode != 0:
+            if attempt < CLAUDE_TRANSIENT_RETRIES:
+                wait = 30 * (attempt + 1)
+                print("review context exited %d -- retrying in %ds"
+                      % (r.returncode, wait))
+                time.sleep(wait)
+                continue
+            sys.exit("review context exited %d after retries -- fix and "
+                     "re-run the same command to continue" % r.returncode)
+        try:
+            verdict = json.loads(REVIEW_FILE.read_text())
+            break
+        except (OSError, ValueError):
+            if attempt < CLAUDE_TRANSIENT_RETRIES:
+                print("no parseable bootstrap/review.json -- re-asking the reviewer")
+                continue
+            sys.exit("no parseable bootstrap/review.json after %d asks -- "
+                     "fail closed, halting for operator"
+                     % (CLAUDE_TRANSIENT_RETRIES + 1))
+    REVIEW_FILE.unlink()
+    if verdict.get("verdict") == "pass":
+        return []
+    return verdict.get("findings") or ["review verdict: fail (no findings listed)"]
+
+
+def pytest_green():
+    return run(["uv", "run", "pytest", "-q"]).returncode == 0
+
+
+def ensure_ignored():
+    gi = ROOT / ".gitignore"
+    txt = gi.read_text() if gi.exists() else ""
+    add = [e for e in ("bootstrap/state.json", "bootstrap/review.json")
+           if e not in txt]
+    if add:
+        sep = "" if (not txt or txt.endswith("\n")) else "\n"
+        gi.write_text(txt + sep + "\n".join(add) + "\n")
+        return True
+    return False
+
+
+def require_clean(phase, n):
+    # the commit below sweeps `git add -A`, so a dirty tree at start would
+    # splice unrelated work into this deliverable's commit -- halt instead.
+    dirty = run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout.strip()
+    if dirty:
+        sys.exit("phase %d deliverable %d: tree is dirty (a prior halt leaves "
+                 "its partial work uncommitted). To continue: commit it "
+                 "(`git add -A` + a wip commit), then re-run the same command "
+                 "-- verify-in-place converges over committed partial work, "
+                 "and recovery is git revert, never stash or reset:\n%s"
+                 % (phase, n, dirty))
+
+
+def commit(msg):
+    ensure_ignored()
+    dirty = run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout.strip()
+    if not dirty:
+        return
+    run(["git", "add", "-A"], check=True)
+    run(["git", "commit", "-m", msg], check=True)
+
+
+def load_state():
+    # (phase, done): phases below `phase` are complete, `phase` has `done` done.
+    if STATE.exists():
+        s = json.loads(STATE.read_text())
+        return int(s.get("phase", 0)), int(s.get("done", 0))
+    return 0, 0
+
+
+def save_state(phase, done):
+    # Ratchet: an explicit rerun of an earlier deliverable must never rewind
+    # the resume point past completed work.
+    phase, done = max(load_state(), (phase, done))
+    STATE.parent.mkdir(exist_ok=True)
+    STATE.write_text(json.dumps(
+        {"phase": phase, "done": done, "attempt_id": ATTEMPT_ID}))
+
+
+def run_deliverable(phase, items, i, auto):
+    """Run one deliverable (0-based index i). Return True to keep going, False to
+    pause on a verdict. Halts the process on a failed gate. Commits + records
+    state on success."""
+    title, expects, prompt = items[i]
+    n = i + 1
+    gate = gate_of(prompt)
+    require_clean(phase, n)
+    print("=== phase %d deliverable %d/%d (%s): %s ===" % (
+        phase, n, len(items), gate, title))
+    started_at = datetime.now(timezone.utc).isoformat()
+    claude(prompt)
+    missing = [] if expects == ["-"] else [p for p in expects
+                                           if not (ROOT / p).exists()]
+    if missing:
+        save_state(phase, i)
+        sys.exit("phase %d deliverable %d: expected outputs missing: %s -- the "
+                 "agent run did not produce its deliverable; nothing committed"
+                 % (phase, n, ", ".join(missing)))
+    if gate == "verdict":
+        missing_ev = journal_evidence(prompt, started_at)
+        if missing_ev:
+            save_state(phase, i)
+            sys.exit("phase %d deliverable %d: journal shows no %s since start "
+                     "-- halting for operator, nothing committed"
+                     % (phase, n, "/".join(sorted(missing_ev))))
+    if gate == "pytest":
+        attempt = 0
+        frozen = None
+        while True:
+            if not pytest_green():
+                findings = ["uv run pytest is red"]
+            else:
+                findings = adversarial_review(title, frozen)
+                if findings and frozen is None:
+                    frozen = list(findings)   # the section 0 freeze law
+            if not findings:
+                break
+            attempt += 1
+            if attempt > MAX_FIX_ATTEMPTS:
+                save_state(phase, i)
+                sys.exit("phase %d deliverable %d still failing its gate after "
+                         "%d fix attempts -- halting. Paved road: narrow or "
+                         "split this deliverable's playbook prompt in "
+                         "SQUATCH_PLAN.md, then re-run exactly it:  python3 "
+                         "bootstrap/conductor.py --phase %d --deliverable %d"
+                         % (phase, n, MAX_FIX_ATTEMPTS, phase, n))
+            claude("The last change failed its gate. Findings:\n- "
+                   + "\n- ".join(findings) + "\n"
+                   "Read them, fix the code (not the test, unless the test is "
+                   "wrong per SQUATCH_PLAN.md), keep the change minimal. Stop "
+                   "when uv run pytest is green.")
+    commit("bootstrap: phase %d deliverable %d -- %s" % (phase, n, title))
+    save_state(phase, n)
+    if gate == "verdict" and not auto and n < len(items):
+        print("deliverable %d is a real-model step -- read its recorded verdict, "
+              "then re-run to continue (--auto skips these pauses)." % n)
+        return False
+    return True
+
+
+def run_phase(phase, start, auto):
+    """Run phase `phase` from deliverable index `start`. Return True if the phase
+    fully completed, False if it paused on a verdict (halts exit on red)."""
+    items = parse_deliverables(phase)
+    for i in range(start, len(items)):
+        if not run_deliverable(phase, items, i, auto):
+            return False
+    print("phase %d complete." % phase)
+    return True
+
+
+def main():
+    preflight()
+    ap = argparse.ArgumentParser(description="squatch bootstrap conductor")
+    ap.add_argument("--phase", type=int,
+                    help="run one phase (default: every conductor phase, %s)"
+                         % "->".join(map(str, CONDUCTOR_PHASES)))
+    ap.add_argument("--deliverable", type=int,
+                    help="with --phase: run exactly this deliverable "
+                         "(1-based), then stop")
+    ap.add_argument("--auto", action="store_true",
+                    help="do not pause on real-model (verdict) deliverables")
+    args = ap.parse_args()
+
+    # ignore + commit the conductor's state files up front, so a halt before
+    # the first deliverable commit can never dirty the tree with them.
+    if ensure_ignored():
+        changed = run(["git", "status", "--porcelain", "--", ".gitignore"],
+                      capture_output=True, text=True).stdout.strip()
+        if changed:
+            run(["git", "add", ".gitignore"], check=True)
+            run(["git", "commit", "-m",
+                 "bootstrap: ignore conductor state files"], check=True)
+
+    # finest rung: one named deliverable, then stop
+    if args.deliverable is not None:
+        if args.phase is None:
+            ap.error("--deliverable requires --phase")
+        items = parse_deliverables(args.phase)
+        n = args.deliverable
+        if not 1 <= n <= len(items):
+            ap.error("phase %d has deliverables 1..%d, not %d"
+                     % (args.phase, len(items), n))
+        cur, done = load_state()
+        if args.phase > cur:
+            ap.error("phase %d is ahead of recorded progress (phase %d, %d "
+                     "done) -- finish earlier phases first, or delete "
+                     "bootstrap/state.json to start over"
+                     % (args.phase, cur, done))
+        if args.phase == cur and n > done + 1:
+            ap.error("deliverable %d is ahead of recorded progress (%d "
+                     "done) -- deliverables run in order; %d is next, or "
+                     "delete bootstrap/state.json to start over"
+                     % (n, done, done + 1))
+        run_deliverable(args.phase, items, n - 1, args.auto)
+        return
+
+    # middle rung: one whole phase
+    if args.phase is not None:
+        cur, done = load_state()
+        if args.phase > cur:
+            ap.error("phase %d is ahead of recorded progress (phase %d, %d "
+                     "done) -- finish earlier phases first, or delete "
+                     "bootstrap/state.json to start over"
+                     % (args.phase, cur, done))
+        start = done if cur == args.phase else 0
+        run_phase(args.phase, start, args.auto)
+        return
+
+    # default rung: every conductor-owned phase, end to end
+    cur, done = load_state()
+    for phase in CONDUCTOR_PHASES:
+        if phase < cur:
+            continue
+        start = done if phase == cur else 0
+        if not run_phase(phase, start, args.auto):
+            return
+        save_state(phase + 1, 0)
+    print("conductor phases complete -- from here run `uv run python -m squatch "
+          "drain` ONCE; it carries every remaining phase to quiescence "
+          "(section 19).")
+
+
+if __name__ == "__main__":
+    main()
+# END_CONDUCTOR
+````
+
+**README** -- extracted to `README.md`; GENERATED, so edit this block, never the file, then re-run the extractor. A deliberate POINTER, not a run-book: section 0 already is the operator path, and a parallel run-book is a second copy to drift (goal 1); a fuller README returns via D10 only if a stale-doc incident earns it.
+
+````markdown
+# BEGIN_README
+# squatch
+
+squatch is a continuously running orchestration engine that authors and runs
+tickets against host repos, including itself. This README is GENERATED from
+SQUATCH_PLAN.md (the `# BEGIN_README` block in its appendix) -- edit that block,
+never this file. SQUATCH_PLAN.md is canonical for everything: read section 0
+(cold start, prerequisites, the conductor and its rungs, the self-hosting
+handoff) first, and run its one-time cold-start paste to seed the repo, venv,
+and deps before any command below.
+
+The lifecycle is four commands, run in order:
+
+    python3 bootstrap/conductor.py            # bootstrap: Phase 0 then Phase 1, gated per deliverable
+    python3 bootstrap/conductor.py --auto     # same, unattended (no verdict pauses)
+    uv run python -m squatch drain             # after Phase 1: ONE drain self-hosts Phases 2-6 to quiescence
+    uv run python -m squatch serve             # cutover: start the continuous daemon on host work (after GO is recorded)
+
+Once `serve` is running, control it with `kill` / `pause` / `resume`; `status`
+and `doctor` inspect at any time. Section 18 lists every verb; section 13
+touchpoint 7 is the GO/cutover gate `serve` waits behind.
+# END_README
+````
