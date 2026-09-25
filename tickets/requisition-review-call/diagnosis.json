@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Keep the production _implement closure's render bound unchanged: pass effort=None there so spec.render uses specs/implement.md's own effort. Pass an explicit effort only from render_implement. The ticket premise says the first-attempt render must not change.",
+    "Add a test showing the production Implement render at agent_effort high/max still uses the spec-effort bound, not a tighter one. A bytes-only check at the fixture effort cannot catch a bound change.",
+    "In _measure/review, catch a non-over_bound RenderRefused (e.g. 'delimiter') and return a mechanical snag with no model call. Name the reason and give a road such as 'remove the delimiter-carrying file from Context'. Never let it escape review() or RequisitionGate.check.",
+    "Add a test whose Context file contains DATA_MARKER and assert that review returns a snag, makes no call, and does not raise.",
+    "Keep the rest of the diff: the fence, checks, and verification all passed. Fix only the two review findings. File any concern about the implement render limit to the Suggestion Box instead of changing it here."
+  ],
+  "reason": "All mechanical checks passed; review found two localized, fixable correctness oversights with explicit paved roads.",
+  "detail": null
+}
