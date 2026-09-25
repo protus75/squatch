@@ -1,14 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "infra_error",
-  "call": "ok",
-  "verdict": "abandon-human",
-  "lessons": [
-    "The implement stage ended infra_error after 5.25s with 0 tokens, $0.00, and provider/model null. The agent CLI likely never started, so the ticket content was never tried.",
-    "The only spool is 001-prompt.md. No agent event stream, stderr, or exit status was harvested. Check the implement adapter launch: CLI binary on PATH, provider credential in the child env, and worktree creation.",
-    "The diff is empty and there are no findings, so the evidence says nothing about the ticket's scope or feasibility. After the environment is fixed, re-run the ticket unchanged at the same capability.",
-    "The prompt ends with the plan_contract data block and its close marker is written as '[squatch-data:end ...'. Check that this defanged marker is intended and did not break the render or the adapter's input parsing."
-  ],
-  "reason": "The agent never ran (no provider, no model, 0 tokens, 5s), which points to an environment or adapter launch failure that a retry or more capability won't fix.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
