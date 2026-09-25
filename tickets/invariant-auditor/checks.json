@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "78c2fbf51614ba0ff7a6112961abddb1f75c270c",
+  "produced_at_sha": "3927bb4b5d8bef022a09baa4849ef65c90a8d181",
   "stem": "invariant-auditor",
   "branch": "invariant-auditor",
-  "base": "c855ec0f129004b69735d5c9027e653c84485994",
-  "head": "78c2fbf51614ba0ff7a6112961abddb1f75c270c",
+  "base": "f9cee1eef8a808fb9b3912a6a687b85084fa3c28",
+  "head": "3927bb4b5d8bef022a09baa4849ef65c90a8d181",
   "changed_files": [
     "squatch/audit.py",
     "squatch/journal.py",
