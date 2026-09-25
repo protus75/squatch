@@ -1,10 +1,12 @@
 """The capability rung walk and its journal folds."""
 
 from squatch.config import Config
+from squatch.diagnose import DiagnosisRecord
 from squatch.journal import Event
 from squatch.ladder import (IDENTICAL_TERMINALS, Rung, effective, identical,
                             next_rung, oscillating, pending_rung, rungs)
 from squatch.providers import Registry
+from squatch.reject import route
 from squatch.tickets import Ticket
 
 TS = "2026-09-25T12:00:00+00:00"
@@ -14,17 +16,20 @@ def event(type_, body, *, stem="work"):
     return Event(v=1, type=type_, ts=TS, ticket=stem, key=None, body=body)
 
 
-def registry():
-    config = Config.model_validate({
+def config(*, models=None):
+    models = models or {"low": "a", "medium": "b", "high": "c", "max": "c"}
+    return Config.model_validate({
         "schema_version": 1, "state_dir": ".state",
         "providers": [{"name": "codex", "kind": "cli",
-                       "models_by_tier": {"low": "a", "medium": "b",
-                                          "high": "c", "max": "c"},
+                       "models_by_tier": models,
                        "limits": {"concurrency": 1, "est_cost_per_call_usd": 1}}],
         "routing": [{"tier": tier, "surface": "implement",
                      "candidates": [{"provider": "codex"}]}
                     for tier in ("low", "medium", "high", "max")]})
-    return Registry(config)
+
+
+def registry():
+    return Registry(config())
 
 
 def test_next_rung_walks_models_first_and_skips_a_same_model_tier():
@@ -103,3 +108,39 @@ def test_repeat_detectors_restart_after_a_keep_or_ladder_climb():
     assert not identical((a, a, climb, draw, a), "work")
     assert not oscillating((a, b, keep, a), "work")
     assert not oscillating((a, b, climb, draw, a), "work")
+
+
+def diagnosis():
+    return DiagnosisRecord(run_seq=2, outcome="gate_failed", call="ok", verdict="retry",
+                           lessons=("try again",), reason="diagnosed", detail=None)
+
+
+def test_three_identical_terminals_route_the_next_retry_draw_to_a_higher_rung():
+    prior = (terminal("gate_failed"), terminal("gate_failed"))
+
+    routed = route(config(), prior, "work", "gate_failed", diagnosis(),
+                   current=Rung("medium", "medium"))
+    third = event("state_transition", {
+        "to": "gate_failed", "reason": "gate_failed", "finding_codes": [],
+        "routed": routed.routed, "rung": routed.rung.body()})
+    pending = pending_rung((*prior, third), "work")
+    draw = event("cap_consumed", {"cap": "retry", "rung": pending.body()})
+
+    assert routed.routed == "ladder"
+    assert pending == Rung("high", "medium")
+    assert draw.body["rung"] == {
+        "tier": "high", "effort": "medium"}
+    assert rungs((*prior, third, draw), "work") == Rung("high", "medium")
+
+
+def test_three_identical_terminals_at_a_single_model_top_rung_route_to_reject():
+    single = {tier: "only" for tier in ("low", "medium", "high", "max")}
+    prior = (terminal("gate_failed"), terminal("gate_failed"))
+
+    routed = route(config(models=single), prior, "work", "gate_failed", diagnosis(),
+                   current=Rung("max", "max"))
+
+    assert routed.routed == "reject_queue"
+    assert routed.rung is None
+    assert "identical terminal reasons" in routed.reason
+    assert "capability ladder exhausted" in routed.reason
