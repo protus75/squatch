@@ -2,14 +2,14 @@
 ok
 
 ## Surprises / judgment calls
-The prior implementation was recoverable from its reviewed commit. I kept its design and limited this pass to the carried findings: rejected identities are terminal for both verbs, and premise parking reports only the premise-bounce cap.
+The prior implementation was recoverable from its reviewed commit. I preserved that design, preflighted reject stamping before journal writes, and treated an unstampable committed ticket like a dirless journal identity so dependency reporting still completes.
 
 ## Dead ends
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex; exact model identity not exposed.
+OpenAI Codex / GPT-5; implement prompt spec 1.1.
 
 ## Predicted vs actual
-Expected 60m; actual about 10m for this re-entry.
+Expected 60m; actual about 15m for this re-entry.
