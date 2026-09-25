@@ -24,10 +24,6 @@ agent_effort: high
 
 ## Plan contract
 - section 19
-- section 13
-- section 9
-- section 10
-- section 18
 
 ## Goal
 Phase 2 is read closed and Phase 3 is seeded: this ticket dispatches only after every Phase 2 seed merged (its transitive `depends`), its Implement re-reads the two remaining exit criteria from committed artifacts through a merged test, and the same Implement authors Phase 3's first foundational core batch plus one `phase3-continue` seeding ticket as `confirmed` `ticket.md` files in its worktree's tickets plane, reviewed at its own Check stage and lifted to main by the seed path, eligible in the same drain invocation.
