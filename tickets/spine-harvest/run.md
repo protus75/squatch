@@ -1,5 +1,5 @@
 ## Outcome
-implemented
+ok
 
 ## Surprises / judgment calls
 Recovered the prior attempt's unreachable implementation commit, then cleared both review findings. Untracked worktree files are represented in the stat as named `untracked` entries so their content never enters harvest custody; harvested re-entry text is delimiter-quoted only at the prompt boundary, leaving durable artifacts byte-exact.
@@ -13,4 +13,4 @@ An initial delimiter regression assertion checked the whole prompt, which necess
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual about 25m, aided by recovering the prior implementation and focusing on the two review findings.
+Expected 90m; actual about 15m, aided by recovering the prior implementation and focusing on the two review findings.
