@@ -15,7 +15,6 @@ agent_effort: medium
 - squatch/runner.py
 - squatch/drain.py
 - squatch/config.py
-- eval/shakeout/bench.py
 - tests/test_drain.py
 - tests/test_terminal.py
 
