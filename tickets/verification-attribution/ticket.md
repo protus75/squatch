@@ -45,6 +45,7 @@ No per-test parsing, no runner-specific output reading, no quarantine ledger, no
 - tests/test_stages.py
 - tests/test_git.py
 - tests/test_terminal.py
+- tests/test_drain_reentry.py
 
 ## Acceptance criteria
 - In `tests/test_git.py`, `worktree_add_detached` creates a detached worktree at the named commit through the argv seam and `worktree_remove` plus `worktree_prune` leave no registry entry behind.
@@ -52,6 +53,7 @@ No per-test parsing, no runner-specific output reading, no quarantine ledger, no
 - In `tests/test_stages.py`, a command green at the base and red on the branch reports `fail` with the finding as landed and `attribution: branch`; a command green on the branch carries `attribution` null; after either check no `<stem>-base-` worktree remains on disk or in `git worktree list`.
 - In `tests/test_stages.py`, a base worktree whose creation is refused by the fake git leaves the branch finding standing with `attribution: branch`, and a branch with no committed diff still fails on the empty-diff finding with no base run made.
 - In `tests/test_terminal.py`, a run whose only red command is a base red reaches Review with `tickets/<stem>/checks.json` committed carrying the excused entry, and journals no `cap_consumed` event.
+- In `tests/test_drain_reentry.py`, the Phase 1 always-red verification regression is advanced to the base-diff contract: a command red on both branch and base is excused and filed rather than failing the branch check.
 - `uv run pytest -q` exits 0.
 
 ## Verification

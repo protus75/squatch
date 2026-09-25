@@ -19,6 +19,7 @@ agent_effort: medium
 - squatch/artifacts.py
 - tests/test_cli.py
 - tests/test_drain.py
+- tests/test_drain_upgrade.py
 - tests/test_terminal.py
 
 ## Plan contract
@@ -49,6 +50,7 @@ No Reject queue, no `routed: reject_queue` marker, no arrival escalation, no awa
 - tests/test_caps.py
 - tests/test_terminal.py
 - tests/test_drain.py
+- tests/test_drain_upgrade.py
 - tests/test_cli.py
 
 ## Acceptance criteria
@@ -61,6 +63,7 @@ No Reject queue, no `routed: reject_queue` marker, no arrival escalation, no awa
 - In `tests/test_terminal.py`, a run ending `premise_failed` journals one `cap_consumed` with body `cap: premise_bounce`, `ticket_sha`, and `run_seq` before its terminal `state_transition`, and a run ending `gate_failed` journals no `premise_bounce` draw.
 - In `tests/test_drain.py`, a stem parked `gate_failed` with an operator `confirm` signal after its terminal dispatches as ELIGIBLE work ahead of any re-offer and draws no retry unit; a `premise_failed` stem under config `caps: {premise_bounce: 1}` with one draw is not released by a ticket edit alone and its parked line contains `premise_bounce cap spent (1 of 1 drawn)` and `squatch confirm`; the same stem after `squatch confirm <stem>` runs in the next drain.
 - In `tests/test_drain.py`, a confirmed ticket depending on a `rejected` stem is reported `blocked` with `dead:` naming it and never dispatches.
+- In `tests/test_drain_upgrade.py`, the Phase 1 premise-park regression is advanced to the shipped `premise_bounce` contract: the terminal draw is asserted, while ticket edit plus operator confirmation remains the release.
 - In `tests/test_cli.py`, every Phase 1 and batch 1-3 claim still passes with the two verbs registered.
 - `uv run pytest -q` exits 0.
 
