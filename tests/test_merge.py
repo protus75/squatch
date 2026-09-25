@@ -148,6 +148,9 @@ async def test_a_passing_ticket_squash_merges_onto_main_with_trailers(repo, env)
     assert transitions(h) == [{"to": "merged", "run_seq": 0, "commit": main,
                                "reviewed_sha": d.slip.head}]
     assert STEM in merged_stems(h.journal.read())
+    assert not any(
+        event.key and event.key.startswith("llm/requisition_review/")
+        for event in h.journal.read())
 
 
 async def test_every_admission_step_is_a_run_scoped_effect(repo, env):

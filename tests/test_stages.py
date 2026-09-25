@@ -32,7 +32,7 @@ from squatch.llm import FakeLLM
 from squatch.llmeffect import LLMEffect
 from squatch.redact import Redactor
 from squatch.seams import LocalFilesystem, SubprocessExec
-from squatch.specs import load_spec
+from squatch.specs import RenderRefused, load_spec
 from squatch.stages import (
     CHECK_CODES,
     RUN_RECORD_SECTIONS,
@@ -752,6 +752,26 @@ async def test_gate_bypass_downgrades_the_named_gate_to_soft(repo, env):
 
 
 # --- the first-class short-circuits -------------------------------------------------
+
+
+async def test_render_implement_is_the_production_first_render_and_uses_chosen_effort(
+        repo, env, monkeypatch):
+    agent = Agent(answer("premise_failed", "render captured"))
+    h = Harness(repo, env, agent)
+    ticket = await h.intake(TICKET.format(
+        verify=EXISTS, frontmatter="agent_effort: max"))
+    expected = h.stages.render_implement(ticket, effort="max")
+    size = len(expected)
+    monkeypatch.setattr(
+        specs_module, "RENDER_BOUND_CHARS",
+        {"low": size + 2, "medium": size, "high": size, "max": size - 1})
+
+    await h.stages.run(ticket, run_seq=0)
+
+    assert agent.requests[0].rendered == expected
+    assert h.stages.render_implement(ticket, effort="medium") == expected
+    with pytest.raises(RenderRefused, match="max"):
+        h.stages.render_implement(ticket, effort="max")
 
 
 async def test_already_satisfied_settles_without_review_when_proven_on_the_base(repo, env):

@@ -243,6 +243,11 @@ def test_shipped_author_spec_lints_inside_the_size_budget():
     assert spec.surface == "author" and spec.version == "1.0"
 
 
+def test_shipped_requisition_review_spec_lints_inside_the_size_budget():
+    spec = load_spec(Path(__file__).resolve().parent.parent / "specs" / "requisition_review.md")
+    assert spec.surface == "requisition_review" and spec.version == "1.0"
+
+
 # ---- render -------------------------------------------------------------
 
 def _inputs(**over):

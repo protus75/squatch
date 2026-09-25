@@ -49,6 +49,7 @@ from squatch.gates import GateReport, GateRun, run_gates
 from squatch.git import Git, GitError
 from squatch.harvest import HARVEST_FILE, HARVEST_RENDER_CHARS, Harvest
 from squatch.journal import Journal
+from squatch.llm import Effort
 from squatch.llmeffect import LLMEffect
 from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
@@ -583,28 +584,51 @@ class Stages:
 
     # -- Implement --
 
+    def render_implement(self, ticket: Ticket, *, effort: Effort,
+                         ticket_text: str | None = None) -> str:
+        """Render Implement's standing, first-attempt prompt without making a call."""
+        inputs = ImplementInput(
+            stem=ticket.stem,
+            ticket=(ticket_text if ticket_text is not None else
+                    (self._repo / TICKETS_DIR / ticket.stem / TICKET_FILE).read_text()),
+            context=tuple(
+                (path, (self._repo / path).read_text(errors="replace"))
+                for path in ticket.context),
+            plan_sections=ticket.plan_sections,
+            produced_by_spec_version="ticket", produced_at_sha="standing")
+        return self._render_implement(
+            ticket, inputs, effort=effort, prior=None, findings=())
+
+    def _render_implement(self, ticket: Ticket, inputs: ImplementInput, *,
+                          effort: Effort | None,
+                          prior: str | None, findings: Sequence[Finding]) -> str:
+        plan_path = self._repo / PLAN_FILE
+        plan = plan_path.read_text() if ticket.plan_sections and plan_path.is_file() else None
+        workspace = (f"stem: {ticket.stem}\nbranch: {ticket.stem}\n"
+                     f"run record: {TICKETS_DIR}/{ticket.stem}/{RUN_RECORD}\n")
+        context = "".join(f"### {path}\n{content}\n" for path, content in inputs.context)
+        blocks = {
+            "workspace": DataBlock("engine", workspace),
+            "ticket": DataBlock("host", inputs.ticket),
+            "context": DataBlock("host", context or "(no Context files)\n"),
+        }
+        if prior is not None:
+            blocks["prior_attempts"] = DataBlock(
+                "untrusted", prior.replace(DATA_MARKER, "[squatch-data:"))
+        return self.implement_spec.render(
+            blocks, findings=findings, plan=plan,
+            plan_sections=inputs.plan_sections, effort=effort)
+
     async def _implement(self, ticket: Ticket, worktree: Path, base: str,
                          run_seq: int) -> StageResult:
         stem = ticket.stem
         spec = self.implement_spec
-        plan_path = self._repo / PLAN_FILE
-        plan = plan_path.read_text() if ticket.plan_sections and plan_path.is_file() else None
-        workspace = f"stem: {stem}\nbranch: {stem}\nrun record: {TICKETS_DIR}/{stem}/{RUN_RECORD}\n"
-
         prior = self._prior_attempts(stem, run_seq)
 
         def render(inputs: ImplementInput, findings) -> str:
-            context = "".join(f"### {path}\n{content}\n" for path, content in inputs.context)
-            blocks = {
-                "workspace": DataBlock("engine", workspace),
-                "ticket": DataBlock("host", inputs.ticket),
-                "context": DataBlock("host", context or "(no Context files)\n"),
-            }
-            if prior is not None:
-                blocks["prior_attempts"] = DataBlock(
-                    "untrusted", prior.replace(DATA_MARKER, "[squatch-data:"))
-            return spec.render(blocks, findings=findings, plan=plan,
-                               plan_sections=inputs.plan_sections)
+            return self._render_implement(
+                ticket, inputs, effort=None,
+                prior=prior, findings=findings)
 
         stage = LLMStage(name="implement", surface=spec.surface, spec_version=spec.version,
                          tier=ticket.agent_tier, effort=ticket.agent_effort,
