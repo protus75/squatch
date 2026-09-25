@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The diagnosis driver needed the exact stage spool object, so Stages now retains the composed Spool and shares it with Diagnoser. Diagnosed attempts without a harvested workspace are rendered from their journaled synthetic record, while attempts with a null diagnosis verdict retain the raw-harvest fallback.
+The fresh attempt branch no longer contained attempt 0's reviewed code diff, but the journaled review named its still-reachable commit. I restored that scoped implementation, then added direct proofs for every prior review finding. The missing-workspace test now substitutes only the Stages result so the production Pipeline and Diagnoser execute the synthetic path.
 
 ## Dead ends
-The first full-suite verification exposed that a literal data-block delimiter added to tests/test_terminal.py made that Context file governed engine prose; the assertion was rewritten to build the delimiter from DATA_MARKER, preserving the seed Context contract.
+An initial request assertion compared the raw harvest JSON byte-for-byte, but the diagnosis rendering boundary correctly quotes embedded data delimiters. The assertion now compares the deterministically quoted harvest payload.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5
+OpenAI Codex / GPT-5 family
 
 ## Predicted vs actual
-Expected 90m; actual approximately 35m.
+Expected 90m; actual approximately 20m for this re-entry.
