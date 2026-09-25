@@ -17,7 +17,6 @@ agent_effort: medium
 - squatch/seams.py
 - squatch/llm.py
 - squatch/drain.py
-- eval/shakeout/bench.py
 - tests/test_driver.py
 - tests/test_drain.py
 
