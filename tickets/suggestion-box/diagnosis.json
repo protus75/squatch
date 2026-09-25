@@ -1,16 +1,17 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "All checks passed; review snagged on two fixable findings. Keep the existing diff, make only these two fixes, and don't re-ingest: the instance box already holds the 257 bootstrap messages.",
-    "status.py:114 must not call load(None, cwd=repo) to find the box, and the except ConfigError fallback that silently shows an empty box must go. Take the state dir from what _status already resolved from --config.",
-    "First read squatch/__main__.py _status and the project() signature. If project already gets the state dir, the journal path, or a Journal, derive <state_dir>/box from it inside status.py. That keeps the fix inside the fence.",
-    "If the resolved state dir can only reach project() by editing squatch/__main__.py, which is outside the fence, stop and answer premise_failed naming that fence gap. Don't ship a fallback or a second config load.",
-    "Add a test_cli.py pin: status with --config pointing at a config whose state_dir differs from cwd's shows that config's box. A missing or unreadable box refuses instead of showing empty.",
-    "box.py:257: split main's except. Checkout/config resolution keeps its current message. ingest() failures (ValueError from a malformed box file, OSError on write) get their own exit-2 refusal naming the box path and how to repair or remove it."
+    "All checks passed (scope_fence, verification, run_record, diff_budget). Review found two small fail-closed defects. Keep the existing diff and fix only these two.",
+    "squatch/__main__.py _status: the `except (ValueError, OSError)` around project(read_events(state_dir), ...) labels journal and projection errors as box corruption. Have Box raise a dedicated BoxCorruption (a ValueError subclass) and catch only that.",
+    "Add a test_cli.py case: a journal read error (OSError or ValueError from the journal or projection) during `squatch status` is not reported as box corruption and does not point to the box paved road.",
+    "squatch/registry.py load: a `body:` key in the YAML frontmatter is silently overwritten by the markdown body. Refuse frontmatter that contains `body` as an unknown key, and name the file.",
+    "Add a tests/test_registry.py case: load over a decisions file whose frontmatter has a `body:` key is refused, and the error names that file.",
+    "Do not re-ingest bootstrap/suggestions.md. The instance box already holds the 257 bootstrap-ingest messages, and the deletion is already in the diff.",
+    "Keep every fix from earlier rounds: the git_common_dir wrapper, redaction before enqueue, the bullet marker regex and backticked box-id citations, status using the state dir it was given, and the split ingest refusal."
   ],
-  "reason": "The review found two concrete, well-steered defects. The status one either fits in the fence or becomes a premise_failed answer; this run showed neither yet, so a retry at the same capability fits.",
+  "reason": "Review snagged on two narrow, fixable correctness findings with concrete paved roads; everything else passed.",
   "detail": null
 }
