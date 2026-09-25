@@ -311,7 +311,7 @@ async def test_delivers_ok_with_every_artifact_lifted_committed_and_stamped(repo
     assert isinstance(d.slip, PackingSlip)
     assert (d.slip.stem, d.slip.verdict, d.slip.branch) == (STEM, "implemented", STEM)
     assert d.slip.head == head and d.slip.head != d.slip.base
-    assert d.slip.produced_at_sha == head and d.slip.produced_by_spec_version == "1.0"
+    assert d.slip.produced_at_sha == head and d.slip.produced_by_spec_version == "1.1"
     assert d.slip.base == git(repo, env, "rev-parse", "main~3").strip()
     assert d.slip.base != base, "the ticket-plane intake commit moved main before the branch"
     # The invoice: every Check gate passed, persisted as checks.json on main.
@@ -391,7 +391,7 @@ async def test_implement_prompt_renders_the_spec_over_ticket_context_and_plan(re
     h = Harness(repo, env, agent)
     await h.run()
     prompt = h.prompts()[0]
-    assert prompt.startswith("squatch prompt: surface=implement spec_version=1.0\n")
+    assert prompt.startswith("squatch prompt: surface=implement spec_version=1.1\n")
     assert '<<<squatch:data name="workspace" origin="engine"' in prompt
     assert f"run record: tickets/{STEM}/run.md" in prompt
     assert '<<<squatch:data name="ticket" origin="host"' in prompt
@@ -737,6 +737,7 @@ def test_compose_builds_the_production_stages_from_config(repo, env):
 
 def test_the_shipped_specs_lint_and_name_their_gates():
     implement = load_spec(SPECS_DIR / "implement.md")
-    assert implement.surface == "implement" and implement.version == "1.0"
-    assert implement.slots == ("workspace", "ticket", "context")
+    assert implement.surface == "implement" and implement.version == "1.1"
+    assert implement.slots == ("workspace", "ticket", "prior_attempts", "context")
+    assert implement.optional == frozenset({"prior_attempts"})
     assert load_spec(SPECS_DIR / "review.md").surface == "review"

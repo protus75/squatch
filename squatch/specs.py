@@ -35,7 +35,9 @@ FRONTMATTER_KEYS: frozenset[str] = frozenset(
 # The engine's own data-block delimiter. Any occurrence in injected content
 # is a render refusal: this is why section 13 refuses `specs/*.md` as Context.
 DATA_MARKER = "<<<squatch:"
-_DIRECTIVE = re.compile(r'^<<<squatch:data name="([a-z][a-z0-9_]*)">>>$')
+# An `optional` slot renders only when its input is supplied (a re-entry's
+# prior-attempts block); every other slot is required, missing means refused.
+_DIRECTIVE = re.compile(r'^<<<squatch:data name="([a-z][a-z0-9_]*)"( optional)?>>>$')
 _BARE = re.compile(r"\{\{\s*([^}]*?)\s*\}\}")
 _H2 = re.compile(r"^## (.+?)\s*$")
 _PLAN_H2 = re.compile(r"^## (\d+)\. ")
@@ -96,6 +98,7 @@ class Spec:
     gates: tuple[str, ...]
     version: str
     slots: tuple[str, ...]
+    optional: frozenset[str]
     template: tuple[str, ...]
     source: str
 
@@ -103,13 +106,14 @@ class Spec:
                plan: str | None = None, plan_sections: Iterable[int | str] = (),
                effort: Effort | None = None) -> str:
         effort = effort or self.effort
-        missing = [s for s in self.slots if s not in inputs]
+        missing = [s for s in self.slots if s not in inputs and s not in self.optional]
         extra = sorted(set(inputs) - set(self.slots))
         if missing or extra:
             raise RenderRefused(
                 "inputs", f"{self.source}: inputs do not match the spec's slots "
                 f"(missing {missing}, unreferenced {extra})",
-                f"supply exactly the slots the template names: {list(self.slots)}")
+                f"supply exactly the slots the template names: {list(self.slots)} "
+                f"(optional: {sorted(self.optional)})")
         blocks = dict(inputs)
         plan_sections = tuple(plan_sections)
         if plan_sections and plan is None:
@@ -130,7 +134,10 @@ class Spec:
         out = [f"squatch prompt: surface={self.surface} spec_version={self.version}\n\n"]
         for line in self.template:
             m = _DIRECTIVE.match(line)
-            out.append(_block(m.group(1), blocks[m.group(1)]) if m else line + "\n")
+            if m is None:
+                out.append(line + "\n")
+            elif m.group(1) in blocks:
+                out.append(_block(m.group(1), blocks[m.group(1)]))
         for name in ("plan_contract", "findings"):
             if name in blocks:
                 out.append("\n" + _block(name, blocks[name]))
@@ -182,12 +189,13 @@ def lint_spec(text: str, *, surfaces: Iterable[str] = LLM_SURFACES,
                                  "cut prose; move host content to inputs"))
     head, body, body_start = _split_frontmatter(lines, findings)
     meta = _lint_frontmatter(head, set(surfaces), findings)
-    slots = _lint_body(body, body_start, findings)
+    slots, optional = _lint_body(body, body_start, findings)
     if findings:
         raise SpecLintError(source, findings)
     return Spec(surface=meta["llm_surface"], consumes=meta["consumes"], emits=meta["emits"],
                 tier=meta["tier"], effort=meta["effort"], gates=tuple(meta["gates"]),
-                version=meta["version"], slots=slots, template=tuple(body), source=source)
+                version=meta["version"], slots=slots, optional=optional, template=tuple(body),
+                source=source)
 
 
 def _finding(message: str, paved_road: str, line: int | None = None) -> Finding:
@@ -255,9 +263,11 @@ def _nonempty(v) -> bool:
     return isinstance(v, str) and bool(v.strip())
 
 
-def _lint_body(body: list[str], start: int, findings: list[Finding]) -> tuple[str, ...]:
+def _lint_body(body: list[str], start: int, findings: list[Finding]
+               ) -> tuple[tuple[str, ...], frozenset[str]]:
     seen: list[str] = []
     slots: list[str] = []
+    optional: set[str] = set()
     for offset, line in enumerate(body):
         n = start + offset
         if h := _H2.match(line):
@@ -280,18 +290,21 @@ def _lint_body(body: list[str], start: int, findings: list[Finding]) -> tuple[st
             if not d:
                 findings.append(_finding(
                     f"malformed data-block marker: {line.strip()!r}",
-                    'a data directive is exactly <<<squatch:data name="<slot>">>> alone on '
-                    "its line; the end marker is renderer-owned", n))
+                    'a data directive is exactly <<<squatch:data name="<slot>">>> (or '
+                    '<<<squatch:data name="<slot>" optional>>>) alone on its line; the end '
+                    "marker is renderer-owned", n))
             elif d.group(1) in slots:
                 findings.append(_finding(f"slot {d.group(1)!r} is injected twice",
                                          "inject each input once", n))
             else:
                 slots.append(d.group(1))
+                if d.group(2):
+                    optional.add(d.group(1))
     for name in SPEC_SECTIONS:
         if name not in seen:
             findings.append(_finding(f"section {name!r} is missing",
                                      f"add a `## {name}` section", None))
-    return tuple(slots)
+    return tuple(slots), frozenset(optional)
 
 
 # ---- Plan contract -------------------------------------------------------

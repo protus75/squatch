@@ -416,3 +416,36 @@ def test_render_refuses_cited_sections_without_plan_text():
     with pytest.raises(RenderRefused) as e:
         lint_spec(GOOD).render(_inputs(), plan_sections=[8])
     assert e.value.reason == "plan"
+
+
+# ---- optional slots -----------------------------------------------------
+
+OPTIONAL = GOOD.replace("Host rules follow.",
+                        'Host rules follow.\n<<<squatch:data name="prior_attempts" optional>>>')
+
+
+def test_an_optional_slot_lints_and_is_recorded_as_optional():
+    spec = lint_spec(OPTIONAL)
+    assert spec.slots == ("ticket", "prior_attempts", "host_docs")
+    assert spec.optional == frozenset({"prior_attempts"})
+    assert lint_spec(GOOD).optional == frozenset()
+
+
+def test_an_absent_optional_slot_drops_its_directive_line_and_nothing_else():
+    out = lint_spec(OPTIONAL).render(_inputs())
+    assert "prior_attempts" not in out
+    assert out.replace("\n\n", "\n") == lint_spec(GOOD).render(_inputs()).replace("\n\n", "\n")
+
+
+def test_a_supplied_optional_slot_renders_in_template_position():
+    out = lint_spec(OPTIONAL).render(
+        _inputs(prior_attempts=DataBlock(origin="untrusted", content="clear this")))
+    assert out.index("Host rules follow.") < out.index('name="prior_attempts" origin="untrusted"') \
+        < out.index('name="host_docs"')
+    assert "clear this\n<<<squatch:end name=\"prior_attempts\">>>" in out
+
+
+def test_an_optional_slot_never_excuses_a_missing_required_one():
+    with pytest.raises(RenderRefused) as e:
+        lint_spec(OPTIONAL).render({"ticket": DataBlock(origin="engine", content="x")})
+    assert "host_docs" in str(e.value) and "prior_attempts" not in str(e.value).split("missing")[1].split("unreferenced")[0]

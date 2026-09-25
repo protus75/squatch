@@ -37,7 +37,7 @@ def effect_key(*parts: object) -> str:
 
 class Effects:
     def __init__(self, journal: Journal):
-        self._journal = journal
+        self.journal = journal
         self._completed: dict[str, object] = {}
         for event in journal.read():
             if event.type == "effect_completion":
@@ -55,12 +55,12 @@ class Effects:
             raise ValueError("effect key must be a non-empty string")
         if key in self._completed:
             return self._completed[key]
-        self._journal.append("effect_intent", {}, ticket=ticket, key=key)
+        self.journal.append("effect_intent", {}, ticket=ticket, key=key)
         result = await action()
         body = {"result": result}
         if cost is not None:
             body["cost"] = cost(result)
-        self._journal.append("effect_completion", body, ticket=ticket, key=key)
+        self.journal.append("effect_completion", body, ticket=ticket, key=key)
         self._completed[key] = result
         return result
 
@@ -80,6 +80,22 @@ def effect(*, key: str | Callable[..., str], ticket: Callable[..., str | None] |
                                           key=k, ticket=t, cost=cost)
         return wrapper
     return decorate
+
+
+def latest_terminal(journal: Journal, stem: str) -> str | None:
+    """The terminal state the stem's latest run ended in, or None before any
+    run has ended: the run-entry fold's second reading (section 11.2), so a
+    re-entry renderer knows a prior run ended and how."""
+    latest = None
+    for event in journal.read():
+        if event.type != "state_transition" or event.ticket != stem:
+            continue
+        to = event.body["to"]
+        if to not in RUN_STATES:
+            raise ValueError(f"state_transition to {to!r} is not a run state")
+        if to in TERMINAL_RUN_STATES:
+            latest = to
+    return latest
 
 
 def run_sequence(journal: Journal, stem: str) -> int:

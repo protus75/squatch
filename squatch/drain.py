@@ -27,9 +27,12 @@ terminal, the trip is journaled as the armed timer firing, and the stop
 names the continuing `squatch drain`. Exit codes (section 18): 0 =
 quiescence (parked reds included), 1 = the ceiling halt, 2 = a refusal.
 
-Two seams are left for the deliverables that follow: the re-entry render
-hook (findings-fed re-offers) and the self-upgrade trigger after a merge;
-both default to no-ops here.
+A re-offer is findings-fed by construction: the stage layer's Implement
+render folds the parked stem's durable `review.md`/`checks.json` findings
+into criteria-position (section 11.2, `squatch.stages`), so this module
+draws the unit and dispatches through the same path as `run <stem>`. One
+seam is left for the deliverable that follows: the self-upgrade trigger
+after a merge, a no-op here.
 """
 
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
@@ -53,16 +56,9 @@ NON_OK = OUTCOMES - {"ok"}
 CEILING_TIMER = "drain_max_runtime"
 CONTINUE = "`squatch drain`"
 
-# Prompt 12's seam: called with the stem and run sequence before a re-offer
-# dispatches, so its render can fold the prior terminal's findings in.
-Reentry = Callable[[str, int], None]
 # Prompt 13's seam: called after every settled admission with the admitted
 # stem and the invocation's parked set.
 Upgrade = Callable[[str, Sequence[str]], Awaitable[None]]
-
-
-def no_reentry(stem: str, run_seq: int) -> None:
-    return None
 
 
 async def no_upgrade(stem: str, parked: Sequence[str]) -> None:
@@ -125,14 +121,13 @@ class Plane:
 
 class Drain:
     def __init__(self, *, runner: Runner, repo: Path, config: Config, git: Git, clock: Clock,
-                 report: Report, reentry: Reentry = no_reentry, upgrade: Upgrade = no_upgrade):
+                 report: Report, upgrade: Upgrade = no_upgrade):
         self._runner = runner
         self._repo = Path(repo)
         self._config = config
         self._git = git
         self._clock = clock
         self._report = report
-        self._reentry = reentry
         self._upgrade = upgrade
 
     async def run(self) -> int:
@@ -233,9 +228,10 @@ class Drain:
         run_seq = run_sequence(journal, stem)
         journal.append("cap_consumed", {"cap": RETRY_CAP, "ticket_sha": sha, "run_seq": run_seq},
                        ticket=stem)
+        fed = ", ".join(str(p.relative_to(self._repo)) for p in self._artifacts(stem))
         self._report(f"re-offer: {stem} after `{facts.latest[stem]}`; retry unit "
-                     f"{facts.retry_drawn.get(stem, 0) + 1} of {self._config.caps.retry} drawn")
-        self._reentry(stem, run_seq)
+                     f"{facts.retry_drawn.get(stem, 0) + 1} of {self._config.caps.retry} drawn"
+                     + (f"; findings-fed from {fed}" if fed else ""))
 
     # --- the stop ------------------------------------------------------------------
 

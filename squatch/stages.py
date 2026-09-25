@@ -16,6 +16,16 @@ over the committed diff and emits one of three artifacts by verdict; a
 `snag` is `gate_failed` (the review surface is a gate) and an `rma` is
 `premise_failed` (the ticket is the problem). The merge admission
 (`squatch.merge`) settles what this layer delivers.
+
+Re-entry is findings-fed (section 11.2): when the journal says the stem's
+prior run ended without merging, Implement's render folds the terminal
+findings artifacts already durable in the canonical ticket dir -- a
+`review.md` whose verdict rejects, a `checks.json` that fails -- into the
+spec's `prior_attempts` slot, placed by `specs/implement.md` right after
+the ticket so the clear-these-findings block sits in criteria-position.
+Rendered fresh each attempt from the artifacts, never written into
+`ticket.md`; a first attempt renders no such block. Harvest (Phase 2)
+extends this one block, never a second path.
 """
 
 import json
@@ -32,7 +42,7 @@ import squatch
 from squatch.artifacts import OUTCOMES, Artifact, ClosedModel, Cost, Finding, StageResult
 from squatch.config import Config, Severity
 from squatch.driver import Driver, LLMStage, Spool
-from squatch.effects import Effects, effect_key
+from squatch.effects import Effects, effect_key, latest_terminal
 from squatch.enginelog import EngineLog
 from squatch.gates import GateReport, GateRun, run_gates
 from squatch.git import Git, GitError
@@ -202,6 +212,7 @@ def load_review(text: str) -> dict:
 
 def _where(f: Finding) -> str:
     return (f" at {f.path}" + (f":{f.line}" if f.line else "")) if f.path else ""
+
 
 
 # ---- the Check gates ----------------------------------------------------------
@@ -477,13 +488,19 @@ class Stages:
         plan = plan_path.read_text() if ticket.plan_sections and plan_path.is_file() else None
         workspace = f"stem: {stem}\nbranch: {stem}\nrun record: {TICKETS_DIR}/{stem}/{RUN_RECORD}\n"
 
+        prior = self._prior_attempts(stem, run_seq)
+
         def render(inputs: ImplementInput, findings) -> str:
             context = "".join(f"### {path}\n{content}\n" for path, content in inputs.context)
-            return spec.render({
+            blocks = {
                 "workspace": DataBlock("engine", workspace),
                 "ticket": DataBlock("host", inputs.ticket),
                 "context": DataBlock("host", context or "(no Context files)\n"),
-            }, findings=findings, plan=plan, plan_sections=inputs.plan_sections)
+            }
+            if prior is not None:
+                blocks["prior_attempts"] = DataBlock("untrusted", prior)
+            return spec.render(blocks, findings=findings, plan=plan,
+                               plan_sections=inputs.plan_sections)
 
         stage = LLMStage(name="implement", surface=spec.surface, spec_version=spec.version,
                          tier=ticket.agent_tier, effort=ticket.agent_effort,
@@ -495,6 +512,37 @@ class Stages:
             produced_by_spec_version="ticket", produced_at_sha=base)
         return await self._call(stage, inputs, stem=stem, run_seq=run_seq, workspace=worktree,
                                 sha=base)
+
+    def _prior_attempts(self, stem: str, run_seq: int) -> str | None:
+        """The re-entry fold (section 11.2): None on a first attempt; otherwise
+        the prior run's terminal and whichever durable findings artifacts
+        reject -- itemized with their paved roads, untrusted like all data."""
+        ended = latest_terminal(self._effects.journal, stem)
+        if ended is None:
+            return None
+        canonical = self._repo / TICKETS_DIR / stem
+        lines = [f"Prior attempts (informational, unverified, not reviewed; scoped to this "
+                 f"attempt {run_seq}, never acceptance criteria)",
+                 f"attempt {run_seq - 1} of {stem} ended `{ended}`; clear every finding "
+                 f"below as well as the ticket's criteria"]
+        review = canonical / REVIEW
+        if review.is_file():
+            meta, body = parse_frontmatter(review.read_text(errors="replace"))
+            if meta.get("verdict") != "approve":
+                lines.append(f"\nreview.md (verdict `{meta.get('verdict')}` at "
+                             f"{meta.get('reviewed_sha')}):")
+                lines.append("\n".join(body).strip("\n"))
+        checks = canonical / CHECKS
+        if checks.is_file():
+            invoice = Invoice.model_validate_json(checks.read_text(errors="replace"))
+            if not invoice.passed:
+                lines.append(f"\nchecks.json (failing at {invoice.head}):")
+                lines.extend(f"- {f.code}{_where(f)}: {f.message} (paved road: {f.paved_road})"
+                             for f in invoice.hard_findings)
+        if len(lines) == 2:
+            lines.append("\n(no rejecting review.md or failing checks.json is on the ticket "
+                         "plane; the terminal's detail is in the engine log)")
+        return "\n".join(lines) + "\n"
 
     # -- Check --
 
