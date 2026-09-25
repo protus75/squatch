@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The untouched base suite was green at 750 tests. The corrected ticket and plan explicitly allow the minimal driver terminal-findings hook. I preserved the driver's one `run_gates` call so every gate still runs, and allowed reserved stems through artifact parsing so `ticket_schema` owns their rejection while the review resolver skips the paid review.
+The untouched base suite was green at 750 tests. I reused `TicketSchemaGate.check` as the Author resolver's admission decision, so missing-plan, reserved-stem, collision, and grammar behavior cannot drift. The driver still makes one complete `run_gates` call before applying the terminal-findings predicate.
 
 ## Dead ends
-The prior implementation copied only part of ticket-schema admission into the review resolver. This attempt added the reserved-stem predicate and a focused regression before retaining that implementation.
+The prior resolver copied the schema predicate and crashed when `SQUATCH_PLAN.md` was absent. I discarded that approach and passed the target admitted by the actual schema gate to `RequisitionGate` instead.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The prior implementation copied only part of ticket-schema admission into the re
 OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected 60m; actual about 30m.
+Expected 60m; actual about 25m, including the untouched-base proof and all three verification runs.
