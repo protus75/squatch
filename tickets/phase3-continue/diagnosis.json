@@ -1,15 +1,16 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "merge-queue seed: add a criterion that a tree-hash mismatch refuses only that candidate with a typed finding and paved road. Main stays untouched, admission unwinds, and the serial slot is released. No pause or hold; that activates with resume in pause-resume-activation.",
-    "merge-queue seed: name both rung types in Scope in and criteria. Rung 1 is mechanical resolution, settled in-queue. Rung 2 is the typed Rework handoff record, emitted after unwind. State that rework-stage consumes rung 2 without redefining it. Assert both in tests/test_mergequeue.py.",
-    "merge-queue seed: add a Scope out line that squatch/mergequeue.py must not import squatch.scheduler or squatch.watcher. merge.py is reachable from __main__.py, and test_scheduler's reachability proof must stay green.",
-    "Carry forward the earlier lessons: both rungs named, non-empty existing Context, exact next-batch pins (tiers, fences, edges, minutes), keyed ownership YAML, and render headroom with pinned bytes.",
-    "After revising the seeds, update tests/test_seeded_phase3_01.py to assert the new text (mismatch outcome, both rungs, import prohibition). Then rerun both pytest commands."
+    "Requisition review blocks the merge-queue seed. Rung 1 must resolve a conflict inside the queue, but Git.rebase aborts before it raises RebaseConflict. The wrapper has no stop-at-conflict, list-conflicted-paths, or rebase --continue op.",
+    "Those git ops need squatch/git.py in the merge-queue fence. This ticket and the section 20 registry pin the exact fence to mergequeue.py, merge.py and test_mergequeue.py. The seed cannot pass review without breaking that pin, which is this ticket's premise_failed condition.",
+    "Paved road: change the section 20 registry first. Add squatch/git.py to merge-queue's fence as additive-only ops, leaving rebase and rebase_abort unchanged. Then regenerate this ticket and update FENCES in tests/test_seeded_phase3_01.py to match.",
+    "Do not route rung 1 around the wrapper with Git._run or raw git calls. All git goes through git.py's public ops, and the fence must include the module that owns the seam being hooked.",
+    "Once the fence is fixed, add squatch/config.py to merge-queue's Context and to EXISTING_AT_AUTHORING with pinned bytes. Its tests build a fixture Config (merge.safety_checks, merge.strategies) with no config.yaml or schema change.",
+    "Keep all prior lessons: both typed rungs named, tree-hash mismatch releases the slot with no hold, no scheduler or watcher import, and exact next-batch pins with keyed ownership YAML and render headroom."
   ],
-  "reason": "The check gate's requisition review found three fixable spec gaps in the merge-queue seed; each has a concrete paved road.",
+  "reason": "The seed fails requisition review unless squatch/git.py joins merge-queue's fence, but this ticket and the plan registry pin that exact fence, so the registry must change first.",
   "detail": null
 }
