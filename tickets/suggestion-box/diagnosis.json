@@ -1,9 +1,14 @@
 {
-  "run_seq": 2,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 3,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Harvest's box enqueue skips redaction. Pass the runner's Redactor (self._log._redact) into harvest.extract, redact the run.md text before enqueue_second_problems parses it, and add a test showing a planted configured secret appears in no file under <state_dir>/box/.",
+    "enqueue_second_problems accepts only '-' bullets. Detect bullets with the same marker regex ingest uses ('- ', '* ', '<digits>. '), and strip surrounding backticks before the _BOX_ID citation check so a `box-...` code span counts as a citation and is skipped.",
+    "Extend test_enqueue_second_problems_and_empty_section to cover a '* problem' bullet and a backticked box-id citation.",
+    "Everything else passed: all acceptance criteria, scope fence, verification, run_record and diff_budget checks. Keep the existing diff and make only these two targeted fixes. Don't re-ingest bootstrap/suggestions.md: the 257 records are already in the instance box."
+  ],
+  "reason": "Review returned a snag with two concrete fixes to make: redact the box write path and match bullets with the shared marker regex. Neither needs a ticket change or more capability.",
+  "detail": null
 }
