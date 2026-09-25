@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The prior attempt's unresolved diff-budget gate is mechanically incompatible with the unchanged acceptance criteria. At least 12 fixture directories times the three required files per fixture is 36 changed files before adding `eval/diagnose.py` and `tests/test_eval_diagnose.py`, while the gate permits at most 30 files. I treated the required split as an authoring defect rather than recreating a known-unmergeable diff.
+The superseding single-envelope fixture law resolved the prior attempt's file-count contradiction. I retained the proven fixture-keyed effect and per-journal sequence design, but validated each complete envelope as one closed model and kept the 12 fixtures as compact JSON so the final diff is 14 files / 806 inserted lines.
 
 ## Dead ends
-The untouched base suite passed with 608 tests. The ticket-specific verification cannot run because its required scoped files do not exist on the untouched base; implementing them cannot clear the carried diff-budget finding within this ticket.
+The legacy per-fixture directory shape from the prior attempt was abandoned because it necessarily exceeded the 30-file gate. The untouched base suite passed before edits (608 tests), so no base failure blocked implementation.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The untouched base suite passed with 608 tests. The ticket-specific verification
 OpenAI / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual about 5m to verify the clean base and prove the file-count contradiction.
+Expected 90m; actual about 20m. Verification passed: 13 focused tests, CLI help, and 621 full-suite tests.
