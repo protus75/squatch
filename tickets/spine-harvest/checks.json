@@ -1,0 +1,56 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "9a4f502c32820904aacdb16d8a7fcc7a64f7306d",
+  "stem": "spine-harvest",
+  "branch": "spine-harvest",
+  "base": "9585b65a75ef39f127792f69fc0be92400480873",
+  "head": "9a4f502c32820904aacdb16d8a7fcc7a64f7306d",
+  "changed_files": [
+    "squatch/git.py",
+    "squatch/harvest.py",
+    "squatch/merge.py",
+    "squatch/reconcile.py",
+    "squatch/runner.py",
+    "squatch/stages.py",
+    "tests/test_cli.py",
+    "tests/test_drain.py",
+    "tests/test_drain_reentry.py",
+    "tests/test_drain_upgrade.py",
+    "tests/test_git.py",
+    "tests/test_harvest.py",
+    "tests/test_merge.py",
+    "tests/test_reconcile.py",
+    "tests/test_terminal.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    }
+  ]
+}
