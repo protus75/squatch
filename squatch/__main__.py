@@ -1,13 +1,15 @@
 """`python -m squatch <verb>`: the module entry (SQUATCH_PLAN.md section 18).
 
 stdlib argparse, the Phase 1 verbs -- `status`, `new <stem>`, `run <stem>`,
-`drain` -- and the section 18 exit-code contract: 0 settled or quiescent, 1 a
-non-ok ticket terminal or a ceiling-halted drain, 2 an engine-plane refusal.
-Nothing reaches the operator as a raw traceback: every refusal prints its
-message and paved road. The checkout root is the invocation cwd; `--config`
-relocates only the config file. The project stays virtual: this module entry
-is the whole CLI surface until the release path (section 13 touchpoint 6)
-earns a console script.
+`drain [--parked <stem>]...` -- and the section 18 exit-code contract: 0
+settled or quiescent, 1 a non-ok ticket terminal or a ceiling-halted drain,
+2 an engine-plane refusal. Nothing reaches the operator as a raw traceback:
+every refusal prints its message and paved road. The checkout root is the
+invocation cwd; `--config` relocates only the config file. `--parked` is the
+self-upgrade handoff's continuity flag: the drain's re-exec child carries
+the parent's parked set in it (section 18). The project stays virtual: this
+module entry is the whole CLI surface until the release path (section 13
+touchpoint 6) earns a console script.
 """
 
 import argparse
@@ -29,7 +31,8 @@ from squatch.providers import child_env
 from squatch.redact import Redactor
 from squatch.merge import compose_pipeline
 from squatch.runner import EXIT_REFUSED, PipelineFactory, Refusal, Runner
-from squatch.seams import Clock, ExecutableNotFound, LocalFilesystem, SubprocessExec
+from squatch.seams import (Clock, ExecutableNotFound, LocalFilesystem, ProcessExec,
+                           SubprocessExec)
 from squatch.status import project, render
 from squatch.tickets import new_ticket
 
@@ -51,32 +54,39 @@ def _parser() -> argparse.ArgumentParser:
     new.add_argument("stem")
     run = sub.add_parser("run", help="drive one ticket through intake, the lock, and dispatch")
     run.add_argument("stem")
-    sub.add_parser("drain", help="run every eligible ticket, one at a time, to quiescence")
+    drain = sub.add_parser("drain", help="run every eligible ticket, one at a time, to quiescence")
+    drain.add_argument("--parked", action="append", default=[], metavar="STEM",
+                       help="a stem the handing-off parent drain had parked (repeatable; "
+                            "the self-upgrade re-exec sets it, never an operator)")
     return p
 
 
 def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
          env: Mapping[str, str] | None = None, out: TextIO | None = None,
-         pipeline: PipelineFactory | None = None, clock: Clock = _now) -> int:
-    """`pipeline` and `clock` are the test seams: a scripted stage-dispatch
-    factory over the lock-held journal, and the clock every verb reads."""
+         pipeline: PipelineFactory | None = None, clock: Clock = _now,
+         process: ProcessExec | None = None) -> int:
+    """`pipeline`, `clock`, and `process` are the test seams: a scripted
+    stage-dispatch factory over the lock-held journal, the clock every verb
+    reads, and the process-exec seam git, the stages, and the drain's
+    self-upgrade handoff spawn through."""
     out = out if out is not None else sys.stdout
     cwd = Path(cwd) if cwd is not None else Path.cwd()
     env = dict(env if env is not None else os.environ)
+    process = process if process is not None else SubprocessExec()
     try:
         args = _parser().parse_args(argv)
     except SystemExit as e:  # argparse already printed usage or help
         return int(e.code or 0)
     try:
         return {"status": _status, "new": _new, "run": _run, "drain": _drain}[args.verb](
-            args, cwd, env, out, pipeline, clock)
+            args, cwd, env, out, pipeline, clock, process)
     except Refusal as e:
         print(f"refused: {e.message}", file=out)
         print(f"  paved road: {e.paved_road}", file=out)
         return EXIT_REFUSED
 
 
-def _status(args, cwd: Path, env, out: TextIO, pipeline, clock) -> int:
+def _status(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     config = _config(args, cwd)
     try:
         status = project(read_events(cwd / config.state_dir), repo=cwd)
@@ -87,7 +97,7 @@ def _status(args, cwd: Path, env, out: TextIO, pipeline, clock) -> int:
     return 0
 
 
-def _new(args, cwd: Path, env, out: TextIO, pipeline, clock) -> int:
+def _new(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     try:
         path, findings = new_ticket(cwd, args.stem, fs=LocalFilesystem())
     except (ValueError, FileExistsError) as e:
@@ -102,32 +112,34 @@ def _new(args, cwd: Path, env, out: TextIO, pipeline, clock) -> int:
     return 0
 
 
-def _run(args, cwd: Path, env, out: TextIO, pipeline, clock) -> int:
-    return _locked(args, cwd, env, out, pipeline, clock,
+def _run(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    return _locked(args, cwd, env, out, pipeline, clock, process,
                    lambda runner, config, git: runner.run(args.stem))
 
 
-def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock) -> int:
-    return _locked(args, cwd, env, out, pipeline, clock,
+def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    return _locked(args, cwd, env, out, pipeline, clock, process,
                    lambda runner, config, git: Drain(
                        runner=runner, repo=cwd, config=config, git=git, clock=clock,
+                       process=process, env=env, config_path=args.config,
+                       carried=args.parked,
                        report=lambda line: print(line, file=out)).run())
 
 
 def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None, clock: Clock,
-            verb) -> int:
+            process: ProcessExec, verb) -> int:
     """The two scaffold verbs' shared composition: config, git, engine log,
     the runner over the stage-dispatch factory; `verb` runs under its lock."""
     config = _config(args, cwd)
     # Inherit-minus-secrets: git never needs a provider key (section 6).
-    git = Git(SubprocessExec(), env=child_env(env, {p.auth for p in config.providers if p.auth}),
+    git = Git(process, env=child_env(env, {p.auth for p in config.providers if p.auth}),
               timeout=GIT_TIMEOUT_SECONDS)
 
     def factory(journal):
         if pipeline is not None:  # a scripted stand-in (tests)
             return pipeline(journal)
         return compose_pipeline(repo=cwd, config=config, env=env, journal=journal, clock=clock,
-                                process=SubprocessExec(), fs=LocalFilesystem(), git=git)
+                                process=process, fs=LocalFilesystem(), git=git)
 
     async def go() -> int:
         try:

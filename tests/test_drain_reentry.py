@@ -74,6 +74,20 @@ def checkout(tmp_path: Path, *, verify: str = EXISTS, extra_config: str = "") ->
     return repo
 
 
+class NoHandoff:
+    """The process seam with the self-upgrade `uv` spawn stubbed to exit 0;
+    everything else (git, verification commands) runs for real."""
+
+    def __init__(self):
+        self._real = SubprocessExec()
+
+    async def run(self, argv, *, cwd, env, timeout, stdin_path=None, on_spawn=None):
+        if argv[0] == "uv":
+            return 0, "", ""
+        return await self._real.run(argv, cwd=cwd, env=env, timeout=timeout,
+                                    stdin_path=stdin_path, on_spawn=on_spawn)
+
+
 class Real:
     """The production pipeline shape over the lock-held journal, with the
     scripted agent behind the model seam."""
@@ -99,7 +113,10 @@ class Real:
 
     def drain(self) -> tuple[int, str]:
         out = StringIO()
-        rc = main(["drain"], cwd=self.repo, env=self.env, out=out, pipeline=self, clock=self.clock)
+        # The fixture's widget lands under squatch/, so the admission is a
+        # self-upgrade: the handoff spawn is stubbed, never a real re-exec.
+        rc = main(["drain"], cwd=self.repo, env=self.env, out=out, pipeline=self, clock=self.clock,
+                  process=NoHandoff())
         return rc, out.getvalue()
 
     def implement_prompts(self) -> list[str]:
@@ -187,7 +204,8 @@ def test_the_ticket_file_is_never_written_and_the_re_offer_merges_on_one_unit(tm
     text = git(real.repo, "show", f"main:tickets/{STEM}/ticket.md")
     assert "parse() entry point" not in text and "Prior attempts" not in text
     assert "squatch/widget.py" in git(real.repo, "ls-tree", "-r", "--name-only", "main")
-    assert "1 merged this drain (widget-module)" in out
+    assert f"settled: {STEM} run 1 ended ok" in out
+    assert f"self-upgrade: {STEM} touched squatch/widget.py" in out
 
 
 def test_a_failing_checks_json_renders_its_hard_findings_with_the_verification_tail(tmp_path):

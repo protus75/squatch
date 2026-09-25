@@ -30,12 +30,31 @@ quiescence (parked reds included), 1 = the ceiling halt, 2 = a refusal.
 A re-offer is findings-fed by construction: the stage layer's Implement
 render folds the parked stem's durable `review.md`/`checks.json` findings
 into criteria-position (section 11.2, `squatch.stages`), so this module
-draws the unit and dispatches through the same path as `run <stem>`. One
-seam is left for the deliverable that follows: the self-upgrade trigger
-after a merge, a no-op here.
+draws the unit and dispatches through the same path as `run <stem>`.
+
+Two parks are not re-offers. A `premise_failed` terminal answered the ticket
+AS WRITTEN, so re-asking it unchanged replays a judgment (section 2): the
+stem stays parked, draws nothing, and is never re-offered until a later
+ticket-plane `ticket.md` commit lands -- journal-derived as an intake signal
+after the terminal -- at which point it is eligible work again. Its paved
+road is `source`-keyed (section 13): a seed's false premise is a plan
+defect fixed in the plan first, a human or box stem's is a direct edit.
+
+A SELF-UPGRADE is the other. An admission whose squash touches `squatch/**`
+or `specs/**` means the running process is stale against the checkout it
+drains, so before the next dispatch the drain re-execs itself through the
+process-exec seam as `uv run python -m squatch drain` -- one form,
+dependency changes included (uv's sync is a no-op when nothing changed; D1's
+one runtime `uv` exception) -- carrying this invocation's parked set as
+repeated `--parked <stem>` flags. The HANDOFF order is fixed: journal the
+handoff, close the journal, release the lock (both are the session's exit),
+spawn with `timeout=None` and inherited stdio, await, exit with the child's
+code -- nothing else after the spawn, so the child is the only writer. The
+child unions the carried set into its own parked set: it runs UPGRADED code
+whose fold may read the record differently, and the parent's verdicts hold.
 """
 
-from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -46,23 +65,19 @@ from squatch.effects import run_sequence
 from squatch.git import Git
 from squatch.journal import Event, Journal
 from squatch.runner import EXIT_OK, EXIT_TICKET, Refusal, Report, Runner, Session
-from squatch.seams import Clock
+from squatch.seams import Clock, ExecutableNotFound, ProcessExec
 from squatch.tickets import (INTAKE_SIGNAL, PLAN_FILE, RESERVED_STEMS, TICKET_FILE, TICKETS_DIR,
                              Ticket, TicketLintError, cycle_through, lint_ticket, on_disk_stems,
                              pending_stems)
 
 RETRY_CAP = "retry"
 NON_OK = OUTCOMES - {"ok"}
+PREMISE = "premise_failed"
 CEILING_TIMER = "drain_max_runtime"
 CONTINUE = "`squatch drain`"
-
-# Prompt 13's seam: called after every settled admission with the admitted
-# stem and the invocation's parked set.
-Upgrade = Callable[[str, Sequence[str]], Awaitable[None]]
-
-
-async def no_upgrade(stem: str, parked: Sequence[str]) -> None:
-    return None
+HANDOFF_SIGNAL = "drain_handoff"
+UPGRADE_PREFIXES = ("squatch/", "specs/")
+UV_FORM = ("uv", "run", "python", "-m", "squatch")
 
 
 @dataclass(frozen=True)
@@ -73,25 +88,32 @@ class Fold:
     latest: Mapping[str, str]        # stem -> its latest run state
     first_intake: Mapping[str, str]  # stem -> ts of its first intake signal
     retry_drawn: Mapping[str, int]   # stem -> retry-named cap_consumed count
+    commits: Mapping[str, str | None]  # stem -> the squash commit its merge put on main
+    edited: frozenset[str]           # stems with an intake signal after their latest transition
 
 
 def fold(events: Iterable[Event]) -> Fold:
     latest: dict[str, str] = {}
     first: dict[str, str] = {}
     drawn: dict[str, int] = {}
+    commits: dict[str, str | None] = {}
     merged: set[str] = set()
+    edited: set[str] = set()
     for e in events:
         if e.ticket is None:
             continue
         if e.type == "state_transition":
             latest[e.ticket] = e.body["to"]
+            edited.discard(e.ticket)
             if e.body["to"] == "merged":
                 merged.add(e.ticket)
+                commits[e.ticket] = e.body.get("commit")
         elif e.type == "signal" and e.body.get("kind") == INTAKE_SIGNAL:
             first.setdefault(e.ticket, e.ts)
+            edited.add(e.ticket)
         elif e.type == "cap_consumed" and e.body.get("cap") == RETRY_CAP:
             drawn[e.ticket] = drawn.get(e.ticket, 0) + 1
-    return Fold(frozenset(merged), latest, first, drawn)
+    return Fold(frozenset(merged), latest, first, drawn, commits, frozenset(edited))
 
 
 def sort_key(fold: Fold) -> Callable[[Ticket], tuple]:
@@ -119,22 +141,38 @@ class Plane:
     pending: tuple[str, ...]     # on disk, not yet intaken
 
 
+@dataclass(frozen=True)
+class Handoff:
+    """The self-upgrade re-exec the session's exit hands to the spawn."""
+
+    argv: tuple[str, ...]
+
+
 class Drain:
     def __init__(self, *, runner: Runner, repo: Path, config: Config, git: Git, clock: Clock,
-                 report: Report, upgrade: Upgrade = no_upgrade):
+                 process: ProcessExec, env: Mapping[str, str], report: Report,
+                 config_path: Path | None = None, carried: Sequence[str] = ()):
         self._runner = runner
         self._repo = Path(repo)
         self._config = config
         self._git = git
         self._clock = clock
+        self._process = process
+        self._env = env
         self._report = report
-        self._upgrade = upgrade
+        self._config_path = config_path
+        self._carried = frozenset(carried)
 
     async def run(self) -> int:
         async with self._runner.session() as session:
-            return await self._drain(session)
+            result = await self._drain(session)
+        # Past the session: the journal is closed and the lock released, so
+        # the child spawned here is the only writer (section 18).
+        if isinstance(result, Handoff):
+            return await self._exec(result)
+        return result
 
-    async def _drain(self, session: Session) -> int:
+    async def _drain(self, session: Session) -> int | Handoff:
         journal = session.journal
         started = self._clock()
         ceiling = timedelta(hours=self._config.drain.max_runtime_hours)
@@ -158,7 +196,10 @@ class Drain:
             run = await self._runner.dispatch(ticket, journal)
             if run.settled:
                 merged_now.append(ticket.stem)
-                await self._upgrade(ticket.stem, self._parked(plane, fold(journal.read())))
+                facts = fold(journal.read())
+                touched = await self._upgrading(facts.commits.get(ticket.stem))
+                if touched:
+                    return self._handoff(journal, ticket.stem, facts, plane, touched)
 
     # --- the scan ----------------------------------------------------------------
 
@@ -204,16 +245,24 @@ class Drain:
 
     def _eligible(self, plane: Plane, facts: Fold) -> list[Ticket]:
         ready = [t for t in plane.tickets.values()
-                 if facts.latest.get(t.stem) in (None, "abandoned")
+                 if (facts.latest.get(t.stem) in (None, "abandoned")
+                     or self._released(facts, t.stem))
                  and all(d in facts.merged for d in t.depends)]
         return sorted(ready, key=sort_key(facts))
 
+    def _released(self, facts: Fold, stem: str) -> bool:
+        """A premise park whose ticket-plane `ticket.md` commit has changed."""
+        return facts.latest.get(stem) == PREMISE and stem in facts.edited
+
     def _parked(self, plane: Plane, facts: Fold) -> list[str]:
-        return sorted(s for s in plane.tickets if facts.latest.get(s) in NON_OK)
+        parked = {s for s in plane.tickets
+                  if facts.latest.get(s) in NON_OK and not self._released(facts, s)}
+        return sorted(parked | (self._carried & plane.tickets.keys()))
 
     def _reoffer(self, plane: Plane, facts: Fold) -> Ticket | None:
         offers = [plane.tickets[s] for s in self._parked(plane, facts)
-                  if self.retry_budget(facts, s) > 0
+                  if facts.latest.get(s) != PREMISE
+                  and self.retry_budget(facts, s) > 0
                   and all(d in facts.merged for d in plane.tickets[s].depends)]
         offers.sort(key=sort_key(facts))
         return offers[0] if offers else None
@@ -232,6 +281,43 @@ class Drain:
         self._report(f"re-offer: {stem} after `{facts.latest[stem]}`; retry unit "
                      f"{facts.retry_drawn.get(stem, 0) + 1} of {self._config.caps.retry} drawn"
                      + (f"; findings-fed from {fed}" if fed else ""))
+
+    # --- the self-upgrade handoff ----------------------------------------------------
+
+    async def _upgrading(self, commit: str | None) -> list[str]:
+        """The engine-plane paths the admitted squash touched; empty for a
+        host-only diff or an `already_satisfied` settle (nothing integrated)."""
+        if commit is None:
+            return []
+        names = await self._git.diff_names(self._repo, f"{commit}^", commit)
+        return [p for p in names if p.startswith(UPGRADE_PREFIXES)]
+
+    def _handoff(self, journal: Journal, stem: str, facts: Fold, plane: Plane,
+                 touched: list[str]) -> Handoff:
+        parked = self._parked(plane, facts)
+        argv = [*UV_FORM]
+        if self._config_path is not None:
+            argv += ["--config", str(self._config_path)]
+        argv.append("drain")
+        for s in parked:
+            argv += ["--parked", s]
+        journal.append("signal", {"kind": HANDOFF_SIGNAL, "admitted": stem,
+                                  "commit": facts.commits[stem], "touched": touched,
+                                  "parked": parked, "argv": argv})
+        self._report(f"self-upgrade: {stem} touched {', '.join(touched)}; handing off to "
+                     f"`{' '.join(argv)}` (this process releases the lock, then awaits it)")
+        return Handoff(tuple(argv))
+
+    async def _exec(self, handoff: Handoff) -> int:
+        try:
+            rc, _, _ = await self._process.run(handoff.argv, cwd=self._repo, env=self._env,
+                                               timeout=None)
+        except ExecutableNotFound:
+            raise Refusal("`uv` is not on PATH, so the self-upgrade handoff cannot re-exec",
+                          f"install uv (D1's one runtime exception), then run "
+                          f"`{' '.join(handoff.argv)}` -- the lock is free and the child "
+                          f"reconciles on entry") from None
+        return rc
 
     # --- the stop ------------------------------------------------------------------
 
@@ -254,17 +340,19 @@ class Drain:
     def _tail(self, plane: Plane, facts: Fold) -> None:
         cap = self._config.caps.retry
         for stem in self._parked(plane, facts):
-            left = self.retry_budget(facts, stem)
+            ended = facts.latest.get(stem)
             where = ", ".join(str(p.relative_to(self._repo)) for p in self._artifacts(stem))
             detail = f"findings: {where}; log: {self._runner.log_path}" if where else (
                 f"findings: {self._runner.log_path}")
-            if left > 0:
+            if ended == PREMISE:
+                road = self._premise_road(plane.tickets[stem])
+            elif (left := self.retry_budget(facts, stem)) > 0:
                 road = f"{left} retry unit(s) left; {CONTINUE} re-offers it findings-fed"
             else:
                 road = (f"retry cap spent ({cap} of {cap} drawn); {CONTINUE} never re-dispatches "
                         f"it -- fix the cause it names; the re-arm is the operator's Reject-queue "
                         f"keep (section 13 touchpoint 3)")
-            self._report(f"parked: {stem} ended `{facts.latest[stem]}`; {detail}; {road}")
+            self._report(f"parked: {stem} ended `{ended}`; {detail}; {road}")
         for h in plane.held.values():
             self._report(f"held: {h.stem} {h.reason} -- {h.paved_road}")
         for stem, t in sorted(plane.tickets.items()):
@@ -273,6 +361,18 @@ class Drain:
                 self._report(f"blocked: {stem} waiting on {', '.join(unmerged)}")
         for stem in plane.pending:
             self._report(f"pending intake: {stem} (uncommitted; the next {CONTINUE} intakes it)")
+
+    def _premise_road(self, ticket: Ticket) -> str:
+        """Source-keyed (sections 13, 18): the one release is a changed
+        ticket-plane `ticket.md` commit; only where the fix originates differs."""
+        path = f"tickets/{ticket.stem}/{TICKET_FILE}"
+        if ticket.source == "seed":
+            fix = (f"a seed renders the plan, so fix the false assumption in {PLAN_FILE} first, "
+                   f"then regenerate {path} in place from it")
+        else:
+            fix = f"edit {path} to answer the verdict"
+        return (f"the verdict answered the ticket as written, so {CONTINUE} never re-offers it "
+                f"unchanged; {fix}; the next {CONTINUE} intakes the edit and runs it again")
 
     def _artifacts(self, stem: str) -> list[Path]:
         root = self._repo / TICKETS_DIR / stem
@@ -283,4 +383,3 @@ class Drain:
 
     def _exists(self, stem: str) -> bool:
         return self._path(stem).is_file()
-

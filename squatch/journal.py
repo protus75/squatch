@@ -108,6 +108,12 @@ class Journal:
     def close(self) -> None:
         self._fh.close()
 
+    @property
+    def closed(self) -> bool:
+        """Whether the append handle is closed: the drain's self-upgrade
+        handoff spawns its child only after this is true (section 18)."""
+        return self._fh.closed
+
     def segments(self) -> list[Path]:
         """Every segment in write order (name order)."""
         return _segments(self.dir)
