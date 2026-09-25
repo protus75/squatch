@@ -1,0 +1,118 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "985c4d073006577bca9ee80e3cce5630076cd934",
+  "stem": "shakeout-merge",
+  "branch": "shakeout-merge",
+  "base": "e79255a9c301fa1b2a68ed3521ce0cb3fe7879a4",
+  "head": "985c4d073006577bca9ee80e3cce5630076cd934",
+  "changed_files": [
+    "eval/shakeout/merge_group.py",
+    "eval/shakeout/registry.py",
+    "tests/test_merge.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_merge.py",
+            "tests/test_shakeout.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "eval.shakeout",
+            "run",
+            "--outbox",
+            "tickets/shakeout-merge",
+            "--prior",
+            "tickets/shakeout-reconcile/shakeout-report.json"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "eval.shakeout",
+            "check",
+            "tickets/shakeout-merge/shakeout-report.json"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "git",
+            "diff",
+            "--name-only",
+            "main...shakeout-merge"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
