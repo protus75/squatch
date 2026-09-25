@@ -1,14 +1,16 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Harvest's box enqueue skips redaction. Pass the runner's Redactor (self._log._redact) into harvest.extract, redact the run.md text before enqueue_second_problems parses it, and add a test showing a planted configured secret appears in no file under <state_dir>/box/.",
-    "enqueue_second_problems accepts only '-' bullets. Detect bullets with the same marker regex ingest uses ('- ', '* ', '<digits>. '), and strip surrounding backticks before the _BOX_ID citation check so a `box-...` code span counts as a citation and is skipped.",
-    "Extend test_enqueue_second_problems_and_empty_section to cover a '* problem' bullet and a backticked box-id citation.",
-    "Everything else passed: all acceptance criteria, scope fence, verification, run_record and diff_budget checks. Keep the existing diff and make only these two targeted fixes. Don't re-ingest bootstrap/suggestions.md: the 257 records are already in the instance box."
+    "All checks passed; review snagged on two fixable findings. Keep the existing diff, make only these two fixes, and don't re-ingest: the instance box already holds the 257 bootstrap messages.",
+    "status.py:114 must not call load(None, cwd=repo) to find the box, and the except ConfigError fallback that silently shows an empty box must go. Take the state dir from what _status already resolved from --config.",
+    "First read squatch/__main__.py _status and the project() signature. If project already gets the state dir, the journal path, or a Journal, derive <state_dir>/box from it inside status.py. That keeps the fix inside the fence.",
+    "If the resolved state dir can only reach project() by editing squatch/__main__.py, which is outside the fence, stop and answer premise_failed naming that fence gap. Don't ship a fallback or a second config load.",
+    "Add a test_cli.py pin: status with --config pointing at a config whose state_dir differs from cwd's shows that config's box. A missing or unreadable box refuses instead of showing empty.",
+    "box.py:257: split main's except. Checkout/config resolution keeps its current message. ingest() failures (ValueError from a malformed box file, OSError on write) get their own exit-2 refusal naming the box path and how to repair or remove it."
   ],
-  "reason": "Review returned a snag with two concrete fixes to make: redact the box write path and match bullets with the shared marker regex. Neither needs a ticket change or more capability.",
+  "reason": "The review found two concrete, well-steered defects. The status one either fits in the fence or becomes a premise_failed answer; this run showed neither yet, so a retry at the same capability fits.",
   "detail": null
 }
