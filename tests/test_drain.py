@@ -505,6 +505,32 @@ def test_premise_road_ignores_an_unrelated_spent_retry_cap(checkout):
     assert "squatch confirm rma" in line
 
 
+def test_premise_park_skips_an_unchanged_ticket_then_an_intaken_edit_releases_run_one(checkout):
+    path = committed(checkout, "rma")
+    first = Scripted({"rma": ["premise_failed"]})
+
+    assert drain(checkout, first)[0] == EXIT_OK
+    running = lambda: [t["run_seq"] for t in transitions(checkout, "rma")
+                       if t["to"] == "running"]
+    assert running() == [0]
+
+    unchanged = Scripted({"rma": ["ok"]})
+    rc, out = drain(checkout, unchanged)
+    assert rc == EXIT_OK and unchanged.calls == [] and running() == [0]
+    line = next(line for line in out.splitlines() if line.startswith("parked: rma"))
+    assert "edit tickets/rma/ticket.md" in line and "SQUATCH_PLAN.md" not in line
+
+    path.write_text(path.read_text().replace("The widget parser lands.",
+                                             "The widget parser lands after its edit."))
+    released = Scripted({"rma": ["ok"]})
+    rc, out = drain(checkout, released)
+    assert rc == EXIT_OK, out
+    assert "intake: committed rma" in out
+    assert released.calls == [("rma", 1)] and running() == [0, 1]
+    assert states(checkout, "rma") == ["running", "premise_failed", "running", "merged"]
+    assert [draw["cap"] for draw in draws(checkout, "rma")] == ["premise_bounce"]
+
+
 @pytest.mark.parametrize("diagnosis", [
     {"call": "ok", "verdict": verdict, "lessons": ("lesson",),
      "reason": "diagnosed", "detail": None}

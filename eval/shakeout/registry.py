@@ -27,4 +27,5 @@ GROUPS: tuple[tuple[str, str | ModuleType], ...] = (
     ("shakeout-reconcile", "eval.shakeout.reconcile_group"),
     ("shakeout-merge", "eval.shakeout.merge_group"),
     ("shakeout-providers", "eval.shakeout.providers_group"),
+    ("shakeout-drain", "eval.shakeout.drain_group"),
 )
