@@ -1,31 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "2ce6d4ab41d5c8bea8341e9524ed3627fe5fb1cb",
+  "produced_at_sha": "4f9ce7cc8731276fdcfaf29b8a15d8b33195eb22",
   "stem": "phase3-continue",
   "branch": "phase3-continue",
-  "base": "4dd7d0c3002458c6edad4042a92da6fbb370794d",
-  "head": "2ce6d4ab41d5c8bea8341e9524ed3627fe5fb1cb",
+  "base": "43c2280edbf587f71de5286002281f685f7da9dc",
+  "head": "4f9ce7cc8731276fdcfaf29b8a15d8b33195eb22",
   "changed_files": [
     "tests/test_seeded_phase3_01.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/merge-queue/ticket.md",
-      "sha": "a56b3307ccd9a310219afbe1113dc26e86e78786",
+      "sha": "cf4e48d024bcb2dc20ed795bb65b09074a6a9b65",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue/ticket.md",
-          "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"snag\", \"summary\": \"The fence and Context close, the render fits well under the bound, and the dormant-hook constraints can all be met together. But the ticket builds only one of the two typed resolution rungs that the section 20 registry grants the merge-queue seed, and its criteria never show the mechanical rung actually resolving a conflict.\", \"findings\": [{\"code\": \"requisition_review\", \"path\": \"tests/test_mergequeue.py\", \"line\": null, \"message\": \"The section 20 registry g'",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -33,22 +25,36 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase3-continue-02/ticket.md",
-      "sha": "0470b526969fa4fbc18e276df1ddc1a3b2e3789d",
+      "sha": "aa50df870e3e7138d06cadd593a8ae02ad3fd3f9",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-02/ticket.md",
           "line": null,
-          "message": "The Context section is empty, but the criteria need artifacts that already exist on main. The `seeding.max_seeds_per_admission` and `drain.max_ticket_minutes` caps are defined in `squatch/config.py` and `config.yaml`. Lint cleanliness is defined in `squatch/tickets.py`. The rework-stage hook into the merge module is in `squatch/merge.py`. The pattern for batch tests and predecessor-test closure is in `tests/test_seeded_phase3_core.py`. The predecessor continuation `phase3-continue` carried these same paths as Context for the same kind of test. With none of them in Context, the implementer would write the batch test without reading the artifacts that own those facts.",
-          "paved_road": "List `squatch/tickets.py`, `squatch/config.py`, `config.yaml`, `squatch/merge.py` and `tests/test_seeded_phase3_core.py` in Context. Add `squatch/mergequeue.py`, `tests/test_mergequeue.py` and `tests/test_seeded_phase3_01.py` only if they are on main when this ticket is authored. Every Context path must exist on main."
+          "message": "The criterion says the test 'scans `tests/test_mergequeue.py` to prove the Rework hook contradicts no existing assertion'. That cannot be met. The hook is written later by rework-stage and does not exist when this ticket's test runs. A text scan of test_mergequeue.py cannot show semantic non-contradiction with code that has not been written. An Implement run could pass it with a trivial scan, or fail to decide what 'proves' means.",
+          "paved_road": "Replace it with a check a test can decide. Pin that rework-stage's authored ticket keeps `tests/test_mergequeue.py` unchanged. For example: its Scope out forbids editing merge-queue behavior or tests, and its `## Verification` runs `uv run pytest tests/test_mergequeue.py -q`. Alternatively, put `tests/test_mergequeue.py` in rework-stage's fence if the hook may change asserted behavior. Section 20 requires the fence to close over every predecessor negative test the ticket invalidates."
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-02/ticket.md",
           "line": null,
-          "message": "Section 20 requires each continuation to pin its exact emitted identities, edges, tier and budget. The criteria only say 'the next admission' and 'the emitted successor' in general terms. They do not name `rework-stage` as the only deliverable, rated KNOWN-DEEP at `high`/`high`, with the exact fence `squatch/rework.py`, `specs/rework.md`, `squatch/mergequeue.py`, `tests/test_rework.py`. They do not name the successor stem `phase3-continue-03` at `medium`/`medium` with the fence `tickets`, `tests/test_seeded_phase3_03.py`. They do not state the dependency edges (rework-stage depends on phase3-continue-02; phase3-continue-03 depends on rework-stage). They also do not say which new modules rework-stage owns (`squatch/rework.py`, `specs/rework.md`), or that its change to the existing `squatch/mergequeue.py` is limited to a hook that contradicts no unfenced `tests/test_mergequeue.py` assertion. So the test is not pinned, and a wrong batch could still pass it.",
-          "paved_road": "Rewrite the Scope in and criteria in the same form as `phase3-continue`. The authored set is exactly `rework-stage` and `phase3-continue-03`. State their exact tiers, fences and dependency edges, and a structured ownership record for `squatch/rework.py`. Require a scan showing that no existing test asserts behavior the `squatch/mergequeue.py` change would contradict. State that the carried suffix starts at `[thresh-runtime]` and ends with `[phase3-exit]`."
+          "message": "The acceptance criteria pin 'budgets' for rework-stage and phase3-continue-03. Scope in never states the expected or stuck minutes for either seed. The implementer would have to invent the values the test pins, so the pinned values are not reviewable against the ticket.",
+          "paved_road": "State explicit `expected`/`stuck` minutes for both seeds in Scope in, with expected < stuck <= drain.max_ticket_minutes (180 in config.yaml). Have the criterion pin exactly those values."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-02/ticket.md",
+          "line": null,
+          "message": "Section 20 requires every continuation to assert that each existing fence path is also existing Context. That covers the `squatch/mergequeue.py` fence entry, which exists once merge-queue merges. The criteria never require this check. They also omit the authoring-time render-headroom check that the predecessor `tests/test_seeded_phase3_core.py` carries. That check matters more for a `high`/`high` seed whose Context includes mergequeue.py and merge.py.",
+          "paved_road": "Add criteria that the test (a) asserts rework-stage's Context names `squatch/mergequeue.py` and every other fence path existing at authoring time, using a pinned EXISTING_AT_AUTHORING table like the core test, and (b) asserts each seed's implement render fits RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-02/ticket.md",
+          "line": null,
+          "message": "Scope in has an `ownership:` map that lists `squatch/rework.py` and `specs/rework.md` with contracts. Neither is in this ticket's fence (`tickets`, `tests/test_seeded_phase3_02.py`). As written, the map reads as this ticket owning out-of-fence modules. It never names the registry owner stem that section 20 requires the continuation to name.",
+          "paved_road": "Rewrite the block to name the owner, for example `rework-stage: {owns: [squatch/rework.py, specs/rework.md, tests/test_rework.py], hooks: [squatch/mergequeue.py]}`. Alternatively, move the module contracts into the rework-stage seed's text and have the criteria pin that owner mapping."
         }
       ],
       "commands": []
