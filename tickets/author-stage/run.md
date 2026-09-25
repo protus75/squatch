@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-The prior implementation was present as earlier commits but not on this attempt's branch, so it was reapplied and then brought forward to the corrected contract. Bug policy inputs are stored as closed, nullable box fields and revalidated before the paid Author call; tracked-tree projection now uses the named public git operation.
+The prior implementation was available only through the previous attempt's commit object, not in the current tree. I restored that reviewed candidate and added the two requested coverage gaps: invalid and missing bug-policy inputs across a continuing triage pass, and proof that Author tree construction uses the public `ls_files` operation.
 
 ## Dead ends
 
@@ -13,4 +13,4 @@ The prior implementation was present as earlier commits but not on this attempt'
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual about 20m on this re-entry.
+Expected 90m; actual about 15m on this re-entry.
