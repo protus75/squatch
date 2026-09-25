@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "51ed6feb1cffeb16b814cf186f8a27a22688d158",
+  "produced_at_sha": "2a481d0b33e33f42692025d658a141b6eec21041",
   "stem": "box-triage",
   "branch": "box-triage",
-  "base": "38125adc49d9dd0aca73f84766bbd00872e07d0a",
-  "head": "51ed6feb1cffeb16b814cf186f8a27a22688d158",
+  "base": "b4d8889b04c0f01f0abe57a12b64e5ccb6de7301",
+  "head": "2a481d0b33e33f42692025d658a141b6eec21041",
   "changed_files": [
     "specs/triage.md",
     "squatch/__main__.py",
