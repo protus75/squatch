@@ -2,15 +2,16 @@
 ok
 
 ## Surprises / judgment calls
-The existing stage lift was factored into one shared ticket-plane function so terminal and reconcile harvests use the same writer. Spool data-block delimiters are escaped only at re-entry rendering; the durable harvest keeps the redacted original tail.
+The existing StageResult does not expose the driver's logged terminal reason, so no-finding stage terminals carry a stable stage/outcome reason in Delivery. Harvested Review prompts retain their spool tail but replace the diff data-block body with an explicit omission marker so source content cannot enter harvest.
 
 ## Dead ends
-An initial re-entry render nested a harvested prompt's data-block delimiter and was mechanically refused. The renderer now neutralizes that delimiter inside the bounded untrusted harvest contribution.
+None.
 
 ## Second problems filed
+None.
 
 ## Resolved engine/model
-OpenAI Codex, GPT-5
+OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
-Expected 90m; actual approximately 45m.
+Expected 90m; actual approximately 35m.
