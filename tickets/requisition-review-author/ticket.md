@@ -43,6 +43,7 @@ No seed-path wiring: the Check stage and the merge admission do not run the revi
 - specs/author.md
 - squatch/driver.py
 - tests/test_author.py
+- tests/test_triage.py
 - tests/test_driver.py
 - tests/test_specs.py
 
@@ -53,6 +54,7 @@ No seed-path wiring: the Check stage and the merge admission do not run the revi
 - In `tests/test_author.py`, a review scripted `rma` ends the pass after that one review call, leaves no `tickets/<stem>/` dir, leaves the message `pending` with the `rma` summary and findings on its `triage` field, and the report names `squatch triage`.
 - In `tests/test_author.py`, under config `caps: {retry: 1, diagnosis: 1}` a review scripted `snag` twice leaves the message `pending`, no ticket dir, and the report naming the retry allowance.
 - In `tests/test_driver.py`, every Phase 0-1 driver claim still passes with an async gate that performs its own driver call inside the gate loop.
+- In `tests/test_triage.py`, every existing pass scenario that reaches Author scripts and observes the mandatory `requisition_review` call; an exhausted fake can never be treated as approval, and the commit-failure continuation case still reaches its later item after review.
 - `uv run pytest -q` exits 0.
 
 ## Verification
