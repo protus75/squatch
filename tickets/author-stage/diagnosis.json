@@ -1,15 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Every acceptance criterion passed and every check was green. The review snag is one unhandled failure path in Author.run (squatch/author.py ~L118): the ticket file is written before starting_state() and Intake.commit(), and exceptions from either are not caught.",
-    "Run lint_ticket and starting_state() on authored.ticket BEFORE writing to disk. If the write or Intake.commit fails, remove tickets/<stem>/ through the filesystem seam, report the reason, and return None so the message stays pending with its author verdict.",
-    "One bad item must never abort the triage pass. Add a test where Intake.commit (or starting_state) raises: no ticket dir remains, the message stays pending with its verdict, later items are still processed, and the triage_pass signal is still journaled.",
-    "bug_origin can be None for a bug_report message whose origin is not self_diagnosed or player, and starting_state raises ValueError in that case. Treat it as a failed authoring (leave pending and report it), not a crash.",
-    "Keep the rest of the diff as it is. The fix is local to Author.run plus one new test, all inside the fence. Consider replacing the private self._git._run('ls-files') call with a public git.py method only if that method already exists; squatch/git.py is outside the fence."
+    "`Message` in squatch/box.py has no `bug_origin` or `has_repro` field, so `starting_state` cannot get these values for a `bug_report` message. Guessing them from the free-form `origin` makes every bug_report item raise ValueError after a paid LLM call.",
+    "squatch/git.py only lists untracked files (`ls-files --others`). It has no public op for tracked files. Calling `Git._run(\"ls-files\")` from author.py skips the named-op rule and hides a scope escape.",
+    "The plan or ticket needs fixing: add squatch/box.py (a bug_origin/has_repro source on the message, or a defined mapping) and squatch/git.py plus tests/test_git.py (a named `ls_files` op) to the fence. Then regenerate the ticket.",
+    "Once the fence is fixed, keep the current diff. Check that the starting-state inputs resolve before `driver.run`, so an item that cannot be resolved makes no LLM call and stays pending with its author verdict.",
+    "When a needed change falls outside the fence, answer premise_failed as the Definition of rejected says. Do not work around it with private APIs or guessed mappings."
   ],
-  "reason": "Reviewer snag: one fixable oversight in the failure path with an exact paved road; the work is otherwise complete and green, so no extra capability or split is needed.",
+  "reason": "The ticket cannot be done inside its scope fence: box.py has no source for the bug_origin/has_repro inputs the policy needs, and git.py has no op for listing tracked files. Both files are outside the fence, and the ticket's Definition of rejected says to stop with premise_failed when that happens.",
   "detail": null
 }
