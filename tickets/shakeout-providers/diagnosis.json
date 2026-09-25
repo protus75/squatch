@@ -1,9 +1,14 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Match the auth signature only on the CLI's own failure channel: claude's result-event error text (parsed.failure) plus stderr, and codex's error/turn.failed message plus stderr. Never search the whole stdout transcript, because tool output in it can contain the phrase.",
+    "Give each adapter a distinct signature that matches its real expired-login text. Claude prints e.g. 'Please run /login' or an OAuth-expired message; codex prints a 401/refresh or login failure. Don't share one generic 'Not logged in'. Use a case-sensitive literal match.",
+    "Add a test where the signature appears only in assistant/tool content inside a failing stream while the result and stderr lack it, and assert failure_class is None.",
+    "Everything else passed checks and review: the Driver mapping, the tests, the shakeout member and the registry entry. Keep them, and only update the fixture strings to the new per-CLI signatures."
+  ],
+  "reason": "Review snag: the auth signature is matched across the whole stdout transcript. That is a fixable oversight and the review finding already names the fix.",
+  "detail": null
 }
