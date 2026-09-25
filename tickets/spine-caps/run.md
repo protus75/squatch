@@ -2,10 +2,9 @@
 ok
 
 ## Surprises / judgment calls
-The shared fold is represented as `CapFold` so the drain can compute all named counts once per scan while `remaining` and `spent` also accept raw journal events for other callers.
+The prior attempt's implementation was available as an unmerged commit. I restored that scoped diff and removed its unreachable `_tail` assertion, leaving the spent-cap branch as the sole zero-budget road.
 
 ## Dead ends
-The first focused terminal test compared the git helper's newline-terminated CLI output without stripping it; the assertion was corrected and all verification commands then passed.
 
 ## Second problems filed
 
@@ -13,4 +12,4 @@ The first focused terminal test compared the git helper's newline-terminated CLI
 OpenAI / GPT-5
 
 ## Predicted vs actual
-Expected 60m; actual approximately 12m.
+Expected 60m; actual approximately 10m.
