@@ -1,14 +1,14 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
+  "run_seq": 1,
+  "outcome": "infra_error",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "abandon-human",
   "lessons": [
-    "Make `rebase_continue` non-interactive in its own argv, e.g. `-c core.editor=true rebase --continue`. The engine child env has no GIT_EDITOR. Remove `GIT_EDITOR` from the test `git_env` so the rung-1 test shows the wrapper works without it.",
-    "`rebase_stop_at_conflict` must raise RebaseConflict only when the rebase actually stopped with conflicted paths. Re-raise any other GitError (dirty worktree, bad upstream) unchanged, so `_rebase` never calls `rebase_abort` when no rebase is in progress.",
-    "`admit` must return a typed Admission for a rebase failure that is not a conflict (a typed refusal with a finding and paved road), never a raw GitError. Add a test with a dirty-worktree candidate that proves no abort runs and the serial slot is released.",
-    "Keep what review accepted: serial slot, post-rebase re-gate before the integration check, tree-hash refusal, and the rung-2 handoff after unwind. Change only git.py's three additions, mergequeue.py's rebase path, and the tests. `rebase` and `rebase_abort` stay untouched."
+    "This attempt never reached implementation: outcome infra_error at implement, 0 tokens, provider and model null, empty diff, 39s wall time. Nothing here counts against the ticket or tier.",
+    "The implement spool holds a ticket-critique prompt (plan_contract data) and an 'approve' verdict response, not implement output. Check the implement dispatch surface, provider CLI launch, and spool paths before re-running.",
+    "The run record says 'ok' at ~25m, but it conflicts with this harvest (no diff, no cost). Treat it as stale and do not trust it as evidence of completed work.",
+    "When re-dispatched, apply the prior lessons unchanged: rebase_continue non-interactive via -c core.editor=true; RebaseConflict only on real conflicted paths; typed Admission for non-conflict rebase failures; rebase and rebase_abort untouched."
   ],
-  "reason": "Checks all passed; review found two fixable robustness oversights with concrete paved roads, none of which require more capability or a ticket change.",
+  "reason": "Infra failure before any provider call (null provider, 0 tokens, wrong-surface spool), not something retry or more capability fixes; the ticket itself was not exercised.",
   "detail": null
 }
