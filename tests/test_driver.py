@@ -27,6 +27,7 @@ from squatch.journal import Journal
 from squatch.llmeffect import LLMEffect, llm_key
 from squatch.gates import GateReport
 from squatch.llm import LLM_SURFACES, FakeLLM, Hang, LLMRequest, LLMResult
+from squatch.providers import ProviderError
 from squatch.redact import Redactor
 from squatch.seams import LocalFilesystem
 
@@ -325,6 +326,26 @@ async def test_prompt_is_on_disk_before_a_raising_call(tmp_path):
     assert terminal["event"] == "terminal"
     assert terminal["outcome"] == "infra_error"
     assert "provider down" in terminal["reason"]
+
+
+async def test_classified_provider_error_becomes_one_infra_finding(tmp_path):
+    error = ProviderError(
+        "claude", "login expired", failure_class="auth_error",
+        paved_road="run `claude login` in the operator's shell")
+    result = await run(driver(tmp_path, FakeLLM(error)), stage())
+    assert result.outcome == "infra_error"
+    assert len(result.findings) == 1
+    [finding] = result.findings
+    assert finding.code == "auth_error"
+    assert finding.message == str(error)
+    assert finding.paved_road == "run `claude login` in the operator's shell"
+
+
+async def test_unclassified_provider_error_has_no_infra_findings(tmp_path):
+    result = await run(driver(tmp_path, FakeLLM(
+        ProviderError("claude", "provider crashed"))), stage())
+    assert result.outcome == "infra_error"
+    assert result.findings == []
 
 
 async def test_engine_log_carries_structured_call_and_terminal_events(tmp_path):

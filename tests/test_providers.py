@@ -392,6 +392,39 @@ async def test_claude_error_result_is_a_provider_error(tmp_path):
         await client(tmp_path, ex).call(request("review"))
 
 
+async def test_claude_auth_failure_result_is_classified_with_login_road(tmp_path):
+    signature = ADAPTERS["claude"].auth_failure_signature
+    ex = ScriptedExec((0, claude_stream(
+        f"{signature}; run /login to re-authenticate", subtype="error_during_execution",
+        is_error=True), ""))
+    with pytest.raises(ProviderError) as info:
+        await client(tmp_path, ex).call(request("review"))
+    assert info.value.failure_class == "auth_error"
+    assert info.value.paved_road == "run `claude login` in the operator's shell"
+    assert "claude login" in str(info.value)
+
+
+async def test_auth_signature_in_agent_output_does_not_classify_a_different_failure(tmp_path):
+    claude_signature = ADAPTERS["claude"].auth_failure_signature
+    claude_output = providers.json.dumps({
+        "type": "assistant", "message": {"content": [
+            {"type": "text", "text": claude_signature}]}})
+    claude = ScriptedExec((1, claude_stream(
+        "ordinary failure", subtype="error_during_execution", is_error=True,
+        extra_lines=(claude_output,)), ""))
+    with pytest.raises(ProviderError) as claude_info:
+        await client(tmp_path, claude).call(request("review"))
+    assert claude_info.value.failure_class is None
+
+    codex_signature = ADAPTERS["codex"].auth_failure_signature
+    codex = ScriptedExec((1, codex_stream(codex_signature, failed="ordinary failure",
+                                          completed=False), ""))
+    with pytest.raises(ProviderError) as codex_info:
+        await client(tmp_path, codex).call(
+            request("implement", worktree=tmp_path / "wt"))
+    assert codex_info.value.failure_class is None
+
+
 async def test_claude_stream_without_a_result_event_is_a_provider_error(tmp_path):
     ex = ScriptedExec((0, '{"type":"system","subtype":"init"}\n', ""))
     with pytest.raises(ProviderError, match="result"):
@@ -399,11 +432,12 @@ async def test_claude_stream_without_a_result_event_is_a_provider_error(tmp_path
 
 
 async def test_non_zero_exit_is_a_provider_error_carrying_the_stderr_tail(tmp_path):
-    ex = ScriptedExec((1, "", "x" * 5000 + "\nNot logged in\n"))
+    ex = ScriptedExec((1, "", "x" * 5000 + "\nprovider crashed\n"))
     with pytest.raises(ProviderError) as info:
         await client(tmp_path, ex).call(request("review"))
     assert info.value.rc == 1 and info.value.provider == "claude"
-    assert "Not logged in" in str(info.value) and "x" * 5000 not in str(info.value)
+    assert "provider crashed" in str(info.value) and "x" * 5000 not in str(info.value)
+    assert info.value.failure_class is None and info.value.paved_road is None
 
 
 # --- the codex adapter's live contract ----------------------------------------
@@ -460,6 +494,15 @@ async def test_codex_error_event_with_exit_zero_is_a_provider_error(tmp_path):
     ex = ScriptedExec((0, codex_stream(error="rate limited", completed=False), ""))
     with pytest.raises(ProviderError, match="error: rate limited"):
         await client(tmp_path, ex).call(request("implement", worktree=tmp_path / "wt"))
+
+
+async def test_codex_auth_failure_stderr_is_classified_with_login_road(tmp_path):
+    ex = ScriptedExec((1, "", ADAPTERS["codex"].auth_failure_signature))
+    with pytest.raises(ProviderError) as info:
+        await client(tmp_path, ex).call(request("implement", worktree=tmp_path / "wt"))
+    assert info.value.failure_class == "auth_error"
+    assert info.value.paved_road == "run `codex login` in the operator's shell"
+    assert "codex login" in str(info.value)
 
 
 async def test_codex_stream_without_an_agent_message_is_a_provider_error(tmp_path):

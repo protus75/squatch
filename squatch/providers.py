@@ -36,6 +36,7 @@ CALL_TIMEOUT_SECONDS = 4 * 3600
 STDERR_TAIL = 2000
 
 Grant = Literal["write", "read"]
+FailureClass = Literal["auth_error"]
 
 
 class RoutingError(Exception):
@@ -47,11 +48,14 @@ class ProviderError(Exception):
     """A call that ran and failed: non-zero exit, a failed-turn event, a
     stream with no result, or no cost to charge."""
 
-    def __init__(self, provider: str, reason: str, *, rc: int | None = None, stderr: str = ""):
+    def __init__(self, provider: str, reason: str, *, rc: int | None = None, stderr: str = "",
+                 failure_class: FailureClass | None = None, paved_road: str | None = None):
         self.provider, self.reason, self.rc, self.stderr = provider, reason, rc, stderr
+        self.failure_class, self.paved_road = failure_class, paved_road
         tail = stderr[-STDERR_TAIL:].strip()
         super().__init__(f"{provider}: {reason}" + (f" (rc={rc})" if rc is not None else "")
-                         + (f"\nstderr: {tail}" if tail else ""))
+                         + (f"\nstderr: {tail}" if tail else "")
+                         + (f"\npaved road: {paved_road}" if paved_road else ""))
 
 
 @dataclass(frozen=True)
@@ -87,9 +91,24 @@ def _events(out: str):
             yield obj
 
 
-class ClaudeAdapter:
+class _Adapter:
+    auth_failure_signature: str
+    auth_paved_road: str
+
+    def error(self, reason: str, *, rc: int | None, stderr: str) -> ProviderError:
+        authenticated = any(
+            self.auth_failure_signature in channel for channel in (reason, stderr))
+        return ProviderError(
+            self.name, reason, rc=rc, stderr=stderr,
+            failure_class="auth_error" if authenticated else None,
+            paved_road=self.auth_paved_road if authenticated else None)
+
+
+class ClaudeAdapter(_Adapter):
     name = "claude"
     reports_cost = True
+    auth_failure_signature = "OAuth refresh token is no longer valid"
+    auth_paved_road = "run `claude login` in the operator's shell"
 
     def argv(self, *, model: str, effort: str, grant: Grant) -> list[str]:
         # --verbose: print mode refuses stream-json without it.
@@ -115,9 +134,12 @@ class ClaudeAdapter:
                       usd=_float(result.get("total_cost_usd")))
 
 
-class CodexAdapter:
+class CodexAdapter(_Adapter):
     name = "codex"
     reports_cost = False
+    auth_failure_signature = ("Your access token could not be refreshed because your refresh "
+                              "token has expired.")
+    auth_paved_road = "run `codex login` in the operator's shell"
 
     def argv(self, *, model: str, effort: str, grant: Grant) -> list[str]:
         base = ["codex", "exec", "--json", "-m", model, "-c", f"model_reasoning_effort={effort}"]
@@ -286,9 +308,9 @@ class CliClient:
         out, err = self._redact(out), self._redact(err)
         parsed = adapter.parse(out)
         if rc != 0:
-            raise ProviderError(provider.name, parsed.failure or "non-zero exit", rc=rc, stderr=err)
+            raise adapter.error(parsed.failure or "non-zero exit", rc=rc, stderr=err)
         if parsed.failure:
-            raise ProviderError(provider.name, parsed.failure, rc=rc, stderr=err)
+            raise adapter.error(parsed.failure, rc=rc, stderr=err)
         # Cost floor: metered when the stream reports it, else the declared
         # flat estimate; never unmetered.
         usd = parsed.usd if parsed.usd is not None else provider.limits.est_cost_per_call_usd

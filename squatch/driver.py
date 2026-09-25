@@ -112,7 +112,12 @@ class Driver:
                 # that would draw a cap for a defect capability cannot fix.
                 raise
             except Exception as e:
-                return self._terminal("infra_error", cost.fold(None), (), common,
+                failure_class = getattr(e, "failure_class", None)
+                paved_road = getattr(e, "paved_road", None)
+                classified = ((Finding(code=failure_class, message=str(e),
+                                       paved_road=paved_road),)
+                              if failure_class is not None and paved_road is not None else ())
+                return self._terminal("infra_error", cost.fold(None), classified, common,
                                       reason=f"{type(e).__name__}: {e}")
             cost.fold(result)
             self._spool.write(stem, attempt, f"{call_seq:03d}-response.md", result.text)
