@@ -1,0 +1,52 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "cf775c49c76160146d68fa591de3c093eb4c12b1",
+  "stem": "reject-verbs",
+  "branch": "reject-verbs",
+  "base": "bb0f48a741d7b7b772c711e0466688c61251a307",
+  "head": "cf775c49c76160146d68fa591de3c093eb4c12b1",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/caps.py",
+    "squatch/drain.py",
+    "squatch/runner.py",
+    "squatch/tickets.py",
+    "tests/test_caps.py",
+    "tests/test_cli.py",
+    "tests/test_drain.py",
+    "tests/test_drain_upgrade.py",
+    "tests/test_terminal.py",
+    "tests/test_verbs.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    }
+  ]
+}
