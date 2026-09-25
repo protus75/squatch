@@ -1,9 +1,15 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag only; checks were green. Remove `Journal.for_reading`: it builds the object with `cls.__new__` and skips `__init__`, so `append`, `close` and `with` raise AttributeError. It also adds a public API the Scope out does not allow.",
+    "Give segment parsing one owner: a module-level `_read_segments(directory)` that yields `tuple(_read_segment(path, active=path == segs[-1]))`. `Journal.read_segments()` returns it, `Journal.read()` flattens it, and `read_events` flattens it too.",
+    "`audit_journal` must not open a writer, because `Journal(...)` opens an append handle and can repair a torn tail. Read through a module-level `read_segments(state_dir)` next to `read_events` that shares `_read_segments`.",
+    "Update `tests/test_journal.py`: the torn-tail test must use `read_segments(state_dir)` or a `Journal` built with `with`, not `for_reading`. Keep the rolled-segment corruption test and the active-tail tolerance test.",
+    "Keep everything else, which the reviewer accepted: the audit invariants, the fixtures, the production-Runner green runs with one shared `Drive` (separate Drives restart the fake clock and trip `ts_monotone`), and CLI exit codes 0/1/2."
+  ],
+  "reason": "One fixable scope and design snag with a concrete fix, and all mechanical checks passed, so rerun at the same capability.",
+  "detail": null
 }
