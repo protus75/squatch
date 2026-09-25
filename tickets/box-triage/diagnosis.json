@@ -1,9 +1,15 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "go_binds: build the current identity only over the tiers in baseline.body['tiers'], mirroring eval/harness.py baselined_identity/spec_versions/spec_major. Return false when tiers is missing or empty, or when any row is PLACEHOLDER.",
+    "tests/test_policy.py: build the GO body the way the harness does, with baselined_identity(Registry(cfg), [tier]) plus tiers and verdict set to GO, never policy._identity. Keep the drift case: change one recorded review row's model and assert false.",
+    "Make _apply idempotent: if tickets/decisions/<record_id>.md is already at HEAD (rev_parse HEAD:<rel>), skip write and commit and just resolve the message. Test it with the record committed while the message is still pending.",
+    "Quote each projection row before measuring it against TRIAGE_CONTEXT_CHARS, and drop the second quoting in render, so the rendered block stays within the cap. Test a row containing '[squatch-data:' near the cap.",
+    "Keep the parts that already passed as they are: the universal key mapping (message seq as run_seq, pass as attempt), the spec, the CLI verb and the drain pin. The only defects are in policy identity matching and triage robustness."
+  ],
+  "reason": "The checks were green and the scope fence held. Review found a fixable defect: go_binds compares against all tiers instead of the tiers the harness records, and the reviewer gave a concrete fix.",
+  "detail": null
 }
