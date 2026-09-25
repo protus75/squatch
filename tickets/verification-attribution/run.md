@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The prior attempt's blocker was resolved by the widened scope fence, so the Phase 1 drain re-entry regression was updated to prove the base-red check is excused and filed before Review.
+The re-authored contract intentionally deduplicates only repeated reports from the same stem because the landed Box signature includes origin. Attribution is stored on one closed command record per verification argv, so mixed and multiple-red checks retain every filing id.
 
 ## Dead ends
-The old drain re-entry assertion expected an always-red command to fail Check; that behavior is intentionally superseded by base-diff attribution.
+The prior attempt's gate-level attribution and cross-stem signature workaround were discarded because they collapsed mixed command results and falsified later stems' origins.
 
 ## Second problems filed
 
