@@ -56,3 +56,10 @@ routing:
   - {tier: max,    surface: implement, candidates: [{provider: codex}]}
 
 routing_default_tier: medium
+
+# section 18 -- the self-build drain's unattended safety envelope. Raised from
+# the shipped 90 so the Phase 2 spine seeds (stuck budgets up to 180m, their
+# real hang bound) dispatch instead of parking; upward only, the one sanctioned
+# edit of this file (section 0 prompt 14).
+drain:
+  max_ticket_minutes: 180
