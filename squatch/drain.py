@@ -13,13 +13,13 @@ its latest state is a non-ok Outcome) and the drain continues. The committed
 tickets dir is re-scanned before every dispatch, so a stem a running ticket
 committed through the ticket-plane lane is eligible in the same invocation.
 
-At quiescence -- nothing eligible -- each parked stem whose `retry` cap still
-holds budget is RE-OFFERED in the same order, one unit drawn per re-offer as
-a `cap_consumed` event naming the cap and the ticket's blob sha; remaining
-budget is the journal fold over retry-NAMED draws (a lifetime lineage budget,
-never a counter). Eligible work always runs ahead of re-offers, and every
-merge re-evaluates quiescence, so an unblocked dependent runs in the same
-invocation. Two config ceilings bound an unattended drain (section 15): a
+At quiescence -- nothing eligible -- each parked stem whose spine caps still
+hold budget is RE-OFFERED in the same order, one retry unit drawn per re-offer
+as a `cap_consumed` event naming the cap and the ticket's blob sha; remaining
+budgets are the journal fold over each cap's named draws (lifetime lineage
+budgets, never counters). Eligible work always runs ahead of re-offers, and
+every merge re-evaluates quiescence, so an unblocked dependent runs in the
+same invocation. Two config ceilings bound an unattended drain (section 15): a
 ticket whose stuck budget exceeds `drain.max_ticket_minutes` is held at
 dispatch with a paved road and never runs; once `drain.max_runtime_hours`
 has elapsed no NEW ticket is admitted -- the in-flight one reaches its stage
@@ -60,6 +60,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from squatch.artifacts import OUTCOMES
+from squatch.caps import CapFold, RETRY_CAP, consume, fold as fold_caps, remaining, spent
 from squatch.config import Config
 from squatch.effects import run_sequence
 from squatch.git import Git
@@ -70,7 +71,6 @@ from squatch.tickets import (INTAKE_SIGNAL, PLAN_FILE, RESERVED_STEMS, TICKET_FI
                              Ticket, TicketLintError, cycle_through, lint_ticket, on_disk_stems,
                              pending_stems)
 
-RETRY_CAP = "retry"
 NON_OK = OUTCOMES - {"ok"}
 PREMISE = "premise_failed"
 CEILING_TIMER = "drain_max_runtime"
@@ -87,15 +87,15 @@ class Fold:
     merged: frozenset[str]
     latest: Mapping[str, str]        # stem -> its latest run state
     first_intake: Mapping[str, str]  # stem -> ts of its first intake signal
-    retry_drawn: Mapping[str, int]   # stem -> retry-named cap_consumed count
+    cap_drawn: CapFold               # stem -> named cap_consumed counts
     commits: Mapping[str, str | None]  # stem -> the squash commit its merge put on main
     edited: frozenset[str]           # stems with an intake signal after their latest transition
 
 
 def fold(events: Iterable[Event]) -> Fold:
+    events = tuple(events)
     latest: dict[str, str] = {}
     first: dict[str, str] = {}
-    drawn: dict[str, int] = {}
     commits: dict[str, str | None] = {}
     merged: set[str] = set()
     edited: set[str] = set()
@@ -111,9 +111,8 @@ def fold(events: Iterable[Event]) -> Fold:
         elif e.type == "signal" and e.body.get("kind") == INTAKE_SIGNAL:
             first.setdefault(e.ticket, e.ts)
             edited.add(e.ticket)
-        elif e.type == "cap_consumed" and e.body.get("cap") == RETRY_CAP:
-            drawn[e.ticket] = drawn.get(e.ticket, 0) + 1
-    return Fold(frozenset(merged), latest, first, drawn, commits, frozenset(edited))
+    return Fold(frozenset(merged), latest, first, fold_caps(events), commits,
+                frozenset(edited))
 
 
 def sort_key(fold: Fold) -> Callable[[Ticket], tuple]:
@@ -262,24 +261,24 @@ class Drain:
     def _reoffer(self, plane: Plane, facts: Fold) -> Ticket | None:
         offers = [plane.tickets[s] for s in self._parked(plane, facts)
                   if facts.latest.get(s) != PREMISE
-                  and self.retry_budget(facts, s) > 0
+                  and spent(self._config, facts.cap_drawn, s) is None
                   and all(d in facts.merged for d in plane.tickets[s].depends)]
         offers.sort(key=sort_key(facts))
         return offers[0] if offers else None
 
     def retry_budget(self, facts: Fold, stem: str) -> int:
-        return self._config.caps.retry - facts.retry_drawn.get(stem, 0)
+        return remaining(self._config, facts.cap_drawn, stem, RETRY_CAP)
 
     async def _draw_retry(self, journal: Journal, ticket: Ticket) -> None:
         stem = ticket.stem
-        sha = await self._git.rev_parse(self._repo, f"HEAD:{TICKETS_DIR}/{stem}/{TICKET_FILE}")
         facts = fold(journal.read())
         run_seq = run_sequence(journal, stem)
-        journal.append("cap_consumed", {"cap": RETRY_CAP, "ticket_sha": sha, "run_seq": run_seq},
-                       ticket=stem)
+        await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=RETRY_CAP,
+                      run_seq=run_seq)
         fed = ", ".join(str(p.relative_to(self._repo)) for p in self._artifacts(stem))
         self._report(f"re-offer: {stem} after `{facts.latest[stem]}`; retry unit "
-                     f"{facts.retry_drawn.get(stem, 0) + 1} of {self._config.caps.retry} drawn"
+                     f"{facts.cap_drawn.drawn(stem, RETRY_CAP) + 1} of "
+                     f"{self._config.caps.retry} drawn"
                      + (f"; findings-fed from {fed}" if fed else ""))
 
     # --- the self-upgrade handoff ----------------------------------------------------
@@ -338,7 +337,6 @@ class Drain:
         return EXIT_TICKET
 
     def _tail(self, plane: Plane, facts: Fold) -> None:
-        cap = self._config.caps.retry
         for stem in self._parked(plane, facts):
             ended = facts.latest.get(stem)
             where = ", ".join(str(p.relative_to(self._repo)) for p in self._artifacts(stem))
@@ -346,12 +344,12 @@ class Drain:
                 f"findings: {self._runner.log_path}")
             if ended == PREMISE:
                 road = self._premise_road(plane.tickets[stem])
-            elif (left := self.retry_budget(facts, stem)) > 0:
-                road = f"{left} retry unit(s) left; {CONTINUE} re-offers it findings-fed"
+            elif (reason := spent(self._config, facts.cap_drawn, stem)) is not None:
+                road = (f"{reason}; {CONTINUE} never re-dispatches it -- fix the cause it names; "
+                        f"the re-arm is the operator's Reject-queue keep (section 13 touchpoint 3)")
             else:
-                road = (f"retry cap spent ({cap} of {cap} drawn); {CONTINUE} never re-dispatches "
-                        f"it -- fix the cause it names; the re-arm is the operator's Reject-queue "
-                        f"keep (section 13 touchpoint 3)")
+                left = self.retry_budget(facts, stem)
+                road = f"{left} retry unit(s) left; {CONTINUE} re-offers it findings-fed"
             self._report(f"parked: {stem} ended `{ended}`; {detail}; {road}")
         for h in plane.held.values():
             self._report(f"held: {h.stem} {h.reason} -- {h.paved_road}")

@@ -104,6 +104,9 @@ class Drive:
         return [e.body for e in read_events(self.state)
                 if e.type == "state_transition" and e.ticket == stem]
 
+    def events(self, stem: str = STEM):
+        return [e for e in read_events(self.state) if e.ticket == stem]
+
     def log_events(self) -> list[dict]:
         return [json.loads(line) for line in self.log.path.read_text().splitlines()]
 
@@ -226,6 +229,29 @@ async def test_a_spent_in_stage_retry_cap_is_a_named_non_ok_terminal_never_a_loo
     assert d.branch_exists() and d.worktree().is_dir()
 
 
+@pytest.mark.parametrize("outcome", ["infra_error", "timeout"])
+async def test_an_infra_terminal_draws_before_its_state_transition(repo, env, outcome):
+    author(repo, ticket())
+    d = Drive(repo, env, pipeline=RaisingOutcome(outcome))
+
+    assert await d.run() == EXIT_TICKET
+
+    events = d.events()
+    assert [e.type for e in events[-2:]] == ["cap_consumed", "state_transition"]
+    draw = events[-2]
+    blob = git(repo, env, "rev-parse", f"HEAD:tickets/{STEM}/ticket.md").strip()
+    assert draw.body == {"cap": "infra", "ticket_sha": blob, "run_seq": 0}
+    assert events[-1].body == {"to": outcome, "run_seq": 0}
+
+
+async def test_a_non_infra_terminal_draws_no_infra_cap(repo, env):
+    author(repo, ticket())
+    d = Drive(repo, env, pipeline=RaisingOutcome("gate_failed"))
+
+    assert await d.run() == EXIT_TICKET
+    assert [e for e in d.events() if e.type == "cap_consumed"] == []
+
+
 async def test_a_non_ok_stem_stays_eligible_and_re_enters_on_a_fresh_run_sequence(repo, env):
     """Left in place is not parked forever: the next `run` takes the next
     run sequence and fresh keys (section 6), tearing the old branch down."""
@@ -258,6 +284,14 @@ class Raising:
 
     async def run(self, ticket, *, run_seq):
         raise self.exc
+
+
+class RaisingOutcome:
+    def __init__(self, outcome: str):
+        self.outcome = outcome
+
+    async def run(self, ticket, *, run_seq):
+        return self.outcome
 
 
 async def test_a_fault_escaping_the_stage_seam_is_a_named_refusal_with_the_orphan_named(repo, env):

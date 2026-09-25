@@ -234,6 +234,20 @@ def test_a_stem_whose_retry_cap_is_spent_stays_parked_and_is_never_re_offered(ch
     assert again.calls == [] and "retry cap spent" in out
 
 
+def test_a_stem_whose_infra_cap_is_spent_stays_parked_and_is_never_re_offered(checkout):
+    author(checkout, "base")
+    configure(checkout, "caps: {infra: 1}\n")
+    fake = Scripted({"base": ["infra_error", "ok"]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK
+    assert fake.calls == [("base", 0)]
+    assert [d["cap"] for d in draws(checkout, "base")] == ["infra"]
+    assert "parked: base ended `infra_error`" in out
+    assert "infra cap spent (1 of 1 drawn)" in out
+
+
 def test_a_retry_unit_drawn_in_one_invocation_is_spent_in_the_next_counting_retry_named_draws(checkout):
     author(checkout, "base")
     configure(checkout, "caps: {retry: 1}\n")

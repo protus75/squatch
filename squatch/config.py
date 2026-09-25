@@ -206,6 +206,8 @@ class Config(_Strict):
                 if c.provider not in seen:
                     raise ValueError(_at(f"routing[{i}].candidates[{j}].provider",
                                          f"`{c.provider}` is not a declared provider"))
+        if self.caps.retry > self.caps.diagnosis:
+            raise ValueError(_at("caps.retry", "must not exceed caps.diagnosis"))
         return self
 
 

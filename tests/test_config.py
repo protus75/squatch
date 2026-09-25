@@ -339,3 +339,10 @@ def test_positive_integer_floors():
     data["providers"][0]["limits"]["concurrency"] = 0
     assert refused(data).key == "providers[0].limits.concurrency"
     assert refused(variant(scheduler={"max_unmerged": 0})).key == "scheduler.max_unmerged"
+
+
+def test_retry_cap_cannot_exceed_the_diagnosis_cap():
+    err = refused(variant(caps={"retry": 7, "diagnosis": 6}))
+    assert err.key == "caps.retry"
+    assert "caps.retry" in str(err) and "caps.diagnosis" in str(err)
+    assert parse(variant(caps={"retry": 6, "diagnosis": 6}), source="config.yaml")

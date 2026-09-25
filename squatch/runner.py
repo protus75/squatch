@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Protocol
 
 from squatch.artifacts import OUTCOMES, Finding
+from squatch.caps import INFRA_CAP, consume
 from squatch.config import Config
 from squatch.effects import run_sequence
 from squatch.enginelog import EngineLog
@@ -170,6 +171,9 @@ class Runner:
         if outcome in SETTLED:
             self._report(f"settled: {stem} run {run_seq} ended {outcome}")
             return Dispatched(run_seq, outcome)
+        if outcome in {"infra_error", "timeout"}:
+            await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=INFRA_CAP,
+                          run_seq=run_seq)
         journal.append("state_transition", {"to": outcome, "run_seq": run_seq}, ticket=stem)
         self._report(f"stopped: {stem} run {run_seq} ended {outcome}; ticket and branch left "
                      f"in place; detail: {self._log.path}")

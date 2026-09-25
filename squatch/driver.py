@@ -19,6 +19,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from squatch.artifacts import STAGE_NAMES, Artifact, Cost, Finding, StageResult
+from squatch.caps import RETRY_CAP
 from squatch.config import Caps, Severity, Tier
 from squatch.enginelog import EngineLog
 from squatch.gates import Gate, run_gates
@@ -28,8 +29,6 @@ from squatch.redact import Redactor
 from squatch.seams import Clock, ExecutableNotFound, Filesystem
 
 INVALID_ARTIFACT = "invalid_artifact"
-RETRY_CAP = "retry"
-
 Render = Callable[[Artifact, Sequence[Finding]], str]
 
 
