@@ -352,8 +352,8 @@ async def test_pipeline_runs_the_stages_then_the_admission(repo, env):
     agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
     h = Harness(repo, env, agent)
     ticket = await h.intake(TICKET.format(verify=EXISTS, frontmatter=""))
-    outcome = await Pipeline(h.stages, merge_of(h)).run(ticket, run_seq=0)
-    assert outcome == "ok"
+    delivery = await Pipeline(h.stages, merge_of(h)).run(ticket, run_seq=0)
+    assert delivery.outcome == "ok"
     assert STEM in merged_stems(h.journal.read()) and "squatch/widget.py" in h.main_files()
 
 
@@ -362,8 +362,8 @@ async def test_pipeline_skips_the_admission_on_a_non_ok_stage_terminal(repo, env
                   actions=[implementer(env, WIDGET)])
     h = Harness(repo, env, agent)
     ticket = await h.intake(TICKET.format(verify=EXISTS, frontmatter=""))
-    outcome = await Pipeline(h.stages, merge_of(h)).run(ticket, run_seq=0)
-    assert outcome == "gate_failed"
+    delivery = await Pipeline(h.stages, merge_of(h)).run(ticket, run_seq=0)
+    assert delivery.outcome == "gate_failed"
     assert transitions(h) == [] and "squatch/widget.py" not in h.main_files()
     assert branch_exists(h) and h.worktree().is_dir()
 

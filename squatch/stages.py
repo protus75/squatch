@@ -1,5 +1,5 @@
 """The Implement, Check, and Review stages (SQUATCH_PLAN.md sections 4, 5, 7,
-9, 10; section 19, Phase 1).
+9, 10; section 19, Phase 2).
 
 One run of `Stages.run` is Implement -> Check -> Review over one ticket in
 one fresh worktree, every external action a run-scoped effect: the
@@ -24,8 +24,8 @@ findings artifacts already durable in the canonical ticket dir -- a
 spec's `prior_attempts` slot, placed by `specs/implement.md` right after
 the ticket so the clear-these-findings block sits in criteria-position.
 Rendered fresh each attempt from the artifacts, never written into
-`ticket.md`; a first attempt renders no such block. Harvest (Phase 2)
-extends this one block, never a second path.
+`ticket.md`; a first attempt renders no such block. Harvest extends this one
+block with bounded worktree-only material, never a second path.
 """
 
 import json
@@ -46,12 +46,13 @@ from squatch.effects import Effects, effect_key, latest_terminal
 from squatch.enginelog import EngineLog
 from squatch.gates import GateReport, GateRun, run_gates
 from squatch.git import Git, GitError
+from squatch.harvest import HARVEST_FILE, HARVEST_RENDER_CHARS, Harvest
 from squatch.journal import Journal
 from squatch.llmeffect import LLMEffect
 from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
 from squatch.seams import Clock, Filesystem, ProcessExec
-from squatch.specs import DataBlock, RenderRefused, Spec, load_spec
+from squatch.specs import DATA_MARKER, DataBlock, RenderRefused, Spec, load_spec
 from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, Ticket, parse_frontmatter
 
 SPECS_DIR = Path(squatch.__file__).resolve().parent.parent / "specs"
@@ -189,6 +190,18 @@ REVIEW_EMITS: Mapping[str, type[ReviewVerdict]] = {
 # RMA says the ticket is the problem, the premise_failed route to Requisition.
 REVIEW_OUTCOMES: Mapping[str, str] = {
     "approve": "ok", "snag": "gate_failed", "rma": "premise_failed"}
+
+
+def _add_cost(*costs: Cost) -> Cost:
+    return Cost(tokens=sum(c.tokens for c in costs), seconds=sum(c.seconds for c in costs),
+                attempts=sum(c.attempts for c in costs), usd=sum(c.usd for c in costs),
+                provider=next((c.provider for c in reversed(costs) if c.provider), None),
+                model=next((c.model for c in reversed(costs) if c.model), None))
+
+
+def _terminal_reason(result: StageResult) -> str | None:
+    """Findings carry their own detail; empty terminal results still name their wall."""
+    return None if result.findings else result.outcome
 
 
 def render_review(v: ReviewVerdict) -> str:
@@ -380,6 +393,10 @@ class Delivery:
     invoice: Invoice | None
     review: ReviewVerdict | None
     worktree: Path
+    base: str
+    stage: str
+    reason: str | None
+    cost: Cost
 
 
 class Stages:
@@ -412,9 +429,11 @@ class Stages:
         worktree, base = Path(ws["path"]), ws["base"]
 
         result = await self._implement(ticket, worktree, base, run_seq)
+        run_cost = result.cost
         await self._lift(stem, run_seq, "run-record", worktree=worktree)
         if result.outcome != "ok":
-            return Delivery(result.outcome, result.findings, None, None, None, worktree)
+            return Delivery(result.outcome, result.findings, None, None, None, worktree, base,
+                            "implement", _terminal_reason(result), result.cost)
         report: ImplementReport = result.artifact
         head = await self._git.rev_parse(worktree, "HEAD")
         slip = PackingSlip(stem=stem, verdict=report.verdict, summary=report.summary,
@@ -426,7 +445,7 @@ class Stages:
                 code="premise_failed", message=slip.summary,
                 paved_road="fix the ticket (or the plan it renders) and re-run; the "
                            "implementer answered the ticket as written")],
-                slip, None, None, worktree)
+                slip, None, None, worktree, base, "implement", slip.summary, result.cost)
 
         invoice = await self._check(ticket, slip, worktree, run_seq)
         await self._lift(stem, run_seq, "checks",
@@ -434,13 +453,16 @@ class Stages:
         soft = list(invoice.soft_findings)
         if not invoice.passed:
             return Delivery("gate_failed", list(invoice.hard_findings) + soft, slip, invoice,
-                            None, worktree)
+                            None, worktree, base, "check", None, result.cost)
         if slip.verdict == "already_satisfied":
-            return Delivery("already_satisfied", soft, slip, invoice, None, worktree)
+            return Delivery("already_satisfied", soft, slip, invoice, None, worktree, base,
+                            "check", None, result.cost)
 
         result = await self._review(ticket, slip, invoice, worktree, run_seq)
         if result.outcome != "ok":
-            return Delivery(result.outcome, result.findings + soft, slip, invoice, None, worktree)
+            return Delivery(result.outcome, result.findings + soft, slip, invoice, None, worktree,
+                            base, "review", _terminal_reason(result),
+                            _add_cost(run_cost, result.cost))
         report: ReviewReport = result.artifact
         verdict = REVIEW_EMITS[report.verdict](
             stem=stem, verdict=report.verdict, summary=report.summary, findings=report.findings,
@@ -448,7 +470,8 @@ class Stages:
             produced_by_spec_version=report.produced_by_spec_version, produced_at_sha=head)
         await self._lift(stem, run_seq, "review", files={REVIEW: render_review(verdict).encode()})
         return Delivery(REVIEW_OUTCOMES[verdict.verdict], list(verdict.findings) + soft, slip,
-                        invoice, verdict, worktree)
+                        invoice, verdict, worktree, base, "review", None,
+                        _add_cost(run_cost, result.cost))
 
     # -- workspace --
 
@@ -498,7 +521,8 @@ class Stages:
                 "context": DataBlock("host", context or "(no Context files)\n"),
             }
             if prior is not None:
-                blocks["prior_attempts"] = DataBlock("untrusted", prior)
+                blocks["prior_attempts"] = DataBlock(
+                    "untrusted", prior.replace(DATA_MARKER, "[squatch-data:"))
             return spec.render(blocks, findings=findings, plan=plan,
                                plan_sections=inputs.plan_sections)
 
@@ -539,7 +563,46 @@ class Stages:
                 lines.append(f"\nchecks.json (failing at {invoice.head}):")
                 lines.extend(f"- {f.code}{_where(f)}: {f.message} (paved road: {f.paved_road})"
                              for f in invoice.hard_findings)
-        if len(lines) == 2:
+        phase_one_count = len(lines)
+        harvest_summaries: list[str] = []
+        attempts = canonical / "attempts"
+        latest: Path | None = None
+        if attempts.is_dir():
+            for attempt in sorted((p for p in attempts.iterdir()
+                                   if p.is_dir() and p.name.isdigit()),
+                                  key=lambda p: int(p.name)):
+                artifact_path = attempt / HARVEST_FILE
+                if not artifact_path.is_file():
+                    continue
+                artifact = Harvest.model_validate_json(
+                    artifact_path.read_text(errors="replace"))
+                changed = " / ".join(artifact.diff_stat.strip().splitlines())
+                harvest_summaries.append(
+                    f"harvest attempt {artifact.run_seq}: outcome `{artifact.outcome}`; "
+                    f"reason: {artifact.reason or '(findings carried separately)'}; "
+                    f"files changed: {changed or '(no changed files)'}")
+                latest = attempt
+        harvest_details: list[str] = []
+        if latest is not None:
+            run_record = latest / RUN_RECORD
+            if run_record.is_file():
+                harvest_details.append("latest run.md:")
+                harvest_details.append(run_record.read_text(errors="replace"))
+            artifact = Harvest.model_validate_json(
+                (latest / HARVEST_FILE).read_text(errors="replace"))
+            tails = [(name, tail) for name, tail in artifact.spool_tails.items()
+                     if not name.endswith("-prompt.md")]
+            if tails:
+                harvest_details.append("latest non-prompt spool tails:")
+                for name, tail in tails:
+                    harvest_details.extend((f"[{name}]", tail))
+        summary_text = "\n".join(harvest_summaries)
+        detail_text = "\n".join(harvest_details)
+        harvest_text = "\n".join(
+            part for part in (summary_text, detail_text) if part)[:HARVEST_RENDER_CHARS]
+        if harvest_text:
+            lines.append(harvest_text)
+        if len(lines) == phase_one_count and phase_one_count == 2:
             lines.append("\n(no rejecting review.md or failing checks.json is on the ticket "
                          "plane; the terminal's detail is in the engine log)")
         return "\n".join(lines) + "\n"
@@ -582,7 +645,7 @@ class Stages:
         def render(inputs: Invoice, findings) -> str:
             return spec.render({
                 "ticket": DataBlock("host", ticket_text),
-                "diff": DataBlock("untrusted", diff),
+                "diff": DataBlock("untrusted", diff.replace(DATA_MARKER, "[squatch-data:")),
                 "check_report": DataBlock("engine", inputs.model_dump_json(indent=2)),
             }, findings=findings)
 
@@ -615,38 +678,49 @@ class Stages:
         """ONE ticket-plane commit per stage terminal: the worktree outbox
         (everything under `tickets/<stem>/` but `ticket.md`) and/or the
         engine-written artifacts, into the canonical ticket dir."""
-        canonical = self._repo / TICKETS_DIR / stem
+        return await lift_ticket_files(
+            repo=self._repo, git=self._git, fs=self._fs, effects=self._effects,
+            redact=self._redact, stem=stem, run_seq=run_seq, kind=kind,
+            worktree=worktree, files=files)
 
-        async def action() -> dict:
-            paths: list[str] = []
-            outbox = worktree / TICKETS_DIR / stem if worktree is not None else None
-            if outbox is not None and outbox.is_dir():
-                for p in sorted(outbox.rglob("*")):
-                    rel = p.relative_to(outbox)
-                    if p.is_file() and rel != Path(TICKET_FILE):
-                        data = p.read_bytes()
-                        # The run record is Implement's text stream into the
-                        # ticket plane; the one child holding a provider key
-                        # wrote it, so it crosses the redactor (section 6).
-                        if rel == Path(RUN_RECORD):
-                            data = self._redact(data.decode(errors="replace")).encode()
-                        self._fs.write(canonical / rel, data)
-                        paths.append(f"{TICKETS_DIR}/{stem}/{rel.as_posix()}")
-            for rel, data in (files or {}).items():
-                self._fs.write(canonical / rel, data)
-                paths.append(f"{TICKETS_DIR}/{stem}/{rel}")
-            # Porcelain collapses a wholly-untracked directory to one `dir/`
-            # entry, so a path is dirty when an entry names it or a parent.
-            dirty = [e.path for e in await self._git.status(self._repo)]
-            if not any(p == d or (d.endswith("/") and p.startswith(d)) for p in paths
-                       for d in dirty):
-                return {"commit": None, "paths": paths}
-            await self._git.add(self._repo, paths)
-            sha = await self._git.commit(self._repo, f"squatch({stem}): {kind}", paths)
-            return {"commit": sha, "paths": paths}
 
-        return await self._effects.run(action, key=effect_key("lift", stem, run_seq, kind),
-                                       ticket=stem)
+async def lift_ticket_files(*, repo: Path, git: Git, fs: Filesystem, effects: Effects,
+                            redact: Redactor, stem: str, run_seq: int, kind: str,
+                            worktree: Path | None = None,
+                            files: Mapping[str, bytes] | None = None) -> dict:
+    """The sole ticket-plane lift path, shared by stages and terminal harvests."""
+    canonical = repo / TICKETS_DIR / stem
+
+    async def action() -> dict:
+        paths: list[str] = []
+        outbox = worktree / TICKETS_DIR / stem if worktree is not None else None
+        if outbox is not None and outbox.is_dir():
+            for path in sorted(outbox.rglob("*")):
+                rel = path.relative_to(outbox)
+                # Attempt custody is engine-owned and closed to harvest.json
+                # plus run.md; an agent cannot smuggle extra attempt files
+                # through the otherwise-open outbox lift.
+                if (path.is_file() and rel != Path(TICKET_FILE)
+                        and (not rel.parts or rel.parts[0] != "attempts")):
+                    data = path.read_bytes()
+                    if rel == Path(RUN_RECORD):
+                        data = redact(data.decode(errors="replace")).encode()
+                    fs.write(canonical / rel, data)
+                    paths.append(f"{TICKETS_DIR}/{stem}/{rel.as_posix()}")
+        for rel, data in (files or {}).items():
+            if Path(rel).name == RUN_RECORD:
+                data = redact(data.decode(errors="replace")).encode()
+            fs.write(canonical / rel, data)
+            paths.append(f"{TICKETS_DIR}/{stem}/{rel}")
+        dirty = [entry.path for entry in await git.status(repo)]
+        if not any(path == entry or (entry.endswith("/") and path.startswith(entry))
+                   for path in paths for entry in dirty):
+            return {"commit": None, "paths": paths}
+        await git.add(repo, paths)
+        sha = await git.commit(repo, f"squatch({stem}): {kind}", paths)
+        return {"commit": sha, "paths": paths}
+
+    return await effects.run(action, key=effect_key("lift", stem, run_seq, kind), ticket=stem)
 
 
 def compose(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,

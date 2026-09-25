@@ -119,6 +119,19 @@ async def test_diff_returns_patch_text_verbatim():
     assert argv(px) == ["git", "-C", "/repo", "diff", "main...stem-1"]
 
 
+async def test_diff_stat_includes_worktree_changes_from_base():
+    px, git = make([(0, " a.py | 2 +-\n", "")])
+    assert await git.diff_stat(REPO, "abc123") == " a.py | 2 +-\n"
+    assert argv(px) == ["git", "-C", "/repo", "diff", "--stat", "abc123"]
+
+
+async def test_diff_stat_appends_untracked_names_without_their_content():
+    px, git = make([(0, " a.py | 2 +-\n", ""), (0, "new.py\n", "")])
+    assert await git.diff_stat(REPO, "abc123") == " a.py | 2 +-\n new.py | untracked\n"
+    assert argv(px, 1) == ["git", "-C", "/repo", "ls-files", "--others",
+                           "--exclude-standard"]
+
+
 async def test_add_is_explicit_paths_after_separator():
     px, git = make()
     await git.add(REPO, ["a.py", Path("tickets/x/run.md")])

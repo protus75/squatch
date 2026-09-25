@@ -51,10 +51,17 @@ def plant_orphan(repo: Path, stem: str, run_seq: int = 0, *, worktree: bool = Tr
     with Journal(repo / STATE, clock=clock) as journal:
         journal.append("state_transition", {"to": "running", "run_seq": run_seq}, ticket=stem)
         journal.append("effect_intent", {}, ticket=stem, key=f"worktree/{stem}/{run_seq}")
+        journal.append("effect_completion", {
+            "result": {"path": str(worktree_of(repo, stem)), "branch": stem,
+                       "base": git(repo, "rev-parse", "main").strip()}},
+            ticket=stem, key=f"worktree/{stem}/{run_seq}")
     path = worktree_of(repo, stem)
     if worktree:
         git(repo, "worktree", "add", "-q", "-b", stem, str(path), "main")
         (path / "debris.txt").write_text("uncommitted work the dead run left\n")
+        run = path / "tickets" / stem / "run.md"
+        run.parent.mkdir(parents=True)
+        run.write_text("orphan run record\n")
     return path
 
 
@@ -103,7 +110,8 @@ def test_an_orphaned_running_is_reaped_abandoned_and_its_worktree_removed_on_the
     # The terminal is journaled through the seam, before the wipe, and frees
     # the stem: the re-run takes the next sequence and is real work.
     assert transitions(checkout, "base") == [{"to": "running", "run_seq": 0},
-                                             {"to": "abandoned", "run_seq": 0},
+                                             {"to": "abandoned", "run_seq": 0,
+                                              "harvest": "tickets/base/attempts/0"},
                                              {"to": "running", "run_seq": 1}]
     assert fake.calls == [("base", 1)]
     assert not path.exists()
@@ -112,6 +120,8 @@ def test_an_orphaned_running_is_reaped_abandoned_and_its_worktree_removed_on_the
     # Only the worktree is reaped: the branch stays for the next run's
     # teardown-and-create (and, from Phase 2, the harvest) -- never rm -rf.
     assert git(checkout, "branch", "--list", "base").strip() == "base"
+    assert (checkout / "tickets" / "base" / "attempts" / "0" / "run.md").read_text() == (
+        "orphan run record\n")
 
 
 def test_reconcile_reaps_every_orphan_not_just_the_stem_being_run(checkout):
@@ -122,7 +132,8 @@ def test_reconcile_reaps_every_orphan_not_just_the_stem_being_run(checkout):
     rc, out = cli(checkout, "run", "base", pipeline=fake)
     assert rc == EXIT_OK, out
     assert transitions(checkout, "other") == [{"to": "running", "run_seq": 2},
-                                              {"to": "abandoned", "run_seq": 2}]
+                                              {"to": "abandoned", "run_seq": 2,
+                                               "harvest": "tickets/other/attempts/2"}]
     assert transitions(checkout, "base") == [{"to": "running", "run_seq": 0}]
     assert not other.exists()
     assert fake.calls == [("base", 0)]
@@ -139,7 +150,8 @@ def test_an_orphan_with_no_worktree_is_reaped_and_the_registry_pruned(checkout):
     assert str(path) in registered_worktrees(checkout)
     rc, out = cli(checkout, "run", "base", pipeline=FakePipeline("ok"))
     assert rc == EXIT_OK, out
-    assert transitions(checkout, "base")[1] == {"to": "abandoned", "run_seq": 0}
+    assert transitions(checkout, "base")[1] == {"to": "abandoned", "run_seq": 0,
+                                                "harvest": None}
     assert registered_worktrees(checkout) == [str(checkout)]
 
 

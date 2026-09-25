@@ -33,6 +33,8 @@ from squatch.config import load
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.git import Git
+from squatch.harvest import HARVEST_RENDER_CHARS, Harvest, HarvestCost
+from squatch.journal import Journal
 from squatch.llmeffect import LLMEffect
 from squatch.merge import Merge, Pipeline
 from squatch.redact import Redactor
@@ -192,6 +194,12 @@ def test_a_re_offer_renders_the_prior_reject_findings_in_criteria_position(tmp_p
     order = [name for name, _ in blocks(second)]
     assert order.index("ticket") < order.index("prior_attempts") < order.index("context")
     assert order[-1] == "plan_contract", "the appendix is where appended blocks go, not this one"
+    close = DATA_MARKER + 'end name="prior_attempts">>>'
+    prior, after = task.split('name="prior_attempts"', 1)[1].split(close, 1)
+    assert "harvest attempt 0: outcome `gate_failed`; reason:" in prior
+    assert "squatch/widget.py" in prior and "1 +" in prior
+    assert "harvest attempt 0:" not in task.split('name="prior_attempts"', 1)[0] + after
+    assert len(prior) <= HARVEST_RENDER_CHARS + 10_000, "Phase 1 findings remain outside the cap"
 
 
 def test_the_ticket_file_is_never_written_and_the_re_offer_merges_on_one_unit(tmp_path):
@@ -206,6 +214,52 @@ def test_the_ticket_file_is_never_written_and_the_re_offer_merges_on_one_unit(tm
     assert "squatch/widget.py" in git(real.repo, "ls-tree", "-r", "--name-only", "main")
     assert f"settled: {STEM} run 1 ended ok" in out
     assert f"self-upgrade: {STEM} touched squatch/widget.py" in out
+
+
+def test_the_whole_harvest_contribution_is_capped_even_when_diff_stat_is_oversized(tmp_path):
+    attempt = tmp_path / "tickets" / STEM / "attempts" / "0"
+    attempt.mkdir(parents=True)
+    artifact = Harvest(
+        outcome="gate_failed", stage="check", reason=None, findings=(),
+        cost=HarvestCost(usd=0.0, tokens=0, provider=None, model=None),
+        wall_seconds=1.0, run_seq=0, diff_stat="x" * (HARVEST_RENDER_CHARS * 2),
+        spool_tails={}, produced_by_spec_version="harvest-1.0", produced_at_sha="base")
+    (attempt / "harvest.json").write_text(artifact.model_dump_json())
+    with Journal(tmp_path / ".state", clock=TickingClock()) as journal:
+        journal.append("state_transition", {"to": "gate_failed", "run_seq": 0}, ticket=STEM)
+        stages = Stages.__new__(Stages)
+        stages._repo = tmp_path
+        stages._effects = Effects(journal)
+
+        rendered = stages._prior_attempts(STEM, 1)
+
+    harvest = "harvest attempt" + rendered.split("harvest attempt", 1)[1]
+    assert len(harvest.rstrip("\n")) == HARVEST_RENDER_CHARS
+    assert len(artifact.diff_stat) > len(harvest)
+
+
+def test_a_delimiter_in_harvested_run_text_is_quoted_before_re_entry_render(tmp_path):
+    env = git_env(tmp_path)
+    marker = "<<<" + "squatch:" + "data"
+
+    def implement_with_marker(req):
+        implementer(env, WIDGET)(req)
+        run_record = req.worktree / "tickets" / STEM / "run.md"
+        run_record.write_text(run_record.read_text() + f"\nobserved {marker} in output\n")
+
+    agent = Agent(answer("implemented"), review("snag", {"message": "wrong"}),
+                  answer("implemented"), review("approve"),
+                  actions=[implement_with_marker, None, implementer(env, WIDGET), None])
+    real = Real(checkout(tmp_path), agent)
+
+    rc, out = real.drain()
+
+    assert rc == EXIT_OK, out
+    first, second = real.implement_prompts()
+    assert f"observed {marker}" not in first
+    prior = second.split('name="prior_attempts"', 1)[1].split(
+        DATA_MARKER + 'end name="prior_attempts">>>', 1)[0]
+    assert "[squatch-data:" in prior and marker not in prior
 
 
 def test_a_failing_checks_json_renders_its_hard_findings_with_the_verification_tail(tmp_path):

@@ -1,20 +1,21 @@
 """The scaffold verbs' shared spine: the lock-held session and one stem's
-dispatch (SQUATCH_PLAN.md sections 9, 11, 18; section 19, Phase 1).
+dispatch (SQUATCH_PLAN.md sections 9, 11, 18; section 19, Phase 2).
 
 One process holds the single-writer lock for the whole verb. `Runner.session`
 takes the lock, opens the journal, reconciles on entry (reaping any orphaned
 in-flight run an interrupted predecessor left, section 11.2), and intakes
 pending hand-authored tickets through the ticket-plane lane. `Runner.dispatch`
 drives ONE validated stem: it journals the run's `running` transition, hands
-the stem to the stage-dispatch seam, and owns the run's terminal
-`state_transition` write for every non-ok outcome (the section 9 ownership
-law). `run <stem>` composes the two around one named stem; `drain`
+the stem to the stage-dispatch seam, and owns the non-ok terminal handler:
+harvest, cap draw where applicable, terminal `state_transition`, then worktree
+wipe (the section 9 ownership law). `run <stem>` composes the two around one
+named stem; `drain`
 (`squatch.drain`) composes them around the eligibility sort it owns.
 
 The stages and the merge admission live BEHIND the seam (`Pipeline`, built
 over the lock-held journal by the factory the caller supplies). The section
 18 exit-code contract: 0 = settled, 1 = a non-ok ticket terminal (ticket and
-branch left in place; the engine log is where its detail lives in Phase 1),
+branch left in place; the attempt directory holds its harvested detail),
 2 = an engine-plane refusal (lock, config, journal, eligibility, and any
 FAULT escaping the stage seam -- named and stopped, never a traceback; the
 run it interrupted stays `running` with no terminal until reconcile-on-entry
@@ -31,13 +32,15 @@ from typing import Protocol
 from squatch.artifacts import OUTCOMES, Finding
 from squatch.caps import INFRA_CAP, consume
 from squatch.config import Config
-from squatch.effects import run_sequence
+from squatch.effects import Effects, run_sequence
 from squatch.enginelog import EngineLog
 from squatch.git import Git
+from squatch.harvest import extract
 from squatch.journal import Event, Journal, JournalCorruption
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.reconcile import reconcile
 from squatch.seams import Clock, ExecutableNotFound, Filesystem
+from squatch.stages import Delivery, lift_ticket_files
 from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, IntakeResult, Ticket,
                              TicketLintError, lint_ticket)
 
@@ -67,7 +70,7 @@ class Pipeline(Protocol):
     `to: merged` transition, and every other value is the non-ok terminal
     the runner journals."""
 
-    async def run(self, ticket: Ticket, *, run_seq: int) -> str: ...
+    async def run(self, ticket: Ticket, *, run_seq: int) -> Delivery: ...
 
 
 # The journal is opened under the lock, so the pipeline over it is built there.
@@ -159,8 +162,12 @@ class Runner:
         stem = ticket.stem
         run_seq = run_sequence(journal, stem)
         journal.append("state_transition", {"to": "running", "run_seq": run_seq}, ticket=stem)
+        started = self._clock()
         try:
-            outcome = await self._pipeline(journal).run(ticket, run_seq=run_seq)
+            delivery = await self._pipeline(journal).run(ticket, run_seq=run_seq)
+            if not isinstance(delivery, Delivery):
+                raise TypeError(f"the stage seam returned {delivery!r}, not a Delivery")
+            outcome = delivery.outcome
             if outcome not in OUTCOMES:
                 raise TypeError(f"the stage seam returned {outcome!r}, not an Outcome "
                                 f"(one of {sorted(OUTCOMES)})")
@@ -171,12 +178,40 @@ class Runner:
         if outcome in SETTLED:
             self._report(f"settled: {stem} run {run_seq} ended {outcome}")
             return Dispatched(run_seq, outcome)
+        attempt = f"{TICKETS_DIR}/{stem}/attempts/{run_seq}"
+        harvested: str | None = None
+        harvest_error: str | None = None
+        if delivery.worktree.is_dir():
+            try:
+                files = await extract(
+                    repo=self._repo, state_dir=self.state_dir, git=self._git, stem=stem,
+                    run_seq=run_seq, worktree=delivery.worktree, base=delivery.base,
+                    outcome=outcome, stage=delivery.stage, reason=delivery.reason,
+                    findings=delivery.findings, cost=delivery.cost,
+                    wall_seconds=max(0.0, (self._clock() - started).total_seconds()))
+                await lift_ticket_files(
+                    repo=self._repo, git=self._git, fs=self._fs, effects=Effects(journal),
+                    redact=self._log._redact, stem=stem, run_seq=run_seq, kind="harvest",
+                    files=files)
+                harvested = attempt
+            except Exception as e:
+                harvest_error = f"{type(e).__name__}: {e}"
+                self._log.event("harvest_error", ticket=stem, run_seq=run_seq,
+                                error=type(e).__name__, message=str(e),
+                                traceback="".join(traceback.format_exception(e)))
         if outcome in {"infra_error", "timeout"}:
             await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=INFRA_CAP,
                           run_seq=run_seq)
-        journal.append("state_transition", {"to": outcome, "run_seq": run_seq}, ticket=stem)
-        self._report(f"stopped: {stem} run {run_seq} ended {outcome}; ticket and branch left "
-                     f"in place; detail: {self._log.path}")
+        body = {"to": outcome, "run_seq": run_seq, "harvest": harvested}
+        if harvest_error is not None:
+            body["harvest_error"] = harvest_error
+        journal.append("state_transition", body, ticket=stem)
+        if delivery.worktree.exists():
+            await self._git.worktree_remove(self._repo, delivery.worktree)
+        else:
+            await self._git.worktree_prune(self._repo)
+        self._report(f"stopped: {stem} run {run_seq} ended {outcome}; branch left in place; "
+                     f"detail: {attempt}/")
         return Dispatched(run_seq, outcome)
 
     def _fault(self, stem: str, run_seq: int, e: Exception) -> Refusal:

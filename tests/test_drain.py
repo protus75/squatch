@@ -26,11 +26,13 @@ from test_cli import (  # noqa: F401 -- `checkout` is a fixture
 )
 
 from squatch.__main__ import main
+from squatch.artifacts import Cost
 from squatch.git import Git
 from squatch.journal import Journal, read_events
 from squatch.lockfile import Lockfile
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET
 from squatch.seams import LocalFilesystem, SubprocessExec
+from squatch.stages import Delivery
 from squatch.tickets import INTAKE_SIGNAL, Intake, stamp
 
 
@@ -60,7 +62,7 @@ class Scripted:
         self.journal = journal
         return self
 
-    async def run(self, ticket, *, run_seq: int) -> str:
+    async def run(self, ticket, *, run_seq: int) -> Delivery:
         self.calls.append((ticket.stem, run_seq))
         if self._on_run is not None:
             await self._on_run(ticket.stem, run_seq, self.journal)
@@ -68,7 +70,9 @@ class Scripted:
         if outcome == "ok":
             self.journal.append("state_transition", {"to": "merged", "run_seq": run_seq},
                                 ticket=ticket.stem)
-        return outcome
+        return Delivery(outcome, [], None, None, None, Path("/squatch-no-workspace"),
+                        "HEAD", "implement", outcome if outcome != "ok" else None,
+                        Cost(tokens=0, seconds=0.0, attempts=0))
 
 
 def drain(checkout: Path, fake: Scripted | None = None, *, clock=None) -> tuple[int, str]:

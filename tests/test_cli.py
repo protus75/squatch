@@ -20,9 +20,11 @@ from pathlib import Path
 import pytest
 
 from squatch.__main__ import main
+from squatch.artifacts import Cost
 from squatch.journal import read_events
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET
+from squatch.stages import Delivery
 from squatch.tickets import PLAN_FILE, TEMPLATE, lint_ticket
 
 T0 = datetime(2026, 9, 25, 12, 0, tzinfo=timezone.utc)
@@ -146,7 +148,10 @@ class FakePipeline:
             else:
                 probe.release()
                 self.lock_held_at_dispatch.append(False)
-        return self._outcomes.pop(0)
+        outcome = self._outcomes.pop(0)
+        return Delivery(outcome, [], None, None, None, Path("/squatch-no-workspace"),
+                        "HEAD", "implement", outcome if outcome != "ok" else None,
+                        Cost(tokens=0, seconds=0.0, attempts=0))
 
 
 def cli(checkout: Path, *argv: str, pipeline=None) -> tuple[int, str]:
@@ -333,7 +338,8 @@ def test_run_non_ok_terminal_journals_it_exits_1_and_the_next_run_takes_a_fresh_
     assert "stopped: base run 0 ended gate_failed" in out
     assert (checkout / "tickets" / "base" / "ticket.md").is_file()
     assert transitions(checkout, "base") == [{"to": "running", "run_seq": 0},
-                                             {"to": "gate_failed", "run_seq": 0}]
+                                             {"to": "gate_failed", "run_seq": 0,
+                                              "harvest": None}]
     rc, _ = cli(checkout, "run", "base", pipeline=fake)
     assert rc == EXIT_OK
     assert fake.calls == [("base", 0), ("base", 1)]

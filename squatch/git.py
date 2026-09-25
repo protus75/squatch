@@ -68,6 +68,19 @@ class Git:
     async def diff(self, cwd: Path, base: str, branch: str) -> str:
         return await self._run(cwd, "diff", f"{base}...{branch}")
 
+    async def untracked_names(self, cwd: Path) -> list[str]:
+        out = await self._run(cwd, "ls-files", "--others", "--exclude-standard")
+        return [line for line in out.splitlines() if line]
+
+    async def diff_stat(self, cwd: Path, base: str) -> str:
+        """Names and counts from base through all worktree changes."""
+        stat = await self._run(cwd, "diff", "--stat", base)
+        untracked = await self.untracked_names(cwd)
+        if not untracked:
+            return stat
+        new_files = "".join(f" {name} | untracked\n" for name in untracked)
+        return stat + new_files
+
     async def add(self, cwd: Path, paths: Sequence[str | Path]) -> None:
         # Explicit paths only: `add -A` would sweep worktree debris into the
         # commit, and an empty list would silently add nothing.

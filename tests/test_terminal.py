@@ -1,14 +1,13 @@
 """Non-ok terminal handling (SQUATCH_PLAN.md section 11; section 18's exit-code
-contract; section 19, Phase 1).
+contract; section 19, Phase 2).
 
-A non-ok terminal -- a spent cap or any non-ok terminal state -- journals its
-state transition and exits 1, leaving the ticket and the branch in place and
-naming where its detail lives (the engine log, before harvest exists). An
+A non-ok terminal -- a spent cap or any non-ok terminal state -- harvests its
+allowlisted detail, journals its state transition, wipes the worktree, and
+exits 1 with the branch in place and the attempt directory named. An
 engine-plane refusal exits 2 and journals no terminal. A FAULT escaping the
 stage seam is a named stop, never a traceback: exit 2, the traceback in the
 engine log, and the interrupted run left `running` with no terminal for
-reconcile-on-entry to reap. No retry, diagnosis, or harvest here: those are
-the Phase 2 spine.
+reconcile-on-entry to reap. No diagnosis or cross-attempt retry is here.
 
 Every test drives the real `Runner` -- intake, lock, dispatch -- over the
 real stages + admission with the scripted agent behind the model seam,
@@ -42,7 +41,7 @@ from test_stages import (
 )
 
 from squatch.__main__ import main
-from squatch.artifacts import TERMINAL_RUN_STATES
+from squatch.artifacts import TERMINAL_RUN_STATES, Cost
 from squatch.config import load
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
@@ -54,7 +53,7 @@ from squatch.merge import Merge, Pipeline
 from squatch.redact import Redactor
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET, Refusal, Runner
 from squatch.seams import LocalFilesystem, SubprocessExec
-from squatch.stages import Stages
+from squatch.stages import Delivery, Stages
 
 RED = f'{PYTHON} -c "import sys; sys.exit(3)"'
 NO_SUCH_BINARY = "squatch-no-such-binary-7f3a"
@@ -191,19 +190,33 @@ async def test_a_non_ok_terminal_journals_it_exits_1_and_leaves_ticket_and_branc
 
     assert rc == EXIT_TICKET
     assert terminal in TERMINAL_RUN_STATES
-    assert d.transitions() == [{"to": "running", "run_seq": 0}, {"to": terminal, "run_seq": 0}]
+    assert d.transitions() == [
+        {"to": "running", "run_seq": 0},
+        {"to": terminal, "run_seq": 0,
+         "harvest": f"tickets/{STEM}/attempts/0"}]
+    events = d.events()
+    lift_index, lift = next(
+        (index, event) for index, event in enumerate(events)
+        if event.type == "effect_completion"
+        and event.key == f"lift/{STEM}/0/harvest"
+        and event.body["result"]["commit"] is not None)
+    terminal_index = next(
+        index for index, event in enumerate(events)
+        if event.type == "state_transition" and event.body.get("to") == terminal)
+    assert lift_index < terminal_index, "harvest custody reaches main before the terminal"
+    git(repo, env, "merge-base", "--is-ancestor", lift.body["result"]["commit"], "main")
     # The ticket: as intake committed it (stamped `source`/`state`), untouched since.
     committed = d.committed_ticket()
     assert (repo / "tickets" / STEM / "ticket.md").read_text() == committed
     assert body(committed) == body(ticket(verify=verify))
-    # The branch and its worktree: left in place, the work still on them.
-    assert d.branch_exists() and d.worktree().is_dir()
+    # The branch survives for re-entry; the dying worktree is wiped after harvest.
+    assert d.branch_exists() and not d.worktree().exists()
     assert ("squatch/widget.py" in d.branch_diff_names()) is on_branch
     assert "squatch/widget.py" not in d.main_files(), "nothing non-ok reaches main"
     # The stop names the outcome and where its detail lives (Phase 1: the engine log).
     stopped = [line for line in d.lines if line.startswith("stopped:")]
-    assert stopped == [f"stopped: {STEM} run 0 ended {terminal}; ticket and branch left in "
-                       f"place; detail: {d.log.path}"]
+    assert stopped == [f"stopped: {STEM} run 0 ended {terminal}; branch left in place; "
+                       f"detail: tickets/{STEM}/attempts/0/"]
     assert d.log.path.is_file()
     assert d.lock_is_free()
 
@@ -221,12 +234,13 @@ async def test_a_spent_in_stage_retry_cap_is_a_named_non_ok_terminal_never_a_loo
 
     assert rc == EXIT_TICKET
     assert d.transitions() == [{"to": "running", "run_seq": 0},
-                               {"to": "invalid_artifact", "run_seq": 0}]
+                               {"to": "invalid_artifact", "run_seq": 0,
+                                "harvest": f"tickets/{STEM}/attempts/0"}]
     assert len(agent.requests) == 2, "the cap bounds the calls: one allowance, then terminal"
     terminal = [e for e in d.log_events() if e["event"] == "terminal"][-1]
     assert terminal["outcome"] == "invalid_artifact"
     assert terminal["reason"] == "retry cap spent" and terminal["cap"] == "retry"
-    assert d.branch_exists() and d.worktree().is_dir()
+    assert d.branch_exists() and not d.worktree().exists()
 
 
 @pytest.mark.parametrize("outcome", ["infra_error", "timeout"])
@@ -241,7 +255,7 @@ async def test_an_infra_terminal_draws_before_its_state_transition(repo, env, ou
     draw = events[-2]
     blob = git(repo, env, "rev-parse", f"HEAD:tickets/{STEM}/ticket.md").strip()
     assert draw.body == {"cap": "infra", "ticket_sha": blob, "run_seq": 0}
-    assert events[-1].body == {"to": outcome, "run_seq": 0}
+    assert events[-1].body == {"to": outcome, "run_seq": 0, "harvest": None}
 
 
 async def test_a_non_infra_terminal_draws_no_infra_cap(repo, env):
@@ -250,6 +264,35 @@ async def test_a_non_infra_terminal_draws_no_infra_cap(repo, env):
 
     assert await d.run() == EXIT_TICKET
     assert [e for e in d.events() if e.type == "cap_consumed"] == []
+
+
+async def test_setup_death_skips_harvest_and_journals_null(repo, env):
+    author(repo, ticket())
+    d = Drive(repo, env, pipeline=RaisingOutcome("gate_failed"))
+
+    assert await d.run() == EXIT_TICKET
+
+    assert d.transitions()[-1] == {"to": "gate_failed", "run_seq": 0, "harvest": None}
+    assert not (repo / "tickets" / STEM / "attempts").exists()
+
+
+async def test_harvest_failure_is_soft_and_the_worktree_is_still_wiped(
+        repo, env, monkeypatch):
+    import squatch.runner as runner_module
+
+    async def broken(**kwargs):
+        raise RuntimeError("custody unavailable")
+
+    monkeypatch.setattr(runner_module, "extract", broken)
+    author(repo, ticket(verify=RED))
+    d = Drive(repo, env, Agent(answer("implemented"), actions=[implementer(env, WIDGET)]))
+
+    assert await d.run() == EXIT_TICKET
+
+    terminal = d.transitions()[-1]
+    assert terminal["harvest"] is None
+    assert terminal["harvest_error"] == "RuntimeError: custody unavailable"
+    assert not d.worktree().exists() and d.branch_exists()
 
 
 async def test_a_non_ok_stem_stays_eligible_and_re_enters_on_a_fresh_run_sequence(repo, env):
@@ -291,7 +334,9 @@ class RaisingOutcome:
         self.outcome = outcome
 
     async def run(self, ticket, *, run_seq):
-        return self.outcome
+        return Delivery(self.outcome, [], None, None, None, Path("/squatch-no-workspace"),
+                        "HEAD", "implement", self.outcome,
+                        Cost(tokens=0, seconds=0.0, attempts=0))
 
 
 async def test_a_fault_escaping_the_stage_seam_is_a_named_refusal_with_the_orphan_named(repo, env):
@@ -328,7 +373,7 @@ async def test_a_verification_command_naming_a_missing_binary_is_a_gate_failed_t
     assert check["passed"] is False
     assert any(NO_SUCH_BINARY in f["message"] and f["code"] == "verification"
                for f in check["findings"])
-    assert d.branch_exists() and d.worktree().is_dir()
+    assert d.branch_exists() and not d.worktree().exists()
 
 
 async def test_a_missing_provider_binary_is_a_setup_refusal_not_an_infra_terminal(repo, env):
