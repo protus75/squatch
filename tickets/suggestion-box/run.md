@@ -1,16 +1,16 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The re-authored ticket still omits `squatch/git.py` and `tests/test_git.py` from the scope fence even though its acceptance criteria require an additive `Git.git_common_dir` wrapper and its test pin. I followed the explicit scope-fence and Definition-of-rejected rules rather than repeating the prior out-of-fence edit.
+The corrected ticket fences the git wrapper and its test. I reused the prior green implementation, renamed its `common_dir` method to the contract's exact `git_common_dir` API, and added direct seam plus real main/worktree resolution tests. The instance state already contained all 257 bootstrap suggestions from the prior idempotent ingestion, so I preserved those records and committed the required source-file deletion without duplicating them.
 
 ## Dead ends
-The required parent-checkout resolution cannot be implemented as specified without changing `squatch/git.py`, which is outside the scope fence. The untouched base suite was verified green (`622 passed`), so this is an authoring defect rather than a pre-existing test failure.
+The two prior attempts stopped on a scope-fence omission; the re-authored ticket resolved it. No implementation dead end remained in this attempt.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5
+OpenAI Codex / GPT-5 / implement spec 1.1
 
 ## Predicted vs actual
-Expected 90m; actual approximately 5m before the scope contradiction was confirmed.
+Expected 90m; actual approximately 20m, including base verification, prior-diff audit, correction, and the full verification pass.
