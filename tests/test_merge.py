@@ -7,6 +7,7 @@ because the claims are about main's history, the branch, the worktree, and
 the journal.
 """
 
+import json
 import subprocess
 
 import pytest
@@ -52,15 +53,18 @@ from squatch.tickets import lint_ticket
 # Green alone, red together: passes on the branch as delivered, fails once
 # main moves `existing.py` under it.
 BOTH = (f'{PYTHON} -c "import pathlib, sys; '
-        "sys.exit(0 if pathlib.Path('squatch/widget.py').exists() and "
-        "pathlib.Path('squatch/existing.py').read_text() == 'EXISTING = 1\\n' else 1)\"")
+        "present=pathlib.Path('squatch/widget.py').exists(); "
+        "changed=pathlib.Path('squatch/existing.py').read_text() != 'EXISTING = 1\\n'; "
+        "sys.exit(1 if present and changed else 0)\"")
+BASE_RED = f'{PYTHON} -c "import sys; sys.exit(3)"'
 
 
 def merge_of(h: Harness, git: Git | None = None) -> Merge:
     redact = Redactor.from_config(h.config, h.env)
     return Merge(repo=h.repo, config=h.config, git=git or h.git, process=SubprocessExec(),
                  fs=LocalFilesystem(), effects=Effects(h.journal), journal=h.journal,
-                 log=EngineLog(h.state, clock=h.clock, redact=redact), redact=redact, env=h.env)
+                 log=EngineLog(h.state, clock=h.clock, redact=redact), redact=redact,
+                 clock=h.clock, env=h.env)
 
 
 def ticket_of(h: Harness):
@@ -257,6 +261,20 @@ async def test_gate_bypass_applies_at_the_merge_re_run(repo, env):
 
 
 # --- a failing hard gate blocks admission ------------------------------------------
+
+
+async def test_an_inherited_base_red_is_excused_again_during_regate(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await deliver(h, verify=BASE_RED)
+
+    a = await merge_of(h).admit(ticket_of(h), d, run_seq=0)
+
+    assert a.outcome == "ok" and a.findings == []
+    [report] = list((h.state / "box").glob("*.json"))
+    message = json.loads(report.read_text())
+    assert message["origin"] == STEM and message["outcome"] == "base_red"
+    assert message["reports"] == 2, "Check and regate deduplicate through Box.enqueue"
 
 
 async def test_the_integration_check_runs_against_the_rebased_candidate(repo, env):

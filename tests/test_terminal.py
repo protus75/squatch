@@ -31,6 +31,7 @@ from test_stages import (
     TICKET,
     WIDGET,
     Agent,
+    Harness,
     TickingClock,
     answer,
     env,  # noqa: F401 -- fixture
@@ -55,9 +56,11 @@ from squatch.redact import Redactor
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET, Refusal, Runner
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.specs import DATA_MARKER
-from squatch.stages import Delivery, Stages
+from squatch.stages import Delivery, Invoice, Stages
 
-RED = f'{PYTHON} -c "import sys; sys.exit(3)"'
+BASE_RED = f'{PYTHON} -c "import sys; sys.exit(3)"'
+RED = (f'{PYTHON} -c "import pathlib, sys; '
+       f'sys.exit(3 if pathlib.Path(\'squatch/widget.py\').exists() else 0)"')
 NO_SUCH_BINARY = "squatch-no-such-binary-7f3a"
 # The CLI checkout routes no provider: Implement's call is an infra_error.
 UNROUTED = textwrap.dedent("""\
@@ -94,7 +97,7 @@ class Drive:
             log=self.log, redact=self.redact, clock=self.clock, env=self.env)
         merge = Merge(repo=self.repo, config=self.config, git=self.git, process=SubprocessExec(),
                       fs=LocalFilesystem(), effects=Effects(journal), journal=journal,
-                      log=self.log, redact=self.redact, env=self.env)
+                      log=self.log, redact=self.redact, clock=self.clock, env=self.env)
         return Pipeline(stages, merge)
 
     async def run(self, stem: str = STEM) -> int:
@@ -179,6 +182,26 @@ def rejected_at_review(env):
 
 def red_verification(env):
     return Agent(answer("implemented"), diagnosis(), actions=[implementer(env, WIDGET), None])
+
+
+async def test_a_base_red_reaches_review_with_an_excused_check_and_draws_no_cap(repo, env):
+    agent = Agent(answer("implemented"), review("approve"),
+                  actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+
+    delivery = await h.run(verify=BASE_RED)
+
+    assert delivery.outcome == "ok" and delivery.review is not None
+    checks = Invoice.model_validate_json(
+        (repo / "tickets" / STEM / "checks.json").read_text())
+    verification = next(check for check in checks.checks if check.code == "verification")
+    assert verification.verdict == "pass"
+    [command] = verification.commands
+    assert command.attribution == "base" and command.filed
+    assert not list((repo / h.config.worktree_root).glob(f"{STEM}-base-*"))
+    assert f"{STEM}-base-" not in git(repo, env, "worktree", "list")
+    assert [request.surface for request in agent.requests] == ["implement", "review"]
+    assert not any(event.type == "cap_consumed" for event in h.journal.read())
 
 
 def premise_failed(env):

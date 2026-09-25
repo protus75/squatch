@@ -49,7 +49,10 @@ STEM = "widget-module"
 PLAN = "# plan\n\n## 13. Ticket contract\n\nContract prose.\n"
 EXISTS = (f'{PYTHON} -c "import pathlib, sys; '
           f"sys.exit(0 if pathlib.Path('squatch/widget.py').exists() else 1)\"")
-RED = f'{PYTHON} -c "import sys; print(\'widget test failed: 3 errors\'); sys.exit(3)"'
+BASE_RED = f'{PYTHON} -c "import sys; print(\'widget test failed: 3 errors\'); sys.exit(3)"'
+RED = (f'{PYTHON} -c "import pathlib, sys; '
+       "red=pathlib.Path('squatch/widget.py').exists(); "
+       "print('widget test failed: 3 errors' if red else ''); sys.exit(3 if red else 0)\"")
 _OPEN = re.compile(r'^<<<squatch:data name="([a-z_]+)" origin="([a-z]+)" sha="[0-9a-f]+">>>$')
 _CLOSE = re.compile(r'^<<<squatch:end name="([a-z_]+)">>>$')
 
@@ -111,7 +114,7 @@ class Real:
                         log=self.log, redact=self.redact, clock=self.clock, env=self.env)
         merge = Merge(repo=self.repo, config=self.config, git=self.git, process=SubprocessExec(),
                       fs=LocalFilesystem(), effects=Effects(journal), journal=journal,
-                      log=self.log, redact=self.redact, env=self.env)
+                      log=self.log, redact=self.redact, clock=self.clock, env=self.env)
         return Pipeline(stages, merge)
 
     def drain(self) -> tuple[int, str]:
@@ -310,6 +313,28 @@ def test_raw_details_do_not_fall_back_to_an_older_undiagnosed_attempt(tmp_path):
     assert "latest run.md:" not in rendered and "latest non-prompt spool tails:" not in rendered
 
 
+def test_an_always_red_verification_is_excused_and_filed_before_review(tmp_path):
+    env = git_env(tmp_path)
+    agent = Agent(answer("implemented"), review("approve"), diagnosis(),
+                  actions=[implementer(env, WIDGET), None, None])
+    real = Real(checkout(tmp_path, verify=BASE_RED, extra_config="caps: {retry: 0}\n"), agent)
+    rc, out = real.drain()
+    assert rc == EXIT_OK, out
+    (first,) = real.implement_prompts()
+    assert "prior_attempts" not in [n for n, _ in blocks(first)]
+    assert [request.surface for request in agent.requests[:2]] == ["implement", "review"]
+
+    checks = json.loads((real.repo / "tickets" / STEM / "checks.json").read_text())
+    verification = next(check for check in checks["checks"] if check["code"] == "verification")
+    assert verification["verdict"] == "pass"
+    [command] = verification["commands"]
+    assert command["attribution"] == "base" and command["filed"]
+    [report] = [json.loads(path.read_text())
+                for path in (real.repo / real.config.state_dir / "box").glob("*.json")]
+    assert (report["message_class"], report["origin"], report["outcome"]) == (
+        "failure_report", STEM, "base_red")
+
+
 def test_a_failing_checks_json_renders_its_hard_findings_with_the_verification_tail(tmp_path):
     env = git_env(tmp_path)
     agent = Agent(answer("implemented"), diagnosis(), answer("implemented"),
@@ -322,10 +347,10 @@ def test_a_failing_checks_json_renders_its_hard_findings_with_the_verification_t
     assert "attempt 0 of widget-module ended `gate_failed`" in second
     assert "checks.json (failing at " in second
     assert "- verification: verification command exit 3:" in second
-    assert "widget test failed: 3 errors" in second, "the captured tail steers the re-entry"
+    assert "widget test failed: 3 errors" in second
     assert "(paved road: make every `## Verification` command exit 0" in second
-    assert "review.md" not in sections(second)["Task"].split('name="prior_attempts"')[1].split(
-        "<<<squatch:end")[0], "no review ran, so no review artifact is folded"
+    assert "review.md" not in sections(second)["Task"].split(
+        'name="prior_attempts"')[1].split("<<<squatch:end")[0]
     assert "retry cap spent (1 of 1 drawn)" in out
 
 

@@ -182,6 +182,13 @@ async def test_worktree_add_creates_branch_at_path():
                         "/wt/stem-1", "main"]
 
 
+async def test_worktree_add_detached_checks_out_named_commit_without_a_branch():
+    px, git = make()
+    await git.worktree_add_detached(REPO, Path("/wt/base"), "abc123")
+    assert argv(px) == ["git", "-C", "/repo", "worktree", "add", "--detach",
+                        "/wt/base", "abc123"]
+
+
 async def test_worktree_remove_is_remove_then_prune_never_rm_rf():
     px, git = make()
     await git.worktree_remove(REPO, Path("/wt/stem-1"))
@@ -323,6 +330,25 @@ async def test_real_repo_ticket_branch_roundtrip(tmp_path):
 
     # Untagged: describe --always falls back to the abbreviated HEAD sha.
     assert merged.startswith(await git.describe(repo))
+
+
+async def test_real_repo_detached_worktree_roundtrip_leaves_no_registry_entry(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git = Git(SubprocessExec(), env=_git_env(tmp_path), timeout=60.0)
+    await git.init(repo)
+    (repo / "a.txt").write_text("base\n")
+    await git.add(repo, ["a.txt"])
+    base = await git.commit(repo, "base")
+    wt = tmp_path / "worktrees" / "base"
+
+    await git.worktree_add_detached(repo, wt, base)
+    assert await git.rev_parse(wt, "HEAD") == base
+    await git.worktree_remove(repo, wt)
+
+    assert not wt.exists()
+    registered = await git._run(repo, "worktree", "list", "--porcelain")
+    assert str(wt) not in registered
 
 
 async def test_real_repo_conflicted_rebase_is_aborted(tmp_path):

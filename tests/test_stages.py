@@ -22,10 +22,11 @@ import pytest
 from squatch import specs as specs_module
 from squatch import stages as stages_module
 from squatch.artifacts import Finding
+from squatch.box import Box
 from squatch.config import load
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
-from squatch.git import Git
+from squatch.git import Git, GitError
 from squatch.journal import Journal
 from squatch.llm import FakeLLM
 from squatch.llmeffect import LLMEffect
@@ -42,10 +43,12 @@ from squatch.stages import (
     RMA,
     SnagList,
     Stages,
+    Verification,
+    build_invoice,
     compose,
     load_review,
 )
-from squatch.tickets import PLAN_FILE, Intake, lint_ticket
+from squatch.tickets import PLAN_FILE, Intake, Ticket, lint_ticket
 
 T0 = datetime(2026, 9, 25, 12, 0, tzinfo=timezone.utc)
 STATE = Path(".squatch/state")
@@ -458,10 +461,17 @@ async def test_ticket_md_is_never_the_agents_to_edit(repo, env):
 async def test_red_verification_fails_the_check(repo, env):
     agent = Agent(answer("implemented"), actions=[implementer(env, WIDGET)])
     h = Harness(repo, env, agent)
-    d = await h.run(verify=f'{PYTHON} -c "import sys; sys.exit(3)"')
+    verify = (f'{PYTHON} -c "import pathlib, sys; '
+              f'sys.exit(3 if pathlib.Path(\'squatch/widget.py\').exists() else 0)"')
+    d = await h.run(verify=verify)
     assert d.outcome == "gate_failed"
     [f] = [f for f in d.findings if f.code == "verification"]
-    assert "exit 3" in f.message and "sys.exit(3)" in f.message
+    assert "exit 3" in f.message and "sys.exit(3 if" in f.message
+    check = next(c for c in d.invoice.checks if c.code == "verification")
+    [command] = check.commands
+    assert command.attribution == "branch" and command.filed is None
+    assert not list((repo / h.config.worktree_root).glob(f"{STEM}-base-*"))
+    assert f"{STEM}-base-" not in git(repo, env, "worktree", "list")
 
 
 async def test_an_uncommitted_edit_is_an_empty_diff_and_fails_verification(repo, env):
@@ -490,8 +500,9 @@ TOKEN = f"[REDACTED:{KEY_NAME}]"
 async def test_red_verification_output_is_redacted_in_findings_checks_json_and_journal(repo, env):
     """The config-to-writer path end to end (section 6): a red command that
     echoes a host file holding the configured value persists only the token."""
-    verify = (f'{PYTHON} -c "import sys; '
-              f"sys.stderr.write(open('.env').read()); sys.exit(1)\"")
+    verify = (f'{PYTHON} -c "import pathlib, sys; '
+              f"p=pathlib.Path('.env'); sys.stderr.write(p.read_text() if p.exists() else ''); "
+              f"sys.exit(1 if p.exists() else 0)\"")
     agent = Agent(answer("implemented"),
                   actions=[implementer(env, WIDGET, (".env", f"{KEY_NAME}={SECRET}\n"))])
     h = Harness(repo, {**env, KEY_NAME: SECRET}, agent)
@@ -507,6 +518,184 @@ async def test_red_verification_output_is_redacted_in_findings_checks_json_and_j
                     if e.type == "effect_completion" and e.key == f"check/{STEM}/0"]
     body = json.dumps(completion.body)
     assert TOKEN in body and SECRET not in body
+
+
+class AttributionGit:
+    def __init__(self, *, names=("squatch/widget.py",), refuse=False,
+                 refusal_stderr="refused"):
+        self.names = list(names)
+        self.refuse = refuse
+        self.refusal_stderr = refusal_stderr
+        self.added: list[Path] = []
+        self.removed: list[Path] = []
+
+    async def diff_names(self, repo, base, branch):
+        return self.names
+
+    async def worktree_add_detached(self, repo, path, commit):
+        if self.refuse:
+            argv = ["git", "worktree", "add", "--detach", str(path), commit]
+            raise GitError(argv, 128, "", self.refusal_stderr)
+        self.added.append(path)
+
+    async def worktree_remove(self, repo, path):
+        self.removed.append(path)
+
+
+class AttributionProcess:
+    def __init__(self, *results):
+        self.results = list(results)
+        self.calls = []
+
+    async def run(self, argv, *, cwd, env, timeout, stdin_path=None):
+        self.calls.append((list(argv), cwd, env, timeout))
+        result = self.results.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+
+def attribution_ticket(stem: str, command_count: int = 1) -> Ticket:
+    return Ticket(
+        stem=stem, state="confirmed", source="seed", priority="P1", kind="feature",
+        agent_tier="medium", agent_effort="medium", gate_bypass=(), depends=(), context=(),
+        plan_sections=(), goal="attribute", scope_fence=("squatch/widget.py",),
+        verification=tuple((PYTHON, "-c", f"raise SystemExit({index + 1})")
+                           for index in range(command_count)), regression=None,
+        expected_minutes=1, stuck_minutes=2, exit_read_window=())
+
+
+def attribution_slip(stem: str) -> PackingSlip:
+    return PackingSlip(
+        stem=stem, verdict="implemented", summary="done", branch=stem, base="base-sha",
+        head="head-sha", produced_by_spec_version="1.1", produced_at_sha="head-sha")
+
+
+async def attributed_check(tmp_path, clock, stem, git_, process, box, *, command_count=1,
+                           redactor=None):
+    verification = Verification(
+        git_, tmp_path, process, attribution_ticket(stem, command_count), {},
+        redactor or Redactor({}), box=box,
+        base_worktree=tmp_path / "worktrees" / f"{stem}-base-0", run_seq=0)
+    slip = attribution_slip(stem)
+    from squatch.gates import run_gates
+    run = await run_gates((verification,), slip, tmp_path / "branch")
+    invoice = build_invoice(run, slip, git_.names, bypassed=set(), version="test",
+                            verification=verification)
+    return invoice.checks[0]
+
+
+async def test_base_red_is_excused_and_box_dedup_preserves_each_stems_origin(tmp_path):
+    clock = TickingClock()
+    box = Box(tmp_path / "state", fs=LocalFilesystem(), clock=clock)
+    first_git = AttributionGit()
+    first = await attributed_check(
+        tmp_path, clock, "first-stem", first_git,
+        AttributionProcess((1, "", "branch red"), (1, "", "base red 123")), box)
+    [first_command] = first.commands
+    assert first.verdict == "pass" and first_command.attribution == "base"
+    assert first_command.filed
+    assert first_git.added == first_git.removed
+
+    repeat_git = AttributionGit()
+    repeat = await attributed_check(
+        tmp_path, clock, "first-stem", repeat_git,
+        AttributionProcess((1, "", "branch red"), (1, "", "base red 456")), box)
+    [repeat_command] = repeat.commands
+    assert repeat.verdict == "pass" and repeat_command.filed == first_command.filed
+    [message] = box.pending()
+    assert (message.message_class, message.origin, message.outcome, message.reports) == (
+        "failure_report", "first-stem", "base_red", 2)
+    assert repeat_git.added == repeat_git.removed
+
+    second_git = AttributionGit()
+    second = await attributed_check(
+        tmp_path, clock, "second-stem", second_git,
+        AttributionProcess((1, "", "branch red"), (1, "", "base red 789")), box)
+    [second_command] = second.commands
+    assert second.verdict == "pass" and second_command.filed != first_command.filed
+    assert [(m.origin, m.reports) for m in box.pending()] == [
+        ("first-stem", 2), ("second-stem", 1)]
+    assert second_git.added == second_git.removed
+
+
+async def test_branch_red_and_green_commands_record_attribution_and_cleanup(tmp_path):
+    box = Box(tmp_path / "state", fs=LocalFilesystem(), clock=TickingClock())
+    git_ = AttributionGit()
+    red = await attributed_check(
+        tmp_path, TickingClock(), "branch-red", git_,
+        AttributionProcess((1, "", "branch red"), (0, "", "")), box)
+    [red_command] = red.commands
+    assert red.verdict == "fail" and red_command.attribution == "branch"
+    assert red_command.filed is None
+    assert git_.added == git_.removed
+
+    green_git = AttributionGit()
+    green = await attributed_check(
+        tmp_path, TickingClock(), "branch-green", green_git,
+        AttributionProcess((0, "", "")), box)
+    [green_command] = green.commands
+    assert green.verdict == "pass" and green_command.attribution is None
+    assert green_command.filed is None
+    assert green_git.added == green_git.removed == []
+
+
+async def test_mixed_commands_keep_per_command_attribution_and_filed_ids(tmp_path):
+    box = Box(tmp_path / "state", fs=LocalFilesystem(), clock=TickingClock())
+    git_ = AttributionGit()
+    check = await attributed_check(
+        tmp_path, TickingClock(), "mixed", git_,
+        AttributionProcess(
+            (1, "", "branch one"), (1, "", "base one"),
+            (1, "", "branch two"), (1, "", "base two"),
+            (1, "", "branch regression"), (0, "", ""),
+            (0, "", "")),
+        box, command_count=4)
+
+    assert check.verdict == "fail"
+    assert [command.attribution for command in check.commands] == [
+        "base", "base", "branch", None]
+    filed = [command.filed for command in check.commands]
+    assert filed[0] and filed[1] and filed[0] != filed[1]
+    assert filed[2:] == [None, None]
+    assert [message.id for message in box.pending()] == filed[:2]
+    assert git_.added == git_.removed
+
+
+async def test_base_worktree_refusal_fails_closed_and_empty_diff_never_creates_one(tmp_path):
+    box = Box(tmp_path / "state", fs=LocalFilesystem(), clock=TickingClock())
+    refused_git = AttributionGit(refuse=True, refusal_stderr=f"refused {SECRET}")
+    refused = await attributed_check(
+        tmp_path, TickingClock(), "refused", refused_git,
+        AttributionProcess((1, "", "branch red")), box,
+        redactor=Redactor({KEY_NAME: SECRET}))
+    [refused_command] = refused.commands
+    assert refused.verdict == "fail" and refused_command.attribution == "branch"
+    assert "base attribution failed" in refused.findings[0].message
+    assert TOKEN in refused.findings[0].message and SECRET not in refused.findings[0].message
+
+    empty_git = AttributionGit(names=())
+    empty = await attributed_check(
+        tmp_path, TickingClock(), "empty", empty_git,
+        AttributionProcess((1, "", "branch red")), box)
+    [empty_command] = empty.commands
+    assert empty.verdict == "fail" and empty_command.attribution is None
+    assert "no committed diff" in empty.findings[0].message
+    assert empty_git.added == empty_git.removed == []
+
+
+async def test_a_raised_base_run_fails_closed_and_still_removes_the_worktree(tmp_path):
+    box = Box(tmp_path / "state", fs=LocalFilesystem(), clock=TickingClock())
+    git_ = AttributionGit()
+    check = await attributed_check(
+        tmp_path, TickingClock(), "base-raises", git_,
+        AttributionProcess((1, "", "branch red"), RuntimeError("base runner broke")), box)
+
+    [command] = check.commands
+    assert check.verdict == "fail" and command.attribution == "branch"
+    assert command.filed is None
+    assert "base attribution failed: RuntimeError: base runner broke" in check.findings[0].message
+    assert git_.added == git_.removed
 
 
 async def test_lifted_run_record_is_redacted_on_main(repo, env):

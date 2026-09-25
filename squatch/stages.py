@@ -40,6 +40,7 @@ from pydantic import Field, model_validator
 
 import squatch
 from squatch.artifacts import OUTCOMES, Artifact, ClosedModel, Cost, Finding, StageResult
+from squatch.box import Box
 from squatch.config import Config, Severity
 from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects, effect_key, latest_terminal
@@ -109,6 +110,12 @@ class PackingSlip(Artifact):
     head: str
 
 
+class VerificationCommand(ClosedModel):
+    argv: tuple[str, ...]
+    attribution: Literal["base", "branch"] | None = None
+    filed: str | None = None
+
+
 class CheckEntry(ClosedModel):
     code: str
     verdict: Literal["pass", "fail"]
@@ -116,6 +123,7 @@ class CheckEntry(ClosedModel):
     # A failing code the ticket's gate_bypass valve named: recorded, never hidden.
     bypassed: bool = False
     findings: tuple[Finding, ...] = ()
+    commands: tuple[VerificationCommand, ...] = ()
 
 
 class Invoice(Artifact):
@@ -258,16 +266,18 @@ class ScopeFence:
 
 
 class Verification:
-    """The ticket's own `## Verification` commands on the committed branch;
-    Phase 1 runs WITHOUT base-diff attribution (any red fails)."""
+    """The ticket's own `## Verification` commands on the committed branch."""
 
     code = "verification"
     paved_road = "make every `## Verification` command exit 0 on the committed branch"
 
     def __init__(self, git: Git, repo: Path, process: ProcessExec, ticket: Ticket,
-                 env: Mapping[str, str], redact: Redactor):
+                 env: Mapping[str, str], redact: Redactor, *, box: Box | None = None,
+                 base_worktree: Path | None = None, run_seq: int | None = None):
         self._git, self._repo, self._process, self._ticket = git, repo, process, ticket
         self._env, self._redact = env, redact
+        self._box, self._base_worktree, self._run_seq = box, base_worktree, run_seq
+        self.commands: tuple[VerificationCommand, ...] = ()
 
     async def check(self, slip: PackingSlip, workspace: Path) -> GateReport:
         findings = []
@@ -285,20 +295,83 @@ class Verification:
                 paved_road="commit the work on the branch before answering; only the "
                            "committed diff is checked and reviewed"))
         timeout = self._ticket.stuck_minutes * 60
-        for argv in self._ticket.verification:
-            rc, out, err = await self._process.run(list(argv), cwd=workspace, env=self._env,
-                                                   timeout=timeout)
-            # Scrubbed once at receipt (section 6): the tail becomes a Finding
-            # that the check completion journals and the checks.json lift commits.
-            out, err = self._redact(out), self._redact(err)
-            if rc != 0:
-                tail = (err or out)[-2000:].strip()
-                findings.append(Finding(
-                    code=self.code, paved_road=self.paved_road,
-                    message=f"verification command exit {rc}: `{' '.join(argv)}`"
-                            + (f"\n{tail}" if tail else "")))
+        base_created = False
+        base_create_error: Exception | None = None
+        commands: list[VerificationCommand] = []
+        attribution_enabled = bool(names and self._box is not None and self._base_worktree
+                                   is not None and self._run_seq is not None)
+        try:
+            for argv in self._ticket.verification:
+                rc, out, err = await self._process.run(
+                    list(argv), cwd=workspace, env=self._env, timeout=timeout)
+                # Scrubbed once at receipt (section 6): the tail becomes a Finding
+                # that the check completion journals and the checks.json lift commits.
+                out, err = self._redact(out), self._redact(err)
+                if rc == 0:
+                    commands.append(VerificationCommand(argv=tuple(argv)))
+                    continue
+                finding = self._finding(argv, rc, out, err)
+                if not attribution_enabled:
+                    findings.append(finding)
+                    commands.append(VerificationCommand(
+                        argv=tuple(argv), attribution="branch" if names else None))
+                    continue
+                if base_create_error is not None:
+                    findings.append(self._attribution_failure(finding, base_create_error))
+                    commands.append(VerificationCommand(argv=tuple(argv), attribution="branch"))
+                    continue
+                try:
+                    if not base_created:
+                        await self._git.worktree_add_detached(
+                            self._repo, self._base_worktree, slip.base)
+                        base_created = True
+                except Exception as e:
+                    base_create_error = e
+                    findings.append(self._attribution_failure(finding, e))
+                    commands.append(VerificationCommand(argv=tuple(argv), attribution="branch"))
+                    continue
+                try:
+                    base_rc, base_out, base_err = await self._process.run(
+                        list(argv), cwd=self._base_worktree, env=self._env, timeout=timeout)
+                    base_out, base_err = self._redact(base_out), self._redact(base_err)
+                except Exception as e:
+                    findings.append(self._attribution_failure(finding, e))
+                    commands.append(VerificationCommand(argv=tuple(argv), attribution="branch"))
+                    continue
+                if base_rc == 0:
+                    findings.append(finding)
+                    commands.append(VerificationCommand(argv=tuple(argv), attribution="branch"))
+                    continue
+                reason = self._finding(argv, base_rc, base_out, base_err).message
+                filed = self._file_base_red(slip, reason)
+                commands.append(VerificationCommand(
+                    argv=tuple(argv), attribution="base", filed=filed))
+        finally:
+            self.commands = tuple(commands)
+            if base_created:
+                await self._git.worktree_remove(self._repo, self._base_worktree)
         return GateReport(code=self.code, verdict="fail" if findings else "pass",
                           findings=tuple(findings))
+
+    def _finding(self, argv: Sequence[str], rc: int, out: str, err: str) -> Finding:
+        tail = (err or out)[-2000:].strip()
+        return Finding(
+            code=self.code, paved_road=self.paved_road,
+            message=f"verification command exit {rc}: `{' '.join(argv)}`"
+                    + (f"\n{tail}" if tail else ""))
+
+    def _attribution_failure(self, finding: Finding, error: Exception) -> Finding:
+        detail = self._redact(f"{type(error).__name__}: {error}")
+        return finding.model_copy(update={
+            "message": f"{finding.message}\nbase attribution failed: {detail}"})
+
+    def _file_base_red(self, slip: PackingSlip, reason: str) -> str:
+        assert self._box is not None and self._run_seq is not None
+        result = self._box.enqueue(
+            message_class="failure_report", summary="Pre-existing verification failure",
+            detail=reason, origin=slip.stem, stage="check", outcome="base_red",
+            run_seq=self._run_seq)
+        return result.id
 
 
 def lint_run_record(text: str) -> list[str]:
@@ -366,7 +439,8 @@ class DiffBudget:
 
 
 def build_invoice(run: GateRun, slip: PackingSlip, names: Sequence[str], *,
-                  bypassed: set[str], version: str) -> Invoice:
+                  bypassed: set[str], version: str,
+                  verification: Verification | None = None) -> Invoice:
     """One gate run as the structured check report; Check and the merge
     admission's re-run persist the same shape."""
     return Invoice(
@@ -375,7 +449,10 @@ def build_invoice(run: GateRun, slip: PackingSlip, names: Sequence[str], *,
         checks=tuple(CheckEntry(
             code=r.report.code, verdict=r.report.verdict, severity=r.severity,
             bypassed=r.failed and r.report.code in bypassed,
-            findings=r.report.findings) for r in run.results),
+            findings=r.report.findings,
+            commands=(verification.commands
+                      if verification is not None and r.report.code == verification.code
+                      else ())) for r in run.results),
         produced_by_spec_version=version, produced_at_sha=slip.head)
 
 
@@ -419,6 +496,7 @@ class Stages:
         self.implement_spec = load_spec(self._specs_dir / "implement.md")
         self.review_spec = load_spec(self._specs_dir / "review.md")
         state = self._repo / config.state_dir
+        self._box = Box(state, fs=fs, clock=clock)
         self._spool = Spool(state, fs=fs, redact=redact)
         self._driver = Driver(llm=llm, spool=self._spool, log=log,
                               clock=clock, retry_cap=config.caps.retry,
@@ -641,16 +719,21 @@ class Stages:
         bypassed = {code for code, _ in ticket.gate_bypass}
 
         async def action() -> dict:
-            gates = (ScopeFence(self._git, self._repo, ticket),
-                     Verification(self._git, self._repo, self._process, ticket, self._child_env,
-                                  self._redact),
+            verification = Verification(
+                self._git, self._repo, self._process, ticket, self._child_env, self._redact,
+                box=self._box,
+                base_worktree=(self._repo / self._config.worktree_root
+                               / f"{stem}-base-{run_seq}"),
+                run_seq=run_seq)
+            gates = (ScopeFence(self._git, self._repo, ticket), verification,
                      RunRecord(), DiffBudget(self._git, self._repo))
             # The one valve (section 7): a bypassed code fails soft, recorded forever.
             severity = {**self._config.review.gate_severity,
                         **{code: "soft" for code in bypassed}}
             run = await run_gates(gates, slip, worktree, severity=severity)
             names = await self._git.diff_names(self._repo, slip.base, slip.branch)
-            invoice = build_invoice(run, slip, names, bypassed=bypassed, version=CHECK_VERSION)
+            invoice = build_invoice(run, slip, names, bypassed=bypassed, version=CHECK_VERSION,
+                                    verification=verification)
             self._log.event("check", stage="check", ticket=stem, run_seq=run_seq,
                             passed=invoice.passed,
                             findings=[f.model_dump() for f in invoice.hard_findings])

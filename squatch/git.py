@@ -107,6 +107,9 @@ class Git:
     async def worktree_add(self, repo: Path, path: Path, branch: str, start_point: str) -> None:
         await self._run(repo, "worktree", "add", "-b", branch, str(path), start_point)
 
+    async def worktree_add_detached(self, repo: Path, path: Path, commit: str) -> None:
+        await self._run(repo, "worktree", "add", "--detach", str(path), commit)
+
     async def worktree_remove(self, repo: Path, path: Path) -> None:
         # --force: uncommitted debris is wiped with the worktree (section 10).
         await self._run(repo, "worktree", "remove", "--force", str(path))

@@ -22,6 +22,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from squatch.artifacts import Finding
+from squatch.box import Box
 from squatch.config import Config
 from squatch.diagnose import Diagnoser, DiagnosisRecord
 from squatch.effects import Effects, effect_key
@@ -95,7 +96,7 @@ class CodeLane:
 class Merge:
     def __init__(self, *, repo: Path, config: Config, git: Git, process: ProcessExec,
                  fs: Filesystem, effects: Effects, journal: Journal, log: EngineLog,
-                 redact: Redactor, env: Mapping[str, str]):
+                 redact: Redactor, clock: Clock, env: Mapping[str, str]):
         self._repo = Path(repo)
         self._config = config
         self._git = git
@@ -105,6 +106,7 @@ class Merge:
         self._journal = journal
         self._log = log
         self._redact = redact
+        self._box = Box(self._repo / config.state_dir, fs=fs, clock=clock)
         # Inherit-minus-secrets: a verification command never sees a provider key.
         self._child_env = child_env(env, {p.auth for p in config.providers if p.auth})
 
@@ -215,13 +217,18 @@ class Merge:
         bypassed = {code for code, _ in ticket.gate_bypass}
 
         async def action() -> dict:
+            verification = Verification(
+                self._git, self._repo, self._process, ticket, self._child_env, self._redact,
+                box=self._box,
+                base_worktree=(self._repo / self._config.worktree_root
+                               / f"{stem}-base-{run_seq}"),
+                run_seq=run_seq)
             gates = (ScopeFence(self._git, self._repo, ticket), RunRecord(),
-                     DiffBudget(self._git, self._repo),
-                     Verification(self._git, self._repo, self._process, ticket, self._child_env,
-                                  self._redact))
+                     DiffBudget(self._git, self._repo), verification)
             run = await run_gates(gates, candidate, worktree, severity=self._severity(ticket))
             names = await self._git.diff_names(self._repo, candidate.base, candidate.branch)
-            invoice = build_invoice(run, candidate, names, bypassed=bypassed, version=MERGE_VERSION)
+            invoice = build_invoice(run, candidate, names, bypassed=bypassed,
+                                    version=MERGE_VERSION, verification=verification)
             self._log.event("merge_check", stage="merge", ticket=stem, run_seq=run_seq,
                             passed=invoice.passed,
                             findings=[f.model_dump() for f in invoice.hard_findings])
@@ -307,5 +314,5 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
     merge = Merge(repo=repo, config=config, git=git, process=process, fs=fs,
                   effects=Effects(journal), journal=journal,
                   log=EngineLog(repo / config.state_dir, clock=clock, redact=redact),
-                  redact=redact, env=env)
+                  redact=redact, clock=clock, env=env)
     return Pipeline(stages, merge)
