@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The repaired section 20 registry now explicitly permits the three additive Git operations, so the prior conflict-resolution fence blocker is absent. The merge-queue seed records fixture Config inputs through `squatch/config.py` Context without proposing a config change.
+The repaired section 20 registry permits the three additive Git operations, so the conflict-resolution fence blocker is absent. The successor explicitly carries its own remainder beginning with Rework and requires its child continuation to begin at threshold runtime.
 
 ## Dead ends
-None.
+The first wrapper-based commit invocation used an invalid one-line async function definition; the corrected invocation used the public Git wrapper.
 
 ## Second problems filed
 None.
@@ -14,4 +14,4 @@ None.
 OpenAI / Codex; exact serving model identifier unavailable.
 
 ## Predicted vs actual
-Expected: 75m. Actual: approximately 12m.
+Expected: 75m. Actual: approximately 10m.
