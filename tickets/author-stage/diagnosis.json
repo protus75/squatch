@@ -1,15 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "reject",
+  "verdict": "retry",
   "lessons": [
-    "`Message` in squatch/box.py has no `bug_origin` or `has_repro` field, so `starting_state` cannot get these values for a `bug_report` message. Guessing them from the free-form `origin` makes every bug_report item raise ValueError after a paid LLM call.",
-    "squatch/git.py only lists untracked files (`ls-files --others`). It has no public op for tracked files. Calling `Git._run(\"ls-files\")` from author.py skips the named-op rule and hides a scope escape.",
-    "The plan or ticket needs fixing: add squatch/box.py (a bug_origin/has_repro source on the message, or a defined mapping) and squatch/git.py plus tests/test_git.py (a named `ls_files` op) to the fence. Then regenerate the ticket.",
-    "Once the fence is fixed, keep the current diff. Check that the starting-state inputs resolve before `driver.run`, so an item that cannot be resolved makes no LLM call and stays pending with its author verdict.",
-    "When a needed change falls outside the fence, answer premise_failed as the Definition of rejected says. Do not work around it with private APIs or guessed mappings."
+    "The implementation is correct and every check passed. Review snagged only on test coverage for two acceptance criteria. Keep the source diff as it is and add tests only.",
+    "In tests/test_author.py, parametrize the bug-policy refusal test over missing and invalid inputs: bug_origin None, bug_origin 'robot', has_repro None, has_repro 1 (inject via model_copy). For each, assert zero llm.requests, status 'pending', and triage['verdict'] == 'author'.",
+    "Add a test in tests/test_author.py for a pass with two pending author-verdict items. The first has an invalid bug-policy input and the second is valid. Assert the second is authored in the same pass and the first stays pending with its verdict and is reported.",
+    "In tests/test_git.py, add a test that builds the Author tree (Author._tree or _inputs) with a Git whose ls_files is stubbed and whose _run raises if called. Assert the rendered tree equals the stubbed paths. The criterion puts this in test_git.py, not only test_author.py.",
+    "Before finishing, re-read each acceptance criterion clause by clause and map every 'and' and 'or' to an assertion. Both snags came from criteria that were only partly tested."
   ],
-  "reason": "The ticket cannot be done inside its scope fence: box.py has no source for the bug_origin/has_repro inputs the policy needs, and git.py has no op for listing tracked files. Both files are outside the fence, and the ticket's Definition of rejected says to stop with premise_failed when that happens.",
+  "reason": "Every check passed; the review snag is only missing test coverage for two acceptance criteria, which the findings now steer.",
   "detail": null
 }
