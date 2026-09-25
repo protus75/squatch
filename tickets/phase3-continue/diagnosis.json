@@ -1,9 +1,15 @@
 {
-  "run_seq": 4,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 5,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "phase3-continue-02 Scope in: the listed YAML suffix is this ticket's own carried remainder, headed by the `rework-stage` it seeds. Do not say `phase3-continue-03` carries it; that would seed rework-stage twice or leave the suffix the same length.",
+    "phase3-continue-02 Scope in must require `phase3-continue-03` to carry the ordered suffix from `[thresh-runtime]` through `[phase3-exit]`, so the suffix shrinks by one admission as section 20 requires.",
+    "phase3-continue-02: add a criterion that `tests/test_seeded_phase3_02.py` asserts the structured YAML suffix in `tickets/phase3-continue-03/ticket.md` Scope in equals the exact tuple `[thresh-runtime]`..`[phase3-exit]`, parsed like `_structured_scope_in` in `tests/test_seeded_phase3_core.py`.",
+    "Keep SUFFIX in `tests/test_seeded_phase3_01.py` headed by `rework-stage` for continue-02's own list. Consider also asserting that the continue-03 requirement text names `thresh-runtime` as its head. Then rerun both pytest commands.",
+    "Keep all prior lessons: both typed rungs, git.py additive ops with rebase/rebase_abort unchanged, config.py Context, tree-hash mismatch releases the slot with no hold, no scheduler/watcher import, exact next-batch pins, keyed ownership YAML, render headroom with pinned bytes."
+  ],
+  "reason": "Requisition review flagged two fixable wording and criterion gaps in phase3-continue-02's suffix handoff; the paved road is explicit and needs no plan change or extra capability.",
+  "detail": null
 }
