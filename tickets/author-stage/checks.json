@@ -1,0 +1,101 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "8e8fb4f0ebb4bd4f35bb119be852672f3adfe57a",
+  "stem": "author-stage",
+  "branch": "author-stage",
+  "base": "6c1f1dcd0b5b68de5a0071d3137c00e3e2db767f",
+  "head": "8e8fb4f0ebb4bd4f35bb119be852672f3adfe57a",
+  "changed_files": [
+    "specs/author.md",
+    "squatch/author.py",
+    "squatch/policy.py",
+    "squatch/tickets.py",
+    "squatch/triage.py",
+    "tests/test_author.py",
+    "tests/test_eval_harness.py",
+    "tests/test_policy.py",
+    "tests/test_specs.py",
+    "tests/test_triage.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_author.py",
+            "tests/test_triage.py",
+            "tests/test_policy.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_tickets.py",
+            "tests/test_specs.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "grep",
+            "-rn",
+            "AUTHOR_STUCK_SECONDS = ",
+            "squatch"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
