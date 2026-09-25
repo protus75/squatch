@@ -141,6 +141,13 @@ async def test_commit_passes_message_as_single_argv_element_and_returns_sha():
     assert sha == "deadbeef"
 
 
+async def test_commit_with_paths_is_a_pathspec_commit():
+    px, git = make([(0, "", ""), (0, "deadbeef\n", "")])
+    await git.commit(REPO, "squatch(x): ticket", ["tickets/x/ticket.md"])
+    assert argv(px, 0) == ["git", "-C", "/repo", "commit", "-q", "-m", "squatch(x): ticket",
+                           "--", "tickets/x/ticket.md"]
+
+
 async def test_branch_create_and_delete():
     px, git = make()
     await git.branch(REPO, "stem-1", "main")

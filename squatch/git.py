@@ -75,8 +75,11 @@ class Git:
             raise ValueError("git add needs at least one explicit path")
         await self._run(cwd, "add", "--", *(str(p) for p in paths))
 
-    async def commit(self, cwd: Path, message: str) -> str:
-        await self._run(cwd, "commit", "-q", "-m", message)
+    async def commit(self, cwd: Path, message: str, paths: Sequence[str | Path] = ()) -> str:
+        # A pathspec commits ONLY those paths: whatever else sits staged stays
+        # staged, so a lane-fenced writer cannot sweep pre-staged bytes along.
+        await self._run(cwd, "commit", "-q", "-m", message,
+                        *(("--", *(str(p) for p in paths)) if paths else ()))
         return await self.rev_parse(cwd, "HEAD")
 
     async def branch(self, cwd: Path, name: str, start_point: str) -> None:
