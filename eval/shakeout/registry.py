@@ -23,4 +23,5 @@ class Member:
 GROUPS: tuple[tuple[str, str | ModuleType], ...] = (
     ("shakeout-tickets", "eval.shakeout.tickets_group"),
     ("shakeout-stages", "eval.shakeout.stages_group"),
+    ("shakeout-driver", "eval.shakeout.driver_group"),
 )

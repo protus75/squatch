@@ -24,7 +24,7 @@ from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.journal import Journal
-from squatch.llmeffect import LLMEffect
+from squatch.llmeffect import LLMEffect, llm_key
 from squatch.gates import GateReport
 from squatch.llm import LLM_SURFACES, FakeLLM, Hang, LLMRequest, LLMResult
 from squatch.redact import Redactor
@@ -115,12 +115,13 @@ def test_diagnose_is_an_llm_substep_but_not_a_stage_name():
                  effort="medium", consumes=Echo, emits=Echo, gates=(), render=Renders())
 
 
-def driver(tmp_path, llm, *, clock=None, redact=None, stuck_seconds=None, **kw):
+def driver(tmp_path, llm, *, clock=None, redact=None, stuck_seconds=None,
+           sleep=asyncio.sleep, **kw):
     redact = redact or redactor()
     clock = clock or TickingClock()
     state = tmp_path / "state"
     call = LLMEffect(llm=llm, effects=Effects(Journal(state, clock=clock)), redact=redact,
-                     stuck_seconds=stuck_seconds)
+                     stuck_seconds=stuck_seconds, clock=clock, sleep=sleep)
     return Driver(llm=call, clock=clock, spool=Spool(state, fs=LocalFilesystem(), redact=redact),
                   log=EngineLog(state, clock=clock, redact=redact), **kw)
 
@@ -493,6 +494,12 @@ async def test_retry_cap_bounds_reprompts_and_names_the_spent_cap(tmp_path):
     assert (terminal["outcome"], terminal["reason"]) == ("invalid_artifact", "retry cap spent")
     assert terminal["cap"] == "retry"
 
+    with Journal(tmp_path / "state", clock=TickingClock()) as journal:
+        completions = [event.key for event in journal.read()
+                       if event.type == "effect_completion"]
+    assert completions == [llm_key("t-1", 0, "review", 1, call_seq)
+                           for call_seq in range(1, 4)]
+
 
 async def test_gate_failed_at_the_cap_is_the_terminal_outcome(tmp_path):
     gate = StubGate("fail", "fail")
@@ -564,6 +571,25 @@ async def test_stuck_call_is_aborted_before_the_timeout_terminal_is_recorded(tmp
     assert (spool_dir(tmp_path) / "001-prompt.md").read_text() == "say: hi"
     terminal = log_events(tmp_path)[-1]
     assert terminal["outcome"] == "timeout" and "stuck" in terminal["reason"]
+
+
+async def test_injected_sleep_elapses_the_clock_derived_stuck_budget_without_wall_time(tmp_path):
+    clock = TickingClock(step=0)
+    slept = []
+
+    async def expire(seconds):
+        slept.append(seconds)
+        clock.now += timedelta(seconds=seconds)
+        await asyncio.sleep(0)
+
+    fake = FakeLLM(Hang(resist=True))
+    result = await run(driver(tmp_path, fake, clock=clock, stuck_seconds=60, sleep=expire),
+                       stage())
+
+    assert result.outcome == "timeout"
+    assert slept == [60]
+    assert clock.now == T0 + timedelta(seconds=60)
+    assert fake.aborted == 1
 
 
 async def test_call_within_the_stuck_budget_is_not_aborted(tmp_path):
