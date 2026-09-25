@@ -17,15 +17,19 @@ from squatch.llm import LLM
 from squatch.llmeffect import LLMEffect
 from squatch.policy import go_binds, starting_state
 from squatch.redact import Redactor
+from squatch.requisition import (REVIEW_CODE, RequisitionGate, RequisitionRMA,
+                                 RequisitionReview, RequisitionSnag, Verdict)
 from squatch.seams import Clock, Filesystem
 from squatch.specs import DATA_MARKER, DataBlock, Spec, resolve_plan_sections
-from squatch.tickets import (PLAN_FILE, RESERVED_STEMS, STEM, TICKET_FILE, TICKETS_DIR, Intake,
+from squatch.stages import Stages
+from squatch.tickets import (PLAN_FILE, STEM, TICKET_FILE, TICKETS_DIR, Intake,
                              TicketSchemaGate, lint_ticket, on_disk_stems, parse_frontmatter)
 from squatch.triage import TriageAuthor
 
 AUTHOR_PLANE_CHARS = 20000
 AUTHOR_TREE_CHARS = 20000
 AUTHOR_STUCK_SECONDS = 900
+AUTHOR_RMA_ROAD = "fix the plan (or the message) and re-run squatch triage"
 
 
 class AuthorInput(Artifact):
@@ -48,14 +52,34 @@ class AuthoredTicket(Artifact):
     @field_validator("stem")
     @classmethod
     def _valid_stem(cls, value: str) -> str:
-        if not STEM.match(value) or value in RESERVED_STEMS:
+        if not STEM.match(value):
             raise ValueError("stem must match ^[a-z0-9][a-z0-9-]{1,63}$")
         return value
 
 
-def author_stage(spec: Spec) -> LLMStage:
+class _AuthorSchemaGate(TicketSchemaGate):
+    """Expose the admitted artifact to the following feasibility gate."""
+
+    def __init__(self, reset_review: Callable[[], None]):
+        self._targets: tuple[tuple[str, str], ...] = ()
+        self._reset_review = reset_review
+
+    async def check(self, artifact: Artifact, workspace: Path):
+        self._targets = ()
+        self._reset_review()
+        report = await super().check(artifact, workspace)
+        if report.verdict == "pass":
+            self._targets = ((artifact.stem, artifact.ticket),)
+        return report
+
+    def targets(self, artifact: Artifact, workspace: Path) -> tuple[tuple[str, str], ...]:
+        return self._targets
+
+
+def author_stage(spec: Spec, review: RequisitionReview, *, run_seq: int = 0) -> LLMStage:
     if (spec.surface != "author" or spec.consumes != "AuthorInput"
-            or spec.emits != "AuthoredTicket" or spec.gates != ("ticket_schema",)):
+            or spec.emits != "AuthoredTicket"
+            or spec.gates != ("ticket_schema", REVIEW_CODE)):
         raise ValueError("author spec does not match the Author stage contract")
 
     def render(inputs: AuthorInput, findings: Sequence) -> str:
@@ -73,9 +97,33 @@ def author_stage(spec: Spec) -> LLMStage:
             blocks["context_files"] = DataBlock("host", _quoted(inputs.context_files))
         return spec.render(blocks, findings=findings)
 
+    schema = _AuthorSchemaGate(getattr(review, "reset", lambda: None))
     return LLMStage(name="author", surface=spec.surface, spec_version=spec.version,
                     tier=spec.tier, effort=spec.effort, consumes=AuthorInput,
-                    emits=AuthoredTicket, gates=(TicketSchemaGate(),), render=render)
+                    emits=AuthoredTicket, gates=(
+                        schema,
+                        RequisitionGate(review, schema.targets, run_seq=run_seq),
+                    ), render=render)
+
+
+class _RenderOnlyProcess:
+    """The feasibility review renders Implement but never executes a command."""
+
+    async def run(self, *args, **kwargs):
+        raise AssertionError("the Author feasibility renderer must not execute a process")
+
+
+class _ReviewCapture:
+    def __init__(self, review: RequisitionReview):
+        self._review = review
+        self.last: Verdict | None = None
+
+    def reset(self) -> None:
+        self.last = None
+
+    async def review(self, *args, **kwargs) -> Verdict:
+        self.last = await self._review.review(*args, **kwargs)
+        return self.last
 
 
 class Author:
@@ -107,13 +155,31 @@ class Author:
         state_dir = self._repo / self._config.state_dir
         effect = LLMEffect(llm=self._llm, effects=Effects(self._journal), redact=self._redact,
                            stuck_seconds=AUTHOR_STUCK_SECONDS)
+        spool = Spool(state_dir, fs=self._fs, redact=self._redact)
         driver = Driver(
-            llm=effect, spool=Spool(state_dir, fs=self._fs, redact=self._redact),
+            llm=effect, spool=spool,
             log=self._log, clock=self._clock, retry_cap=self._config.caps.retry)
+        stages = Stages(
+            repo=self._repo, config=self._config, git=self._git,
+            process=_RenderOnlyProcess(), fs=self._fs, llm=effect, log=self._log,
+            redact=self._redact, clock=self._clock, env={})
+        review = _ReviewCapture(RequisitionReview(
+            repo=self._repo, git=self._git, stages=stages, llm=effect,
+            spool=spool, log=self._log, clock=self._clock))
         result = await driver.run(
-            author_stage(spec), inputs, ticket=None, run_seq=pass_number,
-            attempt=message.seq, workspace=self._repo, sha=sha)
+            author_stage(spec, review, run_seq=pass_number), inputs, ticket=None,
+            run_seq=pass_number, attempt=message.seq, workspace=self._repo, sha=sha,
+            terminal_findings=lambda findings: isinstance(review.last, RequisitionRMA))
         if result.outcome != "ok" or not isinstance(result.artifact, AuthoredTicket):
+            if (isinstance(review.last, (RequisitionSnag, RequisitionRMA))
+                    and result.findings
+                    and all(finding.code == REVIEW_CODE for finding in result.findings)):
+                self._record_review(message, review.last)
+            if isinstance(review.last, RequisitionRMA):
+                self._report(
+                    f"author: {message.id}: rma; {review.last.summary}; left pending; "
+                    f"{AUTHOR_RMA_ROAD}")
+                return None
             detail = result.reason or result.outcome
             if result.reason == "retry cap spent":
                 detail = f"retry allowance of {self._config.caps.retry} spent"
@@ -155,6 +221,15 @@ class Author:
                           note=verdict.summary)
         self._report(f"author: {message.id}: authored as {authored.stem}")
         return authored.stem
+
+    def _record_review(self, message: Message, verdict: RequisitionSnag | RequisitionRMA) -> None:
+        triage = dict(message.triage or {})
+        triage[REVIEW_CODE] = {
+            "verdict": verdict.verdict,
+            "summary": verdict.summary,
+            "findings": [finding.model_dump(mode="json") for finding in verdict.findings],
+        }
+        self._box.record_triage(message.id, triage)
 
     def _report_failure(self, message: Message, error: Exception) -> None:
         self._report(f"author: {message.id}: {type(error).__name__}: {error}; left pending")

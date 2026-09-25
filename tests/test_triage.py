@@ -62,6 +62,18 @@ def _enqueue(repo: Path, n: int = 1):
                  for i in range(1, n + 1)]
 
 
+def _review_reply(verdict="approve", *messages):
+    return json.dumps({
+        "verdict": verdict,
+        "summary": f"reviewed: {verdict}",
+        "findings": [
+            {"code": "requisition_review", "path": None, "line": None,
+             "message": message, "paved_road": "re-author it"}
+            for message in messages
+        ],
+    })
+
+
 def test_spec_and_render_contract():
     spec = load_spec(ROOT / "specs" / "triage.md")
     assert spec.surface == "triage" and spec.consumes == "TriageInput"
@@ -94,7 +106,8 @@ def test_pass_commits_records_and_authors_in_the_same_pass(checkout):
                     "rationale": "not now", "evidence": "low value"}),
         json.dumps({"verdict": "author", "summary": "rewrite", "kind": "feature",
                     "priority": "P2", "goal": "ship it", "why": "useful"}),
-        json.dumps({"stem": "authored-ticket", "ticket": GOOD.format(depends="none")}))
+        json.dumps({"stem": "authored-ticket", "ticket": GOOD.format(depends="none")}),
+        _review_reply())
 
     reports = _run(checkout, llm)
 
@@ -113,6 +126,8 @@ def test_pass_commits_records_and_authors_in_the_same_pass(checkout):
     assert third.status == "authored" and third.triage["verdict"] == "author"
     assert third.resolution.link == "authored-ticket"
     assert any("authored as authored-ticket" in line for line in reports)
+    assert [request.surface for request in llm.requests] == [
+        "triage", "triage", "triage", "author", "requisition_review"]
     passes = [e for e in read_events(checkout / STATE)
               if e.type == "signal" and e.body.get("kind") == "triage_pass"]
     assert passes[-1].body["pass"] == 0
@@ -158,11 +173,12 @@ def test_later_pass_authors_a_recorded_verdict_without_triaging_again(checkout):
         journal.append("signal", {"kind": "triage_pass", "pass": 0,
                                   "triaged": {}, "skipped": [ids[0]]})
     llm = FakeLLM(json.dumps({
-        "stem": "later-ticket", "ticket": GOOD.format(depends="none")}))
+        "stem": "later-ticket", "ticket": GOOD.format(depends="none")}),
+        _review_reply())
 
     _run(checkout, llm)
 
-    assert [request.surface for request in llm.requests] == ["author"]
+    assert [request.surface for request in llm.requests] == ["author", "requisition_review"]
     assert box.get(ids[0]).status == "authored"
     passes = [e for e in read_events(checkout / STATE)
               if e.type == "signal" and e.body.get("kind") == "triage_pass"]
@@ -170,7 +186,8 @@ def test_later_pass_authors_a_recorded_verdict_without_triaging_again(checkout):
     assert passes[-1].body["triaged"]["authored"] == ["later-ticket"]
     keys = [e.key for e in read_events(checkout / STATE)
             if e.type == "effect_completion" and e.key]
-    assert keys == ["llm/author/1/author/1/1"]
+    assert keys[0] == "llm/author/1/author/1/1"
+    assert len(keys) == 2 and keys[1].startswith("llm/requisition_review/later-ticket/")
 
 
 def test_author_commit_failure_does_not_abort_the_pass(checkout, monkeypatch):
@@ -187,6 +204,7 @@ def test_author_commit_failure_does_not_abort_the_pass(checkout, monkeypatch):
         json.dumps({"verdict": "author", "summary": "rewrite", "kind": "feature",
                     "priority": "P2", "goal": "ship it", "why": "useful"}),
         json.dumps({"stem": "failed-ticket", "ticket": GOOD.format(depends="none")}),
+        _review_reply(),
         json.dumps({"verdict": "decision", "reopen_after_days": 7,
                     "rationale": "not now", "evidence": "low value"}))
 
@@ -195,9 +213,28 @@ def test_author_commit_failure_does_not_abort_the_pass(checkout, monkeypatch):
     assert box.get(ids[0]).status == "pending"
     assert not (checkout / "tickets/failed-ticket").exists()
     assert box.get(ids[1]).status == "decided"
+    assert [request.surface for request in llm.requests] == [
+        "triage", "author", "requisition_review", "triage"]
     passes = [e for e in read_events(checkout / STATE)
               if e.type == "signal" and e.body.get("kind") == "triage_pass"]
     assert passes[-1].body["skipped"] == [ids[0]]
+
+
+def test_exhausted_fake_review_fails_closed_instead_of_approving(checkout):
+    box, ids = _enqueue(checkout)
+    llm = FakeLLM(
+        json.dumps({"verdict": "author", "summary": "rewrite", "kind": "feature",
+                    "priority": "P2", "goal": "ship it", "why": "useful"}),
+        json.dumps({"stem": "unreviewed-ticket", "ticket": GOOD.format(depends="none")}))
+
+    _run(checkout, llm)
+
+    assert [request.surface for request in llm.requests] == [
+        "triage", "author", "requisition_review"]
+    message = box.get(ids[0])
+    assert message.status == "pending"
+    assert message.triage["requisition_review"]["verdict"] == "rma"
+    assert not (checkout / "tickets/unreviewed-ticket").exists()
 
 
 def test_bad_link_reprompts_once_then_continues(checkout):

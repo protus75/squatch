@@ -79,7 +79,9 @@ class Driver:
         self._severity = severity
 
     async def run(self, stage: LLMStage, inputs: Artifact, *, ticket: str | None,
-                  run_seq: int, attempt: int, workspace: Path, sha: str) -> StageResult:
+                  run_seq: int, attempt: int, workspace: Path, sha: str,
+                  terminal_findings: Callable[[Sequence[Finding]], bool] | None = None
+                  ) -> StageResult:
         if not isinstance(inputs, stage.consumes):
             raise TypeError(f"{stage.name} consumes {stage.consumes.__name__}, "
                             f"got {type(inputs).__name__}")
@@ -129,6 +131,8 @@ class Driver:
                     return self._terminal("ok", cost.final(), gates.soft_failures, common,
                                           artifact=artifact)
                 findings, failure = gates.hard_failures, "gate_failed"
+                if terminal_findings is not None and terminal_findings(findings):
+                    return self._terminal(failure, cost.final(), findings, common)
             if call_seq <= self.retry_cap:
                 self._log.event("reprompt", call_seq=call_seq, reason=failure,
                                 findings=_dump(findings), **common)

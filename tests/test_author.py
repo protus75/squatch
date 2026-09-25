@@ -13,10 +13,12 @@ from squatch.author import (AUTHOR_STUCK_SECONDS, AuthoredTicket, Author, Author
 from squatch.box import Box
 from squatch.config import load
 from squatch.enginelog import EngineLog
+from squatch.gates import run_gates
 from squatch.git import Git
 from squatch.journal import Journal, read_events
 from squatch.llm import FakeLLM, Hang
 from squatch.redact import Redactor
+from squatch.requisition import RequisitionApprove
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.specs import DATA_MARKER, load_spec
 from squatch.tickets import TicketSchemaGate, stamp
@@ -43,6 +45,18 @@ def ticket(*, bypass=False):
 
 def reply(text, stem="parser-ticket"):
     return json.dumps({"stem": stem, "ticket": text})
+
+
+def review_reply(verdict, *messages, summary=None):
+    return json.dumps({
+        "verdict": verdict,
+        "summary": summary or f"reviewed: {verdict}",
+        "findings": [
+            {"code": "requisition_review", "path": None, "line": None,
+             "message": message, "paved_road": "re-author it"}
+            for message in messages
+        ],
+    })
 
 
 def setup_author(repo, llm, *, message_class="suggestion", config_text=None,
@@ -81,14 +95,22 @@ def setup_author(repo, llm, *, message_class="suggestion", config_text=None,
 def test_spec_stage_and_render_contract():
     spec = load_spec(ROOT / "specs" / "author.md")
     assert (spec.surface, spec.consumes, spec.emits, spec.gates) == (
-        "author", "AuthorInput", "AuthoredTicket", ("ticket_schema",))
+        "author", "AuthorInput", "AuthoredTicket",
+        ("ticket_schema", "requisition_review"))
     assert spec.slots == (
         "message", "triage", "ticket_contract", "plane", "tree", "context_files")
     assert spec.optional == {"context_files"}
-    stage = author_stage(spec)
+    class NoReview:
+        def targets(self, artifact, workspace):
+            return ((artifact.stem, artifact.ticket),)
+
+        async def review(self, *args, **kwargs):
+            raise AssertionError("rendering the Author stage does not run its gates")
+
+    stage = author_stage(spec, NoReview())
     assert (stage.name, stage.surface, stage.consumes, stage.emits) == (
         "author", "author", AuthorInput, AuthoredTicket)
-    assert [gate.code for gate in stage.gates] == ["ticket_schema"]
+    assert [gate.code for gate in stage.gates] == ["ticket_schema", "requisition_review"]
     rendered = stage.render(AuthorInput(
         produced_by_spec_version="x", produced_at_sha="abc",
         message_id="box-000001-deadbeef", message_class="suggestion",
@@ -123,17 +145,40 @@ def test_authored_ticket_stem_and_schema_gate(checkout):
                for f in report.findings)
 
 
+def test_schema_admission_reaches_review_without_a_plan_file(checkout):
+    (checkout / "SQUATCH_PLAN.md").unlink()
+    reviewed = []
+
+    class Approves:
+        async def review(self, stem, text, **kwargs):
+            reviewed.append((stem, text))
+            return RequisitionApprove(
+                verdict="approve", summary="buildable", findings=(),
+                produced_by_spec_version="1.0", produced_at_sha="abc")
+
+    stage = author_stage(load_spec(ROOT / "specs" / "author.md"), Approves())
+    artifact = AuthoredTicket(
+        stem="parser-ticket", ticket=ticket(),
+        produced_by_spec_version="1.0", produced_at_sha="abc")
+    result = asyncio.run(run_gates(stage.gates, artifact, checkout))
+
+    assert result.passed
+    assert reviewed == [("parser-ticket", ticket())]
+
+
 def test_author_reprompts_then_commits_and_resolves(checkout):
     invalid = ticket().replace("## Time budget\n- expected: 20m\n- stuck: 40m\n", "")
-    llm = FakeLLM(reply(invalid), reply(ticket()))
+    llm = FakeLLM(reply(invalid), reply(ticket()), review_reply("approve"))
     box, message_id, reports, go = setup_author(checkout, llm)
 
     assert asyncio.run(go()) == "parser-ticket"
 
-    assert len(llm.requests) == 2
+    assert [request.surface for request in llm.requests] == [
+        "author", "author", "requisition_review"]
     assert "ticket_schema" in llm.requests[1].rendered and "Time budget" in llm.requests[1].rendered
     events = tuple(read_events(checkout / STATE))
-    assert [e.key for e in events if e.type == "effect_completion"] == [
+    assert [e.key for e in events if e.type == "effect_completion"
+            and e.key.startswith("llm/author/")] == [
         "llm/author/0/author/1/1", "llm/author/0/author/1/2"]
     [intake] = [e for e in events if e.type == "signal"
                 and e.body.get("kind") == "ticket_intake"]
@@ -143,6 +188,111 @@ def test_author_reprompts_then_commits_and_resolves(checkout):
     message = box.get(message_id)
     assert message.status == "authored" and message.resolution.link == "parser-ticket"
     assert any("authored as parser-ticket" in line for line in reports)
+
+
+def test_requisition_snag_reprompts_author_then_approval_commits(checkout):
+    revised = ticket().replace("The widget parser lands.", "The widget parser lands now.")
+    llm = FakeLLM(
+        reply(ticket()), review_reply("snag", "scope fence misses tests/test_widget.py"),
+        reply(revised), review_reply("approve"))
+    box, message_id, _, go = setup_author(checkout, llm)
+
+    assert asyncio.run(go()) == "parser-ticket"
+    assert [request.surface for request in llm.requests] == [
+        "author", "requisition_review", "author", "requisition_review"]
+    assert "scope fence misses tests/test_widget.py" in llm.requests[2].rendered
+    events = tuple(read_events(checkout / STATE))
+    assert len([event for event in events if event.type == "effect_completion"
+                and event.key.startswith("llm/author/0/")]) == 2
+    assert len([event for event in events if event.type == "effect_completion"
+                and event.key.startswith("llm/requisition_review/parser-ticket/")]) == 2
+    assert "source: box:suggestion" in (
+        checkout / "tickets/parser-ticket/ticket.md").read_text()
+    assert box.get(message_id).status == "authored"
+
+
+def test_requisition_review_uses_the_authored_capability(checkout):
+    authored = ticket().replace(
+        "kind: feature\n", "kind: feature\nagent_tier: high\nagent_effort: max\n")
+    llm = FakeLLM(reply(authored), review_reply("approve"))
+    _, _, _, go = setup_author(checkout, llm)
+
+    assert asyncio.run(go()) == "parser-ticket"
+    review = llm.requests[1]
+    assert (review.surface, review.tier, review.effort) == (
+        "requisition_review", "high", "max")
+
+
+def test_grammar_failure_skips_requisition_review_for_that_attempt(checkout):
+    invalid = ticket().replace("## Time budget\n- expected: 20m\n- stuck: 40m\n", "")
+    llm = FakeLLM(reply(invalid), reply(ticket()), review_reply("approve"))
+    _, _, _, go = setup_author(checkout, llm)
+
+    assert asyncio.run(go()) == "parser-ticket"
+    assert [request.surface for request in llm.requests] == [
+        "author", "author", "requisition_review"]
+
+
+def test_reserved_stem_skips_requisition_review_for_that_attempt(checkout):
+    llm = FakeLLM(
+        reply(ticket(), stem="decisions"), reply(ticket()), review_reply("approve"))
+    _, _, _, go = setup_author(checkout, llm)
+
+    assert asyncio.run(go()) == "parser-ticket"
+    assert [request.surface for request in llm.requests] == [
+        "author", "author", "requisition_review"]
+    assert "ticket_schema" in llm.requests[1].rendered
+    assert "reserved" in llm.requests[1].rendered
+
+
+def test_requisition_rma_records_review_and_leaves_message_pending(checkout):
+    llm = FakeLLM(
+        reply(ticket()),
+        review_reply("rma", "the plan does not name an owning module",
+                     summary="plan ownership is missing"))
+    box, message_id, reports, go = setup_author(checkout, llm)
+
+    assert asyncio.run(go()) is None
+    assert [request.surface for request in llm.requests] == ["author", "requisition_review"]
+    assert not (checkout / "tickets/parser-ticket").exists()
+    message = box.get(message_id)
+    assert message.status == "pending" and message.triage["verdict"] == "author"
+    review = message.triage["requisition_review"]
+    assert review["verdict"] == "rma" and review["summary"] == "plan ownership is missing"
+    assert review["findings"][0]["message"] == "the plan does not name an owning module"
+    assert any("squatch triage" in line for line in reports)
+
+
+def test_requisition_snag_exhaustion_records_review_and_retry_allowance(checkout):
+    config = (checkout / "config.yaml").read_text() + "caps: {retry: 1, diagnosis: 1}\n"
+    revised = ticket().replace("The widget parser lands.", "The widget parser lands now.")
+    llm = FakeLLM(
+        reply(ticket()), review_reply("snag", "first gap"),
+        reply(revised), review_reply("snag", "remaining gap"))
+    box, message_id, reports, go = setup_author(checkout, llm, config_text=config)
+
+    assert asyncio.run(go()) is None
+    assert [request.surface for request in llm.requests] == [
+        "author", "requisition_review", "author", "requisition_review"]
+    assert not (checkout / "tickets/parser-ticket").exists()
+    message = box.get(message_id)
+    assert message.status == "pending"
+    assert message.triage["requisition_review"]["verdict"] == "snag"
+    assert message.triage["requisition_review"]["findings"][0]["message"] == "remaining gap"
+    assert any("retry allowance of 1 spent" in line for line in reports)
+
+
+def test_grammar_failure_at_cap_does_not_record_an_earlier_review(checkout):
+    config = (checkout / "config.yaml").read_text() + "caps: {retry: 1, diagnosis: 1}\n"
+    invalid = ticket().replace("## Time budget\n- expected: 20m\n- stuck: 40m\n", "")
+    llm = FakeLLM(
+        reply(ticket()), review_reply("snag", "first ticket gap"), reply(invalid))
+    box, message_id, _, go = setup_author(checkout, llm, config_text=config)
+
+    assert asyncio.run(go()) is None
+    message = box.get(message_id)
+    assert message.status == "pending"
+    assert "requisition_review" not in message.triage
 
 
 def test_retry_allowance_exhaustion_leaves_recorded_verdict_pending(checkout):
@@ -175,7 +325,7 @@ def test_gate_bypass_forces_draft_under_binding_go(checkout, monkeypatch):
         "engine_plane_safety_inventory: [specs/]\n"
         "box_policy: {failure_report: confirmed}\n")
     box, message_id, _, go = setup_author(
-        checkout, FakeLLM(reply(ticket(bypass=True))),
+        checkout, FakeLLM(reply(ticket(bypass=True)), review_reply("approve")),
         message_class="failure_report", config_text=config)
 
     assert asyncio.run(go()) == "parser-ticket"
@@ -191,7 +341,7 @@ def test_commit_failure_discards_ticket_and_leaves_message_pending(checkout, mon
 
     monkeypatch.setattr("squatch.author.Intake.commit", fail_commit)
     box, message_id, reports, go = setup_author(
-        checkout, FakeLLM(reply(ticket())))
+        checkout, FakeLLM(reply(ticket()), review_reply("approve")))
 
     assert asyncio.run(go()) is None
     assert not (checkout / "tickets/parser-ticket").exists()
@@ -241,7 +391,7 @@ def test_invalid_bug_policy_item_does_not_stop_later_authoring(
         box.get(good_id),
     ]
     monkeypatch.setattr("squatch.triage.Box.pending", lambda self: pending)
-    llm = FakeLLM(reply(ticket(), stem="later-ticket"))
+    llm = FakeLLM(reply(ticket(), stem="later-ticket"), review_reply("approve"))
     reports = []
 
     async def go():
@@ -260,7 +410,7 @@ def test_invalid_bug_policy_item_does_not_stop_later_authoring(
     assert first.status == "pending" and first.triage["verdict"] == "author"
     assert box.get(good_id).status == "authored"
     assert (checkout / "tickets/later-ticket/ticket.md").is_file()
-    assert len(llm.requests) == 1
+    assert [request.surface for request in llm.requests] == ["author", "requisition_review"]
     [passed] = [event for event in read_events(checkout / STATE)
                 if event.type == "signal" and event.body.get("kind") == "triage_pass"]
     assert passed.body["skipped"] == [bad_id]

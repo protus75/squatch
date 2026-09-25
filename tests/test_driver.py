@@ -417,6 +417,57 @@ async def test_hard_gate_failure_reprompts_then_passes(tmp_path):
     assert [e["reason"] for e in log_events(tmp_path) if e["event"] == "reprompt"] == ["gate_failed"]
 
 
+async def test_async_gate_can_make_its_own_driver_call(tmp_path):
+    fake = FakeLLM(echo_json("outer"), echo_json("inner"))
+    d = driver(tmp_path, fake)
+
+    class NestedGate:
+        code = "run_record"
+        paved_road = "make the nested review pass"
+
+        async def check(self, artifact, workspace):
+            nested = await d.run(
+                stage(), Echo(text="inner", produced_by_spec_version="in@1",
+                              produced_at_sha=SHA),
+                ticket="nested", run_seq=0, attempt=1, workspace=workspace, sha=SHA)
+            assert nested.outcome == "ok" and nested.artifact.text == "inner"
+            return GateReport(code=self.code, verdict="pass")
+
+    result = await run(d, stage(NestedGate()))
+
+    assert result.outcome == "ok" and result.artifact.text == "outer"
+    assert [request.ticket for request in fake.requests] == ["t-1", "nested"]
+
+
+async def test_terminal_findings_stop_without_changing_the_every_gate_rule(tmp_path):
+    class FenceGate(StubGate):
+        code = "scope_fence"
+        paved_road = "list the path in the ticket's scope fence"
+
+    first = StubGate("fail")
+    second = FenceGate("fail")
+    fake = FakeLLM(echo_json("outer"), echo_json("unused"))
+
+    result = await run(
+        driver(tmp_path, fake, retry_cap=1), stage(first, second), workspace=Path("/wt"))
+    assert result.outcome == "gate_failed" and len(fake.requests) == 2
+    assert first.workspaces == [Path("/wt"), Path("/wt")]
+    assert second.workspaces == [Path("/wt"), Path("/wt")]
+
+    first = StubGate("fail")
+    second = FenceGate("fail")
+    fake = FakeLLM(echo_json("outer"), echo_json("unused"))
+    result = await driver(tmp_path, fake).run(
+        stage(first, second), Echo(text="hi", produced_by_spec_version="in@1",
+                                  produced_at_sha=SHA),
+        ticket="t-2", run_seq=0, attempt=1, workspace=Path("/wt"), sha=SHA,
+        terminal_findings=lambda findings: bool(findings))
+    assert result.outcome == "gate_failed" and len(fake.requests) == 1
+    assert [finding.code for finding in result.findings] == ["run_record", "scope_fence"]
+    assert first.workspaces == [Path("/wt")]
+    assert second.workspaces == [Path("/wt")]
+
+
 async def test_soft_gate_failure_continues_and_returns_its_findings(tmp_path):
     gate = StubGate("fail")
     fake = FakeLLM(echo_json("v1"))

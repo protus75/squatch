@@ -4,7 +4,7 @@ consumes: AuthorInput
 emits: AuthoredTicket
 tier: medium
 effort: medium
-gates: [ticket_schema]
+gates: [ticket_schema, requisition_review]
 version: "1.0"
 ---
 ## Role
@@ -54,4 +54,5 @@ Return exactly one JSON object and nothing else, with exactly these fields:
 ## On-failure
 If a complete grammar-valid ticket cannot be written from these inputs, still
 return the closest complete ticket. The gate findings will name the exact
-repair and the driver will re-prompt within its bounded allowance.
+repair and the driver will re-prompt within its bounded allowance. Answer
+requisition-review findings by re-authoring the ticket, never by arguing with them.
