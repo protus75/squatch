@@ -22,8 +22,6 @@ agent_effort: medium
 
 ## Plan contract
 - section 19
-- section 10
-- section 9
 
 ## Goal
 The shakeout battery's report lane exists before any group writes to it: `shakeout-report.json` has a closed schema registered among the lane writer's KNOWN artifacts in `squatch/stages.py`, `eval/shakeout/` owns the bench that drives the production composition under the fake LLM, the ordered group registry, the runner that machine-produces the cumulative report into a worktree OUTBOX with the double-gate re-confirmation of every prior group's entries, and a `check` mode the phase exit reads with; no group is registered yet.
