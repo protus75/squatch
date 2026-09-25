@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag only: the checks passed and review accepted the routing, fold, runner marker, auto-keep, and status. Keep the existing diff and only make the drain test stronger.",
+    "In test_marked_arrival_auto_keeps_then_reoffers_with_one_retry_draw, assert states(checkout, \"base\")[-1] == \"merged\" so the test proves the 'merges when its re-run is green' part of the criterion.",
+    "In the same test, assert that the machine confirm signal's journal index is lower than the index of base's second `running` transition. This proves the auto-keep released the hold before the re-run.",
+    "Also show that the marked stem was excluded from eligibility, for example by asserting on the drain's eligible set or on output ordering, so every clause of the acceptance criterion is checked.",
+    "Before finishing, check every acceptance criterion clause by clause against a test assertion. Review rejects a test that covers only part of a criterion."
+  ],
+  "reason": "The only failure is a review finding that one drain test omits the 'merged' and 'confirm before re-run' assertions; the next implementer can fix that gap with the paved road the finding gives.",
+  "detail": null
+}
