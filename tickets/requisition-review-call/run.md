@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-The landed driver admits only its existing stage-name vocabulary and the landed LLM effect owns the universal run-scoped key. I kept both owners unchanged by using a requisition-specific LLMStage subclass and a small keyed facade that executes the existing LLMEffect call body through the same Effects journal, spool, log, timeout, and redaction seams.
+The prior implementation was recoverable from its reviewed commit. I retained its scoped design and changed only the two rejected behaviors: production Implement rendering passes no effort override so the implement spec keeps owning its bound, while the pure feasibility renderer takes an explicit effort; delimiter refusals return an author-fixable mechanical snag without calling the model.
 
 The review method accepts not-yet-committed authored ticket text, so the shared standing Implement renderer has an optional text input while production continues to use the canonical ticket file.
 
@@ -11,7 +11,7 @@ The review method accepts not-yet-committed authored ticket text, so the shared 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex; serving model identity was not exposed.
+OpenAI Codex; GPT-5 family (exact serving model identity was not exposed).
 
 ## Predicted vs actual
-Expected 90m; actual approximately 45m.
+Expected 90m; actual approximately 25m.
