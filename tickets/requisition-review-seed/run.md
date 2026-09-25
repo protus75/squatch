@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-Seed-only branches have no committed code diff, so Check and post-rebase verification allow an empty diff only when authored seeds or a recorded seed lift prove the run is a seeding run. SeedSafety now proves the delivery invoice is the committed checks blob before using its per-seed approvals, which avoids trusting mutable canonical working-tree bytes without requiring an out-of-fence Git wrapper change.
+The prior implementation was available only as dangling commits after the failed attempt, so I restored it and kept its reviewed design. Seed replay now skips the shared intake lane only for byte-identical prior output, retaining the original authoring commit from the prior intake signal; interrupted effects recognize their already-committed members from the effect window.
 
 ## Dead ends
-The prior attempt read checks.json directly from the canonical working tree; review rejected that because those bytes can diverge from main. That path was replaced with committed blob identity validation.
+The prior clean-path fallback in the shared intake lane was rejected because it emitted false authoring signals for ordinary callers. It was reverted and replaced with seed-effect-local replay handling.
 
 ## Second problems filed
 None.
@@ -14,4 +14,4 @@ None.
 OpenAI / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual approximately 25m on this re-entry.
+Expected 90m; actual approximately 18m on this re-entry.
