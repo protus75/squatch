@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "produced_at_sha": "9771df5e8f455a1ee3b21c90f79341ff7da44fb5",
+  "identity": {
+    "provider": "claude",
+    "model": "opus",
+    "tier": "medium"
+  },
+  "spec_version": "1.0",
+  "fixture_authors": [
+    {
+      "provider": "codex",
+      "model": "gpt-5.6-sol",
+      "tier": "high"
+    }
+  ],
+  "usd_cap": 5.0,
+  "stuck_seconds": 600.0,
+  "stopped": null,
+  "scores": [
+    {
+      "fixture": "capability-concurrency-race",
+      "failure_class": "under_capability",
+      "expected_verdict": "escalate",
+      "outcome": "ok",
+      "verdict": "escalate",
+      "agreed": true,
+      "lesson_count": 4,
+      "usd": 0.0959586,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "capability-state-machine-repair",
+      "failure_class": "under_capability",
+      "expected_verdict": "escalate",
+      "outcome": "ok",
+      "verdict": "escalate",
+      "agreed": true,
+      "lesson_count": 4,
+      "usd": 0.0969106,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "environment-auth-expired",
+      "failure_class": "environment",
+      "expected_verdict": "abandon-human",
+      "outcome": "ok",
+      "verdict": "abandon-human",
+      "agreed": true,
+      "lesson_count": 3,
+      "usd": 0.10820260000000001,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "environment-workspace-missing",
+      "failure_class": "environment",
+      "expected_verdict": "abandon-human",
+      "outcome": "ok",
+      "verdict": "abandon-human",
+      "agreed": true,
+      "lesson_count": 2,
+      "usd": 0.1074026,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "false-premise-impossible-platform",
+      "failure_class": "false_premise",
+      "expected_verdict": "reject",
+      "outcome": "ok",
+      "verdict": "reject",
+      "agreed": true,
+      "lesson_count": 3,
+      "usd": 0.1115106,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "false-premise-removed-api",
+      "failure_class": "false_premise",
+      "expected_verdict": "reject",
+      "outcome": "ok",
+      "verdict": "reject",
+      "agreed": true,
+      "lesson_count": 2,
+      "usd": 0.1100826,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "oversight-hidden-secret",
+      "failure_class": "fixable_oversight",
+      "expected_verdict": "retry",
+      "outcome": "ok",
+      "verdict": "retry",
+      "agreed": true,
+      "lesson_count": 4,
+      "usd": 0.1111706,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "oversight-inverted-guard",
+      "failure_class": "fixable_oversight",
+      "expected_verdict": "retry",
+      "outcome": "ok",
+      "verdict": "retry",
+      "agreed": true,
+      "lesson_count": 2,
+      "usd": 0.11015459999999999,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "oversight-missed-callsite",
+      "failure_class": "fixable_oversight",
+      "expected_verdict": "retry",
+      "outcome": "ok",
+      "verdict": "retry",
+      "agreed": true,
+      "lesson_count": 2,
+      "usd": 0.1079826,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "oversight-scope-escape",
+      "failure_class": "fixable_oversight",
+      "expected_verdict": "retry",
+      "outcome": "ok",
+      "verdict": "retry",
+      "agreed": true,
+      "lesson_count": 3,
+      "usd": 0.1095746,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "oversized-engine-rewrite",
+      "failure_class": "oversized",
+      "expected_verdict": "split",
+      "outcome": "ok",
+      "verdict": "split",
+      "agreed": true,
+      "lesson_count": 3,
+      "usd": 0.1105946,
+      "provider": "claude",
+      "model": "opus"
+    },
+    {
+      "fixture": "oversized-ui-migration",
+      "failure_class": "oversized",
+      "expected_verdict": "split",
+      "outcome": "ok",
+      "verdict": "split",
+      "agreed": true,
+      "lesson_count": 3,
+      "usd": 0.0936546,
+      "provider": "claude",
+      "model": "opus"
+    }
+  ],
+  "summary": {
+    "fixtures": 12,
+    "scored": 12,
+    "agreed": 12,
+    "agreement_rate": 1.0,
+    "per_verdict": {
+      "abandon-human": {
+        "fixtures": 2,
+        "scored": 2,
+        "agreed": 2,
+        "agreement_rate": 1.0
+      },
+      "escalate": {
+        "fixtures": 2,
+        "scored": 2,
+        "agreed": 2,
+        "agreement_rate": 1.0
+      },
+      "reject": {
+        "fixtures": 2,
+        "scored": 2,
+        "agreed": 2,
+        "agreement_rate": 1.0
+      },
+      "retry": {
+        "fixtures": 4,
+        "scored": 4,
+        "agreed": 4,
+        "agreement_rate": 1.0
+      },
+      "split": {
+        "fixtures": 2,
+        "scored": 2,
+        "agreed": 2,
+        "agreement_rate": 1.0
+      }
+    },
+    "unscored": 0,
+    "usd": 1.273199,
+    "not_run": []
+  }
+}
