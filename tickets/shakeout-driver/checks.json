@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "af54a825426ec324cafc9495f22f3a8f5a9c780b",
+  "produced_at_sha": "ee5141b148a10a1dfc7f67ca3fe8868b41070fe6",
   "stem": "shakeout-driver",
   "branch": "shakeout-driver",
-  "base": "c34d78bd311acbea61398b9ee054e62b3db942de",
-  "head": "af54a825426ec324cafc9495f22f3a8f5a9c780b",
+  "base": "eae99ab8c64cdb610b1c09e4e949229929b77285",
+  "head": "ee5141b148a10a1dfc7f67ca3fe8868b41070fe6",
   "changed_files": [
     "eval/shakeout/driver_group.py",
     "eval/shakeout/registry.py",
