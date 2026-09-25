@@ -24,10 +24,12 @@ from test_cli import (
 )
 
 from squatch.config import load
+from squatch.effects import Effects
 from squatch.journal import Journal, read_events
 from squatch.lockfile import Lockfile
 from squatch.reconcile import Orphan, orphans
 from squatch.runner import EXIT_OK, EXIT_REFUSED
+from squatch.stages import Stages
 
 
 def git(repo: Path, *args: str) -> str:
@@ -122,6 +124,16 @@ def test_an_orphaned_running_is_reaped_abandoned_and_its_worktree_removed_on_the
     assert git(checkout, "branch", "--list", "base").strip() == "base"
     assert (checkout / "tickets" / "base" / "attempts" / "0" / "run.md").read_text() == (
         "orphan run record\n")
+
+    with Journal(checkout / STATE, clock=clock) as journal:
+        probe = Stages.__new__(Stages)
+        probe._repo = checkout
+        probe._effects = Effects(journal)
+        prior = probe._prior_attempts("base", 1)
+    assert prior is not None
+    assert "attempt 0 of base ended `abandoned`" in prior
+    assert "harvest attempt 0: outcome `abandoned`" in prior
+    assert "orphan run record" in prior
 
 
 def test_reconcile_reaps_every_orphan_not_just_the_stem_being_run(checkout):
