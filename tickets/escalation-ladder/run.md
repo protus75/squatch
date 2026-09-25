@@ -1,17 +1,17 @@
 ## Outcome
-ok
+premise_failed
 
 ## Surprises / judgment calls
-The scripted pipeline tests intentionally have no provider routing rows, so ladder routing preserves their existing fake-seam behavior when implement routing cannot resolve; live dispatch has necessarily resolved a provider before diagnosis. Terminal comparison facts are journaled as code-only reasons and finding-code lists so repeat detection never compares harvested detail.
+The landed cap writer owns the `cap_consumed` event body and exposes no way to add the required `rung` field. The ticket explicitly makes inability to carry the rung through that writer a rejected premise.
 
 ## Dead ends
-None.
+Implementing the rung draw would require changing `squatch/caps.py` or duplicating its writer in `squatch/drain.py`. The first is outside the scope fence; the second violates the plan's single-owner rule and the ticket's requirement to use the landed caps writer.
 
 ## Second problems filed
 None.
 
 ## Resolved engine/model
-OpenAI / GPT-5 Codex.
+OpenAI / Codex (GPT-5).
 
 ## Predicted vs actual
-Expected 90m; actual approximately 30m.
+Expected 90m; actual approximately 10m before the premise failure was proven. The untouched base suite passed with 679 tests.
