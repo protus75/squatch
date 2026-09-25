@@ -1,14 +1,15 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "infra_error",
   "call": "ok",
   "verdict": "abandon-human",
   "lessons": [
-    "Third implement attempt in a row ended infra_error at about 37s: 0 tokens, provider and model null, empty diff. The provider CLI never ran, so the ticket, its scope, and the tier are not at fault.",
-    "The implement spool again holds requisition-review prompts and verdicts instead of implement output. A human must check the implement dispatch surface, the provider CLI launch and auth, and spool path routing before any re-dispatch.",
-    "The run record says 'ok' at about 25m, which contradicts this harvest. It is stale evidence from an earlier attempt and not proof of completed work.",
+    "This is the fourth implement attempt in a row to end in infra_error, this time after 35.5s. It used 0 tokens, provider and model are null, and the diff is empty. The provider CLI never ran, so the ticket, its scope, and the tier are not at fault.",
+    "The implement spool's 001-prompt.md tail again shows plan_contract data, which looks like a critique or review prompt, not implement output. A human must check the implement dispatch surface, the provider CLI launch and auth, and spool path routing before any re-dispatch.",
+    "Automatic retries are hitting the same failure over and over. Do not re-dispatch this ticket until the environment fault is found and fixed; another retry spends a run and changes nothing.",
+    "The run record says 'ok' at about 25m, which contradicts this harvest (no diff, no cost). It is stale evidence from an earlier attempt and does not show completed work.",
     "Once the environment is fixed, apply the prior lessons unchanged. Make rebase_continue non-interactive (-c core.editor=true). Raise RebaseConflict only on real conflicted paths. Return a typed Admission for rebase failures that are not conflicts. Leave rebase and rebase_abort untouched."
   ],
-  "reason": "Repeated zero-token infra_error with misrouted implement spools is an environment or dispatch failure that retrying or more capability cannot fix.",
+  "reason": "Fourth infra_error in a row: the provider never ran (0 tokens, null provider and model, empty diff), and the spool shows non-implement prompts, so the environment needs a human fix before another retry is worth running.",
   "detail": null
 }
