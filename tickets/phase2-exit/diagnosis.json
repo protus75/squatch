@@ -1,15 +1,9 @@
 {
-  "run_seq": 3,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "Requisition review rejected daemon-scheduler: its dormancy criterion never names the scan. Name it: the transitive squatch.* import closure from squatch/__main__.py, parsed with ast, covering both import forms. The test must fail if squatch.scheduler or squatch.watcher is in it.",
-    "daemon-scheduler Context: add squatch/__main__.py but keep it out of the fence. Drop config.yaml and squatch/journal.py unless a criterion reads them.",
-    "phase3-continue Context must not be empty. List files that exist on main: squatch/tickets.py, squatch/config.py, config.yaml, squatch/merge.py, and the seeded-batch test it copies (tests/test_seeded_phase2.py). Check each with git ls-tree main.",
-    "Add phase3-continue criteria. Its test must assert: each existing fence file appears in that seed's Context and exists on main; the merge-queue seed names squatch/mergequeue.py's owner as section 19 states it; and no merge-queue criterion contradicts an unfenced existing test.",
-    "Update EXISTING_AT_AUTHORING in tests/test_seeded_phase3_core.py to the new Context set. It must contain only files on main, never files this branch creates. Keep the exit-read tests, the three stems, owner fences, depends edges, and the ordered remainder."
-  ],
-  "reason": "Every finding is a requisition-review Context or criteria gap in the authored seeds, each with a concrete paved road. It is fixable at the same capability.",
-  "detail": null
+  "run_seq": 4,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
