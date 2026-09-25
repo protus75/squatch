@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "ff821a5619c1fb88b400ef7d267a975ac9fc660b",
+  "produced_at_sha": "175bd9fe99b95754f1a249ee5e94ab589d2bff27",
   "stem": "spine-harvest",
   "branch": "spine-harvest",
-  "base": "696bbf9757075aaed6bd5540cc3e23caea6353f2",
-  "head": "ff821a5619c1fb88b400ef7d267a975ac9fc660b",
+  "base": "5382b71e234d945d022bb1873cab77e306ac3333",
+  "head": "175bd9fe99b95754f1a249ee5e94ab589d2bff27",
   "changed_files": [
     "squatch/git.py",
     "squatch/harvest.py",
@@ -41,10 +41,18 @@
     },
     {
       "code": "run_record",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "bypassed": false,
-      "findings": []
+      "findings": [
+        {
+          "code": "run_record",
+          "path": "tickets/spine-harvest/run.md",
+          "line": null,
+          "message": "tickets/spine-harvest/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
+          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
+        }
+      ]
     },
     {
       "code": "diff_budget",
