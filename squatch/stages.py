@@ -54,6 +54,7 @@ from squatch.llmeffect import LLMEffect
 from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
 from squatch.seams import Clock, Filesystem, ProcessExec
+from squatch.shakeout import REPORT_NAME, ShakeoutReport
 from squatch.specs import DATA_MARKER, DataBlock, RenderRefused, Spec, load_spec
 from squatch.seeds import (SEED_LIFT_SIGNAL, Seed, authored_seeds, blob_sha, reviewed_seeds,
                            validate_batch)
@@ -76,6 +77,11 @@ CHECK_VERSION = "1.0"
 DIFF_BUDGET_FILES = 30
 DIFF_BUDGET_LINES = 1500
 SPLIT_ROAD = "split the ticket (diagnosis verdict `split`, section 11)"
+
+# Names in this registry are validated before any bytes from an outbox are
+# written. Unregistered evidence remains intentionally open as section 10's
+# ordinary ticket-plane lane requires.
+KNOWN_ARTIFACTS = {REPORT_NAME: ShakeoutReport.model_validate_json}
 
 ImplementVerdict = Literal["implemented", "already_satisfied", "premise_failed"]
 ReviewVerdictName = Literal["approve", "snag", "rma"]
@@ -518,7 +524,11 @@ class Stages:
 
         result = await self._implement(ticket, worktree, base, run_seq)
         run_cost = result.cost
-        await self._lift(stem, run_seq, "run-record", worktree=worktree)
+        try:
+            await self._lift(stem, run_seq, "run-record", worktree=worktree)
+        except LiftRefused as error:
+            return Delivery("invalid_artifact", [error.finding], None, None, None,
+                            worktree, base, "implement", "invalid_artifact", result.cost)
         if result.outcome != "ok":
             return Delivery(result.outcome, result.findings, None, None, None, worktree, base,
                             "implement", _terminal_reason(result), result.cost)
@@ -978,6 +988,14 @@ class _SeedRenderStages:
             ticket, inputs, effort=effort, prior=None, findings=())
 
 
+class LiftRefused(Exception):
+    """A known outbox artifact failed its closed schema before the lift wrote."""
+
+    def __init__(self, finding: Finding):
+        self.finding = finding
+        super().__init__(finding.message)
+
+
 async def lift_ticket_files(*, repo: Path, git: Git, fs: Filesystem, effects: Effects,
                             redact: Redactor, stem: str, run_seq: int, kind: str,
                             worktree: Path | None = None,
@@ -988,6 +1006,7 @@ async def lift_ticket_files(*, repo: Path, git: Git, fs: Filesystem, effects: Ef
     async def action() -> dict:
         paths: list[str] = []
         outbox = worktree / TICKETS_DIR / stem if worktree is not None else None
+        candidates: list[tuple[Path, Path, bytes]] = []
         if outbox is not None and outbox.is_dir():
             for path in sorted(outbox.rglob("*")):
                 rel = path.relative_to(outbox)
@@ -999,8 +1018,23 @@ async def lift_ticket_files(*, repo: Path, git: Git, fs: Filesystem, effects: Ef
                     data = path.read_bytes()
                     if rel == Path(RUN_RECORD):
                         data = redact(data.decode(errors="replace")).encode()
-                    fs.write(canonical / rel, data)
-                    paths.append(f"{TICKETS_DIR}/{stem}/{rel.as_posix()}")
+                    candidates.append((rel, canonical / rel, data))
+        for rel, destination, data in candidates:
+            validator = KNOWN_ARTIFACTS.get(rel.name)
+            if validator is None:
+                continue
+            try:
+                validator(data)
+            except Exception as error:
+                path = f"{TICKETS_DIR}/{stem}/{rel.as_posix()}"
+                raise LiftRefused(Finding(
+                    code="invalid_artifact", path=path,
+                    message=f"{rel.name} failed schema validation: {error}",
+                    paved_road=(f"regenerate {rel.name} through its report runner with the "
+                                "closed schema, then re-run the ticket"))) from None
+        for rel, destination, data in candidates:
+            fs.write(destination, data)
+            paths.append(f"{TICKETS_DIR}/{stem}/{rel.as_posix()}")
         for rel, data in (files or {}).items():
             if Path(rel).name == RUN_RECORD:
                 data = redact(data.decode(errors="replace")).encode()
