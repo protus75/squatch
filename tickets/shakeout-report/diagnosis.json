@@ -1,9 +1,14 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Only the review snag failed; every mechanical check passed and all changed files are inside the fence. Keep the existing schema, lift registry, LiftRefused, bench, registry, double gate, and check as they are, and fix only the report's provenance.",
+    "In eval/shakeout/__main__.py, resolve produced_at_sha once, before any group runs, with git.py's rev_parse on HEAD of the invoking checkout (the cwd repo root). Delete the per-member `produced_at_sha = bench.head()` line and the forty-zeros default.",
+    "Bench commits use wall-clock dates. Pin GIT_AUTHOR_DATE and GIT_COMMITTER_DATE to a fixed value in Bench.make's env so identical runs produce identical bench SHAs, which keeps the double gate's byte-for-byte comparison stable.",
+    "Add a test in tests/test_shakeout.py asserting that the report's produced_at_sha equals HEAD of the invoking repo, not of a bench repo, and that it is identical across two runs. Then re-run the full Verification block, ending with `uv run pytest -q`."
+  ],
+  "reason": "The review snag is a fixable provenance oversight with a concrete fix path; the rest of the ticket was met and all checks passed.",
+  "detail": null
 }
