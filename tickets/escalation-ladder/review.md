@@ -1,15 +1,14 @@
 ---
-verdict: snag
-reviewed_sha: 2bedc009c1b66f1878c113e1fe07a9c64009b423
+verdict: approve
+reviewed_sha: 92218704ff5289bf0d5c65d04b54855187d50ebb
 produced_by_spec_version: '1.0'
-produced_at_sha: 2bedc009c1b66f1878c113e1fe07a9c64009b423
+produced_at_sha: 92218704ff5289bf0d5c65d04b54855187d50ebb
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-The ladder mostly works, but an operator keep does not reset the rung when the stem's latest terminal was routed to the ladder. The drain copies that terminal's rung onto the re-offer's retry draw after the keep, so the committed test passes only because its terminal lacks `routed: ladder`.
+The diff adds squatch/ladder.py, which does the model-first rung walk with the same-model skip, the rung fold bounded by an operator keep, the effective (tier, effort) resolution, and the identical, same-wall and oscillation detectors. It wires the ladder arms into reject.route after the spent-cap and null-verdict arms, records routed: ladder and the rung on the runner's terminal (the Reject arrival is written only for reject_queue), resolves the effective capability at every dispatch via dataclasses.replace without writing ticket.md, and passes the rung through the single caps.consume writer from the drain's re-offer. Every acceptance criterion has a matching test, every changed path is inside the fence, and all checks are green.
 
 ## Findings
-- correctness_review at squatch/drain.py:317: The re-offer reads `rung` from the stem's latest terminal whenever it carries `routed: ladder`, and it never checks whether an operator `confirm` came after that terminal. Failure path: a stem climbs, its latest terminal is `routed: ladder, rung: {high, high}`, the operator runs `squatch confirm <stem>`, and the drain re-offers. `consume(..., rung=rung)` then writes a new retry draw carrying the old rung after the keep. `rungs()` folds that draw because it follows the confirm, so the next dispatch runs at the old rung instead of the authored frontmatter. This breaks the rule that the operator's keep resets rungs and caps together (acceptance: 'squatch confirm <stem> (operator) after two rungs makes the next dispatch run at the authored frontmatter capability'). `test_operator_confirm_resets_folded_rungs_to_authored_capability` misses this: it hand-journals a terminal with no `routed: ladder`/`rung`, which the real runner never writes after a climb. (paved road: Supply the terminal's rung only when no operator `confirm` signal for the stem follows that terminal. For example, derive it from the same keep-bounded event window `ladder._after_keep` uses, or have the drain ask the ladder module for the pending rung. Rewrite the drain test to reach 'two rungs' through real `escalate` terminals, or hand-journal terminals that carry `routed: ladder` and `rung`, then confirm and assert that the next dispatch uses the authored capability.)
-- correctness_review at squatch/ladder.py:82: Uncertain, but likely a defect. The `identical()` window is bounded only by an operator keep, never by a ladder climb. After three identical terminals trigger a climb, a fourth identical terminal at the new rung also makes 'last K identical' true, and so does every one after it. From then on every failure climbs another rung, so the new rung gets one attempt instead of K. The same applies to `oscillating()`, which has no bound at all, not even the operator keep. The ticket describes K identical terminals climbing ONE rung and a keep resetting the lineage, so a climb on every later terminal looks unintended. (paved road: Count identical terminals only since the latest rung change as well as since the latest operator keep. For example, reset the window at the last terminal routed `ladder` or at the last retry draw carrying a new `rung`. Bound `oscillating` by the same window. Add a `tests/test_ladder.py` case showing that a fourth identical terminal after a climb does not climb again until K more accumulate at the new rung.)
+- none
