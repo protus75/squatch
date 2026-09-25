@@ -22,7 +22,8 @@ from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects, effect, effect_key, run_sequence
 from squatch.enginelog import EngineLog
 from squatch.journal import Journal
-from squatch.llm import FakeLLM, LLMResult
+from squatch.llm import FakeLLM, Hang, LLMRequest, LLMResult
+from squatch.llmeffect import COST_FIELDS, LLMEffect, Stuck, llm_key
 from squatch.redact import Redactor
 from squatch.seams import LocalFilesystem
 
@@ -74,13 +75,28 @@ def redactor():
     return Redactor.from_config(config, {SECRET_NAME: SECRET})
 
 
+def llm_effect(llm, journal, **kw):
+    return LLMEffect(llm=llm, effects=Effects(journal), redact=redactor(), **kw)
+
+
 def driver(tmp_path, llm, journal, **kw):
     redact = redactor()
     clock = TickingClock()
     state = tmp_path / "state"
-    return Driver(llm=llm, effects=Effects(journal), clock=clock, redact=redact,
+    return Driver(llm=llm_effect(llm, journal, **kw), clock=clock,
                   spool=Spool(state, fs=LocalFilesystem(), redact=redact),
-                  log=EngineLog(state, clock=clock, redact=redact), **kw)
+                  log=EngineLog(state, clock=clock, redact=redact))
+
+
+def request(surface="review", ticket="t-1"):
+    return LLMRequest(surface=surface, rendered="say: hi", tier="medium", effort="low",
+                      ticket=ticket, worktree=None)
+
+
+async def call(e, *, ticket="t-1", run_seq=0, attempt=1, call_seq=1, surface="review"):
+    stem = ticket if ticket is not None else surface
+    return await e.call(request(surface, ticket), stem=stem, run_seq=run_seq,
+                        attempt=attempt, call_seq=call_seq)
 
 
 async def run(d, *, text="hi", ticket="t-1", run_seq=0, attempt=1, surface="review"):
@@ -107,7 +123,66 @@ def transition(j, stem, to):
     j.append("state_transition", {"to": to}, ticket=stem)
 
 
-# --- one call, one intent, one completion carrying result and cost ----------
+# --- the effect itself, against the scripted fake ---------------------------
+
+
+async def test_effect_journals_intent_then_one_completion_with_result_and_cost(tmp_path):
+    fake = FakeLLM(metered("hello"))
+    with journal(tmp_path) as j:
+        result = await call(llm_effect(fake, j), ticket="t-1", run_seq=2, attempt=3, call_seq=4)
+        assert result == metered("hello")
+        assert llm_events(j) == [
+            ("effect_intent", "llm/t-1/2/review/3/4", "t-1", {}),
+            ("effect_completion", "llm/t-1/2/review/3/4", "t-1", {
+                "result": asdict(metered("hello")),
+                "cost": {"usd": 0.25, "input_tokens": 10, "output_tokens": 5,
+                         "provider": "fake", "model": "fake-1"},
+            }),
+        ]
+    assert [r.surface for r in fake.requests] == ["review"]
+
+
+async def test_effect_replay_returns_the_recorded_result_and_never_reaches_the_seam(tmp_path):
+    with journal(tmp_path) as j:
+        first = await call(llm_effect(FakeLLM(metered("recorded")), j))
+    never = FakeLLM(RuntimeError("the seam must not be called on replay"))
+    with journal(tmp_path) as j:
+        replayed = await call(llm_effect(never, j))
+        assert len(completions(j)) == 1
+    assert never.requests == []
+    assert replayed == first == metered("recorded")
+
+
+async def test_effect_costs_exactly_once_per_call_and_a_replay_costs_nothing(tmp_path):
+    fake = FakeLLM(metered("a", usd=0.10), metered("b", usd=0.30))
+    with journal(tmp_path) as j:
+        e = llm_effect(fake, j)
+        await call(e, call_seq=1)
+        await call(e, call_seq=2)
+        await call(e, call_seq=1)
+        await call(e, call_seq=2)
+        done = completions(j)
+        assert [e.key for e in done] == ["llm/t-1/0/review/1/1", "llm/t-1/0/review/1/2"]
+        assert [e.body["cost"]["usd"] for e in done] == [0.10, 0.30]
+        assert all(set(e.body["cost"]) == set(COST_FIELDS) for e in done)
+        assert sum("cost" in ev.body for ev in j.read()) == 2
+    assert len(fake.requests) == 2
+
+
+async def test_effect_stuck_call_is_aborted_and_leaves_intent_only(tmp_path):
+    fake = FakeLLM(Hang(resist=True))
+    with journal(tmp_path) as j:
+        with pytest.raises(Stuck):
+            await call(llm_effect(fake, j, stuck_seconds=0.05))
+        assert [ev.type for ev in j.read()] == ["effect_intent"]
+    assert fake.aborted == 1
+
+
+def test_llm_key_is_the_pinned_run_scoped_shape():
+    assert llm_key("t-1", 0, "review", 1, 1) == "llm/t-1/0/review/1/1"
+
+
+# --- through the driver: one call, one intent, one completion ---------------
 
 
 async def test_call_is_journaled_under_the_run_scoped_key_with_result_and_cost(tmp_path):

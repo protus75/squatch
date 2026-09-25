@@ -7,25 +7,23 @@ retry cap -> terminal. Stages differ only in spec, artifact type, and gate
 list. Every captured stream (prompt, response, log line) crosses the
 redaction seam before it persists; the rendered prompt is on disk BEFORE
 the model is called, so a call that raises or hangs leaves exactly what was
-sent. Every model call is one journaled effect keyed
-`llm/<stem>/<run_seq>/<surface>/<attempt>/<call_seq>` (section 6): a
-completed key replays its recorded result and never reaches the LLM seam.
+sent. The model seam is the journaled effect in `squatch.llmeffect`: a
+completed key replays its recorded result and never reaches the LLM.
 """
 
-import asyncio
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from squatch.artifacts import STAGE_NAMES, Artifact, Cost, Finding, StageResult
 from squatch.config import Caps, Severity, Tier
-from squatch.effects import Effects, effect, effect_key
 from squatch.enginelog import EngineLog
 from squatch.gates import Gate, run_gates
-from squatch.llm import LLM, WRITING_SURFACES, Effort, LLMRequest, LLMResult
+from squatch.llm import WRITING_SURFACES, Effort, LLMRequest, LLMResult
+from squatch.llmeffect import LLMEffect, Stuck
 from squatch.redact import Redactor
 from squatch.seams import Clock, Filesystem
 
@@ -70,23 +68,15 @@ class Spool:
         return path
 
 
-class _Stuck(Exception):
-    """The active call outlived the stage's stuck budget."""
-
-
 class Driver:
-    def __init__(self, *, llm: LLM, effects: Effects, spool: Spool, log: EngineLog,
-                 clock: Clock, redact: Redactor, retry_cap: int = Caps().retry,
-                 stuck_seconds: float | None = None,
+    def __init__(self, *, llm: LLMEffect, spool: Spool, log: EngineLog, clock: Clock,
+                 retry_cap: int = Caps().retry,
                  severity: Mapping[str, Severity] | None = None):
         self._llm = llm
-        self.effects = effects
         self._spool = spool
         self._log = log
         self._clock = clock
-        self._redact = redact
         self.retry_cap = retry_cap
-        self.stuck_seconds = stuck_seconds
         self._severity = severity
 
     async def run(self, stage: LLMStage, inputs: Artifact, *, ticket: str | None,
@@ -110,11 +100,11 @@ class Driver:
                              effort=stage.effort, ticket=ticket,
                              worktree=workspace if stage.surface in WRITING_SURFACES else None)
             try:
-                result = LLMResult(**await self._call(
-                    req, stem=stem, run_seq=run_seq, attempt=attempt, call_seq=call_seq))
-            except _Stuck:
+                result = await self._llm.call(req, stem=stem, run_seq=run_seq,
+                                              attempt=attempt, call_seq=call_seq)
+            except Stuck:
                 return self._terminal("timeout", cost.fold(None), (), common,
-                                      reason=f"stuck budget of {self.stuck_seconds}s exceeded")
+                                      reason=f"stuck budget of {self._llm.stuck_seconds}s exceeded")
             except Exception as e:
                 return self._terminal("infra_error", cost.fold(None), (), common,
                                       reason=f"{type(e).__name__}: {e}")
@@ -141,43 +131,11 @@ class Driver:
         return self._terminal(failure, cost.final(), findings, common,
                               reason="retry cap spent", cap=RETRY_CAP)
 
-    @effect(key=lambda req, *, stem, run_seq, attempt, call_seq:
-            effect_key("llm", stem, run_seq, req.surface, attempt, call_seq),
-            ticket=lambda req, **_: req.ticket,
-            cost=lambda result: {k: result[k] for k in _COST_FIELDS})
-    async def _call(self, req: LLMRequest, *, stem: str, run_seq: int, attempt: int,
-                    call_seq: int) -> dict:
-        """The one model call, as JSON data. Runs under the stuck budget: on
-        expiry -- or an outer cancellation -- `abort_current` runs BEFORE
-        anything is recorded, so a resistant writer is dead before its
-        terminal exists. The result is scrubbed exactly once, here, before it
-        becomes the completion record and the return value: the executing
-        path and every replay return the same post-scrub bytes."""
-        task = asyncio.ensure_future(self._llm.call(req))
-        try:
-            done, _ = await asyncio.wait({task}, timeout=self.stuck_seconds)
-        except asyncio.CancelledError:
-            await self._abort(task)
-            raise
-        if not done:
-            await self._abort(task)
-            raise _Stuck
-        return asdict(_scrubbed(task.result(), self._redact))
-
-    async def _abort(self, task: asyncio.Future) -> None:
-        self._llm.abort_current()
-        task.cancel()
-        await asyncio.wait({task})
 
     def _terminal(self, outcome, cost, findings, common, *, artifact=None, **detail):
         self._log.event("terminal", outcome=outcome, attempts=cost.attempts,
                         usd=cost.usd, **detail, **common)
         return StageResult(outcome=outcome, artifact=artifact, findings=list(findings), cost=cost)
-
-
-# The completion's cost field: the metered fields of the result, the ledger's
-# read-time fold target (section 6).
-_COST_FIELDS = ("usd", "input_tokens", "output_tokens", "provider", "model")
 
 
 class _CostFold:
@@ -205,12 +163,6 @@ class _CostFold:
         return Cost(tokens=self.tokens, seconds=seconds, attempts=self.attempts,
                     usd=self.usd, provider=self.provider, model=self.model)
 
-
-def _scrubbed(result: LLMResult, redact: Redactor) -> LLMResult:
-    text = redact(result.text)
-    return result if text == result.text else LLMResult(
-        text=text, input_tokens=result.input_tokens, output_tokens=result.output_tokens,
-        provider=result.provider, model=result.model, usd=result.usd)
 
 
 def _parse(stage: LLMStage, text: str, provenance: dict

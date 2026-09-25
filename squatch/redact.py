@@ -11,11 +11,12 @@ change adding a stream or a writer extends this list in the same change):
 - engine-log writer: `squatch.enginelog.EngineLog`
 - attempt-spool writer: `squatch.driver.Spool`
 - attempt-spool writer, the cli prompt file: `squatch.providers.CliClient`
-- LLM result, scrubbed once at receipt: `squatch.driver.Driver`
+- LLM result, scrubbed once at receipt -- the one journal body that carries
+  a captured stream, so this site IS the journal-body writer's filter and
+  `Journal.append` carries none (a second pass would break "scrubbed exactly
+  once"): `squatch.llmeffect.LLMEffect`
 - cli subprocess stdout/stderr, scrubbed before parse or error:
   `squatch.providers.CliClient`
-- journal writer: lands with the Phase 1 LLM effect, the first journal body
-  that carries a captured stream
 - harvest serialization: lands with the Phase 2 spine
 """
 

@@ -47,6 +47,7 @@ from squatch.enginelog import EngineLog
 from squatch.git import Git
 from squatch.journal import Journal
 from squatch.llm import LLM
+from squatch.llmeffect import LLMEffect
 from squatch.providers import PLACEHOLDER, PREREQUISITE, CliClient, Registry, RoutingError
 from squatch.redact import Redactor
 from squatch.seams import Clock, Filesystem, LocalFilesystem, ProcessExec, SubprocessExec
@@ -391,10 +392,11 @@ async def run(*, config: Config, seams: Seams, fixtures_dir: Path = FIXTURES,
         # completed and calls only the rest.
         run_seq = sum(1 for e in journal.read()
                       if e.type == "signal" and e.body.get("kind") == SIGNAL_KIND)
-        driver = Driver(llm=llm, effects=Effects(journal), spool=spool,
+        call = LLMEffect(llm=llm, effects=Effects(journal), redact=redact,
+                         stuck_seconds=STUCK_SECONDS)
+        driver = Driver(llm=call, spool=spool,
                         log=EngineLog(state, clock=seams.clock, redact=redact),
-                        clock=seams.clock, redact=redact, retry_cap=RETRY_CAP,
-                        stuck_seconds=STUCK_SECONDS)
+                        clock=seams.clock, retry_cap=RETRY_CAP)
         print(f"review-baseline: {len(fixtures)} fixtures, REVIEW -> "
               f"{identity['review'][tier].provider}/{identity['review'][tier].model} "
               f"at tier {tier}, spec {versions['review']}", file=out)

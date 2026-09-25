@@ -21,6 +21,7 @@ from squatch.driver import INVALID_ARTIFACT, Driver, LLMStage, Spool
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.journal import Journal
+from squatch.llmeffect import LLMEffect
 from squatch.llm import FakeLLM
 from squatch.redact import Redactor
 from squatch.seams import LocalFilesystem
@@ -99,8 +100,8 @@ def driver(tmp_path: Path, llm: FakeLLM) -> tuple[Driver, Path]:
     state = Path(config.state_dir)
     redact = Redactor.from_config(config, {"FAKE_PROVIDER_KEY": "sk-unused-in-echo"})
     clock = TickingClock()
-    return Driver(llm=llm, effects=Effects(Journal(state, clock=clock)), clock=clock,
-                  redact=redact, spool=Spool(state, fs=LocalFilesystem(), redact=redact),
+    call = LLMEffect(llm=llm, effects=Effects(Journal(state, clock=clock)), redact=redact)
+    return Driver(llm=call, clock=clock, spool=Spool(state, fs=LocalFilesystem(), redact=redact),
                   log=EngineLog(state, clock=clock, redact=redact)), state
 
 
