@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-Both shipped CLIs use `Not logged in` as their authentication-failure signature. Classification is applied only when a call is already failing, so successful model text containing those words cannot be misclassified. The re-authentication roads follow the ticket's required non-engine actions: run `claude login` or `codex login` in the operator's shell.
+The rejected attempt's shared `Not logged in` match was too broad. I used distinct literal expired-token messages from the installed Claude and Codex CLIs and restricted matching to parsed CLI failure events plus stderr, never the full stdout transcript. A regression test places each signature only in agent output and proves an unrelated failure remains unclassified.
 
 ## Dead ends
-The first two cumulative shakeout runs were refused because the fixture ticket's acceptance criterion did not quote a verification command in the normalized argv form required by intake lint. Quoting `python -c raise SystemExit(0)` made the fixture lint-clean; no production behavior changed for this correction.
+The first commit-through-`git.py` invocation omitted its required timeout constructor argument; retrying with the shipped 60-second git timeout committed the explicit fenced paths.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5 family
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 60m; actual about 20m.
+Expected 60m; actual about 15m.
