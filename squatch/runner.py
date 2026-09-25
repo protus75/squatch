@@ -2,8 +2,9 @@
 sections 9, 11, 18; section 19, Phase 1).
 
 One process holds the single-writer lock for the whole verb: take the lock,
-open the journal, intake pending hand-authored tickets through the
-ticket-plane lane, validate the named stem against the committed ticket plane
+open the journal, reconcile on entry (reap any orphaned in-flight run an
+interrupted predecessor left, section 11.2), intake pending hand-authored
+tickets through the ticket-plane lane, validate the named stem against the committed ticket plane
 and its eligibility (`confirmed`, every `depends` merged, not merged), journal
 the run's `running` transition, and hand the stem to the stage-dispatch seam.
 The stages and the merge admission live BEHIND that seam (`Pipeline`, built
@@ -30,6 +31,7 @@ from squatch.enginelog import EngineLog
 from squatch.git import Git
 from squatch.journal import Event, Journal, JournalCorruption
 from squatch.lockfile import LockHeld, Lockfile
+from squatch.reconcile import reconcile
 from squatch.seams import Clock, ExecutableNotFound, Filesystem
 from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, IntakeResult, Ticket,
                              TicketLintError, lint_ticket)
@@ -110,6 +112,8 @@ class Runner:
             lock.release()
 
     async def _locked(self, stem: str, journal: Journal) -> int:
+        await reconcile(repo=self._repo, config=self._config, git=self._git, journal=journal,
+                        log=self._log, report=self._report)
         intake = Intake(repo=self._repo, git=self._git, journal=journal, fs=self._fs)
         result = await intake.run()
         self._report_intake(result)
