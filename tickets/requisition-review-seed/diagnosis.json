@@ -1,15 +1,16 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snag only. All checks passed, and review again judged the seed path, lift and SeedSafety sound. Keep the design, every earlier fix and every test. Close only the `_prior_lifted` partial-reset defect, and do not redesign.",
-    "In seeds.py `_prior_lifted`, do not reset `partial` when a new `lift/<seeder>/*/seeds` intent opens. Collect `source: seed` intake stems across all open intents since this seeder's last completed lift, and clear them only on an effect_completion.",
-    "Or make the replay branch in `_lift_seeds` journal something the fold can see when it skips a seed already on main at the reviewed sha, so a replayed seed is still counted as this seeder's output.",
-    "Add a test_terminal.py case: run 0's lift commits alpha and fails on beta, run 1 replays alpha and fails on beta again, and run 2 lifts both with no `already exists on main` finding. Invert the assertion once to prove it can fail.",
-    "Before answering, map each acceptance criterion and each earlier review finding to a named test with a real assertion. That includes the byte-binding tests, the ordinary-run negative test, the no-signal admission test and the partial-lift re-offer test."
+    "Review snag only; all checks passed and review again judged the seed path, lift and SeedSafety sound. Keep the design, every earlier fix and every test. Close only the foreign-intake attribution hole in `_prior_lifted`; do not redesign.",
+    "`_prior_lifted` counts any `ticket_intake` source:seed signal inside this seeder's open lift window as its own. A different seeder's intake that lands while A's window is open gets exempted, so A can overwrite B's stem. Foreign stems must always hit the collision finding.",
+    "Attribute partial lifts explicitly, never by time window. Preferred fix: have `_lift_seeds` pass the seeder to `Intake.commit` so the `ticket_intake` body carries `seeder` (a body field, not a new event type; tickets.py is fenced). Then exempt only intakes whose `seeder` equals this stem.",
+    "Replay case: a skipped already-on-main seed emits no intake. Its exemption must still come from this seeder's own attributed intake from an earlier run. Keep the run0/run1/run2 partial-lift re-offer test green.",
+    "Add a test_seeds.py or test_terminal.py case: A's lift intent opens and never completes, then seeder B lifts `b-seed`. Then A authors `tickets/b-seed/ticket.md`, and validate_batch must report `already exists on main`. Invert the assertion once to prove it can fail.",
+    "Before answering, map every AC and every earlier review finding to a named test with a real assertion: byte-binding, ordinary-run negative, no-signal admission, cap run leaves main unchanged, partial-lift re-offer, and now foreign-intake collision."
   ],
-  "reason": "Review found one narrow, reproducible bug in partial-lift recovery that has a concrete fix. Checks passed and the overall design was approved.",
+  "reason": "Checks passed and review found only one narrow, fixable attribution defect in the partial-lift exemption; the design is judged sound.",
   "detail": null
 }
