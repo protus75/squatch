@@ -1,16 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snag only; all checks passed. Keep the seed path, lift and SeedSafety design and fix the two review findings. Do not redesign.",
-    "Revert the clean-path fallback in tickets.py `commit_lane`. Shared callers (human run intake, authoring, reject stamps) must still fail on unchanged bytes. Add a test showing that a clean re-intake through the human lane still fails.",
-    "For lift replay, `_lift_seeds` must skip `Intake.commit` when main's `tickets/<x>/ticket.md` blob already equals `seed.sha`. Record the commit that last touched that path, never HEAD. Read git.py for the verb first.",
-    "Make the lift all-or-nothing for the RE-RUN rule. Run every lint and byte check before the first write or commit, or let the collision check also exempt stems this seeder's lift effect committed. Leave no stray seed files in the canonical tree.",
-    "Add a test_terminal.py case where the second seed's intake fails partway, then the re-offer of the same stem lifts both seeds with no collision finding.",
-    "Before answering, map each AC and each review finding to a named test. The prior four findings are closed; keep those tests."
+    "Review snag only; all checks passed and the reviewer judged the seed path, lift, and SeedSafety sound. Keep the design and the existing tests, and fix only the flagged assertion. Do not redesign.",
+    "In test_a_seed_snag_or_oversized_batch_never_lifts (tests/test_terminal.py ~line 297), main_files() returns full paths. Replace `\"alpha-seed\" not in drive.main_files()` with `\"tickets/alpha-seed/ticket.md\" not in ...`, and do the same for tickets/beta-seed/ticket.md.",
+    "After the four-seed cap run, assert that main is unchanged: none of the four seeds' tickets/<x>/ticket.md paths may appear in drive.main_files(), and no seed_lift signal may be journaled.",
+    "Check every `not in` or `in` assertion over a list of paths in the new tests. Each must compare against the full repo-relative path, or the assertion is vacuous. Confirm each one fails on purpose once, for example by temporarily inverting it, then restore it.",
+    "Before answering, map each acceptance criterion and each earlier review finding to a named test with a real assertion. Keep the earlier fixes: the ordinary-run negative test, the no-signal admission test, the byte-identical replay skip, and the partial-lift re-offer test."
   ],
-  "reason": "Checks green, review snag with two localized fixable findings; same capability with steered findings should close them.",
+  "reason": "Only a review snag on a test assertion that can never fail; the fix is small and the next retry can make it at the same capability.",
   "detail": null
 }
