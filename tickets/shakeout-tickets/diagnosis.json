@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "All mechanical checks passed. Review snagged on one test gap only; keep the member module, registry entry, and report run as they are.",
+    "In test_drain_holds_a_committed_bad_schema_ticket_without_dispatch, tie the lint finding to the drain's held line: f = lint_error.findings[0]; assert f.code == CODE, f.message in line, f.paved_road in line.",
+    "Drop the disconnected any(f.code == CODE and f.paved_road ...) assertion; refusal() already checks that, so it proves nothing about the drain's held report.",
+    "Keep the diff inside the fence (tests/test_tickets.py only for this fix). Rerun the full Verification block so the outbox report is regenerated, never hand-edited."
+  ],
+  "reason": "Fixable test-assertion oversight named precisely by the review finding; same capability suffices.",
+  "detail": null
+}
