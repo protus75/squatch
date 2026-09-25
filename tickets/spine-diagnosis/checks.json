@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "dccd9f4cfbcd593e00590cf4088300d34f4d18ce",
+  "produced_at_sha": "efe5263a005a3bd93b4ce885a3eb63e27a5f6dae",
   "stem": "spine-diagnosis",
   "branch": "spine-diagnosis",
-  "base": "64bd192e91c4be93da74f9193bb1e146c0130d87",
-  "head": "dccd9f4cfbcd593e00590cf4088300d34f4d18ce",
+  "base": "af4e0212bae725399d75a1cf195f503229ba5776",
+  "head": "efe5263a005a3bd93b4ce885a3eb63e27a5f6dae",
   "changed_files": [
     "specs/diagnose.md",
     "squatch/artifacts.py",
