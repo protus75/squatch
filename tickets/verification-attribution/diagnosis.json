@@ -1,9 +1,16 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Checks all passed and review approved the design (per-command attribution, Box dedup, merge regate, fence). Keep the diff and fix only the two review snags.",
+    "In stages.py, the three 'base attribution failed' branches put raw str(e) into the Finding, and GitError includes git stderr. Build that text in one helper that returns self._redact(f\"{type(e).__name__}: {e}\") and use it in all three branches.",
+    "Add a test_stages.py test where the fake git raises a GitError whose stderr contains a configured secret. Assert that the finding message contains the redaction token and not the secret.",
+    "The AC requires test_stages.py itself to prove no <stem>-base- worktree is left. Asserting added == removed on the fake git is not enough.",
+    "In test_red_verification_fails_the_check, which uses real git, assert that worktree_root has no STEM-base-* entries and that `git worktree list` does not contain STEM-base-. Do the same in any other real-git stages test that reaches a base run.",
+    "Consider adding one real-git test_stages.py case where the command is red on both the branch and the base. Assert pass, the filed id, and that no worktree is left on disk or in the registry, so the cleanup AC holds on both paths."
+  ],
+  "reason": "Review snag with two concrete, fixable findings (redacting the fail-closed exception text, and on-disk/registry cleanup asserts in test_stages.py); all checks passed, so a same-capability retry steered by these findings should clear review.",
+  "detail": null
 }
