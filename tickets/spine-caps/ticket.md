@@ -20,6 +20,8 @@ agent_effort: medium
 - squatch/artifacts.py
 - tests/test_drain.py
 - tests/test_terminal.py
+- tests/test_config.py
+- tests/test_driver.py
 
 ## Plan contract
 - section 11
