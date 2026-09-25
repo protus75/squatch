@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The re-authored contract intentionally deduplicates only repeated reports from the same stem because the landed Box signature includes origin. Attribution is stored on one closed command record per verification argv, so mixed and multiple-red checks retain every filing id.
+The prior reviewed implementation was preserved in two code-only commits, so this attempt restored it and limited new changes to the two review findings. Attribution failures use one helper so every exception path applies the same configured-secret redaction.
 
 ## Dead ends
-The prior attempt's gate-level attribution and cross-stem signature workaround were discarded because they collapsed mixed command results and falsified later stems' origins.
+None.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The prior attempt's gate-level attribution and cross-stem signature workaround w
 OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected 60m; actual approximately 20m.
+Expected 60m; actual approximately 15m.
