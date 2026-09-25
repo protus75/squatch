@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "6c77d0667b45596df92df5e0711023595c6e94a1",
+  "produced_at_sha": "c903137adf3b78e063a88ef32ebdd5c43163472a",
   "stem": "shakeout-tickets",
   "branch": "shakeout-tickets",
-  "base": "76caff0541b34cf467f0d8a616bc3f5c4df8805f",
-  "head": "6c77d0667b45596df92df5e0711023595c6e94a1",
+  "base": "8d80600a050ce8057a657a47b1962100cea798ab",
+  "head": "c903137adf3b78e063a88ef32ebdd5c43163472a",
   "changed_files": [
     "eval/shakeout/registry.py",
     "eval/shakeout/tickets_group.py",
