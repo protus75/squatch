@@ -14,6 +14,7 @@ agent_effort: medium
 ## Context
 - squatch/runner.py
 - squatch/status.py
+- squatch/git.py
 - squatch/tickets.py
 - squatch/git.py
 - squatch/seams.py
@@ -25,6 +26,7 @@ agent_effort: medium
 - tests/test_drain.py
 - tests/test_cli.py
 - tests/test_seeded_phase2.py
+- tests/test_git.py
 
 ## Plan contract
 - section 12
@@ -65,6 +67,7 @@ No consumer: no `squatch triage`, no `specs/triage.md`, no semantic dedup, no po
 - In `tests/test_box.py`, `enqueue_second_problems` over a run record with two problem bullets and one `box-` citation under `## Second problems filed` files exactly two `suggestion` messages with `origin` the stem and returns their ids; a record with an empty section files nothing.
 - In `tests/test_box.py`, `ingest` over a fixture of five non-empty lines (two of them list-marked, one blank line between) files five `suggestion` messages with `origin` `bootstrap-ingest` and marker-stripped summaries, and a second `ingest` of the same fixture files nothing and reports five duplicates.
 - In `tests/test_box.py`, the module entry `uv run python -m squatch.box ingest <file>` run with a git worktree as cwd writes into the PARENT checkout's `<state_dir>/box/`, not the worktree's, exits 0, and exits 2 with a paved road on a missing file.
+- In `tests/test_git.py`, the additive `Git.git_common_dir` wrapper invokes `git rev-parse --git-common-dir` and resolves both a main checkout and a linked worktree without bypassing the git seam.
 - In `tests/test_registry.py`, `Record` refuses a missing `reopen_after_days`, a `kind` outside `decision | tombstone`, and an id outside the stem regex; `write` then `load` round-trips a record; `load` over a directory holding one unparseable file is refused naming that file; `commit` puts exactly `tickets/decisions/<id>.md` on main in one commit whose subject is `squatch(decisions): <id>`.
 - In `tests/test_harvest.py`, a non-ok run whose worktree `run.md` lists two second problems leaves `harvest.json` with `filed` naming two box ids that exist under `<state_dir>/box/` as pending `suggestion` messages with `origin` the stem, and a run record with none leaves `filed` empty.
 - In `tests/test_terminal.py`, the terminal order harvest -> draws -> diagnosis -> terminal -> wipe is unchanged with the enqueue inside the harvest step, and a harvest whose enqueue raises still journals the terminal with `harvest_error` set and still wipes the worktree.
@@ -85,7 +88,7 @@ uv run pytest -q
 ```
 
 ## Definition of rejected
-Stop and answer `premise_failed` if `squatch/harvest.py` as landed cannot carry an additive `filed` field without changing the terminal body's `harvest` shape, if the module entry cannot resolve the parent checkout through `squatch/git.py` without a new git verb beyond `rev-parse`, if the ingestion into the instance state dir cannot be performed from the implement worktree, if any file outside the fence must change, or if `uv run pytest -q` is red on the base commit before any edit.
+Stop and answer `premise_failed` if `squatch/harvest.py` as landed cannot carry an additive `filed` field without changing the terminal body's `harvest` shape, if the module entry cannot resolve the parent checkout through the fenced additive `squatch/git.py` `rev-parse --git-common-dir` wrapper, if the ingestion into the instance state dir cannot be performed from the implement worktree, if any file outside the fence must change, or if `uv run pytest -q` is red on the base commit before any edit.
 
 ## Time budget
 - expected: 90m
