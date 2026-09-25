@@ -1,16 +1,15 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snag only; all checks passed. Keep the seed path, lift, SeedSafety design and every earlier fix and test. Close only the byte-binding gap between review and lift; do not redesign.",
-    "Make the reviewed batch the only lift input: return the reviewed seed map (stem -> blob sha) from the check effect's result instead of calling authored_seeds a second time in _check after the invoice passes.",
-    "Record each reviewed seed's blob sha on its requisition_review CheckEntry (e.g. a sha field beside path). A journal replay of the check effect must yield the same reviewed shas.",
-    "_lift_seeds must refuse (gate_failed, requisition_review finding with a road) any worktree seed not in the reviewed set or whose current blob sha differs from the reviewed sha. Check this before the first write or commit.",
-    "SeedSafety must require a passing requisition_review entry whose recorded sha equals the lifted sha for that path. A path-only match is not approval for the bytes on main.",
-    "Add tests for two cases: a seed file edited between Check and lift is refused, with no seed committed; and admission is blocked when an entry's recorded sha differs from the lifted sha. Deliberately invert each assertion once to confirm it can fail."
+    "Review snag only. All checks passed, and review again judged the seed path, lift and SeedSafety sound. Keep the design, every earlier fix and every test. Close only the `_prior_lifted` partial-reset defect, and do not redesign.",
+    "In seeds.py `_prior_lifted`, do not reset `partial` when a new `lift/<seeder>/*/seeds` intent opens. Collect `source: seed` intake stems across all open intents since this seeder's last completed lift, and clear them only on an effect_completion.",
+    "Or make the replay branch in `_lift_seeds` journal something the fold can see when it skips a seed already on main at the reviewed sha, so a replayed seed is still counted as this seeder's output.",
+    "Add a test_terminal.py case: run 0's lift commits alpha and fails on beta, run 1 replays alpha and fails on beta again, and run 2 lifts both with no `already exists on main` finding. Invert the assertion once to prove it can fail.",
+    "Before answering, map each acceptance criterion and each earlier review finding to a named test with a real assertion. That includes the byte-binding tests, the ordinary-run negative test, the no-signal admission test and the partial-lift re-offer test."
   ],
-  "reason": "A distinct, fixable review finding (reviewed bytes not bound to lifted bytes) with a concrete paved road; the design is sound and all checks pass.",
+  "reason": "Review found one narrow, reproducible bug in partial-lift recovery that has a concrete fix. Checks passed and the overall design was approved.",
   "detail": null
 }
