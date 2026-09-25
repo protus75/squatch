@@ -1,2 +1,7 @@
 bootstrap/state.json
 bootstrap/review.json
+.venv/
+__pycache__/
+.pytest_cache/
+# instance state dir: journal, spools, worktrees (plan sections 10, 15)
+.squatch/

@@ -1,0 +1,4 @@
+- Phase 0 prompt 2 says "Commit uv.lock", but the conductor reviews the UNCOMMITTED tree and commits per deliverable via `git add -A`; a builder context that commits blinds the reviewer. Reword the prompt to "track uv.lock (never gitignore it)" so the intent is unambiguous.
+- tests/test_scaffold.py `test_interpreter_meets_floor` comment cites D1's "a lower interpreter is refused", but the test only asserts the test-runner's own version; the startup refusal is engine code (D1, the drain entry) and needs its own test when that entry lands.
+- .gitignore adds `.pytest_cache/`, which prompt 2 did not name and which pytest already self-ignores via the `.gitignore` it writes inside that dir; redundant line.
+- pyproject.toml declares pytest-asyncio but no `[tool.pytest.ini_options] asyncio_mode`; under the default strict mode an unmarked `async def` test does not run, so the first async-test deliverable must set `asyncio_mode = "auto"` or mark each test.
