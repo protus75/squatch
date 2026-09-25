@@ -1,0 +1,47 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "c6538b06b9ad977c5b7c79a6bc5b85ca956ab072",
+  "stem": "verification-attribution",
+  "branch": "verification-attribution",
+  "base": "6d1b9fb2af073a27953a87eef79d5ce3e1311f5e",
+  "head": "c6538b06b9ad977c5b7c79a6bc5b85ca956ab072",
+  "changed_files": [
+    "squatch/git.py",
+    "squatch/stages.py",
+    "tests/test_drain_reentry.py",
+    "tests/test_git.py",
+    "tests/test_stages.py",
+    "tests/test_terminal.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    }
+  ]
+}
