@@ -39,6 +39,7 @@ EXISTING_AT_AUTHORING: dict[str, int] = {
     "eval/shakeout/bench.py": 7916,
     "squatch/__main__.py": 10340,
     "squatch/config.py": 10110,
+    "squatch/git.py": 6491,
     "squatch/merge.py": 19735,
     "squatch/seeds.py": 7330,
     "squatch/tickets.py": 38775,
