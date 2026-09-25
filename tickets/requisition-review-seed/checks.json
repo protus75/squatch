@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "758a3c3b3b9f25eb1384c926f357a86c4a711e41",
+  "produced_at_sha": "b4238ad7499c9306635c736242e0626db46ebeb3",
   "stem": "requisition-review-seed",
   "branch": "requisition-review-seed",
-  "base": "e904eded65fd0f7c9e5503165d5d09c11079a16d",
-  "head": "758a3c3b3b9f25eb1384c926f357a86c4a711e41",
+  "base": "ffb35bd07074a83cf1145e8ef35db66294c2fd10",
+  "head": "b4238ad7499c9306635c736242e0626db46ebeb3",
   "changed_files": [
     "squatch/merge.py",
     "squatch/seeds.py",
