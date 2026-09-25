@@ -1,6 +1,6 @@
 """The single failure-spine cap vocabulary, writer, and lineage fold."""
 
-from squatch.caps import CAP_NAMES, fold, spent
+from squatch.caps import CAP_NAMES, consume, fold, spent
 from squatch.config import Caps, parse
 from squatch.journal import Event
 
@@ -55,3 +55,27 @@ def test_premise_bounce_is_a_spine_cap_and_only_operator_confirm_bounds_the_fold
     draws = [event("stem", "retry") for _ in range(3)]
     assert fold([*draws, confirm("stem", "operator")]).drawn("stem", "retry") == 0
     assert fold([*draws, confirm("stem", "machine")]).drawn("stem", "retry") == 3
+
+
+async def test_consume_adds_a_rung_only_when_supplied(tmp_path):
+    class Git:
+        async def rev_parse(self, repo, ref):
+            return "blob"
+
+    class Journal:
+        def __init__(self):
+            self.bodies = []
+
+        def append(self, type_, body, *, ticket):
+            assert type_ == "cap_consumed" and ticket == "stem"
+            self.bodies.append(body)
+
+    journal = Journal()
+    await consume(journal, repo=tmp_path, git=Git(), stem="stem", cap="retry", run_seq=1)
+    await consume(journal, repo=tmp_path, git=Git(), stem="stem", cap="retry", run_seq=2,
+                  rung={"tier": "high", "effort": "max"})
+    assert journal.bodies == [
+        {"cap": "retry", "ticket_sha": "blob", "run_seq": 1},
+        {"cap": "retry", "ticket_sha": "blob", "run_seq": 2,
+         "rung": {"tier": "high", "effort": "max"}},
+    ]

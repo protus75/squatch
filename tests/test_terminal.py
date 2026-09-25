@@ -48,7 +48,7 @@ from squatch.diagnose import DIAG_DIFF_CHARS, DiagnosisRecord
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.git import Git
-from squatch.journal import read_events
+from squatch.journal import Journal, read_events
 from squatch.llmeffect import LLMEffect
 from squatch.lockfile import Lockfile
 from squatch.merge import Merge, Pipeline
@@ -57,6 +57,7 @@ from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET, Refusal, Runner
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.specs import DATA_MARKER
 from squatch.stages import Delivery, Invoice, Stages
+from squatch.tickets import stamp
 
 BASE_RED = f'{PYTHON} -c "import sys; sys.exit(3)"'
 RED = (f'{PYTHON} -c "import pathlib, sys; '
@@ -68,6 +69,20 @@ UNROUTED = textwrap.dedent("""\
     state_dir: .squatch/state
     providers: []
     routing: []
+    """)
+LADDER_ROUTES = textwrap.dedent("""\
+    schema_version: 1
+    state_dir: .squatch/state
+    providers:
+      - name: codex
+        kind: cli
+        models_by_tier: {low: a, medium: b, high: c, max: c}
+        limits: {concurrency: 1, est_cost_per_call_usd: 1}
+    routing:
+      - {tier: low, surface: implement, candidates: [{provider: codex}]}
+      - {tier: medium, surface: implement, candidates: [{provider: codex}]}
+      - {tier: high, surface: implement, candidates: [{provider: codex}]}
+      - {tier: max, surface: implement, candidates: [{provider: codex}]}
     """)
 
 
@@ -412,6 +427,47 @@ async def test_reject_diagnosis_marks_terminal_then_arrival_and_retry_does_neith
     assert "routed" not in terminal
     assert not any(e.type == "signal" and e.body.get("escalation") == "reject_queue_arrival"
                    for e in retried.events("retry-case"))
+
+
+async def test_escalate_terminal_records_a_ladder_rung_without_an_arrival(repo, env):
+    set_config(repo, env, LADDER_ROUTES)
+    author(repo, ticket())
+    agent = Agent(answer("implemented"), review("snag", {"message": "wrong"}),
+                  diagnosis("escalate"), actions=[implementer(env, WIDGET), None, None])
+    d = Drive(repo, env, agent)
+
+    assert await d.run() == EXIT_TICKET
+
+    terminal = d.transitions()[-1]
+    assert terminal["routed"] == "ladder"
+    assert terminal["rung"] == {"tier": "high", "effort": "medium"}
+    assert not any(e.type == "signal" and e.body.get("escalation") ==
+                   "reject_queue_arrival" for e in d.events())
+
+
+async def test_escalate_at_the_top_rung_records_reject_arrival(repo, env):
+    set_config(repo, env, LADDER_ROUTES)
+    path = author(repo, ticket())
+    path.write_text(stamp(path.read_text(), source="human", state="confirmed"))
+    git(repo, env, "add", "--", f"tickets/{STEM}/ticket.md")
+    git(repo, env, "commit", "-q", "-m", "ticket")
+    agent = Agent(answer("implemented"), review("snag", {"message": "wrong"}),
+                  diagnosis("escalate"), actions=[implementer(env, WIDGET), None, None])
+    d = Drive(repo, env, agent)
+    blob = git(repo, env, "rev-parse", f"HEAD:tickets/{STEM}/ticket.md").strip()
+    with Journal(d.state, clock=d.clock) as journal:
+        journal.append("cap_consumed", {
+            "cap": "retry", "ticket_sha": blob, "run_seq": 0,
+            "rung": {"tier": "high", "effort": "max"}}, ticket=STEM)
+
+    assert await d.run() == EXIT_TICKET
+
+    terminal = d.transitions()[-1]
+    assert terminal["routed"] == "reject_queue"
+    assert "capability ladder exhausted" in terminal["reject_reason"]
+    arrivals = [e for e in d.events() if e.type == "signal"
+                and e.body.get("escalation") == "reject_queue_arrival"]
+    assert len(arrivals) == 1
 
 
 async def test_an_invalid_diagnosis_reprompts_once_and_fails_closed(repo, env):

@@ -66,6 +66,7 @@ from squatch.config import Config
 from squatch.effects import run_sequence
 from squatch.git import Git
 from squatch.journal import Event, Journal
+from squatch.ladder import pending_rung
 from squatch.runner import EXIT_OK, EXIT_TICKET, Refusal, Report, Runner, Session
 from squatch.reject import ARRIVAL, Arrival, awaiting
 from squatch.seams import Clock, ExecutableNotFound, ProcessExec
@@ -311,10 +312,13 @@ class Drain:
 
     async def _draw_retry(self, journal: Journal, ticket: Ticket) -> None:
         stem = ticket.stem
-        facts = fold(journal.read())
+        events = tuple(journal.read())
+        facts = fold(events)
         run_seq = run_sequence(journal, stem)
+        pending = pending_rung(events, stem)
+        rung = pending.body() if pending is not None else None
         await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=RETRY_CAP,
-                      run_seq=run_seq)
+                      run_seq=run_seq, rung=rung)
         fed = ", ".join(str(p.relative_to(self._repo)) for p in self._artifacts(stem))
         diagnosis = facts.terminals.get(stem, {}).get("diagnosis")
         diagnosed = ""
@@ -326,6 +330,7 @@ class Drain:
         self._report(f"re-offer: {stem} after `{facts.latest[stem]}`; retry unit "
                      f"{facts.cap_drawn.drawn(stem, RETRY_CAP) + 1} of "
                      f"{self._config.caps.retry} drawn"
+                     + (f"; rung {rung['tier']}/{rung['effort']}" if rung else "")
                      + diagnosed + (f"; findings-fed from {fed}" if fed else ""))
 
     # --- the self-upgrade handoff ----------------------------------------------------

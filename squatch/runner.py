@@ -25,7 +25,7 @@ reaps it, section 11.2).
 import traceback
 from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Protocol
 
@@ -39,6 +39,7 @@ from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
 from squatch.harvest import extract
 from squatch.journal import Event, Journal, JournalCorruption
+from squatch.ladder import Rung, effective, finding_codes, rungs
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.reconcile import reconcile
 from squatch.reject import ARRIVAL, route
@@ -311,6 +312,8 @@ class Runner:
         """One run of a validated, eligible stem under the held lock: the
         `running` transition, the stage seam, and the non-ok terminal write."""
         stem = ticket.stem
+        tier, effort = effective(ticket, rungs(journal.read(), stem))
+        ticket = replace(ticket, agent_tier=tier, agent_effort=effort)
         run_seq = run_sequence(journal, stem)
         journal.append("state_transition", {"to": "running", "run_seq": run_seq}, ticket=stem)
         started = self._clock()
@@ -369,16 +372,23 @@ class Runner:
             raise
         except Exception as e:
             raise self._fault(stem, run_seq, e) from None
+        codes = finding_codes(delivery)
+        reason = ",".join(codes) if codes else outcome
         body = {"to": outcome, "run_seq": run_seq, "harvest": harvested,
+                "reason": reason, "finding_codes": list(codes),
                 "diagnosis": diagnosis.model_dump(mode="json")}
         if harvest_error is not None:
             body["harvest_error"] = harvest_error
-        routing = route(self._config, journal.read(), stem, outcome, diagnosis)
+        routing = route(self._config, journal.read(), stem, outcome, diagnosis,
+                        current=Rung(tier, effort), delivery=delivery)
         if routing.routed is not None:
             body["routed"] = routing.routed
+        if routing.routed == "reject_queue":
             body["reject_reason"] = routing.reason
+        if routing.rung is not None:
+            body["rung"] = routing.rung.body()
         journal.append("state_transition", body, ticket=stem)
-        if routing.routed is not None:
+        if routing.routed == "reject_queue":
             journal.append("signal", {"kind": "escalation", "escalation": ARRIVAL,
                                       "reason": routing.reason, "run_seq": run_seq},
                            ticket=stem)
@@ -387,7 +397,8 @@ class Runner:
         else:
             await self._git.worktree_prune(self._repo)
         suffix = (f"; reject queue: `squatch confirm {stem}` to keep or "
-                  f"`squatch reject {stem}` to kill" if routing.routed is not None else "")
+                  f"`squatch reject {stem}` to kill"
+                  if routing.routed == "reject_queue" else "")
         self._report(f"stopped: {stem} run {run_seq} ended {outcome}; branch left in place; "
                      f"detail: {attempt}/{suffix}")
         return Dispatched(run_seq, outcome)

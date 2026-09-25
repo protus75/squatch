@@ -61,6 +61,7 @@ class Scripted:
         self._on_run = on_run
         self._diagnoses = {stem: list(records) for stem, records in (diagnoses or {}).items()}
         self.calls: list[tuple[str, int]] = []
+        self.capabilities: list[tuple[str, str, str]] = []
         self.journal: Journal | None = None
 
     def __call__(self, journal: Journal):
@@ -69,6 +70,7 @@ class Scripted:
 
     async def run(self, ticket, *, run_seq: int) -> Delivery:
         self.calls.append((ticket.stem, run_seq))
+        self.capabilities.append((ticket.stem, ticket.agent_tier, ticket.agent_effort))
         if self._on_run is not None:
             await self._on_run(ticket.stem, run_seq, self.journal)
         outcome = self._outcomes[ticket.stem].pop(0)
@@ -126,6 +128,24 @@ def configure(repo: Path, extra: str) -> None:
     path = repo / "config.yaml"
     path.write_text(path.read_text() + extra)
     git(repo, "commit", "-q", "-am", "config")
+
+
+def configure_ladder(repo: Path, *, caps: str = "") -> None:
+    (repo / "config.yaml").write_text(f"""\
+schema_version: 1
+state_dir: {STATE}
+providers:
+  - name: codex
+    kind: cli
+    models_by_tier: {{low: a, medium: b, high: c, max: c}}
+    limits: {{concurrency: 1, est_cost_per_call_usd: 1}}
+routing:
+  - {{tier: low, surface: implement, candidates: [{{provider: codex}}]}}
+  - {{tier: medium, surface: implement, candidates: [{{provider: codex}}]}}
+  - {{tier: high, surface: implement, candidates: [{{provider: codex}}]}}
+  - {{tier: max, surface: implement, candidates: [{{provider: codex}}]}}
+{caps}""")
+    git(repo, "commit", "-q", "-am", "ladder config")
 
 
 def draws(repo: Path, stem: str) -> list[dict]:
@@ -225,6 +245,94 @@ def test_red_then_green_on_re_offer_merges_in_one_invocation_drawing_one_retry_u
     assert "re-offer: base after `gate_failed`; retry unit 1 of 6 drawn" in out
 
 
+def test_escalate_reoffer_draws_and_dispatches_the_rung_without_editing_ticket(checkout):
+    path = author(checkout, "base")
+    authored = stamp(path.read_text(), source="human", state="confirmed").encode()
+    configure_ladder(checkout)
+    fake = Scripted(
+        {"base": ["gate_failed", "ok"]},
+        diagnoses={"base": [{"call": "ok", "verdict": "escalate",
+                               "lessons": ("use more capability",),
+                               "reason": "diagnosed", "detail": None}]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK
+    retry = [draw for draw in draws(checkout, "base") if draw["cap"] == "retry"]
+    assert retry[0]["rung"] == {"tier": "high", "effort": "medium"}
+    assert fake.capabilities == [("base", "medium", "medium"),
+                                 ("base", "high", "medium")]
+    committed_text = git(checkout, "show", "HEAD:tickets/base/ticket.md").encode()
+    assert committed_text == authored
+    assert "rung high/medium" in out
+
+
+def test_three_identical_terminals_make_the_fourth_dispatch_climb(checkout):
+    author(checkout, "base")
+    configure_ladder(checkout)
+    retry = {"call": "ok", "verdict": "retry", "lessons": ("try again",),
+             "reason": "diagnosed", "detail": None}
+    fake = Scripted({"base": ["gate_failed", "gate_failed", "gate_failed", "ok"]},
+                    diagnoses={"base": [retry, retry, retry]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK, out
+    assert fake.capabilities == [("base", "medium", "medium")] * 3 + [
+        ("base", "high", "medium")]
+    terminals = [e.body for e in read_events(checkout / STATE)
+                 if e.ticket == "base" and e.type == "state_transition"
+                 and e.body.get("to") == "gate_failed"]
+    assert terminals[-1]["routed"] == "ladder"
+
+
+def test_exhausted_ladder_stays_reported_in_the_reject_queue(checkout):
+    author(checkout, "base")
+    configure_ladder(checkout)
+    escalate = {"call": "ok", "verdict": "escalate", "lessons": ("climb",),
+                "reason": "diagnosed", "detail": None}
+    fake = Scripted({"base": ["gate_failed"] * 10},
+                    diagnoses={"base": [escalate] * 10})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK and "reject queue: base" in out
+    terminals = [e.body for e in read_events(checkout / STATE)
+                 if e.ticket == "base" and e.type == "state_transition"
+                 and e.body.get("to") == "gate_failed"]
+    assert any("capability ladder exhausted" in terminal.get("reject_reason", "")
+               for terminal in terminals)
+    assert "retry cap spent" in out
+
+
+def test_operator_confirm_resets_folded_rungs_to_authored_capability(checkout):
+    committed(checkout, "base")
+    configure_ladder(checkout)
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append("cap_consumed", {"cap": "retry", "ticket_sha": "old",
+                                        "run_seq": 1,
+                                        "rung": {"tier": "high", "effort": "medium"}},
+                       ticket="base")
+        journal.append("cap_consumed", {"cap": "retry", "ticket_sha": "old",
+                                        "run_seq": 2,
+                                        "rung": {"tier": "high", "effort": "high"}},
+                       ticket="base")
+        journal.append("state_transition", {"to": "gate_failed", "run_seq": 2,
+                                             "reason": "verification",
+                                             "finding_codes": ["verification"],
+                                             "routed": "ladder",
+                                             "rung": {"tier": "high",
+                                                      "effort": "high"}},
+                       ticket="base")
+    assert main(["confirm", "base"], cwd=checkout, env=git_env(checkout.parent),
+                out=StringIO(), pipeline=Scripted({"base": ["ok"]}),
+                clock=FakeClock()) == EXIT_OK
+    fake = Scripted({"base": ["ok"]})
+
+    assert drain(checkout, fake)[0] == EXIT_OK
+    assert fake.capabilities == [("base", "medium", "medium")]
+
+
 def test_marked_arrival_auto_keeps_then_reoffers_with_one_retry_draw(checkout):
     committed(checkout, "base")
     with Journal(checkout / STATE, clock=FakeClock()) as journal:
@@ -291,6 +399,8 @@ def test_legacy_spent_park_gets_one_arrival_and_operator_confirm_releases(checko
 ])
 def test_every_diagnosis_result_is_reoffered_and_reported(checkout, verdict, call):
     author(checkout, "base")
+    if verdict == "escalate":
+        configure_ladder(checkout)
     lessons = ("first lesson", "second lesson") if verdict is not None else ()
     fake = Scripted(
         {"base": ["gate_failed", "ok"]},
@@ -404,7 +514,10 @@ def test_premise_road_ignores_an_unrelated_spent_retry_cap(checkout):
 def test_a_stem_whose_retry_cap_is_spent_stays_parked_and_is_never_re_offered(
         checkout, diagnosis):
     author(checkout, "base")
-    configure(checkout, "caps: {retry: 1}\n")
+    if diagnosis["verdict"] == "escalate":
+        configure_ladder(checkout, caps="caps: {retry: 1}\n")
+    else:
+        configure(checkout, "caps: {retry: 1}\n")
     fake = Scripted({"base": ["gate_failed", "gate_failed", "ok"]},
                     diagnoses={"base": [diagnosis, diagnosis]})
     rc, out = drain(checkout, fake)

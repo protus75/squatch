@@ -71,10 +71,12 @@ def spent(config: Config, events: Iterable[Event] | CapFold, stem: str) -> str |
 
 
 async def consume(journal: Journal, *, repo: Path, git: Git, stem: str, cap: str,
-                  run_seq: int) -> None:
+                  run_seq: int, rung: Mapping[str, str] | None = None) -> None:
     """Journal one cap draw against the stem's committed ticket blob."""
     if cap not in CAP_NAMES:
         raise ValueError(f"unknown cap {cap!r}")
     sha = await git.rev_parse(repo, f"HEAD:{TICKETS_DIR}/{stem}/{TICKET_FILE}")
-    journal.append("cap_consumed", {"cap": cap, "ticket_sha": sha, "run_seq": run_seq},
-                   ticket=stem)
+    body = {"cap": cap, "ticket_sha": sha, "run_seq": run_seq}
+    if rung is not None:
+        body["rung"] = dict(rung)
+    journal.append("cap_consumed", body, ticket=stem)
