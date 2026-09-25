@@ -1,0 +1,97 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "cbbbb47b200745c32db4e81924aeed2ac99f4018",
+  "stem": "requisition-review-call",
+  "branch": "requisition-review-call",
+  "base": "6dba2b5008842d043894ba2d62229b7f5bf2b11d",
+  "head": "cbbbb47b200745c32db4e81924aeed2ac99f4018",
+  "changed_files": [
+    "specs/requisition_review.md",
+    "squatch/requisition.py",
+    "squatch/stages.py",
+    "tests/test_merge.py",
+    "tests/test_requisition.py",
+    "tests/test_specs.py",
+    "tests/test_stages.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_requisition.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_stages.py",
+            "tests/test_merge.py",
+            "tests/test_specs.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "grep",
+            "-rn",
+            "REQ_RENDER_HEADROOM = ",
+            "squatch"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
