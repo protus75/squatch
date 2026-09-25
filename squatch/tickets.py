@@ -789,3 +789,72 @@ def _cycle_through(stem: str, graph: Mapping[str, tuple[str, ...]]) -> list[str]
                 seen.add(dep)
                 stack.append((dep, path + [dep]))
     return None
+
+
+# ---- `squatch new` --------------------------------------------------------------
+
+# The templated front door (section 13 touchpoint 1): every section of the
+# grammar, lint-clean as written so the first `run` is a decision about
+# content, never a fight with the schema. Placeholders are prose the author
+# replaces; the fence and verification are the self-host's defaults.
+TEMPLATE = """\
+---
+priority: P2
+kind: feature
+---
+## Depends on
+- none
+
+## Context
+
+## Goal
+State the one observable post-merge outcome.
+
+## Why
+State the judgment fuel for the fork the spec did not anticipate.
+
+## Scope in
+Name what changes.
+
+## Scope out
+Name the adjacent cleanups that must NOT change.
+
+## Scope fence
+- tests/
+
+## Acceptance criteria
+- `uv run pytest` exits 0.
+
+## Verification
+```
+uv run pytest
+```
+
+## Definition of rejected
+State when to stop and throw the branch away rather than churn.
+
+## Time budget
+- expected: 30m
+- stuck: 60m
+"""
+
+
+def new_ticket(repo: Path, stem: str, *, fs: Filesystem) -> tuple[Path, list[Finding]]:
+    """Template `tickets/<stem>/ticket.md` in the working tree and lint it
+    synchronously (validation is never silent). Never overwrites: an existing
+    file is the author's. Outside the lock fence by design: intake commits it
+    on the next `run`/`drain`."""
+    if not STEM.match(stem) or stem in RESERVED_STEMS:
+        raise ValueError(f"stem {stem!r} is not a valid ticket stem; {_STEM_ROAD}")
+    path = Path(repo) / TICKETS_DIR / stem / TICKET_FILE
+    if path.exists():
+        raise FileExistsError(f"{path} already exists; edit it, or pick another stem")
+    fs.write(path, TEMPLATE.encode())
+    plan = Path(repo) / PLAN_FILE
+    try:
+        lint_ticket(TEMPLATE, stem=stem, repo=Path(repo),
+                    plan=plan.read_text() if plan.is_file() else None,
+                    resolve_stem=lambda s: (Path(repo) / TICKETS_DIR / s / TICKET_FILE).is_file())
+    except TicketLintError as e:
+        return path, e.findings
+    return path, []

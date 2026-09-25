@@ -110,11 +110,7 @@ class Journal:
 
     def segments(self) -> list[Path]:
         """Every segment in write order (name order)."""
-        paths = sorted(self.dir.glob("*.jsonl"))
-        for p in paths:
-            if not _SEGMENT_NAME.match(p.name):
-                raise JournalCorruption(f"{p}: not a segment name")
-        return paths
+        return _segments(self.dir)
 
     def append(self, type: str, body: dict, *, ticket: str | None = None,
                key: str | None = None, v: int = 1) -> Event:
@@ -140,6 +136,29 @@ class Journal:
         segments = self.segments()
         for path in segments:
             yield from _read_segment(path, active=path == segments[-1])
+
+
+def read_events(state_dir: Path) -> Iterator[Event]:
+    """The projection reader: every event in order WITHOUT opening a writer.
+
+    A projection (`status`) may run beside the lock holder, so it never
+    creates the journal dir, truncates a torn tail, or holds an append handle;
+    a missing journal reads as empty.
+    """
+    directory = Path(state_dir) / "journal"
+    if not directory.is_dir():
+        return
+    segments = _segments(directory)
+    for path in segments:
+        yield from _read_segment(path, active=path == segments[-1])
+
+
+def _segments(directory: Path) -> list[Path]:
+    paths = sorted(directory.glob("*.jsonl"))
+    for p in paths:
+        if not _SEGMENT_NAME.match(p.name):
+            raise JournalCorruption(f"{p}: not a segment name")
+    return paths
 
 
 def _read_segment(path: Path, *, active: bool) -> Iterator[Event]:
