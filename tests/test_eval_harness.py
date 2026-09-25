@@ -346,7 +346,34 @@ async def test_infra_error_on_any_fixture_records_no_verdict(tmp_path):
     with pytest.raises(Unscored, match="b-leak .* terminated infra_error"):
         await run(config=cfg, seams=seams(tmp_path), fixtures_dir=fixtures_dir(tmp_path),
                   root=tmp_path, llm=llm)
-    assert not (cfg.state_dir / "journal").exists()
+    assert signals(cfg.state_dir) == []
+
+
+async def test_rerun_after_an_unscored_run_replays_completed_fixtures_and_calls_the_rest(tmp_path):
+    cfg = config(tmp_path)
+    first = FakeLLM(reply("snag", "src/app.py"), ConnectionError("provider gone"))
+    with pytest.raises(Unscored):
+        await run(config=cfg, seams=seams(tmp_path), fixtures_dir=fixtures_dir(tmp_path),
+                  root=tmp_path, llm=first)
+    second = FakeLLM(reply("approve"), reply("approve"))
+    root = tmp_path / "fixtures"
+    body = await run(config=cfg, seams=seams(tmp_path), fixtures_dir=root, root=tmp_path,
+                     llm=second)
+    assert len(second.requests) == 2  # a-logic replays; b-leak and c-clean are called
+    assert [s.verdict for s in body.scores] == ["snag", "approve", "approve"]
+
+
+async def test_rerun_after_a_recorded_verdict_takes_a_fresh_sequence_and_calls_again(tmp_path):
+    cfg = config(tmp_path)
+    root = fixtures_dir(tmp_path)
+    for n in range(2):
+        llm = FakeLLM(*[reply("snag", "src/app.py")] * 3)
+        await run(config=cfg, seams=seams(tmp_path), fixtures_dir=root, root=tmp_path, llm=llm)
+        assert len(llm.requests) == 3
+    with Journal(cfg.state_dir, clock=TickingClock()) as j:
+        keys = [e.key for e in j.read() if e.type == "effect_completion"]
+    assert keys == [f"llm/review/{n}/review/{a}/1" for n in range(2) for a in (1, 2, 3)]
+    assert len(signals(cfg.state_dir)) == 2
 
 
 async def test_a_reply_outside_the_contract_is_reprompted_once_then_scored_unmatched(tmp_path):

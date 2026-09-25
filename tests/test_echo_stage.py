@@ -18,7 +18,9 @@ from pathlib import Path
 from squatch.artifacts import Artifact
 from squatch.config import parse
 from squatch.driver import INVALID_ARTIFACT, Driver, LLMStage, Spool
+from squatch.effects import Effects
 from squatch.enginelog import EngineLog
+from squatch.journal import Journal
 from squatch.llm import FakeLLM
 from squatch.redact import Redactor
 from squatch.seams import LocalFilesystem
@@ -97,8 +99,8 @@ def driver(tmp_path: Path, llm: FakeLLM) -> tuple[Driver, Path]:
     state = Path(config.state_dir)
     redact = Redactor.from_config(config, {"FAKE_PROVIDER_KEY": "sk-unused-in-echo"})
     clock = TickingClock()
-    return Driver(llm=llm, clock=clock, redact=redact,
-                  spool=Spool(state, fs=LocalFilesystem(), redact=redact),
+    return Driver(llm=llm, effects=Effects(Journal(state, clock=clock)), clock=clock,
+                  redact=redact, spool=Spool(state, fs=LocalFilesystem(), redact=redact),
                   log=EngineLog(state, clock=clock, redact=redact)), state
 
 
@@ -114,7 +116,7 @@ async def test_echo_stage_runs_end_to_end_under_the_driver(tmp_path):
     llm = FakeLLM(json.dumps({"text": "what goes in"}))
     drv, state = driver(tmp_path, llm)
 
-    result = await drv.run(echo_stage(), stub("what goes in"), ticket=TICKET, attempt=1,
+    result = await drv.run(echo_stage(), stub("what goes in"), ticket=TICKET, run_seq=0, attempt=1,
                            workspace=tmp_path / "ws", sha=SHA)
 
     # The emitted artifact: the input echoed, provenance stamped by the driver.
@@ -140,12 +142,16 @@ async def test_echo_stage_runs_end_to_end_under_the_driver(tmp_path):
     assert (spool(state) / "001-prompt.md").read_text() == req.rendered
     assert (spool(state) / "001-response.md").read_text() == json.dumps({"text": "what goes in"})
 
-    # The engine log carries the run; the journal is untouched by a stage.
+    # The engine log carries the run's diagnostics; the journal carries the
+    # one model call as an effect pair and nothing else.
     events = log_events(state)
     assert [e["event"] for e in events] == ["call", "response", "terminal"]
     assert all(e["ticket"] == TICKET and e["stage"] == "review" for e in events)
     assert events[-1]["outcome"] == "ok" and events[-1]["attempts"] == 1
-    assert not (state / "journal").exists()
+    with Journal(state, clock=TickingClock()) as j:
+        assert [(e.type, e.key) for e in j.read()] == [
+            ("effect_intent", f"llm/{TICKET}/0/review/1/1"),
+            ("effect_completion", f"llm/{TICKET}/0/review/1/1")]
 
 
 async def test_echo_stage_reprompts_an_invalid_artifact_through_the_findings_block(tmp_path):
@@ -155,7 +161,7 @@ async def test_echo_stage_reprompts_an_invalid_artifact_through_the_findings_blo
     llm = FakeLLM("not json at all", json.dumps({"text": "second time"}))
     drv, state = driver(tmp_path, llm)
 
-    result = await drv.run(echo_stage(), stub("second time"), ticket=TICKET, attempt=1,
+    result = await drv.run(echo_stage(), stub("second time"), ticket=TICKET, run_seq=0, attempt=1,
                            workspace=tmp_path / "ws", sha=SHA)
 
     assert result.outcome == "ok"
@@ -183,7 +189,7 @@ async def test_echo_stage_leaves_the_sent_prompt_when_the_call_dies(tmp_path):
     llm = FakeLLM(ConnectionError("provider gone"))
     drv, state = driver(tmp_path, llm)
 
-    result = await drv.run(echo_stage(), stub("never answered"), ticket=TICKET, attempt=1,
+    result = await drv.run(echo_stage(), stub("never answered"), ticket=TICKET, run_seq=0, attempt=1,
                            workspace=tmp_path / "ws", sha=SHA)
 
     assert result.outcome == "infra_error"

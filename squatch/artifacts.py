@@ -22,6 +22,12 @@ Outcome = Literal["ok", "already_satisfied", "invalid_artifact", "gate_failed", 
                   "timeout", "infra_error", "budget_exceeded"]
 OUTCOMES: frozenset[str] = frozenset(Outcome.__args__)
 
+# The closed RUN-STATE vocabulary a `state_transition` body's `to` carries
+# (section 6): `running`, plus the terminals `merged`, `abandoned`,
+# `rejected`, and each non-ok Outcome used as a terminal state name.
+TERMINAL_RUN_STATES: frozenset[str] = frozenset({"merged", "abandoned", "rejected"}) | (OUTCOMES - {"ok"})
+RUN_STATES: frozenset[str] = TERMINAL_RUN_STATES | {"running"}
+
 # Engine-shipped gate codes (section 7 v1 set). Host review surfaces register
 # more at config load; unlisted means stop.
 GateCode = Literal["ticket_schema", "scope_fence", "verification", "run_record", "diff_budget",

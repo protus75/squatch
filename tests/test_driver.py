@@ -21,7 +21,9 @@ from squatch import enginelog
 from squatch.artifacts import Artifact, Finding
 from squatch.config import Caps, parse
 from squatch.driver import Driver, LLMStage, Spool
+from squatch.effects import Effects
 from squatch.enginelog import EngineLog
+from squatch.journal import Journal
 from squatch.gates import GateReport
 from squatch.llm import LLM_SURFACES, FakeLLM, Hang, LLMRequest, LLMResult
 from squatch.redact import Redactor
@@ -106,8 +108,8 @@ def driver(tmp_path, llm, *, clock=None, redact=None, **kw):
     redact = redact or redactor()
     clock = clock or TickingClock()
     state = tmp_path / "state"
-    return Driver(llm=llm, clock=clock, redact=redact,
-                  spool=Spool(state, fs=LocalFilesystem(), redact=redact),
+    return Driver(llm=llm, effects=Effects(Journal(state, clock=clock)), clock=clock,
+                  redact=redact, spool=Spool(state, fs=LocalFilesystem(), redact=redact),
                   log=EngineLog(state, clock=clock, redact=redact), **kw)
 
 
@@ -130,7 +132,7 @@ def everything_written(tmp_path):
 
 async def run(d, st, *, text="hi", ticket="t-1", attempt=1, workspace=Path("/wt")):
     return await d.run(st, Echo(text=text, produced_by_spec_version="in@1", produced_at_sha=SHA),
-                       ticket=ticket, attempt=attempt, workspace=workspace, sha=SHA)
+                       ticket=ticket, run_seq=0, attempt=attempt, workspace=workspace, sha=SHA)
 
 
 # --- redact.py --------------------------------------------------------------
@@ -279,7 +281,7 @@ async def test_inputs_are_checked_against_the_consumed_type(tmp_path):
     d = driver(tmp_path, FakeLLM(echo_json("hi")))
     with pytest.raises(TypeError):
         await d.run(stage(), Other(produced_by_spec_version="x", produced_at_sha=SHA),
-                    ticket="t-1", attempt=1, workspace=Path("/wt"), sha=SHA)
+                    ticket="t-1", run_seq=0, attempt=1, workspace=Path("/wt"), sha=SHA)
 
 
 # --- driver: spool and engine log -------------------------------------------
@@ -325,8 +327,10 @@ async def test_engine_log_carries_structured_call_and_terminal_events(tmp_path):
     assert (response["provider"], response["model"], response["usd"]) == ("fake", "fake-1", 0.5)
     assert response["input_tokens"] == 10 and response["output_tokens"] == 5
     assert (terminal["outcome"], terminal["attempts"]) == ("ok", 1)
-    # The engine log is the only diagnostic sink: no journal is written.
-    assert not (tmp_path / "state" / "journal").exists()
+    # The engine log is the diagnostic sink; the journal carries only the
+    # call's effect pair, never the diagnostic events.
+    with Journal(tmp_path / "state", clock=TickingClock()) as j:
+        assert [e.type for e in j.read()] == ["effect_intent", "effect_completion"]
 
 
 async def test_ticketless_calls_spool_under_the_surface_name(tmp_path):

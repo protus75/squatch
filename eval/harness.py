@@ -42,6 +42,7 @@ from pydantic import Field, ValidationError, model_validator
 from squatch.artifacts import Artifact, ClosedModel, Finding, StageResult
 from squatch.config import Config, ConfigError, Tier, load
 from squatch.driver import Driver, LLMStage, Spool
+from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.git import Git
 from squatch.journal import Journal
@@ -381,38 +382,45 @@ async def run(*, config: Config, seams: Seams, fixtures_dir: Path = FIXTURES,
     llm = llm or CliClient(registry, process=seams.process, fs=seams.fs, env=seams.env,
                            redact=redact, state_dir=state, cwd=root)
     spool = Spool(state, fs=seams.fs, redact=redact)
-    driver = Driver(llm=llm, spool=spool, log=EngineLog(state, clock=seams.clock, redact=redact),
-                    clock=seams.clock, redact=redact, retry_cap=RETRY_CAP,
-                    stuck_seconds=STUCK_SECONDS)
     stage = review_stage(spec)
-
-    print(f"review-baseline: {len(fixtures)} fixtures, REVIEW -> "
-          f"{identity['review'][tier].provider}/{identity['review'][tier].model} "
-          f"at tier {tier}, spec {versions['review']}", file=out)
-    scores: list[Score] = []
-    for attempt, fixture in enumerate(fixtures, start=1):
-        inputs = ReviewInput(produced_by_spec_version="fixture", produced_at_sha=sha,
-                             ticket=fixture.ticket, diff=fixture.diff, check_report=NO_CHECKS)
-        result = await driver.run(stage, inputs, ticket=None, attempt=attempt,
-                                  workspace=root, sha=sha)
-        if result.outcome not in ("ok", "invalid_artifact"):
-            raise Unscored(
-                f"fixture {fixture.name} (spool attempt {attempt}) terminated "
-                f"{result.outcome}: the run is unscored and no verdict is recorded; see "
-                f"{spool.root / stage.surface / str(attempt)} and {state / 'engine.log'}, "
-                f"fix the cause, and re-run `uv run python -m eval.harness`")
-        s = score(fixture, result)
-        scores.append(s)
-        print(f"  [{attempt:02d}] {fixture.name}: {s.outcome} verdict={s.verdict} "
-              f"{'CAUGHT' if s.caught else 'FALSE-APPROVE' if s.false_approve else 'FALSE-SNAG' if s.false_snag else 'unmatched' if s.expected_verdict != 'approve' else 'ok'}",
-              file=out)
-
-    body = ReviewBaselineSignal(
-        kind=SIGNAL_KIND, verdict=VERDICT, tiers=(tier,), identity=identity,
-        spec_version=versions, spec_major={k: spec_major(v) for k, v in versions.items()},
-        fixture_authors=tuple(authors), summary=summarize(scores), scores=tuple(scores),
-        produced_at_sha=sha, spool=str(spool.root / stage.surface))
     with Journal(state, clock=seams.clock) as journal:
+        # A ticket-less surface has no run terminals to fold (section 6), so
+        # its run sequence is the count of prior recorded baselines: a
+        # re-run after a recorded verdict re-calls the model on fresh keys,
+        # while a re-run after an UNSCORED run replays the fixtures it
+        # completed and calls only the rest.
+        run_seq = sum(1 for e in journal.read()
+                      if e.type == "signal" and e.body.get("kind") == SIGNAL_KIND)
+        driver = Driver(llm=llm, effects=Effects(journal), spool=spool,
+                        log=EngineLog(state, clock=seams.clock, redact=redact),
+                        clock=seams.clock, redact=redact, retry_cap=RETRY_CAP,
+                        stuck_seconds=STUCK_SECONDS)
+        print(f"review-baseline: {len(fixtures)} fixtures, REVIEW -> "
+              f"{identity['review'][tier].provider}/{identity['review'][tier].model} "
+              f"at tier {tier}, spec {versions['review']}", file=out)
+        scores: list[Score] = []
+        for attempt, fixture in enumerate(fixtures, start=1):
+            inputs = ReviewInput(produced_by_spec_version="fixture", produced_at_sha=sha,
+                                 ticket=fixture.ticket, diff=fixture.diff, check_report=NO_CHECKS)
+            result = await driver.run(stage, inputs, ticket=None, run_seq=run_seq,
+                                      attempt=attempt, workspace=root, sha=sha)
+            if result.outcome not in ("ok", "invalid_artifact"):
+                raise Unscored(
+                    f"fixture {fixture.name} (spool attempt {attempt}) terminated "
+                    f"{result.outcome}: the run is unscored and no verdict is recorded; see "
+                    f"{spool.root / stage.surface / str(attempt)} and {state / 'engine.log'}, "
+                    f"fix the cause, and re-run `uv run python -m eval.harness`")
+            s = score(fixture, result)
+            scores.append(s)
+            print(f"  [{attempt:02d}] {fixture.name}: {s.outcome} verdict={s.verdict} "
+                  f"{'CAUGHT' if s.caught else 'FALSE-APPROVE' if s.false_approve else 'FALSE-SNAG' if s.false_snag else 'unmatched' if s.expected_verdict != 'approve' else 'ok'}",
+                  file=out)
+
+        body = ReviewBaselineSignal(
+            kind=SIGNAL_KIND, verdict=VERDICT, tiers=(tier,), identity=identity,
+            spec_version=versions, spec_major={k: spec_major(v) for k, v in versions.items()},
+            fixture_authors=tuple(authors), summary=summarize(scores), scores=tuple(scores),
+            produced_at_sha=sha, spool=str(spool.root / stage.surface))
         journal.append("signal", body.model_dump(mode="json"))
     _print_summary(body, out)
     return body
