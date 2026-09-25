@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-The prior implementation was present as an earlier commit but not on this attempt's branch, so it was reapplied before fixing the carried review finding. Policy and lint now run before any ticket-plane write; a failed commit is unstaged and its ticket directory is moved out of the ticket plane through the filesystem seam so the item remains retryable.
+The prior implementation was present as earlier commits but not on this attempt's branch, so it was reapplied and then brought forward to the corrected contract. Bug policy inputs are stored as closed, nullable box fields and revalidated before the paid Author call; tracked-tree projection now uses the named public git operation.
 
 ## Dead ends
 
@@ -13,4 +13,4 @@ The prior implementation was present as an earlier commit but not on this attemp
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual about 15m on this re-entry.
+Expected 90m; actual about 20m on this re-entry.
