@@ -22,9 +22,6 @@ agent_effort: high
 
 ## Plan contract
 - section 19
-- section 9
-- section 10
-- section 13
 
 ## Goal
 The seed path consumes `requisition_review`: a run whose worktree holds newly authored `tickets/<seed>/ticket.md` files is a seeding run, its own Check stage lints every seed, refuses a batch over `seeding.max_seeds_per_admission`, reviews each seed with one render, lifts an approved batch through the one ticket-plane lane as `confirmed` seeds with their authoring-commit signals, and the merge admission's MERGE-SAFETY tier refuses the seeding branch when any lifted seed lacks a recorded approval for the bytes now on main.
