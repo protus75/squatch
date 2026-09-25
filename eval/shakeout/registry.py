@@ -25,4 +25,5 @@ GROUPS: tuple[tuple[str, str | ModuleType], ...] = (
     ("shakeout-stages", "eval.shakeout.stages_group"),
     ("shakeout-driver", "eval.shakeout.driver_group"),
     ("shakeout-reconcile", "eval.shakeout.reconcile_group"),
+    ("shakeout-merge", "eval.shakeout.merge_group"),
 )

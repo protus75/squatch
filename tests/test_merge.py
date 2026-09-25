@@ -10,6 +10,7 @@ the journal.
 import json
 import subprocess
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -106,9 +107,13 @@ def branch_exists(h: Harness) -> bool:
                           env=h.env, capture_output=True).returncode == 0
 
 
-def rebase_in_progress(h: Harness) -> bool:
-    return subprocess.run(["git", "-C", str(h.worktree()), "rebase", "--abort"], env=h.env,
-                          capture_output=True).returncode == 0
+def rebase_state_paths(h: Harness) -> tuple[str, str]:
+    return tuple(git(h.worktree(), h.env, "rev-parse", "--git-path", name).strip()
+                 for name in ("rebase-merge", "rebase-apply"))
+
+
+def tree_hash(h: Harness, rev: str) -> str:
+    return git(h.repo, h.env, "rev-parse", f"{rev}^{{tree}}").strip()
 
 
 def commit_on_main(h: Harness, rel: str, content: str, subject: str) -> str:
@@ -318,6 +323,7 @@ async def test_a_refused_rebase_is_gate_failed_aborted_and_left_re_runnable(repo
     h = Harness(repo, env, agent)
     d = await deliver(h)
     moved = commit_on_main(h, "squatch/widget.py", "WIDGET = 9\n", "conflicting")
+    main_tree = tree_hash(h, "main")
 
     a = await merge_of(h).admit(ticket_of(h), d, run_seq=0)
 
@@ -325,8 +331,10 @@ async def test_a_refused_rebase_is_gate_failed_aborted_and_left_re_runnable(repo
     [f] = a.findings
     assert f.code == "post_rebase_regate" and "re-run" in f.paved_road
     assert git(repo, env, "rev-parse", STEM).strip() == d.slip.head, "aborted to its own head"
-    assert not rebase_in_progress(h)
+    assert git(h.worktree(), env, "rev-parse", "HEAD").strip() == d.slip.head
+    assert not any(Path(path).exists() for path in rebase_state_paths(h))
     assert git(repo, env, "rev-parse", "main").strip() == moved
+    assert tree_hash(h, "main") == main_tree
     assert transitions(h) == []
 
 
