@@ -11,9 +11,14 @@ over the lock-held journal by the factory the caller supplies); this module
 owns the run's terminal `state_transition` write for every non-ok outcome
 (the section 9 ownership law) and the section 18 exit-code contract: 0 = the
 ticket settled, 1 = a non-ok ticket terminal (ticket and branch left in
-place), 2 = an engine-plane refusal (lock, config, journal, eligibility).
+place; the engine log is where its detail lives in Phase 1), 2 = an
+engine-plane refusal (lock, config, journal, eligibility, and any FAULT
+escaping the stage seam -- named and stopped, never a traceback; the run it
+interrupted stays `running` with no terminal until reconcile-on-entry reaps
+it, section 11.2).
 """
 
+import traceback
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Protocol
@@ -21,10 +26,11 @@ from typing import Protocol
 from squatch.artifacts import OUTCOMES, Finding
 from squatch.config import Config
 from squatch.effects import run_sequence
+from squatch.enginelog import EngineLog
 from squatch.git import Git
 from squatch.journal import Event, Journal, JournalCorruption
 from squatch.lockfile import LockHeld, Lockfile
-from squatch.seams import Clock, Filesystem
+from squatch.seams import Clock, ExecutableNotFound, Filesystem
 from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, IntakeResult, Ticket,
                              TicketLintError, lint_ticket)
 
@@ -69,7 +75,7 @@ def merged_stems(events: Iterable[Event]) -> frozenset[str]:
 
 class Runner:
     def __init__(self, *, repo: Path, config: Config, git: Git, fs: Filesystem, clock: Clock,
-                 instance_id: str, pipeline: PipelineFactory, report: Report):
+                 instance_id: str, pipeline: PipelineFactory, log: EngineLog, report: Report):
         self._repo = Path(repo)
         self._config = config
         self._git = git
@@ -77,6 +83,7 @@ class Runner:
         self._clock = clock
         self._instance_id = instance_id
         self._pipeline = pipeline
+        self._log = log
         self._report = report
 
     @property
@@ -110,17 +117,36 @@ class Runner:
         self._eligible(ticket, journal)
         run_seq = run_sequence(journal, stem)
         journal.append("state_transition", {"to": "running", "run_seq": run_seq}, ticket=stem)
-        outcome = await self._pipeline(journal).run(ticket, run_seq=run_seq)
-        if outcome not in OUTCOMES:
-            raise Refusal(f"the stage seam returned {outcome!r}, not an Outcome",
-                          f"return one of {sorted(OUTCOMES)}")
+        try:
+            outcome = await self._pipeline(journal).run(ticket, run_seq=run_seq)
+            if outcome not in OUTCOMES:
+                raise TypeError(f"the stage seam returned {outcome!r}, not an Outcome "
+                                f"(one of {sorted(OUTCOMES)})")
+        except Refusal:
+            raise
+        except Exception as e:
+            raise self._fault(stem, run_seq, e) from None
         if outcome in SETTLED:
             self._report(f"settled: {stem} run {run_seq} ended {outcome}")
             return EXIT_OK
         journal.append("state_transition", {"to": outcome, "run_seq": run_seq}, ticket=stem)
         self._report(f"stopped: {stem} run {run_seq} ended {outcome}; ticket and branch left "
-                     f"in place")
+                     f"in place; detail: {self._log.path}")
         return EXIT_TICKET
+
+    def _fault(self, stem: str, run_seq: int, e: Exception) -> Refusal:
+        """A fault outside the stage vocabulary: the traceback goes to the
+        engine log, the operator gets a named stop. No terminal is written --
+        the orphaned `running` is reconcile's to reap as `abandoned`."""
+        self._log.event("fault", ticket=stem, run_seq=run_seq, error=type(e).__name__,
+                        message=str(e), traceback="".join(traceback.format_exception(e)))
+        orphan = (f"run {run_seq} of {stem} is left `running` with no terminal for the next "
+                  f"entry to reconcile (section 11.2); fix the cause, then `squatch run {stem}`")
+        if isinstance(e, ExecutableNotFound):
+            return Refusal(f"{stem} run {run_seq}: `{e}` is not on PATH",
+                           f"install it, or fix the provider `cli` entry that names it; {orphan}")
+        return Refusal(f"{stem} run {run_seq} faulted: {type(e).__name__}: {e}",
+                       f"traceback at {self._log.path}; {orphan}")
 
     def _report_intake(self, result: IntakeResult) -> None:
         for c in result.committed:

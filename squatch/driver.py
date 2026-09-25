@@ -25,7 +25,7 @@ from squatch.gates import Gate, run_gates
 from squatch.llm import WRITING_SURFACES, Effort, LLMRequest, LLMResult
 from squatch.llmeffect import LLMEffect, Stuck
 from squatch.redact import Redactor
-from squatch.seams import Clock, Filesystem
+from squatch.seams import Clock, ExecutableNotFound, Filesystem
 
 INVALID_ARTIFACT = "invalid_artifact"
 RETRY_CAP = "retry"
@@ -105,6 +105,11 @@ class Driver:
             except Stuck:
                 return self._terminal("timeout", cost.fold(None), (), common,
                                       reason=f"stuck budget of {self._llm.stuck_seconds}s exceeded")
+            except ExecutableNotFound:
+                # Never a call that RAN: a missing binary is the seam's
+                # config/setup refusal (sections 11.1, 15), not an infra terminal
+                # that would draw a cap for a defect capability cannot fix.
+                raise
             except Exception as e:
                 return self._terminal("infra_error", cost.fold(None), (), common,
                                       reason=f"{type(e).__name__}: {e}")

@@ -20,9 +20,11 @@ from typing import TextIO
 
 import squatch
 from squatch.config import ConfigError, load
+from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
 from squatch.journal import JournalCorruption, read_events
 from squatch.providers import child_env
+from squatch.redact import Redactor
 from squatch.merge import compose_pipeline
 from squatch.runner import EXIT_REFUSED, Pipeline, Refusal, Runner
 from squatch.seams import ExecutableNotFound, LocalFilesystem, SubprocessExec
@@ -112,8 +114,10 @@ def _run(args, cwd: Path, env, out: TextIO, pipeline: Pipeline | None) -> int:
         except ExecutableNotFound:
             raise Refusal("git is not on PATH", "install git; every git call is an argv "
                           "subprocess through git.py") from None
+        log = EngineLog(cwd / config.state_dir, clock=_clock,
+                        redact=Redactor.from_config(config, env))
         runner = Runner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=_clock,
-                        instance_id=instance_id, pipeline=factory,
+                        instance_id=instance_id, pipeline=factory, log=log,
                         report=lambda line: print(line, file=out))
         return await runner.run(args.stem)
 
