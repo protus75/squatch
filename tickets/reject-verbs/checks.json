@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "cf775c49c76160146d68fa591de3c093eb4c12b1",
+  "produced_at_sha": "6a482c8ec63f132390cc1c3e901ddebac43d4356",
   "stem": "reject-verbs",
   "branch": "reject-verbs",
-  "base": "bb0f48a741d7b7b772c711e0466688c61251a307",
-  "head": "cf775c49c76160146d68fa591de3c093eb4c12b1",
+  "base": "555c19e0aa4782a4bca2f9719292eb75f8a4ada1",
+  "head": "6a482c8ec63f132390cc1c3e901ddebac43d4356",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/caps.py",
