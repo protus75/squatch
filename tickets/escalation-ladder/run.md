@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The landed cap writer owns the `cap_consumed` event body and exposes no way to add the required `rung` field. The ticket explicitly makes inability to carry the rung through that writer a rejected premise.
+The refreshed ticket fence includes `squatch/caps.py`, so the rung could be added to the sole cap writer instead of duplicating it in the drain. Ladder exhaustion remains a human Reject-queue hold even while retry budget remains; funded auto-keep continues unchanged for other Reject arrivals.
 
 ## Dead ends
-Implementing the rung draw would require changing `squatch/caps.py` or duplicating its writer in `squatch/drain.py`. The first is outside the scope fence; the second violates the plan's single-owner rule and the ticket's requirement to use the landed caps writer.
+None.
 
 ## Second problems filed
 None.
@@ -14,4 +14,4 @@ None.
 OpenAI / Codex (GPT-5).
 
 ## Predicted vs actual
-Expected 90m; actual approximately 10m before the premise failure was proven. The untouched base suite passed with 679 tests.
+Expected 90m; actual approximately 40m. The untouched base passed 679 tests and the implemented branch passes all 694 tests.
