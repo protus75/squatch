@@ -1,15 +1,16 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Refuse `squatch reject <stem>` before any write when the stem's latest state_transition is `rejected`, the same way a merged stem is refused. Test that a second reject exits 2 and writes nothing: no duplicate signals, dead_dependency events, or box reports.",
-    "Refuse `squatch confirm <stem>` on a `rejected` stem, because a kill is terminal like merged. Otherwise it journals a keep that resets the cap fold and reports a re-enqueue that the drain never performs. Cover this in tests/test_verbs.py.",
-    "In drain.py, pick the premise_failed parked road from the premise_bounce cap alone, the same predicate `_released` uses. When remaining(PREMISE_BOUNCE_CAP)==0, say `premise_bounce cap spent (<d> of <b> drawn)` plus the confirm road. Otherwise use `_premise_road`.",
-    "Add the premise_bounce acceptance test to tests/test_drain.py, not only test_drain_upgrade.py. Use caps {premise_bounce: 1} with one draw. An edit alone must not dispatch and the parked line must name the spent cap and `squatch confirm`. After confirm, the next drain must run the stem.",
-    "Checks passed and the rest of the diff matched the ticket according to review. Keep that work and fix only the four review findings."
+    "Review approved the rest of the diff and every mechanical check passed. Keep the current branch and fix only the three new review findings. Do not redesign.",
+    "In Runner.reject, a committed ticket whose frontmatter will not parse gets past the parse try/except, then stamp() raises after the reject signal and the to:rejected transition are already journaled. Check stampability before any journal write.",
+    "When the ticket cannot be stamped, treat it like the dirless ghost: journal-only, skip the stamp commit, and still run the dead-dependency handling. Test it in tests/test_verbs.py: exit 0, the reject signal, the transition, and the dependent reports and box messages.",
+    "Add a tests/test_verbs.py test for the nothing-to-confirm rule: a committed state: confirmed ticket with an intake signal and no state_transition. `squatch confirm <stem>` must exit 2 with the refusal message and leave the journal unchanged.",
+    "Add a tests/test_drain.py test for the spent-retry road: a stem parked gate_failed with its retry cap spent (for example config caps {retry: 0} or enough journaled draws). Assert the parked line contains `retry cap spent` and `squatch confirm <stem>`.",
+    "Scope in says every rule gets a test. Before finishing, go through each Scope in clause and match it to an asserting test, so review does not find another missing one."
   ],
-  "reason": "Review snagged on four scoped, fixable defects (two missing terminal refusals, the wrong cap named in the premise road, and a misplaced test); each has a paved road, so a retry at the same capability should succeed.",
+  "reason": "Review found three fixable issues: a crash before the dead-dependency handling in reject on an unstampable ticket, and two Scope in rules with no test. The findings name the exact fixes, so a retry at the same capability should clear them.",
   "detail": null
 }
