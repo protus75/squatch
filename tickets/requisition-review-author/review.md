@@ -1,0 +1,16 @@
+---
+verdict: snag
+reviewed_sha: 90b0a1fbfaffd08f9077aa9f78b019a32e9f8277
+produced_by_spec_version: '1.0'
+produced_at_sha: 90b0a1fbfaffd08f9077aa9f78b019a32e9f8277
+provider: claude
+model: opus
+artifact_schema_version: 1
+---
+## Summary
+The Author wiring works and the tests pass, but the driver change drops the rule that every gate runs for every stage, two test_triage scenarios never check for the review call, and a stale review verdict can be recorded on the message.
+
+## Findings
+- correctness_review at squatch/driver.py:126: The driver no longer makes one `run_gates(stage.gates, ...)` call. It now runs gates one at a time and stops at the first hard failure, for every stage. `run_gates` requires the opposite: 'never stopping early: re-prompt feedback wants every finding'. Any stage with more than one gate would now get only the first gate's findings in its re-prompt. The ticket lets the driver change only if its gate loop cannot host an async gate that makes its own driver call. The new `test_async_gate_can_make_its_own_driver_call` shows the loop can already host one, so this restructure falls outside that allowance. Checking grammar before the review can be done in the Author's own code instead. (Uncertain: the `terminal_findings` hook for an `rma` probably does need a driver change, because otherwise the driver re-prompts after an `rma`. If so, the ticket's condition is too narrow and should be noted as a plan gap.) (paved road: Restore the single `run_gates(stage.gates, ...)` call. Get grammar-first in `squatch/author.py`: make the `RequisitionGate` target resolver return `()` when `lint_ticket` rejects `artifact.ticket`, so no review call is made for an ungrammatical attempt. Keep only the minimal `terminal_findings` hook in the driver, and name in the run record why the `rma` case needs it.)
+- correctness_review at tests/test_triage.py:99: Acceptance criterion: 'every existing pass scenario that reaches Author scripts AND OBSERVES the mandatory requisition_review call'. `test_pass_commits_records_and_authors_in_the_same_pass` and `test_author_commit_failure_does_not_abort_the_pass` add a review reply to the script but never assert that a `requisition_review` request or effect key happened. If the reply were consumed by a different call, both tests could still pass. (paved road: In both tests, assert that `llm.requests` contains the `requisition_review` surface at the expected position, for example `[r.surface for r in llm.requests]` equals the full expected sequence, or assert an `llm/requisition_review/<stem>/` effect_completion key.)
+- correctness_review at squatch/author.py:155: `_ReviewCapture.last` is set once and never cleared between Author attempts. Example: attempt 1 gets a review `snag`, attempt 2 is grammar-invalid (so no review runs) or its Author call fails, and the allowance runs out. `_record_review` then writes the earlier ticket's snag onto the message's `triage` field as if it judged the final attempt. The recorded verdict then describes a ticket that was never the last one authored. (paved road: Record the review only when the driver's final failing findings are `requisition_review` findings (check `result.findings` codes). Alternatively, reset `review.last = None` at the start of each gate check, for example inside the target resolver, so a stale verdict can never be recorded.)
