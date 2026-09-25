@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "3df2d6ac6b2aeb0c81e6e0ca3fc8a6535cb5df28",
+  "produced_at_sha": "52dd41ea0363a45dc6265832d8cb460c34421e53",
   "stem": "spine-caps",
   "branch": "spine-caps",
-  "base": "c57502916fa9c20e56326f8cb2ea2ef38dd98b7e",
-  "head": "3df2d6ac6b2aeb0c81e6e0ca3fc8a6535cb5df28",
+  "base": "a823b0cbd38dd6d8ce7e55c242a658f1c3a086ca",
+  "head": "52dd41ea0363a45dc6265832d8cb460c34421e53",
   "changed_files": [
     "squatch/caps.py",
     "squatch/config.py",
