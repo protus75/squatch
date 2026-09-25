@@ -1,16 +1,16 @@
 ## Outcome
-ok
+premise_failed
 
 ## Surprises / judgment calls
-The prior attempt's scope blocker was already repaired on the base branch: the pinned authoring-time fixture treats the retired bootstrap file as unavailable without reading it. The prior attempt had also left 257 bootstrap records in instance state using a signature normalizer that failed to collapse whitespace after removing standalone digit tokens. I preserved that stale queue at `/tmp/squatch-suggestion-box-attempt0`, then ran the corrected module entry once; the live instance queue now contains exactly 257 matching bootstrap records with `reports` 1.
+The re-authored ticket still omits `squatch/git.py` and `tests/test_git.py` from the scope fence even though its acceptance criteria require an additive `Git.git_common_dir` wrapper and its test pin. I followed the explicit scope-fence and Definition-of-rejected rules rather than repeating the prior out-of-fence edit.
 
 ## Dead ends
-The first status projection reread only the checkout-default config, which broke the existing relocated-config test. The projection now remains read-only and reports an empty box when no checkout-local config is available.
+The required parent-checkout resolution cannot be implemented as specified without changing `squatch/git.py`, which is outside the scope fence. The untouched base suite was verified green (`622 passed`), so this is an authoring defect rather than a pre-existing test failure.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5; implement spec 1.1.
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 90m; approximately 40m actual.
+Expected 90m; actual approximately 5m before the scope contradiction was confirmed.
