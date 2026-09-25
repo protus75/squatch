@@ -1,16 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Replace the phase3-continue-02 criterion about scanning test_mergequeue.py to prove the hook is non-contradictory. Pin instead that rework-stage's Scope out forbids merge-queue behavior or test edits, and that its Verification runs `uv run pytest tests/test_mergequeue.py -q`.",
-    "Scope in of phase3-continue-02 must state explicit expected/stuck minutes for rework-stage and phase3-continue-03, with expected < stuck <= 180 (drain.max_ticket_minutes). The criteria must pin exactly those values.",
-    "phase3-continue-02 needs a criterion that its test asserts every fence path existing at authoring (including squatch/mergequeue.py) is in rework-stage's Context. Use a pinned EXISTING_AT_AUTHORING table.",
-    "phase3-continue-02 needs a criterion that each seed's implement render fits RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM, with pinned byte sizes for every Context path.",
-    "Rewrite phase3-continue-02's ownership YAML as keyed by the owner stem, e.g. `rework-stage: {owns: [squatch/rework.py, specs/rework.md, tests/test_rework.py], hooks: [squatch/mergequeue.py]}`, so it no longer reads as this ticket owning out-of-fence modules.",
-    "After revising the seeds, update tests/test_seeded_phase3_01.py to match and rerun both pytest commands. Carry forward the earlier lessons (both resolution rungs, non-empty Context, exact next-batch pins)."
+    "merge-queue seed: add a criterion that a tree-hash mismatch refuses only that candidate with a typed finding and paved road. Main stays untouched, admission unwinds, and the serial slot is released. No pause or hold; that activates with resume in pause-resume-activation.",
+    "merge-queue seed: name both rung types in Scope in and criteria. Rung 1 is mechanical resolution, settled in-queue. Rung 2 is the typed Rework handoff record, emitted after unwind. State that rework-stage consumes rung 2 without redefining it. Assert both in tests/test_mergequeue.py.",
+    "merge-queue seed: add a Scope out line that squatch/mergequeue.py must not import squatch.scheduler or squatch.watcher. merge.py is reachable from __main__.py, and test_scheduler's reachability proof must stay green.",
+    "Carry forward the earlier lessons: both rungs named, non-empty existing Context, exact next-batch pins (tiers, fences, edges, minutes), keyed ownership YAML, and render headroom with pinned bytes.",
+    "After revising the seeds, update tests/test_seeded_phase3_01.py to assert the new text (mismatch outcome, both rungs, import prohibition). Then rerun both pytest commands."
   ],
-  "reason": "Requisition review flagged fixable authoring defects in the phase3-continue-02 seed, each with a paved road; nothing shows the ticket is unsatisfiable or needs more capability.",
+  "reason": "The check gate's requisition review found three fixable spec gaps in the merge-queue seed; each has a concrete paved road.",
   "detail": null
 }
