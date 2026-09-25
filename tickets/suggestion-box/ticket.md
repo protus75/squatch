@@ -16,7 +16,6 @@ agent_effort: medium
 - squatch/status.py
 - squatch/git.py
 - squatch/tickets.py
-- squatch/git.py
 - squatch/seams.py
 - squatch/journal.py
 - squatch/config.py
@@ -50,15 +49,18 @@ No consumer: no `squatch triage`, no `specs/triage.md`, no semantic dedup, no po
 - squatch/box.py
 - squatch/registry.py
 - squatch/harvest.py
+- squatch/git.py
 - squatch/runner.py
 - squatch/status.py
 - bootstrap/suggestions.md
 - tests/test_box.py
 - tests/test_registry.py
 - tests/test_harvest.py
+- tests/test_git.py
 - tests/test_terminal.py
 - tests/test_drain.py
 - tests/test_cli.py
+- tests/test_seeded_phase2.py
 
 ## Acceptance criteria
 - In `tests/test_box.py`, `MESSAGE_CLASSES` equals exactly the five section 12 classes and `STATUSES` exactly `pending`, `authored`, `tombstoned`, `decided`; `Message` refuses a class or status outside them and refuses an unknown field.
