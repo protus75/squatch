@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The base suite was green at 750 tests. The prior attempt's blocker was cleared by the plan-authored fence change that now includes `tests/test_triage.py`. The driver needed ordered, short-circuiting gate execution so an invalid grammar never spends a feasibility call, plus a caller-supplied terminal-finding predicate so Author can stop immediately on the existing RMA paved road without changing gate vocabulary. Author records the last non-approve review under the existing triage mapping, preserving the original triage verdict fields.
+The untouched base suite was green at 750 tests. I preserved the driver's one `run_gates` call so every gate still runs, made Author's review target resolver skip the paid review when ticket grammar fails, and added only a caller-supplied terminal-finding predicate so an RMA can stop the Author loop immediately. The resolver also clears its captured verdict on every attempt so a later grammar failure cannot record a stale review.
 
 ## Dead ends
-The first commit invocation through `squatch.git.Git` used an invalid one-line Python `async def`; it made no git change and was replaced with direct `asyncio.run` calls through the same wrapper.
+An initial driver regression test reused an effect identity in the same journal and replayed the earlier call; changing the test ticket identity made the intended fresh call explicit.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The first commit invocation through `squatch.git.Git` used an invalid one-line P
 OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected 60m; actual about 35m.
+Expected 60m; actual about 20m.
