@@ -1,0 +1,21 @@
+{
+  "entries": [
+    {
+      "auditor": "green",
+      "detail": "the drain's held: report line and the ticket_schema findings",
+      "expected": "held:no_running_transition",
+      "fault": "a committed tickets/bad-schema/ticket.md has priority P9 and no Verification section",
+      "green": true,
+      "group": "shakeout-tickets",
+      "member": "shakeout-tickets.bad_schema",
+      "observable": "drain exits at quiescence with no bad-schema state_transition while the green control reaches merged",
+      "observed": "held:no_running_transition",
+      "producing_run": "green/0"
+    }
+  ],
+  "groups": [
+    "shakeout-tickets"
+  ],
+  "produced_at_sha": "6c77d0667b45596df92df5e0711023595c6e94a1",
+  "schema_version": 1
+}
