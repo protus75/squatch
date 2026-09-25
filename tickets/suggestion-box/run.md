@@ -1,18 +1,16 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The required deletion makes `tests/test_seeded_phase2.py` fail during collection because its authoring-time fixture unconditionally reads `bootstrap/suggestions.md`. That test is outside the scope fence, so I did not change it or preserve the deleted mailbox through an untracked or runtime-generated shim.
-
-The required module entry successfully ingested 257 bootstrap lines into the parent checkout's instance state directory before this contradiction became visible.
+The prior attempt's scope blocker was already repaired on the base branch: the pinned authoring-time fixture treats the retired bootstrap file as unavailable without reading it. The prior attempt had also left 257 bootstrap records in instance state using a signature normalizer that failed to collapse whitespace after removing standalone digit tokens. I preserved that stale queue at `/tmp/squatch-suggestion-box-attempt0`, then ran the corrected module entry once; the live instance queue now contains exactly 257 matching bootstrap records with `reports` 1.
 
 ## Dead ends
-Implemented and focused-tested the box, registry, harvest hook, status category, drain era pin, and bootstrap ingestion. After deleting `bootstrap/suggestions.md`, `uv run pytest -q` failed during collection with `FileNotFoundError` from `tests/test_seeded_phase2.py:104`. Satisfying the full-suite criterion requires changing that out-of-fence path (or retaining/recreating the file, which contradicts the required deletion), so all code-tree edits were reverted and no commit was made.
+The first status projection reread only the checkout-default config, which broke the existing relocated-config test. The projection now remains read-only and reports an empty box when no checkout-local config is available.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / gpt-5.6-sol; implement spec 1.1.
+OpenAI Codex / GPT-5; implement spec 1.1.
 
 ## Predicted vs actual
-Expected 90m; approximately 25m to the authoring-defect stop.
+Expected 90m; approximately 40m actual.
