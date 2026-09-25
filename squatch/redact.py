@@ -17,6 +17,11 @@ change adding a stream or a writer extends this list in the same change):
   once"): `squatch.llmeffect.LLMEffect`
 - cli subprocess stdout/stderr, scrubbed before parse or error:
   `squatch.providers.CliClient`
+- verification subprocess stdout/stderr, scrubbed once at receipt before the
+  tail becomes a Finding -- so the check effect's completion body and the
+  `checks.json` lift carry only post-scrub text: `squatch.stages.Verification`
+- the outbox lift's run record (`run.md`, the Implement child's text stream
+  into the ticket plane), scrubbed at the write seam: `squatch.stages.Stages._lift`
 - harvest serialization: lands with the Phase 2 spine
 """
 

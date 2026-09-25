@@ -1,0 +1,742 @@
+"""stages.py: the Implement, Check, and Review stages and their transitions
+(SQUATCH_PLAN.md sections 4, 5, 7, 9, 10; section 19, Phase 1).
+
+Every test drives `Stages.run` against a real temp checkout through the real
+process seam -- the claims are about a worktree, a branch, ticket-plane
+commits on main, and the journal -- with the scripted fake standing in for
+the model: an `Agent` acts in the granted worktree (writes, commits) before
+each scripted reply, exactly as an agent CLI would. Review wires the
+committed `specs/review.md`; Implement renders `specs/implement.md`.
+"""
+
+import json
+import os
+import subprocess
+import sys
+import textwrap
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+
+from squatch import specs as specs_module
+from squatch import stages as stages_module
+from squatch.artifacts import Finding
+from squatch.config import load
+from squatch.effects import Effects
+from squatch.enginelog import EngineLog
+from squatch.git import Git
+from squatch.journal import Journal
+from squatch.llm import FakeLLM
+from squatch.llmeffect import LLMEffect
+from squatch.redact import Redactor
+from squatch.seams import LocalFilesystem, SubprocessExec
+from squatch.specs import load_spec
+from squatch.stages import (
+    CHECK_CODES,
+    RUN_RECORD_SECTIONS,
+    SPECS_DIR,
+    ApprovedInvoice,
+    Invoice,
+    PackingSlip,
+    RMA,
+    SnagList,
+    Stages,
+    compose,
+    load_review,
+)
+from squatch.tickets import PLAN_FILE, Intake, lint_ticket
+
+T0 = datetime(2026, 9, 25, 12, 0, tzinfo=timezone.utc)
+STATE = Path(".squatch/state")
+STEM = "widget-module"
+KEY_NAME = "FAKE_PROVIDER_KEY"
+PYTHON = sys.executable
+
+CONFIG = textwrap.dedent(f"""\
+    schema_version: 1
+    state_dir: {STATE}
+    providers:
+      - name: claude
+        kind: cli
+        auth: {KEY_NAME}
+        models_by_tier: {{low: a, medium: b, high: c, max: d}}
+        limits: {{concurrency: 1}}
+    routing:
+      - {{tier: medium, surface: implement, candidates: [{{provider: claude}}]}}
+      - {{tier: medium, surface: review, candidates: [{{provider: claude}}]}}
+    """)
+
+PLAN = textwrap.dedent("""\
+    # plan
+
+    ## 13. Ticket contract
+
+    Contract prose.
+    """)
+
+EXISTS = (f'{PYTHON} -c "import pathlib, sys; '
+          f"sys.exit(0 if pathlib.Path('squatch/widget.py').exists() else 1)\"")
+
+TICKET = textwrap.dedent("""\
+    ---
+    priority: P1
+    kind: feature
+    {frontmatter}
+    ---
+    ## Depends on
+    - none
+
+    ## Context
+    - squatch/existing.py
+
+    ## Plan contract
+    - section 13
+
+    ## Goal
+    The widget module lands.
+
+    ## Why
+    The next ticket consumes it.
+
+    ## Scope in
+    The widget module.
+
+    ## Scope out
+    The renderer.
+
+    ## Scope fence
+    - squatch/widget.py
+
+    ## Acceptance criteria
+    - `squatch/widget.py` exists after merge.
+
+    ## Verification
+    ```
+    {verify}
+    ```
+
+    ## Definition of rejected
+    Stop if the widget needs a new dependency.
+
+    ## Time budget
+    - expected: 20m
+    - stuck: 40m
+    """)
+
+
+class TickingClock:
+    def __init__(self, start=T0):
+        self.now = start
+
+    def __call__(self):
+        self.now += timedelta(seconds=1)
+        return self.now
+
+
+def git_env(tmp_path: Path) -> dict[str, str]:
+    return {
+        "PATH": os.environ["PATH"],
+        "HOME": str(tmp_path),
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_AUTHOR_NAME": "squatch", "GIT_AUTHOR_EMAIL": "squatch@test",
+        "GIT_COMMITTER_NAME": "squatch", "GIT_COMMITTER_EMAIL": "squatch@test",
+    }
+
+
+def git(repo: Path, env: dict, *args: str) -> str:
+    proc = subprocess.run(["git", "-C", str(repo), *args], env=env, capture_output=True,
+                          text=True, check=True)
+    return proc.stdout
+
+
+def run_record(outcome: str = "ok") -> str:
+    return "".join(f"## {name}\n{outcome if name == 'Outcome' else ''}\n"
+                   for name in RUN_RECORD_SECTIONS)
+
+
+def answer(verdict: str, summary: str = "done") -> str:
+    return json.dumps({"verdict": verdict, "summary": summary})
+
+
+def review(verdict: str, *findings: dict) -> str:
+    return json.dumps({"verdict": verdict, "summary": f"reviewed: {verdict}",
+                       "findings": [{"code": "correctness_review", "path": None, "line": None,
+                                     "paved_road": "fix it", **f} for f in findings]})
+
+
+class Agent(FakeLLM):
+    """The scripted implementer: an action runs against the granted worktree
+    before each scripted reply, like an agent CLI mutating its tree."""
+
+    def __init__(self, *script, actions=()):
+        super().__init__(*script)
+        self.actions = list(actions)
+
+    async def call(self, req):
+        if self.actions:
+            action = self.actions.pop(0)
+            if action is not None:
+                action(req)
+        return await super().call(req)
+
+
+@pytest.fixture
+def env(tmp_path):
+    return git_env(tmp_path)
+
+
+@pytest.fixture
+def repo(tmp_path, env):
+    """A committed host checkout: config, plan, one Context file."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "config.yaml").write_text(CONFIG)
+    (repo / PLAN_FILE).write_text(PLAN)
+    (repo / "squatch").mkdir()
+    (repo / "squatch" / "existing.py").write_text("EXISTING = 1\n")
+    git(repo, env, "init", "-q", "-b", "main")
+    git(repo, env, "add", "--", "config.yaml", PLAN_FILE, "squatch/existing.py")
+    git(repo, env, "commit", "-q", "-m", "seed")
+    return repo
+
+
+class Harness:
+    def __init__(self, repo: Path, env: dict, llm: FakeLLM):
+        self.repo = repo
+        self.env = env
+        self.llm = llm
+        self.config = load(None, cwd=repo)
+        self.state = repo / self.config.state_dir
+        self.clock = TickingClock()
+        self.git = Git(SubprocessExec(), env=env, timeout=60.0)
+        self.journal = Journal(self.state, clock=self.clock)
+        redact = Redactor.from_config(self.config, env)
+        self.stages = Stages(
+            repo=repo, config=self.config, git=self.git, process=SubprocessExec(),
+            fs=LocalFilesystem(),
+            llm=LLMEffect(llm=llm, effects=Effects(self.journal), redact=redact),
+            log=EngineLog(self.state, clock=self.clock, redact=redact), redact=redact,
+            clock=self.clock, env=env)
+
+    async def intake(self, text: str):
+        path = self.repo / "tickets" / STEM / "ticket.md"
+        if not path.exists():  # a committed ticket is the plane's; never re-authored here
+            path.parent.mkdir(parents=True)
+            path.write_text(text)
+        result = await Intake(repo=self.repo, git=self.git, journal=self.journal,
+                              fs=LocalFilesystem()).run()
+        assert result.refused == (), result.refused
+        return lint_ticket(path.read_text(), stem=STEM, repo=self.repo, plan=PLAN,
+                           resolve_stem=lambda s: False)
+
+    async def run(self, text: str = None, *, run_seq: int = 0, **fmt):
+        fmt.setdefault("verify", EXISTS)
+        fmt.setdefault("frontmatter", "")
+        ticket = await self.intake(text if text is not None else TICKET.format(**fmt))
+        return await self.stages.run(ticket, run_seq=run_seq)
+
+    def worktree(self) -> Path:
+        return self.repo / self.config.worktree_root / STEM
+
+    def subjects(self) -> list[str]:
+        return git(self.repo, self.env, "log", "--format=%s", "main").splitlines()
+
+    def main_files(self) -> list[str]:
+        return git(self.repo, self.env, "ls-tree", "-r", "--name-only", "main").splitlines()
+
+    def branch_diff_names(self) -> list[str]:
+        return git(self.repo, self.env, "diff", "--name-only", f"main...{STEM}").splitlines()
+
+    def completions(self) -> list[str]:
+        return [e.key for e in self.journal.read() if e.type == "effect_completion"]
+
+    def prompts(self) -> list[str]:
+        return [r.rendered for r in self.llm.requests]
+
+
+def commit(env: dict):
+    """An action: commit every change in the worktree (explicit paths)."""
+    def act(req):
+        wt = req.worktree
+        names = git(wt, env, "status", "--porcelain").splitlines()
+        paths = [line[3:] for line in names if not line[3:].startswith("tickets/")]
+        git(wt, env, "add", "--", *paths)
+        git(wt, env, "commit", "-q", "-m", "implement")
+    return act
+
+
+def writes(*files: tuple[str, str], record: str | None = run_record()):
+    """An action: write files (and the run record) into the worktree."""
+    def act(req):
+        wt = req.worktree
+        for rel, content in files:
+            path = wt / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+        if record is not None:
+            out = wt / "tickets" / STEM / "run.md"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(record)
+    return act
+
+
+def implementer(env: dict, *files: tuple[str, str], record=run_record()):
+    both = (writes(*files, record=record), commit(env))
+
+    def act(req):
+        for a in both:
+            a(req)
+    return act
+
+
+WIDGET = ("squatch/widget.py", "WIDGET = 1\n")
+
+
+# --- the happy path: Implement -> Check -> Review, full artifacts + provenance -----
+
+
+async def test_delivers_ok_with_every_artifact_lifted_committed_and_stamped(repo, env):
+    agent = Agent(answer("implemented"), review("approve"),
+                  actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    base = git(repo, env, "rev-parse", "main").strip()
+
+    d = await h.run()
+
+    assert d.outcome == "ok" and d.findings == []
+    head = git(repo, env, "rev-parse", STEM).strip()
+    # The packing slip: the branch plus the run record, stamped at the branch head.
+    assert isinstance(d.slip, PackingSlip)
+    assert (d.slip.stem, d.slip.verdict, d.slip.branch) == (STEM, "implemented", STEM)
+    assert d.slip.head == head and d.slip.head != d.slip.base
+    assert d.slip.produced_at_sha == head and d.slip.produced_by_spec_version == "1.0"
+    assert d.slip.base == git(repo, env, "rev-parse", "main~3").strip()
+    assert d.slip.base != base, "the ticket-plane intake commit moved main before the branch"
+    # The invoice: every Check gate passed, persisted as checks.json on main.
+    assert isinstance(d.invoice, Invoice) and d.invoice.passed
+    assert tuple(c.code for c in d.invoice.checks) == CHECK_CODES
+    assert all(c.verdict == "pass" and not c.bypassed for c in d.invoice.checks)
+    assert d.invoice.changed_files == ("squatch/widget.py",)
+    assert d.invoice.produced_at_sha == head
+    on_disk = Invoice.model_validate_json((repo / "tickets" / STEM / "checks.json").read_text())
+    assert on_disk == d.invoice
+    # The review: the approve branch of emits_by_verdict, pinned to the reviewed SHA.
+    assert isinstance(d.review, ApprovedInvoice)
+    assert (d.review.reviewed_sha, d.review.produced_at_sha) == (head, head)
+    assert (d.review.provider, d.review.model) == ("fake", "fake-1")
+    assert d.review.produced_by_spec_version == "1.0"
+    review_md = load_review((repo / "tickets" / STEM / "review.md").read_text())
+    assert review_md["verdict"] == "approve" and review_md["reviewed_sha"] == head
+    # The run record was lifted from the worktree outbox into the canonical dir.
+    assert (repo / "tickets" / STEM / "run.md").read_text() == run_record()
+    # One ticket-plane commit per stage terminal, in order, no code on main.
+    assert h.subjects() == [f"squatch({STEM}): review", f"squatch({STEM}): checks",
+                            f"squatch({STEM}): run-record", f"squatch({STEM}): ticket", "seed"]
+    assert "squatch/widget.py" not in h.main_files()
+    # The branch carries code only; the outbox never rides it.
+    assert h.branch_diff_names() == ["squatch/widget.py"]
+    assert d.worktree == h.worktree() and d.worktree.is_dir()
+
+
+async def test_outbox_lift_carries_nested_evidence_and_never_ticket_md(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(
+        env, WIDGET, (f"tickets/{STEM}/evidence/trace.txt", "trace\n"))])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "ok"
+    assert (repo / "tickets" / STEM / "evidence" / "trace.txt").read_text() == "trace\n"
+    lifted = git(repo, env, "show", "--format=", "--name-only", f"main~2").splitlines()
+    assert lifted == [f"tickets/{STEM}/evidence/trace.txt", f"tickets/{STEM}/run.md"]
+    assert git(repo, env, "status", "--porcelain", "--", "tickets/") == ""
+    assert h.branch_diff_names() == ["squatch/widget.py"]
+
+
+async def test_every_external_action_is_a_run_scoped_effect(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    await h.run()
+    assert h.completions() == [
+        f"worktree/{STEM}/0",
+        f"llm/{STEM}/0/implement/0/1",
+        f"lift/{STEM}/0/run-record",
+        f"check/{STEM}/0",
+        f"lift/{STEM}/0/checks",
+        f"llm/{STEM}/0/review/0/1",
+        f"lift/{STEM}/0/review",
+    ]
+    lifts = [e for e in h.journal.read() if e.type == "effect_completion"
+             and e.key.startswith("lift/")]
+    for e in lifts:
+        assert e.ticket == STEM and e.body["result"]["commit"]
+    assert lifts[0].body["result"]["paths"] == [f"tickets/{STEM}/run.md"]
+
+
+async def test_implement_writes_the_worktree_and_review_reads_a_separate_session(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    await h.run(frontmatter="agent_tier: high\nagent_effort: low")
+    implement, rev = agent.requests
+    assert implement.surface == "implement" and implement.worktree == h.worktree()
+    assert rev.surface == "review" and rev.worktree is None
+    # Every surface invoked FOR a ticket resolves at the ticket's capability.
+    assert (implement.tier, implement.effort) == ("high", "low")
+    assert (rev.tier, rev.effort) == ("high", "low")
+    assert implement.ticket == rev.ticket == STEM
+
+
+async def test_implement_prompt_renders_the_spec_over_ticket_context_and_plan(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    await h.run()
+    prompt = h.prompts()[0]
+    assert prompt.startswith("squatch prompt: surface=implement spec_version=1.0\n")
+    assert '<<<squatch:data name="workspace" origin="engine"' in prompt
+    assert f"run record: tickets/{STEM}/run.md" in prompt
+    assert '<<<squatch:data name="ticket" origin="host"' in prompt
+    assert "The widget module lands." in prompt
+    assert '<<<squatch:data name="context" origin="host"' in prompt
+    assert "squatch/existing.py" in prompt and "EXISTING = 1" in prompt
+    assert '<<<squatch:data name="plan_contract" origin="engine"' in prompt
+    assert "Contract prose." in prompt
+
+
+async def test_review_wires_the_committed_review_spec_unchanged(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    await h.run()
+    spec = load_spec(SPECS_DIR / "review.md")
+    # The baselined identity is the spec's MAJOR version; a rewrite here
+    # would silently drift the recorded baseline.
+    assert spec.version.split(".")[0] == "1"
+    assert spec.slots == ("ticket", "diff", "check_report")
+    prompt = h.prompts()[1]
+    assert prompt.startswith(f"squatch prompt: surface=review spec_version={spec.version}\n")
+    assert '<<<squatch:data name="ticket" origin="host"' in prompt
+    assert '<<<squatch:data name="diff" origin="untrusted"' in prompt
+    assert "+WIDGET = 1" in prompt
+    assert '<<<squatch:data name="check_report" origin="engine"' in prompt
+    assert '"code": "verification"' in prompt
+    assert "Contract prose." not in prompt, "review renders exactly the spec's three slots"
+
+
+# --- Check: the four mechanical gates, fail-closed ---------------------------------
+
+
+async def test_out_of_fence_edit_fails_the_scope_fence_gate(repo, env):
+    agent = Agent(answer("implemented"), review("approve"),
+                  actions=[implementer(env, WIDGET, ("squatch/other.py", "x = 1\n"))])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "gate_failed"
+    [f] = [f for f in d.findings if f.code == "scope_fence"]
+    assert f.path == "squatch/other.py" and f.paved_road
+    assert d.invoice is not None and not d.invoice.passed
+    assert d.review is None and len(agent.requests) == 1, "a red Check never reaches Review"
+    # The failing invoice is durable: the re-entry's senior source.
+    assert (repo / "tickets" / STEM / "checks.json").is_file()
+    assert h.subjects()[0] == f"squatch({STEM}): checks"
+    # Ticket and branch stay in place for the operator.
+    assert h.worktree().is_dir() and git(repo, env, "rev-parse", "--verify", STEM)
+
+
+async def test_ticket_md_is_never_the_agents_to_edit(repo, env):
+    def edit_ticket(req):
+        path = req.worktree / "tickets" / STEM / "ticket.md"
+        path.write_text(path.read_text() + "\n")
+    agent = Agent(answer("implemented"),
+                  actions=[lambda req: (writes(WIDGET)(req), edit_ticket(req),
+                                        git(req.worktree, env, "add", "-A"),
+                                        git(req.worktree, env, "commit", "-q", "-m", "x"))])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "gate_failed"
+    assert [f.path for f in d.findings if f.code == "scope_fence"] == [f"tickets/{STEM}/ticket.md"]
+
+
+async def test_red_verification_fails_the_check(repo, env):
+    agent = Agent(answer("implemented"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await h.run(verify=f'{PYTHON} -c "import sys; sys.exit(3)"')
+    assert d.outcome == "gate_failed"
+    [f] = [f for f in d.findings if f.code == "verification"]
+    assert "exit 3" in f.message and "sys.exit(3)" in f.message
+
+
+async def test_an_uncommitted_edit_is_an_empty_diff_and_fails_verification(repo, env):
+    agent = Agent(answer("implemented"), actions=[writes(WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "gate_failed"
+    [f] = [f for f in d.findings if f.code == "verification"]
+    assert "no committed diff" in f.message and "commit" in f.paved_road
+    assert h.branch_diff_names() == []
+
+
+async def test_verification_runs_in_the_worktree_without_any_provider_key(repo, env):
+    verify = (f'{PYTHON} -c "import os, sys; '
+              f"sys.exit(1 if '{KEY_NAME}' in os.environ or 'HOME' not in os.environ else 0)\"")
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, {**env, KEY_NAME: "sk-secret"}, agent)
+    d = await h.run(verify=verify)
+    assert d.outcome == "ok", d.findings
+
+
+SECRET = "sk-super-secret-value"
+TOKEN = f"[REDACTED:{KEY_NAME}]"
+
+
+async def test_red_verification_output_is_redacted_in_findings_checks_json_and_journal(repo, env):
+    """The config-to-writer path end to end (section 6): a red command that
+    echoes a host file holding the configured value persists only the token."""
+    verify = (f'{PYTHON} -c "import sys; '
+              f"sys.stderr.write(open('.env').read()); sys.exit(1)\"")
+    agent = Agent(answer("implemented"),
+                  actions=[implementer(env, WIDGET, (".env", f"{KEY_NAME}={SECRET}\n"))])
+    h = Harness(repo, {**env, KEY_NAME: SECRET}, agent)
+    d = await h.run(verify=verify)
+    assert d.outcome == "gate_failed"
+    [f] = [f for f in d.findings if f.code == "verification"]
+    assert TOKEN in f.message and SECRET not in f.message
+    checks = (repo / "tickets" / STEM / "checks.json").read_text()
+    assert TOKEN in checks and SECRET not in checks
+    assert f"tickets/{STEM}/checks.json" in h.main_files()
+    assert SECRET not in git(repo, env, "show", f"main:tickets/{STEM}/checks.json")
+    [completion] = [e for e in h.journal.read()
+                    if e.type == "effect_completion" and e.key == f"check/{STEM}/0"]
+    body = json.dumps(completion.body)
+    assert TOKEN in body and SECRET not in body
+
+
+async def test_lifted_run_record_is_redacted_on_main(repo, env):
+    record = run_record().replace("## Dead ends\n", f"## Dead ends\nenv: {KEY_NAME}={SECRET}\n")
+    agent = Agent(answer("implemented"), review("approve"),
+                  actions=[implementer(env, WIDGET, record=record)])
+    h = Harness(repo, {**env, KEY_NAME: SECRET}, agent)
+    d = await h.run()
+    assert d.outcome == "ok", d.findings
+    on_main = git(repo, env, "show", f"main:tickets/{STEM}/run.md")
+    assert TOKEN in on_main and SECRET not in on_main
+    assert SECRET not in (repo / "tickets" / STEM / "run.md").read_text()
+
+
+async def test_missing_or_malformed_run_record_fails_the_run_record_gate(repo, env):
+    agent = Agent(answer("implemented"), actions=[implementer(env, WIDGET, record=None)])
+    d = await Harness(repo, env, agent).run()
+    assert d.outcome == "gate_failed"
+    [f] = [f for f in d.findings if f.code == "run_record"]
+    assert "run.md" in f.message and "## Outcome" in f.paved_road
+
+    bad = run_record().replace("## Dead ends\n", "")
+    agent = Agent(answer("implemented"), actions=[implementer(env, WIDGET, record=bad)])
+    d = await Harness(repo, env, agent).run(run_seq=1)
+    [f] = [f for f in d.findings if f.code == "run_record"]
+    assert "Dead ends" in f.message
+
+    agent = Agent(answer("implemented"), actions=[implementer(env, WIDGET, record=run_record("done"))])
+    d = await Harness(repo, env, agent).run(run_seq=2)
+    [f] = [f for f in d.findings if f.code == "run_record"]
+    assert "done" in f.message and "Outcome" in f.message
+
+
+async def test_diff_budget_caps_the_reviewable_diff(repo, env, monkeypatch):
+    monkeypatch.setattr(stages_module, "DIFF_BUDGET_LINES", 3)
+    big = ("squatch/widget.py", "".join(f"L{n} = {n}\n" for n in range(10)))
+    agent = Agent(answer("implemented"), actions=[implementer(env, big)])
+    d = await Harness(repo, env, agent).run()
+    assert d.outcome == "gate_failed"
+    [f] = [f for f in d.findings if f.code == "diff_budget"]
+    assert "10 inserted lines" in f.message and "split the ticket" in f.paved_road
+
+
+async def test_gate_bypass_downgrades_the_named_gate_to_soft(repo, env):
+    agent = Agent(answer("implemented"), review("approve"),
+                  actions=[implementer(env, WIDGET, ("squatch/other.py", "x = 1\n"))])
+    h = Harness(repo, env, agent)
+    d = await h.run(frontmatter="gate_bypass: [{code: scope_fence, reason: generated sibling}]")
+    assert d.outcome == "ok"
+    fence = next(c for c in d.invoice.checks if c.code == "scope_fence")
+    assert fence.verdict == "fail" and fence.bypassed and fence.severity == "soft"
+    assert d.invoice.passed and d.review is not None
+    assert [f.code for f in d.findings] == ["scope_fence"], "soft findings are returned, never hidden"
+
+
+# --- the first-class short-circuits -------------------------------------------------
+
+
+async def test_already_satisfied_settles_without_review_when_proven_on_the_base(repo, env):
+    (repo / "squatch" / "widget.py").write_text("WIDGET = 0\n")
+    git(repo, env, "add", "--", "squatch/widget.py")
+    git(repo, env, "commit", "-q", "-m", "already there")
+    agent = Agent(answer("already_satisfied"),
+                  actions=[writes(record=run_record("already_satisfied"))])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "already_satisfied"
+    assert d.slip.verdict == "already_satisfied" and d.slip.head == d.slip.base
+    assert d.invoice.passed and d.invoice.changed_files == ()
+    assert d.review is None and len(agent.requests) == 1
+    assert (repo / "tickets" / STEM / "run.md").read_text() == run_record("already_satisfied")
+    assert h.subjects()[:2] == [f"squatch({STEM}): checks", f"squatch({STEM}): run-record"]
+
+
+async def test_already_satisfied_is_never_taken_on_judgment_alone(repo, env):
+    agent = Agent(answer("already_satisfied"),
+                  actions=[writes(record=run_record("already_satisfied"))])
+    d = await Harness(repo, env, agent).run()
+    assert d.outcome == "gate_failed"
+    assert any(f.code == "verification" and "exit 1" in f.message for f in d.findings)
+
+
+async def test_already_satisfied_with_a_committed_diff_is_a_false_claim(repo, env):
+    agent = Agent(answer("already_satisfied"),
+                  actions=[implementer(env, WIDGET, record=run_record("already_satisfied"))])
+    d = await Harness(repo, env, agent).run()
+    assert d.outcome == "gate_failed"
+    [f] = [f for f in d.findings if f.code == "verification"]
+    assert "already_satisfied" in f.message and "squatch/widget.py" in f.message
+
+
+async def test_premise_failed_from_implement_skips_check_and_review(repo, env):
+    agent = Agent(answer("premise_failed", "the fence forbids squatch/renderer.py"),
+                  actions=[writes(record=run_record("premise_failed"))])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "premise_failed"
+    assert d.slip.verdict == "premise_failed"
+    assert [f.message for f in d.findings] == ["the fence forbids squatch/renderer.py"]
+    assert d.invoice is None and d.review is None and len(agent.requests) == 1
+    assert (repo / "tickets" / STEM / "run.md").is_file()
+    assert not (repo / "tickets" / STEM / "checks.json").exists()
+    assert h.subjects()[0] == f"squatch({STEM}): run-record"
+
+
+async def test_an_over_bound_render_is_a_premise_failed_terminal_before_any_call(
+        repo, env, monkeypatch):
+    monkeypatch.setattr(specs_module, "RENDER_BOUND_CHARS",
+                        {k: 100 for k in specs_module.RENDER_BOUND_CHARS})
+    agent = Agent(answer("implemented"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "premise_failed" and agent.requests == []
+    [f] = d.findings
+    assert "over the 100-char bound" in f.message and "split the ticket" in f.paved_road
+    assert h.subjects()[0] == f"squatch({STEM}): ticket", "nothing lifted, nothing committed"
+
+
+# --- Review: one of three artifact types by verdict -------------------------------
+
+
+async def test_review_snag_is_gate_failed_and_review_md_carries_the_findings(repo, env):
+    agent = Agent(answer("implemented"),
+                  review("snag", {"path": "squatch/widget.py", "line": 1,
+                                  "message": "WIDGET should be 2"}),
+                  actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "gate_failed"
+    assert isinstance(d.review, SnagList) and d.review.verdict == "snag"
+    assert [(f.code, f.path, f.line) for f in d.findings] == [
+        ("correctness_review", "squatch/widget.py", 1)]
+    text = (repo / "tickets" / STEM / "review.md").read_text()
+    assert load_review(text)["verdict"] == "snag"
+    assert "WIDGET should be 2" in text and "squatch/widget.py:1" in text
+    assert h.subjects()[0] == f"squatch({STEM}): review"
+
+
+async def test_review_rma_is_premise_failed(repo, env):
+    agent = Agent(answer("implemented"),
+                  review("rma", {"message": "criteria contradict each other"}),
+                  actions=[implementer(env, WIDGET)])
+    d = await Harness(repo, env, agent).run()
+    assert d.outcome == "premise_failed"
+    assert isinstance(d.review, RMA)
+    assert [f.message for f in d.findings] == ["criteria contradict each other"]
+
+
+async def test_review_reply_outside_the_verdict_vocabulary_is_reprompted_then_terminal(repo, env):
+    agent = Agent(answer("implemented"), review("maybe"), review("approve"),
+                  actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "ok"
+    assert len(agent.requests) == 3
+    assert '<<<squatch:data name="findings"' in h.prompts()[2]
+    assert h.completions()[-3:] == [f"llm/{STEM}/0/review/0/1", f"llm/{STEM}/0/review/0/2",
+                                    f"lift/{STEM}/0/review"]
+
+
+async def test_review_call_failure_is_infra_error_with_the_invoice_still_durable(repo, env):
+    agent = Agent(answer("implemented"), RuntimeError("provider down"),
+                  actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    d = await h.run()
+    assert d.outcome == "infra_error"
+    assert d.invoice is not None and d.review is None
+    assert not (repo / "tickets" / STEM / "review.md").exists()
+    assert h.subjects()[0] == f"squatch({STEM}): checks"
+
+
+# --- re-entry: a fresh run takes a fresh worktree and fresh keys -------------------
+
+
+async def test_a_second_run_takes_a_fresh_worktree_branch_and_keys(repo, env):
+    agent = Agent(answer("implemented"),
+                  answer("implemented"), review("approve"),
+                  actions=[implementer(env, WIDGET, ("squatch/other.py", "x = 1\n")),
+                           implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    first = await h.run(run_seq=0)
+    assert first.outcome == "gate_failed"
+    stale = h.worktree() / "squatch" / "other.py"
+    assert stale.is_file()
+
+    second = await h.stages.run(await h.intake(TICKET.format(verify=EXISTS, frontmatter="")),
+                                run_seq=1)
+
+    assert second.outcome == "ok"
+    assert not stale.exists(), "teardown-and-create clears the dead run's tree"
+    assert h.branch_diff_names() == ["squatch/widget.py"]
+    assert f"llm/{STEM}/1/implement/1/1" in h.completions()
+    assert (h.state / "spools" / STEM / "0").is_dir() and (h.state / "spools" / STEM / "1").is_dir()
+    assert (repo / "tickets" / STEM / "checks.json").is_file()
+    assert Invoice.model_validate_json(
+        (repo / "tickets" / STEM / "checks.json").read_text()).passed
+
+
+async def test_a_replayed_run_sequence_re_delivers_without_recalling(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    first = await h.run()
+    never = Agent(RuntimeError("must not be called"))
+    h2 = Harness(repo, env, never)
+    ticket = lint_ticket((repo / "tickets" / STEM / "ticket.md").read_text(), stem=STEM,
+                         repo=repo, plan=PLAN, resolve_stem=lambda s: False)
+    again = await h2.stages.run(ticket, run_seq=0)
+    assert never.requests == []
+    assert again.outcome == first.outcome == "ok"
+    assert again.review == first.review and again.invoice == first.invoice
+    assert len(h2.completions()) == 7, "a replay records nothing new"
+
+
+# --- the production composition ----------------------------------------------------
+
+
+def test_compose_builds_the_production_stages_from_config(repo, env):
+    config = load(None, cwd=repo)
+    clock = TickingClock()
+    with Journal(repo / config.state_dir, clock=clock) as journal:
+        stages = compose(repo=repo, config=config, env=env, journal=journal, clock=clock,
+                         process=SubprocessExec(), fs=LocalFilesystem(),
+                         git=Git(SubprocessExec(), env=env, timeout=60.0))
+    assert isinstance(stages, Stages)
+    assert stages.implement_spec.surface == "implement"
+    assert stages.review_spec.surface == "review"
+
+
+def test_the_shipped_specs_lint_and_name_their_gates():
+    implement = load_spec(SPECS_DIR / "implement.md")
+    assert implement.surface == "implement" and implement.version == "1.0"
+    assert implement.slots == ("workspace", "ticket", "context")
+    assert load_spec(SPECS_DIR / "review.md").surface == "review"
