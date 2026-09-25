@@ -1,15 +1,16 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snag only; all checks passed and the reviewer judged the seed path, lift, and SeedSafety sound. Keep the design and the existing tests, and fix only the flagged assertion. Do not redesign.",
-    "In test_a_seed_snag_or_oversized_batch_never_lifts (tests/test_terminal.py ~line 297), main_files() returns full paths. Replace `\"alpha-seed\" not in drive.main_files()` with `\"tickets/alpha-seed/ticket.md\" not in ...`, and do the same for tickets/beta-seed/ticket.md.",
-    "After the four-seed cap run, assert that main is unchanged: none of the four seeds' tickets/<x>/ticket.md paths may appear in drive.main_files(), and no seed_lift signal may be journaled.",
-    "Check every `not in` or `in` assertion over a list of paths in the new tests. Each must compare against the full repo-relative path, or the assertion is vacuous. Confirm each one fails on purpose once, for example by temporarily inverting it, then restore it.",
-    "Before answering, map each acceptance criterion and each earlier review finding to a named test with a real assertion. Keep the earlier fixes: the ordinary-run negative test, the no-signal admission test, the byte-identical replay skip, and the partial-lift re-offer test."
+    "Review snag only; all checks passed. Keep the seed path, lift, SeedSafety design and every earlier fix and test. Close only the byte-binding gap between review and lift; do not redesign.",
+    "Make the reviewed batch the only lift input: return the reviewed seed map (stem -> blob sha) from the check effect's result instead of calling authored_seeds a second time in _check after the invoice passes.",
+    "Record each reviewed seed's blob sha on its requisition_review CheckEntry (e.g. a sha field beside path). A journal replay of the check effect must yield the same reviewed shas.",
+    "_lift_seeds must refuse (gate_failed, requisition_review finding with a road) any worktree seed not in the reviewed set or whose current blob sha differs from the reviewed sha. Check this before the first write or commit.",
+    "SeedSafety must require a passing requisition_review entry whose recorded sha equals the lifted sha for that path. A path-only match is not approval for the bytes on main.",
+    "Add tests for two cases: a seed file edited between Check and lift is refused, with no seed committed; and admission is blocked when an entry's recorded sha differs from the lifted sha. Deliberately invert each assertion once to confirm it can fail."
   ],
-  "reason": "Only a review snag on a test assertion that can never fail; the fix is small and the next retry can make it at the same capability.",
+  "reason": "A distinct, fixable review finding (reviewed bytes not bound to lifted bytes) with a concrete paved road; the design is sound and all checks pass.",
   "detail": null
 }
