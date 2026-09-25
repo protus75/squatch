@@ -1,0 +1,60 @@
+# squatch instance config for this checkout (SQUATCH_PLAN.md section 15).
+# HOST-PLANE: operator-owned truth. The engine reads it and never rewrites it;
+# a provider or model change is an edit here, between runs, never a ticket edit.
+#
+# Every value reading OPERATOR-SETS-THIS is the section 0 placeholder: no
+# operator setup note and no pre-authored `providers:` block existed when this
+# file was authored, so nothing was guessed. The provider layer REFUSES a live
+# call whose resolved row still carries one. Set the model ids below before the
+# first real-model deliverable (Phase 1 prerequisites, section 0).
+
+schema_version: 1
+state_dir: .squatch/state
+
+providers:
+  # `name` selects the engine's cli adapter (claude | codex). Both CLIs on this
+  # machine run on ambient login, so neither declares `auth` (an env-var NAME
+  # is declared only when a key must be injected into the call).
+  - name: claude
+    kind: cli
+    models_by_tier:
+      low: OPERATOR-SETS-THIS
+      medium: OPERATOR-SETS-THIS
+      high: OPERATOR-SETS-THIS
+      max: OPERATOR-SETS-THIS
+    # The claude stream reports usage and cost per call: no flat estimate.
+    limits: {concurrency: 1}
+  - name: codex
+    kind: cli
+    models_by_tier:
+      low: OPERATOR-SETS-THIS
+      medium: OPERATOR-SETS-THIS
+      high: OPERATOR-SETS-THIS
+      max: OPERATOR-SETS-THIS
+    # The codex stream reports usage but no cost: the recommended flat
+    # estimate for a flat-subscription agent CLI charges per call (section 0).
+    limits: {concurrency: 1, est_cost_per_call_usd: 1.00}
+
+# (agent_tier, llm_surface) -> ordered candidates; the first serves (Phase 1).
+# A surface with no row of its own inherits the `review` row.
+routing:
+  # REVIEW: claude pinned to its strongest model at every tier -- a different
+  # provider than the implementer is the preferred diversity setting, not a
+  # gate; the hard requirement (separate sessions) is the driver's.
+  - {tier: low,    surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
+  - {tier: medium, surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
+  - {tier: high,   surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
+  - {tier: max,    surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
+  # AUTHOR: claude, inheriting models_by_tier[tier].
+  - {tier: low,    surface: author, candidates: [{provider: claude}]}
+  - {tier: medium, surface: author, candidates: [{provider: claude}]}
+  - {tier: high,   surface: author, candidates: [{provider: claude}]}
+  - {tier: max,    surface: author, candidates: [{provider: claude}]}
+  # IMPLEMENT: codex (kind: cli -- the one surface granted write), inheriting
+  # models_by_tier[tier].
+  - {tier: low,    surface: implement, candidates: [{provider: codex}]}
+  - {tier: medium, surface: implement, candidates: [{provider: codex}]}
+  - {tier: high,   surface: implement, candidates: [{provider: codex}]}
+  - {tier: max,    surface: implement, candidates: [{provider: codex}]}
+
+routing_default_tier: medium

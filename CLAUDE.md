@@ -23,7 +23,7 @@ Each rule: the conduct, a one-line why, and the plan section that owns the desig
   Why: a hold with no reachable release strands a ticket forever. [sections 2, 11]
 - **Files + journal are the source of truth.** Derived views (status, backlog, ledger, scorecard) are projections, never authoritative: never hand-edit one or cite one as authority.
   Why: an edited projection silently diverges from the record it claims to summarize. [D3]
-- **Generated files are render targets, never write targets.** `README.md` and `bootstrap/conductor.py` extract from the plan's appendix sentinel blocks; `CLAUDE.md` is authored from plan section 17 (AGENTS.md by the first deliverable that routes a non-Claude agent CLI). A change edits the plan and reruns the generator, never the rendered file.
+- **Generated files are render targets, never write targets.** `README.md` and `bootstrap/conductor.py` extract from the plan's appendix sentinel blocks; `CLAUDE.md` and `AGENTS.md` (its curated subset, loaded by the codex implement context) are authored from plan section 17. A change edits the plan and reruns the generator, never the rendered file.
   Why: an edit to a rendered file is lost at the next regeneration and forks the seed from its artifact. [section 1]
 - **The plan is the seed.** A plan defect (gap, bug, wrong spec) is fixed in the plan, then regenerated from it: rerun the owning deliverable, deleting and regenerating the affected tickets or code. Hand-edit a ticket or code file ONLY for a defect provably not the plan's, OR under the blocking-defect fast path (a defect stopping the drain's forward progress: plan edited and committed FIRST, then the minimal congruent hand fix in the same session), and never before the plan's status is determined.
   Why: a fix outside the plan leaves the seed wrong and reproduces the defect on the next regeneration. [sections 1, 19]
@@ -65,4 +65,4 @@ A human-present chat session is the one context the pipeline machinery does not 
 
 ## Maintaining this file
 
-Every rule here is behavioral (no gates exist yet). When a rule gains its gate, compress it to one line -- rule + author-time actionable + gate code + link -- in the same change that lands the gate. Hard cap: 120 lines; a rule earns a line only if violating it is cheap to do and expensive to unwind. Once AGENTS.md exists, a rule add/change/remove touches both files in the same change; CLAUDE.md is canonical on conflict. [section 17]
+Every rule here is behavioral (no gates exist yet). When a rule gains its gate, compress it to one line -- rule + author-time actionable + gate code + link -- in the same change that lands the gate. Hard cap: 120 lines; a rule earns a line only if violating it is cheap to do and expensive to unwind. AGENTS.md exists (the curated subset for non-Claude agent CLIs): a rule add/change/remove touches both files in the same change; CLAUDE.md is canonical on conflict. [section 17]

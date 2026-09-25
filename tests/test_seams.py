@@ -107,3 +107,11 @@ def test_local_filesystem_write_is_whole_file_and_creates_parents(tmp_path):
     assert sorted(p.name for p in target.parent.iterdir()) == ["prompt.md"]
     fs.replace(target, tmp_path / "moved.md")
     assert (tmp_path / "moved.md").read_bytes() == b"second" and not target.exists()
+
+
+async def test_on_spawn_publishes_the_childs_process_group_at_spawn(tmp_path):
+    seen = []
+    _, out, _ = await SubprocessExec().run(
+        [PY, "-c", "import os; print(os.getpgrp())"],
+        cwd=tmp_path, env=ENV, timeout=30, on_spawn=seen.append)
+    assert seen == [int(out.strip())]

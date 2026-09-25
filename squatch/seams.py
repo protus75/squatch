@@ -21,8 +21,12 @@ Clock = Callable[[], datetime]
 class ProcessExec(Protocol):
     async def run(self, argv: Sequence[str], *, cwd: Path, env: Mapping[str, str],
                   timeout: float | None, stdin_path: Path | None = None,
+                  on_spawn: Callable[[int], None] | None = None,
                   ) -> tuple[int, str, str]:
-        """Spawn argv (never a shell) and return (rc, out, err)."""
+        """Spawn argv (never a shell) and return (rc, out, err). `on_spawn` is
+        the spawn-time pgid hook: called with the child's process-group id
+        the moment it exists, so a synchronous kill seam (`abort_current`)
+        can target it while `run` is still awaiting."""
         ...
 
 
@@ -60,6 +64,7 @@ class SubprocessExec:
 
     async def run(self, argv: Sequence[str], *, cwd: Path, env: Mapping[str, str],
                   timeout: float | None, stdin_path: Path | None = None,
+                  on_spawn: Callable[[int], None] | None = None,
                   ) -> tuple[int, str, str]:
         capture = timeout is not None
         pipe = asyncio.subprocess.PIPE if capture else None
@@ -74,6 +79,8 @@ class SubprocessExec:
         finally:
             if stdin_path is not None:
                 stdin.close()
+        if on_spawn is not None:
+            on_spawn(proc.pid)  # start_new_session makes the pid the pgid
         try:
             async with asyncio.timeout(timeout):
                 out, err = await proc.communicate()

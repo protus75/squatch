@@ -10,7 +10,10 @@ Writer-site checklist (every writer of a captured stream appears here; a
 change adding a stream or a writer extends this list in the same change):
 - engine-log writer: `squatch.enginelog.EngineLog`
 - attempt-spool writer: `squatch.driver.Spool`
+- attempt-spool writer, the cli prompt file: `squatch.providers.CliClient`
 - LLM result, scrubbed once at receipt: `squatch.driver.Driver`
+- cli subprocess stdout/stderr, scrubbed before parse or error:
+  `squatch.providers.CliClient`
 - journal writer: lands with the Phase 1 LLM effect, the first journal body
   that carries a captured stream
 - harvest serialization: lands with the Phase 2 spine
