@@ -67,6 +67,7 @@ from squatch.effects import run_sequence
 from squatch.git import Git
 from squatch.journal import Event, Journal
 from squatch.runner import EXIT_OK, EXIT_TICKET, Refusal, Report, Runner, Session
+from squatch.reject import ARRIVAL, Arrival, awaiting
 from squatch.seams import Clock, ExecutableNotFound, ProcessExec
 from squatch.tickets import (INTAKE_SIGNAL, PLAN_FILE, RESERVED_STEMS, TICKET_FILE, TICKETS_DIR,
                              Ticket, TicketLintError, cycle_through, lint_ticket, on_disk_stems,
@@ -93,6 +94,7 @@ class Fold:
     edited: frozenset[str]           # stems with an intake signal after their latest transition
     terminals: Mapping[str, Mapping]  # stem -> latest terminal body
     confirmed: frozenset[str]        # operator confirm after the latest transition
+    rejects: Mapping[str, Arrival]    # unresolved Reject-queue arrivals
 
 
 def fold(events: Iterable[Event]) -> Fold:
@@ -123,7 +125,7 @@ def fold(events: Iterable[Event]) -> Fold:
               and e.body.get("actor") == "operator"):
             confirmed.add(e.ticket)
     return Fold(frozenset(merged), latest, first, fold_caps(events), commits,
-                frozenset(edited), terminals, frozenset(confirmed))
+                frozenset(edited), terminals, frozenset(confirmed), awaiting(events))
 
 
 def sort_key(fold: Fold) -> Callable[[Ticket], tuple]:
@@ -193,6 +195,8 @@ class Drain:
             facts = fold(journal.read())
             plane = await self._scan(facts)
             self._refuse_cycles(plane)
+            if await self._resolve_rejects(journal, plane, facts):
+                continue
             queue = self._eligible(plane, facts)
             offer = None if queue else self._reoffer(plane, facts)
             ticket = queue[0] if queue else offer
@@ -257,6 +261,7 @@ class Drain:
         ready = [t for t in plane.tickets.values()
                  if (facts.latest.get(t.stem) in (None, "abandoned")
                      or self._released(facts, t.stem))
+                 and t.stem not in facts.rejects
                  and all(d in facts.merged for d in t.depends)]
         return sorted(ready, key=sort_key(facts))
 
@@ -274,11 +279,32 @@ class Drain:
 
     def _reoffer(self, plane: Plane, facts: Fold) -> Ticket | None:
         offers = [plane.tickets[s] for s in self._parked(plane, facts)
+                  if s not in facts.rejects
                   if facts.latest.get(s) != PREMISE
                   and spent(self._config, facts.cap_drawn, s) is None
                   and all(d in facts.merged for d in plane.tickets[s].depends)]
         offers.sort(key=sort_key(facts))
         return offers[0] if offers else None
+
+    async def _resolve_rejects(self, journal: Journal, plane: Plane, facts: Fold) -> bool:
+        """Materialize legacy spent arrivals or auto-keep one funded arrival."""
+        for stem in self._parked(plane, facts):
+            reason = spent(self._config, facts.cap_drawn, stem)
+            if stem in facts.rejects:
+                if reason is None:
+                    await self._runner.signal_verdict(
+                        journal, stem, "confirm", actor="machine",
+                        reason="auto-keep: retry budget remains")
+                    return True
+                continue
+            if reason is not None:
+                journal.append(
+                    "signal", {"kind": "escalation", "escalation": ARRIVAL,
+                               "reason": reason,
+                               "run_seq": facts.terminals.get(stem, {}).get("run_seq")},
+                    ticket=stem)
+                return True
+        return False
 
     def retry_budget(self, facts: Fold, stem: str) -> int:
         return remaining(self._config, facts.cap_drawn, stem, RETRY_CAP)
@@ -358,7 +384,16 @@ class Drain:
         return EXIT_TICKET
 
     def _tail(self, plane: Plane, facts: Fold) -> None:
+        for stem, arrival in sorted(facts.rejects.items()):
+            if stem not in plane.tickets:
+                continue
+            self._report(
+                f"reject queue: {stem}: {arrival.reason}; "
+                f"`squatch confirm {stem}` to keep (re-arms spent caps) or "
+                f"`squatch reject {stem}` to kill")
         for stem in self._parked(plane, facts):
+            if stem in facts.rejects:
+                continue
             ended = facts.latest.get(stem)
             where = ", ".join(str(p.relative_to(self._repo)) for p in self._artifacts(stem))
             detail = f"findings: {where}; log: {self._runner.log_path}" if where else (

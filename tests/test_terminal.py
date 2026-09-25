@@ -336,10 +336,12 @@ async def test_an_infra_terminal_draws_before_its_state_transition(repo, env, ou
     draw = next(e for e in events if e.type == "cap_consumed" and e.body["cap"] == "infra")
     blob = git(repo, env, "rev-parse", f"HEAD:tickets/{STEM}/ticket.md").strip()
     assert draw.body == {"cap": "infra", "ticket_sha": blob, "run_seq": 0}
-    assert {k: events[-1].body[k] for k in ("to", "run_seq", "harvest")} == {
+    terminal = next(e for e in events
+                    if e.type == "state_transition" and e.body.get("to") == outcome)
+    assert {k: terminal.body[k] for k in ("to", "run_seq", "harvest")} == {
         "to": outcome, "run_seq": 0, "harvest": None}
-    assert events[-1].body["diagnosis"]["call"] == "synthetic"
-    assert events.index(draw) < len(events) - 1
+    assert terminal.body["diagnosis"]["call"] == "synthetic"
+    assert events.index(draw) < events.index(terminal)
 
 
 async def test_a_live_workspace_infra_terminal_draws_infra_then_diagnosis(repo, env):
@@ -374,6 +376,42 @@ async def test_a_spent_infra_cap_skips_diagnosis_after_the_infra_draw(repo, env)
     assert record["call"] == "skipped"
     assert record["detail"] == "infra cap spent (1 of 1 drawn)"
     assert len(agent.requests) == 1
+    terminal = d.transitions()[-1]
+    assert terminal["routed"] == "reject_queue"
+    assert terminal["reject_reason"] == "infra cap spent (1 of 1 drawn)"
+    assert not any(e.key and "/diagnose/" in e.key for e in d.events())
+
+
+async def test_reject_diagnosis_marks_terminal_then_arrival_and_retry_does_neither(repo, env):
+    author(repo, ticket())
+    reject = Agent(answer("implemented"), review("snag", {"message": "wrong"}),
+                   diagnosis("reject"), actions=[implementer(env, WIDGET), None, None])
+    d = Drive(repo, env, reject)
+
+    assert await d.run() == EXIT_TICKET
+
+    events = d.events()
+    terminal_index, terminal = next(
+        (i, e) for i, e in enumerate(events)
+        if e.type == "state_transition" and e.body.get("to") == "gate_failed")
+    arrival_index, arrival = next(
+        (i, e) for i, e in enumerate(events)
+        if e.type == "signal" and e.body.get("escalation") == "reject_queue_arrival")
+    assert terminal.body["routed"] == "reject_queue"
+    assert "reject" in terminal.body["reject_reason"]
+    assert arrival.body["run_seq"] == 0 and terminal_index < arrival_index
+    stopped = next(line for line in d.lines if line.startswith("stopped:"))
+    assert "squatch confirm" in stopped and "squatch reject" in stopped
+
+    author(repo, ticket(), stem="retry-case")
+    retry = Agent(answer("implemented"), review("snag", {"message": "wrong"}), diagnosis(),
+                  actions=[implementer(env, WIDGET), None, None])
+    retried = Drive(repo, env, retry)
+    assert await retried.run("retry-case") == EXIT_TICKET
+    terminal = retried.transitions("retry-case")[-1]
+    assert "routed" not in terminal
+    assert not any(e.type == "signal" and e.body.get("escalation") == "reject_queue_arrival"
+                   for e in retried.events("retry-case"))
 
 
 async def test_an_invalid_diagnosis_reprompts_once_and_fails_closed(repo, env):

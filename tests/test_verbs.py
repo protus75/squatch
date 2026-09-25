@@ -181,3 +181,28 @@ def test_both_verbs_refuse_a_held_lock_without_writing(checkout):
     finally:
         holder.release()
     assert list(read_events(checkout / STATE)) == before
+
+
+def test_verdict_verbs_resolve_a_marked_reject_hold(checkout):
+    for stem in ("kept", "killed"):
+        committed(checkout, stem, signal_at=T0)
+        with Journal(checkout / STATE, clock=FakeClock()) as journal:
+            journal.append("state_transition", {"to": "gate_failed", "run_seq": 0,
+                                                 "routed": "reject_queue",
+                                                 "reject_reason": "diagnosis verdict reject"},
+                           ticket=stem)
+            journal.append("signal", {"kind": "escalation",
+                                       "escalation": "reject_queue_arrival",
+                                       "reason": "diagnosis verdict reject", "run_seq": 0},
+                           ticket=stem)
+
+    assert verdict(checkout, "confirm", "kept")[0] == EXIT_OK
+    assert verdict(checkout, "reject", "killed")[0] == EXIT_OK
+    fake = Scripted({"kept": ["ok"]})
+    assert drain(checkout, fake)[0] == EXIT_OK
+    assert fake.calls == [("kept", 1)]
+
+    out = StringIO()
+    assert main(["status"], cwd=checkout, env=git_env(checkout.parent), out=out,
+                clock=FakeClock()) == EXIT_OK
+    assert "reject queue (0)" in out.getvalue()

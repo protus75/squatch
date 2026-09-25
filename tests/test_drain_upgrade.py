@@ -248,7 +248,7 @@ def test_retry_budget_spent_before_the_re_exec_stays_spent_in_the_child(checkout
     assert rc == EXIT_OK, out
     assert child.calls == []
     assert len(draws(checkout, "red")) == 1
-    assert "parked: red ended `gate_failed`" in out and "retry cap spent (1 of 1 drawn)" in out
+    assert "reject queue: red" in out and "retry cap spent (1 of 1 drawn)" in out
 
 
 def test_the_child_form_is_the_cli_verb(checkout):
@@ -270,7 +270,7 @@ def test_a_premise_failed_stem_draws_and_runs_again_after_edit_then_confirm(chec
     assert fake.calls == [("rma", 0)]
     assert states(checkout, "rma") == ["running", "premise_failed"]
     assert [d["cap"] for d in draws(checkout, "rma")] == ["premise_bounce"]
-    assert "parked: rma ended `premise_failed`" in out
+    assert "reject queue: rma" in out
     assert "premise_bounce cap spent (1 of 1 drawn)" in out
     assert "squatch confirm rma" in out
 
@@ -279,7 +279,7 @@ def test_a_premise_failed_stem_draws_and_runs_again_after_edit_then_confirm(chec
     rc, out = drain(checkout, again)
     assert rc == EXIT_OK
     assert again.calls == [] and len(draws(checkout, "rma")) == 1
-    assert "parked: rma ended `premise_failed`" in out
+    assert "reject queue: rma" in out
 
     # A spent premise cap needs the ticket edit and the operator's keep.
     path = checkout / "tickets" / "rma" / "ticket.md"

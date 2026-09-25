@@ -41,6 +41,7 @@ from squatch.harvest import extract
 from squatch.journal import Event, Journal, JournalCorruption
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.reconcile import reconcile
+from squatch.reject import ARRIVAL, route
 from squatch.seams import Clock, ExecutableNotFound, Filesystem
 from squatch.stages import Delivery, lift_ticket_files
 from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, IntakeResult, Ticket,
@@ -263,13 +264,22 @@ class Runner:
         return seq
 
     def _verdict(self, journal: Journal, stem: str, kind: str, ticket_sha: str | None,
-                 events: tuple[Event, ...], reason: str) -> None:
+                 events: tuple[Event, ...], reason: str, *, actor: str = "operator") -> None:
         if kind not in VERDICT_SIGNALS:
             raise ValueError(f"unknown verdict signal {kind!r}")
-        journal.append("signal", {"kind": kind, "actor": "operator",
+        if actor not in ACTORS:
+            raise ValueError(f"unknown verdict actor {actor!r}")
+        journal.append("signal", {"kind": kind, "actor": actor,
                                   "ticket_sha": ticket_sha,
                                   "run_seq": self._latest_run_seq(stem, events),
                                   "reason": reason}, ticket=stem)
+
+    async def signal_verdict(self, journal: Journal, stem: str, kind: str, *, actor: str,
+                             reason: str) -> None:
+        """The shared verdict-signal writer used by operator verbs and drain auto-keep."""
+        events = tuple(journal.read())
+        self._verdict(journal, stem, kind, await self._ticket_sha(stem), events, reason,
+                      actor=actor)
 
     async def _dead_dependents(self, dead: str, journal: Journal,
                                events: tuple[Event, ...]) -> int:
@@ -363,13 +373,23 @@ class Runner:
                 "diagnosis": diagnosis.model_dump(mode="json")}
         if harvest_error is not None:
             body["harvest_error"] = harvest_error
+        routing = route(self._config, journal.read(), stem, outcome, diagnosis)
+        if routing.routed is not None:
+            body["routed"] = routing.routed
+            body["reject_reason"] = routing.reason
         journal.append("state_transition", body, ticket=stem)
+        if routing.routed is not None:
+            journal.append("signal", {"kind": "escalation", "escalation": ARRIVAL,
+                                      "reason": routing.reason, "run_seq": run_seq},
+                           ticket=stem)
         if delivery.worktree.exists():
             await self._git.worktree_remove(self._repo, delivery.worktree)
         else:
             await self._git.worktree_prune(self._repo)
+        suffix = (f"; reject queue: `squatch confirm {stem}` to keep or "
+                  f"`squatch reject {stem}` to kill" if routing.routed is not None else "")
         self._report(f"stopped: {stem} run {run_seq} ended {outcome}; branch left in place; "
-                     f"detail: {attempt}/")
+                     f"detail: {attempt}/{suffix}")
         return Dispatched(run_seq, outcome)
 
     def _fault(self, stem: str, run_seq: int, e: Exception) -> Refusal:

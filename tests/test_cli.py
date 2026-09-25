@@ -337,9 +337,9 @@ def test_status_projects_in_flight_ready_blocked_stopped_and_merged(checkout):
     assert cli(checkout, "run", "base", pipeline=fake)[0] == EXIT_TICKET
     rc, out = cli(checkout, "status")
     assert rc == EXIT_OK
-    assert "ready (1)\n  base\n" in out
+    assert "reject queue (1)\n  base:" in out
     assert "blocked (1)\n  dependent: waiting on base\n" in out
-    assert "stopped (1)\n  base: gate_failed\n" in out
+    assert "stopped (0)" in out
     assert "intake (2)\n  base: human, confirmed," in out
 
     # The settle record is the `to: merged` transition; nothing else moves a
@@ -356,6 +356,20 @@ def test_status_projects_in_flight_ready_blocked_stopped_and_merged(checkout):
     assert "in flight (1)\n  dependent (run 0)\n" in out
     assert "blocked (0)" in out and "ready (0)" in out
     assert "spend: $0.2500 over 1 metered calls" in out
+
+
+def test_status_lists_reject_queue_reason_and_verbs_until_rejected(checkout):
+    author(checkout, "base")
+    assert cli(checkout, "run", "base", pipeline=FakePipeline("gate_failed"))[0] == EXIT_TICKET
+
+    rc, out = cli(checkout, "status")
+
+    assert rc == EXIT_OK
+    assert "reject queue (1)\n  base: diagnosis verdict abandon-human" in out
+    assert "squatch confirm base" in out and "squatch reject base" in out
+
+    assert cli(checkout, "reject", "base", pipeline=FakePipeline())[0] == EXIT_OK
+    assert "reject queue (0)" in cli(checkout, "status")[1]
 
 
 # --- run -----------------------------------------------------------------------------

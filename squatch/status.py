@@ -17,6 +17,7 @@ from pathlib import Path
 from squatch.artifacts import TERMINAL_RUN_STATES
 from squatch.box import Box, Message
 from squatch.journal import Event
+from squatch.reject import Arrival, awaiting
 from squatch.seams import LocalFilesystem
 from squatch.tickets import (INTAKE_SIGNAL, PLAN_FILE, RESERVED_STEMS, TICKET_FILE, TICKETS_DIR,
                              TicketLintError, depends_of, lint_ticket)
@@ -50,9 +51,12 @@ class Status:
     spend_usd: float = 0.0
     calls: int = 0
     box: tuple[Message, ...] = ()
+    reject_queue: tuple[tuple[str, Arrival], ...] = ()
 
 
 def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
+    events = tuple(events)
+    rejects = awaiting(events)
     repo = Path(repo)
     intake: dict[str, Intaken] = {}
     latest: dict[str, dict] = {}   # stem -> latest state_transition body
@@ -94,6 +98,8 @@ def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
     for stem, rec in sorted(intake.items()):
         if stem in merged:
             continue
+        if stem in rejects:
+            continue
         last = latest.get(stem)
         if last is not None and last.get("to") == "running":
             in_flight.append((stem, last.get("run_seq", 0)))
@@ -117,7 +123,8 @@ def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
         unparsed=tuple(unparsed), pending=tuple(pending), in_flight=tuple(in_flight),
         ready=tuple(ready), blocked=tuple(blocked), stopped=tuple(stopped),
         merged=tuple(sorted(merged)), intake=tuple(intake[s] for s in sorted(intake)),
-        spend_usd=spend, calls=calls, box=box_messages)
+        spend_usd=spend, calls=calls, box=box_messages,
+        reject_queue=tuple(sorted(rejects.items())))
 
 
 def render(status: Status) -> str:
@@ -134,6 +141,9 @@ def render(status: Status) -> str:
     section("in flight", (f"{s} (run {n})" for s, n in status.in_flight))
     section("ready", status.ready)
     section("blocked", (f"{s}: waiting on {', '.join(d)}" for s, d in status.blocked))
+    section("reject queue", (
+        f"{s}: {a.reason}; arrived {a.ts}; `squatch confirm {s}` to keep or "
+        f"`squatch reject {s}` to kill" for s, a in status.reject_queue))
     section("stopped", (f"{s}: {t}" for s, t in status.stopped))
     section("merged", status.merged)
     section("intake", (f"{i.stem}: {i.source}, {i.state}, {i.commit[:12]}" for i in status.intake))

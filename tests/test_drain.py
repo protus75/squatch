@@ -206,8 +206,8 @@ def test_a_red_independent_first_ticket_parks_and_the_second_still_runs(checkout
     assert fake.calls == [("first", 0), ("second", 0)]
     assert states(checkout, "first") == ["running", "gate_failed"]
     assert states(checkout, "second") == ["running", "merged"]
-    assert "parked: first ended `gate_failed`" in out
-    assert "retry cap spent" in out and "engine.log" in out
+    assert "reject queue: first" in out
+    assert "retry cap spent" in out and "squatch reject first" in out
 
 
 def test_red_then_green_on_re_offer_merges_in_one_invocation_drawing_one_retry_unit(checkout):
@@ -223,6 +223,66 @@ def test_red_then_green_on_re_offer_merges_in_one_invocation_drawing_one_retry_u
     assert draws(checkout, "base") == [{"cap": "retry", "ticket_sha": blob, "run_seq": 1}]
     assert draws(checkout, "dependent") == []
     assert "re-offer: base after `gate_failed`; retry unit 1 of 6 drawn" in out
+
+
+def test_marked_arrival_auto_keeps_then_reoffers_with_one_retry_draw(checkout):
+    committed(checkout, "base")
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append("state_transition", {"to": "gate_failed", "run_seq": 0,
+                                             "routed": "reject_queue",
+                                             "reject_reason": "diagnosis verdict reject"},
+                       ticket="base")
+        journal.append("signal", {"kind": "escalation",
+                                   "escalation": "reject_queue_arrival",
+                                   "reason": "diagnosis verdict reject", "run_seq": 0},
+                       ticket="base")
+    fake = Scripted({"base": ["ok"]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK and fake.calls == [("base", 1)]
+    events = [e for e in read_events(checkout / STATE) if e.ticket == "base"]
+    signals = [e.body for e in events if e.type == "signal"]
+    assert any(s.get("kind") == "confirm" and s.get("actor") == "machine"
+               and s.get("reason") == "auto-keep: retry budget remains" for s in signals)
+    confirm_index = next(i for i, e in enumerate(events)
+                         if e.type == "signal" and e.body.get("kind") == "confirm"
+                         and e.body.get("actor") == "machine")
+    rerun_index = next(i for i, e in enumerate(events)
+                       if e.type == "state_transition" and e.body.get("to") == "running"
+                       and e.body.get("run_seq") == 1)
+    assert confirm_index < rerun_index, "the awaiting hold is resolved before dispatch"
+    assert [d["cap"] for d in draws(checkout, "base")] == ["retry"]
+    assert states(checkout, "base")[-1] == "merged"
+    assert "re-offer: base" in out
+
+
+def test_legacy_spent_park_gets_one_arrival_and_operator_confirm_releases(checkout):
+    committed(checkout, "base")
+    configure(checkout, "caps: {retry: 1}\n")
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append("cap_consumed", {"cap": "retry", "ticket_sha": "old",
+                                        "run_seq": 0}, ticket="base")
+        journal.append("state_transition", {"to": "gate_failed", "run_seq": 0},
+                       ticket="base")
+
+    rc, out = drain(checkout, Scripted({"base": ["ok"]}))
+    assert rc == EXIT_OK and "reject queue: base" in out
+    arrivals = [e for e in read_events(checkout / STATE)
+                if e.ticket == "base" and e.body.get("escalation") ==
+                "reject_queue_arrival"]
+    assert len(arrivals) == 1
+    assert drain(checkout, Scripted({"base": ["ok"]}))[0] == EXIT_OK
+    assert len([e for e in read_events(checkout / STATE)
+                if e.ticket == "base" and e.body.get("escalation") ==
+                "reject_queue_arrival"]) == 1
+
+    assert main(["confirm", "base"], cwd=checkout, env=git_env(checkout.parent),
+                out=StringIO(), pipeline=Scripted({"base": ["ok"]}),
+                clock=FakeClock()) == EXIT_OK
+    released = Scripted({"base": ["ok"]})
+    assert drain(checkout, released)[0] == EXIT_OK
+    assert released.calls == [("base", 1)]
 
 
 @pytest.mark.parametrize("verdict,call", [
@@ -330,9 +390,9 @@ def test_premise_road_ignores_an_unrelated_spent_retry_cap(checkout):
     rc, out = drain(checkout, first)
 
     assert rc == EXIT_OK and first.calls == [("rma", 0)]
-    line = next(line for line in out.splitlines() if line.startswith("parked: rma"))
-    assert "retry cap spent" not in line
-    assert "edit tickets/rma/ticket.md" in line
+    line = next(line for line in out.splitlines() if line.startswith("reject queue: rma"))
+    assert "retry cap spent" in line
+    assert "squatch confirm rma" in line
 
 
 @pytest.mark.parametrize("diagnosis", [
@@ -351,13 +411,13 @@ def test_a_stem_whose_retry_cap_is_spent_stays_parked_and_is_never_re_offered(
     assert rc == EXIT_OK
     assert fake.calls == [("base", 0), ("base", 1)], "one unit, one re-offer, then parked"
     assert len(draws(checkout, "base")) == 1
-    assert "parked: base ended `gate_failed`" in out
-    assert "retry cap spent (1 of 1 drawn)" in out and "never re-dispatches" in out
+    assert "reject queue: base" in out
+    assert "retry cap spent (1 of 1 drawn)" in out and "squatch reject base" in out
     # The next invocation re-derives the same spent budget: nothing dispatches.
     again = Scripted({"base": ["ok"]}, diagnoses={"base": [diagnosis]})
     rc, out = drain(checkout, again)
     assert rc == EXIT_OK
-    assert again.calls == [] and "retry cap spent" in out
+    assert again.calls == [] and "reject queue: base" in out and "retry cap spent" in out
 
 
 def test_a_spent_retry_park_names_confirm_as_the_rearm(checkout):
@@ -370,7 +430,7 @@ def test_a_spent_retry_park_names_confirm_as_the_rearm(checkout):
     rc, out = drain(checkout, Scripted({"base": ["ok"]}))
 
     assert rc == EXIT_OK
-    line = next(line for line in out.splitlines() if line.startswith("parked: base"))
+    line = next(line for line in out.splitlines() if line.startswith("reject queue: base"))
     assert "retry cap spent (0 of 0 drawn)" in line
     assert "squatch confirm base" in line
 
@@ -385,7 +445,7 @@ def test_a_stem_whose_infra_cap_is_spent_stays_parked_and_is_never_re_offered(ch
     assert rc == EXIT_OK
     assert fake.calls == [("base", 0)]
     assert [d["cap"] for d in draws(checkout, "base")] == ["infra"]
-    assert "parked: base ended `infra_error`" in out
+    assert "reject queue: base" in out
     assert "infra cap spent (1 of 1 drawn)" in out
 
 
