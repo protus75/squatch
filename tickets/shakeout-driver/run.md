@@ -1,16 +1,17 @@
 ## Outcome
-ok
+premise_failed
 
 ## Surprises / judgment calls
-The one-minute stuck-budget member advances the injected clock and the event loop timeout clock together inside the resisting fake, so the production 60-second timeout boundary fires without wall-clock waiting.
+The prior stuck-budget seam defect is fixed on the current base, but the ticket's explicit base-suite prerequisite fails independently before any ticket edit.
 
 ## Dead ends
-The first fixture ticket phrased its acceptance criterion without naming a backticked observable artifact, so intake refused it. I aligned the fixture criterion with the existing shakeout ticket form and reran the report successfully.
+On the untouched base, `uv run pytest -q` exited 1: `tests/test_seeded_phase2.py::test_every_seed_renders_under_the_implement_bound` raises `KeyError: 'eval/shakeout/bench.py'`. The ticket's Definition of rejected requires stopping when the full suite is red on the base commit.
 
 ## Second problems filed
+The Phase 2 seed render-size fixture lacks an `EXISTING_AT_AUTHORING` entry for `eval/shakeout/bench.py`, causing the pre-existing full-suite failure above.
 
 ## Resolved engine/model
-OpenAI / GPT-5 Codex
+OpenAI / GPT-5
 
 ## Predicted vs actual
-60m / about 20m
+60m / about 5m
