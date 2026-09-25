@@ -1,14 +1,14 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "infra_error",
   "call": "ok",
   "verdict": "abandon-human",
   "lessons": [
-    "This attempt never reached implementation: outcome infra_error at implement, 0 tokens, provider and model null, empty diff, 39s wall time. Nothing here counts against the ticket or tier.",
-    "The implement spool holds a ticket-critique prompt (plan_contract data) and an 'approve' verdict response, not implement output. Check the implement dispatch surface, provider CLI launch, and spool paths before re-running.",
-    "The run record says 'ok' at ~25m, but it conflicts with this harvest (no diff, no cost). Treat it as stale and do not trust it as evidence of completed work.",
-    "When re-dispatched, apply the prior lessons unchanged: rebase_continue non-interactive via -c core.editor=true; RebaseConflict only on real conflicted paths; typed Admission for non-conflict rebase failures; rebase and rebase_abort untouched."
+    "Second implement attempt in a row ended infra_error in about 38s with 0 tokens, provider and model null, and an empty diff. The provider CLI never ran, so the ticket and tier are not at fault.",
+    "The implement spool again holds requisition-review prompts and snag verdicts, not implement output. Before any re-dispatch, a human should check the implement dispatch surface, the provider CLI launch and auth, and the spool path routing.",
+    "The run record says 'ok' at about 25m, which contradicts this harvest. It is stale evidence from an earlier attempt. Do not treat it as completed work.",
+    "Once the environment is fixed, apply the prior lessons unchanged. Make rebase_continue non-interactive via -c core.editor=true. Raise RebaseConflict only on real conflicted paths. Return a typed Admission for rebase failures that are not conflicts. Leave rebase and rebase_abort untouched."
   ],
-  "reason": "Infra failure before any provider call (null provider, 0 tokens, wrong-surface spool), not something retry or more capability fixes; the ticket itself was not exercised.",
+  "reason": "The same zero-token infra_error happened twice at implement dispatch, with a misrouted spool. That is an environment failure that neither a retry nor more capability can fix.",
   "detail": null
 }
