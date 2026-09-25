@@ -1,0 +1,98 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "b27be3cfc67ae51c3f2fc77d45420ba72ab10808",
+  "stem": "escalation-ladder",
+  "branch": "escalation-ladder",
+  "base": "c718fa0a050b48cb506dccbf95cd4481dcc966c8",
+  "head": "b27be3cfc67ae51c3f2fc77d45420ba72ab10808",
+  "changed_files": [
+    "squatch/drain.py",
+    "squatch/ladder.py",
+    "squatch/reject.py",
+    "squatch/runner.py",
+    "tests/test_drain.py",
+    "tests/test_ladder.py",
+    "tests/test_reject.py",
+    "tests/test_terminal.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_ladder.py",
+            "tests/test_reject.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_terminal.py",
+            "tests/test_drain.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "grep",
+            "-rn",
+            "IDENTICAL_TERMINALS = ",
+            "squatch"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
