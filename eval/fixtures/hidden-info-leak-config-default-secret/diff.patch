@@ -1,0 +1,41 @@
+diff --git a/config/settings.example.toml b/config/settings.example.toml
+index 7f1970b..0f4a358 100644
+--- a/config/settings.example.toml
++++ b/config/settings.example.toml
+@@ -4,3 +4,7 @@
+ port = 8080
+ db_path = "notely.db"
+ log_path = "notely.log"
++
++# Used to HMAC-sign session tokens. Override with NOTELY_SIGNING_SECRET
++# in every deployed environment.
++signing_secret = "sk-test-FAKE-51x9zQ2vC8pR7mN0"
+diff --git a/src/notely/config.py b/src/notely/config.py
+index e15f58b..286079c 100644
+--- a/src/notely/config.py
++++ b/src/notely/config.py
+@@ -11,6 +11,10 @@ from dataclasses import dataclass
+ DEFAULT_HOST = "0.0.0.0"
+ DEFAULT_PORT = 8080
+ 
++# Fallback used when the operator has not set NOTELY_SIGNING_SECRET yet,
++# so a fresh checkout can still start up and issue tokens.
++_FALLBACK_SIGNING_SECRET = "sk-test-FAKE-51x9zQ2vC8pR7mN0"
++
+ 
+ @dataclass(frozen=True)
+ class Settings:
+@@ -18,6 +22,7 @@ class Settings:
+     port: int
+     db_path: str
+     log_path: str
++    signing_secret: str
+ 
+ 
+ def load_settings() -> Settings:
+@@ -27,4 +32,5 @@ def load_settings() -> Settings:
+         port=int(os.environ.get("NOTELY_PORT", str(DEFAULT_PORT))),
+         db_path=os.environ.get("NOTELY_DB_PATH", "notely.db"),
+         log_path=os.environ.get("NOTELY_LOG_PATH", "notely.log"),
++        signing_secret=os.environ.get("NOTELY_SIGNING_SECRET", _FALLBACK_SIGNING_SECRET),
+     )

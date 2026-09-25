@@ -1,0 +1,53 @@
+diff --git a/src/queuelet/worker.py b/src/queuelet/worker.py
+index b86de3a..dbe0e67 100644
+--- a/src/queuelet/worker.py
++++ b/src/queuelet/worker.py
+@@ -2,7 +2,7 @@
+ from __future__ import annotations
+ 
+ import time
+-from typing import Any, Callable
++from typing import Any, Callable, Optional
+ 
+ from queuelet.backoff import compute_delay
+ from queuelet.queue import Queue
+@@ -11,19 +11,26 @@ from queuelet.queue import Queue
+ class Worker:
+     """Pulls jobs from a queue and runs them, retrying on failure."""
+ 
+-    def __init__(self, queue: Queue, handler: Callable[[Any], None], max_retries: int = 3) -> None:
++    def __init__(
++        self,
++        queue: Queue,
++        handler: Callable[[Any], None],
++        max_retries: int = 3,
++        on_failure: Optional[Callable[[Any], None]] = None,
++    ) -> None:
+         self.queue = queue
+         self.handler = handler
+         self.max_retries = max_retries
++        self.on_failure = on_failure
+         self.failed: list[Any] = []
+ 
+     def run(self) -> int:
+-        """Drain the queue. Returns 0 if all jobs succeeded, 3 if any job
+-        ended up in the failed list, matching the CLI's exit-code contract."""
++        """Drain the queue. Returns 0 if all jobs succeeded, 1 if any job
++        ended up in the failed list."""
+         while not self.queue.is_empty():
+             job = self.queue.get()
+             self._run_job(job, attempt=1)
+-        return 3 if self.failed else 0
++        return 1 if self.failed else 0
+ 
+     def _run_job(self, job: Any, attempt: int) -> None:
+         try:
+@@ -31,6 +38,8 @@ class Worker:
+         except Exception:
+             if attempt >= self.max_retries:
+                 self.failed.append(job)
++                if self.on_failure is not None:
++                    self.on_failure(job)
+                 return
+             time.sleep(compute_delay(attempt))
+             self._run_job(job, attempt + 1)

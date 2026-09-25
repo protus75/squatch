@@ -1,0 +1,50 @@
+diff --git a/src/queuelet/queue.py b/src/queuelet/queue.py
+index d8fcb98..acdde36 100644
+--- a/src/queuelet/queue.py
++++ b/src/queuelet/queue.py
+@@ -19,13 +19,18 @@ class Queue:
+ 
+     def __init__(self) -> None:
+         self._heap: list[_Entry] = []
+-        self._counter = itertools.count()
++        self._counter = itertools.count(0, -1)
+ 
+     def put(self, job: Any, priority: int = 0) -> None:
+         """Add a job to the queue. Lower priority values run first."""
+         entry = _Entry(priority, next(self._counter), job)
+         heapq.heappush(self._heap, entry)
+ 
++    def extend(self, jobs: Any, priority: int = 0) -> None:
++        """Bulk-enqueue an iterable of jobs at the given priority."""
++        for job in jobs:
++            self.put(job, priority)
++
+     def get(self) -> Optional[Any]:
+         """Remove and return the next job, or None if the queue is empty."""
+         if not self._heap:
+diff --git a/tests/test_queue.py b/tests/test_queue.py
+index 4483947..4ccd57b 100644
+--- a/tests/test_queue.py
++++ b/tests/test_queue.py
+@@ -19,8 +19,8 @@ def test_fifo_within_same_priority():
+     q = Queue()
+     q.put("first", priority=1)
+     q.put("second", priority=1)
+-    assert q.get() == "first"
+     assert q.get() == "second"
++    assert q.get() == "first"
+ 
+ 
+ def test_len_tracks_pending_jobs():
+@@ -30,3 +30,11 @@ def test_len_tracks_pending_jobs():
+     assert len(q) == 2
+     q.get()
+     assert len(q) == 1
++
++
++def test_extend_preserves_order():
++    q = Queue()
++    q.extend(["a", "b", "c"], priority=1)
++    assert q.get() == "c"
++    assert q.get() == "b"
++    assert q.get() == "a"

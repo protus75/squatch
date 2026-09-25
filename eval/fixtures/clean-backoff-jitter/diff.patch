@@ -1,0 +1,57 @@
+diff --git a/src/queuelet/backoff.py b/src/queuelet/backoff.py
+index 68e4a89..71ebfcd 100644
+--- a/src/queuelet/backoff.py
++++ b/src/queuelet/backoff.py
+@@ -1,12 +1,22 @@
+ """Backoff delay calculation for retried jobs."""
++import random
+ 
+ BASE_DELAY = 0.5
+ MAX_DELAY = 30.0
+ 
+ 
+-def compute_delay(attempt: int) -> float:
+-    """Exponential backoff with a ceiling. attempt is 1-based."""
++def compute_delay(attempt: int, jitter: float = 0.0) -> float:
++    """Exponential backoff with a ceiling. attempt is 1-based.
++
++    jitter, in [0, 1], randomizes the delay by up to that fraction in
++    either direction to avoid many workers retrying in lockstep. With
++    jitter=0.0 (the default) the delay is exactly as before.
++    """
+     if attempt < 1:
+         raise ValueError("attempt must be >= 1")
+-    delay = BASE_DELAY * (2 ** (attempt - 1))
+-    return min(delay, MAX_DELAY)
++    delay = min(BASE_DELAY * (2 ** (attempt - 1)), MAX_DELAY)
++    if jitter:
++        spread = delay * jitter
++        delay = random.uniform(delay - spread, delay + spread)
++        delay = max(0.0, min(delay, MAX_DELAY))
++    return delay
+diff --git a/tests/test_backoff.py b/tests/test_backoff.py
+index 67cbdfe..94e7137 100644
+--- a/tests/test_backoff.py
++++ b/tests/test_backoff.py
+@@ -19,3 +19,21 @@ def test_delay_is_capped_at_max():
+ def test_attempt_zero_raises():
+     with pytest.raises(ValueError):
+         compute_delay(0)
++
++
++def test_zero_jitter_is_unchanged(monkeypatch):
++    def fail_if_called(*_args, **_kwargs):
++        raise AssertionError("random.uniform should not be called when jitter=0")
++
++    monkeypatch.setattr("queuelet.backoff.random.uniform", fail_if_called)
++    assert compute_delay(2, jitter=0.0) == BASE_DELAY * 2
++
++
++def test_jitter_stays_within_bounds_and_under_cap(monkeypatch):
++    monkeypatch.setattr("queuelet.backoff.random.uniform", lambda lo, hi: hi)
++    delay = compute_delay(2, jitter=0.5)
++    base = BASE_DELAY * 2
++    assert delay == pytest.approx(base * 1.5)
++
++    monkeypatch.setattr("queuelet.backoff.random.uniform", lambda lo, hi: hi)
++    assert compute_delay(20, jitter=0.5) == MAX_DELAY

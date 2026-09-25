@@ -2,11 +2,9 @@
 # HOST-PLANE: operator-owned truth. The engine reads it and never rewrites it;
 # a provider or model change is an edit here, between runs, never a ticket edit.
 #
-# Every value reading OPERATOR-SETS-THIS is the section 0 placeholder: no
-# operator setup note and no pre-authored `providers:` block existed when this
-# file was authored, so nothing was guessed. The provider layer REFUSES a live
-# call whose resolved row still carries one. Set the model ids below before the
-# first real-model deliverable (Phase 1 prerequisites, section 0).
+# Model aliases/ids were resolved from the installed CLIs. Claude uses the
+# validated haiku alias at low, sonnet at medium, and opus at high/max. Codex
+# follows the visible four-step capability ladder reported by its model catalog.
 
 schema_version: 1
 state_dir: .squatch/state
@@ -18,19 +16,19 @@ providers:
   - name: claude
     kind: cli
     models_by_tier:
-      low: OPERATOR-SETS-THIS
-      medium: OPERATOR-SETS-THIS
-      high: OPERATOR-SETS-THIS
-      max: OPERATOR-SETS-THIS
+      low: haiku
+      medium: sonnet
+      high: opus
+      max: opus
     # The claude stream reports usage and cost per call: no flat estimate.
     limits: {concurrency: 1}
   - name: codex
     kind: cli
     models_by_tier:
-      low: OPERATOR-SETS-THIS
-      medium: OPERATOR-SETS-THIS
-      high: OPERATOR-SETS-THIS
-      max: OPERATOR-SETS-THIS
+      low: gpt-5.6-luna
+      medium: gpt-5.6-terra
+      high: gpt-5.6-sol
+      max: gpt-6-astra
     # The codex stream reports usage but no cost: the recommended flat
     # estimate for a flat-subscription agent CLI charges per call (section 0).
     limits: {concurrency: 1, est_cost_per_call_usd: 1.00}
@@ -41,10 +39,10 @@ routing:
   # REVIEW: claude pinned to its strongest model at every tier -- a different
   # provider than the implementer is the preferred diversity setting, not a
   # gate; the hard requirement (separate sessions) is the driver's.
-  - {tier: low,    surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
-  - {tier: medium, surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
-  - {tier: high,   surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
-  - {tier: max,    surface: review, candidates: [{provider: claude, model: OPERATOR-SETS-THIS}]}
+  - {tier: low,    surface: review, candidates: [{provider: claude, model: opus}]}
+  - {tier: medium, surface: review, candidates: [{provider: claude, model: opus}]}
+  - {tier: high,   surface: review, candidates: [{provider: claude, model: opus}]}
+  - {tier: max,    surface: review, candidates: [{provider: claude, model: opus}]}
   # AUTHOR: claude, inheriting models_by_tier[tier].
   - {tier: low,    surface: author, candidates: [{provider: claude}]}
   - {tier: medium, surface: author, candidates: [{provider: claude}]}

@@ -1,0 +1,47 @@
+diff --git a/src/queuelet/queue.py b/src/queuelet/queue.py
+index d8fcb98..a81c649 100644
+--- a/src/queuelet/queue.py
++++ b/src/queuelet/queue.py
+@@ -21,7 +21,7 @@ class Queue:
+         self._heap: list[_Entry] = []
+         self._counter = itertools.count()
+ 
+-    def put(self, job: Any, priority: int = 0) -> None:
++    def put(self, priority: int, job: Any) -> None:
+         """Add a job to the queue. Lower priority values run first."""
+         entry = _Entry(priority, next(self._counter), job)
+         heapq.heappush(self._heap, entry)
+diff --git a/src/queuelet/worker.py b/src/queuelet/worker.py
+index b86de3a..90d70c0 100644
+--- a/src/queuelet/worker.py
++++ b/src/queuelet/worker.py
+@@ -16,16 +16,18 @@ class Worker:
+         self.handler = handler
+         self.max_retries = max_retries
+         self.failed: list[Any] = []
++        self._attempts: dict[int, int] = {}
+ 
+     def run(self) -> int:
+         """Drain the queue. Returns 0 if all jobs succeeded, 3 if any job
+         ended up in the failed list, matching the CLI's exit-code contract."""
+         while not self.queue.is_empty():
+             job = self.queue.get()
+-            self._run_job(job, attempt=1)
++            self._run_job(job)
+         return 3 if self.failed else 0
+ 
+-    def _run_job(self, job: Any, attempt: int) -> None:
++    def _run_job(self, job: Any) -> None:
++        attempt = self._attempts.pop(id(job), 1)
+         try:
+             self.handler(job)
+         except Exception:
+@@ -33,4 +35,7 @@ class Worker:
+                 self.failed.append(job)
+                 return
+             time.sleep(compute_delay(attempt))
+-            self._run_job(job, attempt + 1)
++            # Requeue rather than recurse inline, so other already-queued
++            # jobs get a turn before this one is retried.
++            self._attempts[id(job)] = attempt + 1
++            self.queue.put(job)

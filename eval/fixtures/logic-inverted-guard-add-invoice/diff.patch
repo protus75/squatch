@@ -1,0 +1,41 @@
+diff --git a/src/ledgerly/storage.py b/src/ledgerly/storage.py
+index 3d69fe5..94b2df8 100644
+--- a/src/ledgerly/storage.py
++++ b/src/ledgerly/storage.py
+@@ -22,6 +22,14 @@ def save_invoices(path: Path, invoices: list[Invoice]) -> None:
+ 
+ 
+ def add_invoice(path: Path, invoice: Invoice) -> None:
++    """Append `invoice` to the store at `path`.
++
++    Raises FileNotFoundError with a clear message if the store's parent
++    directory does not exist yet, instead of letting a bare `open()` fail
++    with a confusing traceback further down.
++    """
++    if path.parent.exists():
++        raise FileNotFoundError(f"store directory does not exist: {path.parent}")
+     invoices = load_invoices(path)
+     for existing in invoices:
+         if existing.invoice_id == invoice.invoice_id:
+diff --git a/tests/test_storage.py b/tests/test_storage.py
+index d85f639..e28ac49 100644
+--- a/tests/test_storage.py
++++ b/tests/test_storage.py
+@@ -1,5 +1,7 @@
+ from datetime import date
+ 
++import pytest
++
+ from ledgerly.models import Invoice
+ from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices
+ 
+@@ -29,3 +31,9 @@ def test_delete_invoice(tmp_path):
+ def test_load_missing_file_returns_empty(tmp_path):
+     store = tmp_path / "missing.json"
+     assert load_invoices(store) == []
++
++
++def test_add_invoice_missing_parent_dir_raises(tmp_path):
++    missing_dir_store = tmp_path / "nope" / "invoices.json"
++    with pytest.raises(FileNotFoundError):
++        add_invoice(missing_dir_store, make_invoice())

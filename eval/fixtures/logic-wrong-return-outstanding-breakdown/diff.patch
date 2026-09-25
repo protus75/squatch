@@ -1,0 +1,55 @@
+diff --git a/src/ledgerly/cli.py b/src/ledgerly/cli.py
+index 05ea151..8f16dc3 100644
+--- a/src/ledgerly/cli.py
++++ b/src/ledgerly/cli.py
+@@ -8,7 +8,12 @@ from pathlib import Path
+ 
+ from ledgerly.models import Invoice, LineItem
+ from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices
+-from ledgerly.totals import invoice_total, invoices_due_between, total_outstanding
++from ledgerly.totals import (
++    invoice_total,
++    invoices_due_between,
++    outstanding_breakdown,
++    total_outstanding,
++)
+ 
+ DEFAULT_STORE = Path("invoices.json")
+ 
+@@ -26,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
+     show_p.add_argument("invoice_id")
+ 
+     sub.add_parser("total")
++    sub.add_parser("summary")
+ 
+     due_p = sub.add_parser("due")
+     due_p.add_argument("start", type=date.fromisoformat)
+@@ -63,6 +69,11 @@ def main(argv: list[str] | None = None) -> int:
+         print(f"{total_outstanding(invoices):.2f}")
+         return 0
+ 
++    if args.command == "summary":
++        subtotal, tax, total = outstanding_breakdown(invoices)
++        print(f"Subtotal: {subtotal:.2f}  Tax: {tax:.2f}  Total: {total:.2f}")
++        return 0
++
+     if args.command == "due":
+         for inv in invoices_due_between(invoices, args.start, args.end):
+             print(f"{inv.invoice_id}  due {inv.due_date.isoformat()}")
+diff --git a/src/ledgerly/totals.py b/src/ledgerly/totals.py
+index a868ea5..969c288 100644
+--- a/src/ledgerly/totals.py
++++ b/src/ledgerly/totals.py
+@@ -24,3 +24,12 @@ def invoices_due_between(invoices: list[Invoice], start: date, end: date) -> lis
+ 
+ def total_outstanding(invoices: list[Invoice]) -> float:
+     return sum(invoice_total(inv) for inv in invoices if inv.status != "paid")
++
++
++def outstanding_breakdown(invoices: list[Invoice]) -> tuple[float, float, float]:
++    """Return (subtotal, tax, total) across all unpaid invoices."""
++    unpaid = [inv for inv in invoices if inv.status != "paid"]
++    subtotal = sum(invoice_subtotal(inv) for inv in unpaid)
++    tax = sum(invoice_tax(inv) for inv in unpaid)
++    total = subtotal + tax
++    return subtotal, tax, subtotal

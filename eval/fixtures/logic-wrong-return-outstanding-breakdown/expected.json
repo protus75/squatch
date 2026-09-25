@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "logic",
+  "planted": {
+    "path": "src/ledgerly/totals.py",
+    "description": "outstanding_breakdown computes total = subtotal + tax but returns subtotal in the total's slot (return subtotal, tax, subtotal), so the summary's grand total is always just the subtotal and never includes tax."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

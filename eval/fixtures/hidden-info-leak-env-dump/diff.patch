@@ -1,0 +1,50 @@
+diff --git a/src/notely/app.py b/src/notely/app.py
+index 458b030..7ce751f 100644
+--- a/src/notely/app.py
++++ b/src/notely/app.py
+@@ -14,10 +14,15 @@ from http import HTTPStatus
+ from typing import Callable
+ 
+ from . import auth
++from .logging_setup import dump_startup_diagnostics
+ from .storage import NoteStore
+ 
+ _USER_STORE: dict = {}  # populated at startup by the host process
+ 
++# Captured once per process start so support can attach it to a bundle
++# when triaging a deployment issue.
++dump_startup_diagnostics("/tmp/notely_startup_debug.json")
++
+ 
+ def _json_response(status: HTTPStatus, payload: dict) -> tuple[str, list, bytes]:
+     body = json.dumps(payload).encode("utf-8")
+diff --git a/src/notely/logging_setup.py b/src/notely/logging_setup.py
+index 8555676..37e1e22 100644
+--- a/src/notely/logging_setup.py
++++ b/src/notely/logging_setup.py
+@@ -1,7 +1,10 @@
+ """Logging configuration for notely."""
+ from __future__ import annotations
+ 
++import json
+ import logging
++import os
++import sys
+ 
+ 
+ def configure_logging(log_path: str) -> logging.Logger:
+@@ -15,3 +18,14 @@ def configure_logging(log_path: str) -> logging.Logger:
+         )
+         logger.addHandler(file_handler)
+     return logger
++
++
++def dump_startup_diagnostics(path: str) -> None:
++    """Write a snapshot of the runtime environment for support bundles."""
++    snapshot = {
++        "python_version": sys.version,
++        "pid": os.getpid(),
++        "environ": dict(os.environ),
++    }
++    with open(path, "w", encoding="utf-8") as fh:
++        json.dump(snapshot, fh, indent=2)

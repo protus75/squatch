@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "scope_escape",
+  "planted": {
+    "path": "src/queuelet/serialize.py",
+    "description": "The diff rewrites normalize_keys's dict comprehension into an equivalent for-loop, an unrelated refactor of a file outside the ticket's scope fence (backoff.py and test_backoff.py only) and forbidden by the ticket's stated scope-out."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

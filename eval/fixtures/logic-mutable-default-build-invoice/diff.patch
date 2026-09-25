@@ -1,0 +1,58 @@
+diff --git a/src/ledgerly/models.py b/src/ledgerly/models.py
+index 3fbbf65..b72bc48 100644
+--- a/src/ledgerly/models.py
++++ b/src/ledgerly/models.py
+@@ -62,3 +62,24 @@ class Invoice:
+             status=InvoiceStatus(data.get("status", "draft")),
+             tax_rate=data.get("tax_rate", 0.0),
+         )
++
++
++def build_invoice(
++    invoice_id: str,
++    client: str,
++    due_date: date,
++    extra_items: list[tuple[str, int, float]] = [],
++) -> Invoice:
++    """Build a draft Invoice that always carries a flat "Service fee" line
++    item plus any ad hoc (description, quantity, unit_price) tuples the
++    caller supplies.
++    """
++    extra_items.append(("Service fee", 1, 25.0))
++    items = [LineItem(desc, qty, price) for desc, qty, price in extra_items]
++    return Invoice(
++        invoice_id=invoice_id,
++        client=client,
++        issue_date=date.today(),
++        due_date=due_date,
++        items=items,
++    )
+diff --git a/tests/test_models.py b/tests/test_models.py
+new file mode 100644
+index 0000000..74c9397
+--- /dev/null
++++ b/tests/test_models.py
+@@ -0,0 +1,23 @@
++from datetime import date
++
++from ledgerly.models import build_invoice
++
++
++def test_build_invoice_includes_service_fee():
++    inv = build_invoice("INV-1", "Acme", date(2026, 2, 1))
++    assert [item.description for item in inv.items] == ["Service fee"]
++
++
++def test_build_invoice_does_not_accumulate_across_calls():
++    build_invoice("INV-1", "Acme", date(2026, 2, 1))
++    second = build_invoice("INV-2", "Beta", date(2026, 2, 1))
++    assert [item.description for item in second.items] == ["Service fee"]
++
++
++def test_build_invoice_with_extra_items():
++    inv = build_invoice(
++        "INV-3", "Gamma", date(2026, 2, 1), extra_items=[("Consulting", 2, 100.0)]
++    )
++    descriptions = [item.description for item in inv.items]
++    assert "Service fee" in descriptions
++    assert "Consulting" in descriptions

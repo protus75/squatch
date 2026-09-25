@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "scope_escape",
+  "planted": {
+    "path": "src/queuelet/queue.py",
+    "description": "The diff reorders Queue.put's parameters from (job, priority=0) to (priority, job), changing the public signature the ticket explicitly said must stay unchanged, even though the scope fence names only worker.py."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

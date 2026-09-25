@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "acceptance_mismatch",
+  "planted": {
+    "path": "src/notely/app.py",
+    "description": "The ticket requires rejecting a title longer than 200 characters with HTTP 400, but _create_note (and NoteStore.create) only reject empty/whitespace-only titles -- no maximum-length check exists anywhere, so an arbitrarily long title is accepted with HTTP 201."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

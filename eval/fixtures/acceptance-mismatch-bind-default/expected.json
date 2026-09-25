@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "acceptance_mismatch",
+  "planted": {
+    "path": "src/notely/config.py",
+    "description": "The ticket requires Settings.host to default to '127.0.0.1' when NOTELY_HOST is unset, but DEFAULT_HOST is left at '0.0.0.0', so load_settings() still defaults to '0.0.0.0' (the example toml was updated to '127.0.0.1' but the code was not)."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "hidden_info_leak",
+  "planted": {
+    "path": "src/notely/auth.py",
+    "description": "login() embeds the submitted plaintext password in the AuthError message ('...got \\'{password}\\''), which app.py's login handler then returns verbatim to the client as the 'detail' field of the 401 JSON response."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

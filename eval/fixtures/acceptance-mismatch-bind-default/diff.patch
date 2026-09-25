@@ -1,0 +1,40 @@
+diff --git a/config/settings.example.toml b/config/settings.example.toml
+index 7f1970b..9dc9516 100644
+--- a/config/settings.example.toml
++++ b/config/settings.example.toml
+@@ -1,6 +1,7 @@
+ # Copy to settings.toml and adjust for your environment.
+ # Most values may be overridden by NOTELY_* environment variables.
+ 
++host = "127.0.0.1"
+ port = 8080
+ db_path = "notely.db"
+ log_path = "notely.log"
+diff --git a/src/notely/config.py b/src/notely/config.py
+index e15f58b..8279fe9 100644
+--- a/src/notely/config.py
++++ b/src/notely/config.py
+@@ -9,6 +9,7 @@ import os
+ from dataclasses import dataclass
+ 
+ DEFAULT_HOST = "0.0.0.0"
++# Override the bind address per deployment with NOTELY_HOST.
+ DEFAULT_PORT = 8080
+ 
+ 
+@@ -21,9 +22,13 @@ class Settings:
+ 
+ 
+ def load_settings() -> Settings:
+-    """Build a Settings instance from the process environment."""
++    """Build a Settings instance from the process environment.
++
++    NOTELY_HOST lets operators override the bind address per
++    deployment; unset, it falls back to the default below.
++    """
+     return Settings(
+-        host=DEFAULT_HOST,
++        host=os.environ.get("NOTELY_HOST", DEFAULT_HOST),
+         port=int(os.environ.get("NOTELY_PORT", str(DEFAULT_PORT))),
+         db_path=os.environ.get("NOTELY_DB_PATH", "notely.db"),
+         log_path=os.environ.get("NOTELY_LOG_PATH", "notely.log"),

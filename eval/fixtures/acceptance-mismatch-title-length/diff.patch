@@ -1,0 +1,43 @@
+diff --git a/src/notely/app.py b/src/notely/app.py
+index 458b030..543ab46 100644
+--- a/src/notely/app.py
++++ b/src/notely/app.py
+@@ -94,7 +94,7 @@ class NotelyApp:
+         payload = json.loads(raw or b"{}")
+         title = payload.get("title", "")
+         body = payload.get("body", "")
+-        if not title:
++        if not title.strip():
+             return _json_response(HTTPStatus.BAD_REQUEST, {"error": "title must not be empty"})
+         note = self.store.create(owner=user, title=title, body=body)
+         return _json_response(HTTPStatus.CREATED, note.__dict__)
+diff --git a/src/notely/storage.py b/src/notely/storage.py
+index 8b9c5c9..59eb827 100644
+--- a/src/notely/storage.py
++++ b/src/notely/storage.py
+@@ -24,6 +24,7 @@ class NoteStore:
+         self._notes: dict[int, Note] = {}
+ 
+     def create(self, owner: str, title: str, body: str) -> Note:
++        title = title.strip()
+         if not title:
+             raise ValueError("title must not be empty")
+         note = Note(id=next(_id_counter), owner=owner, title=title, body=body)
+diff --git a/tests/test_app.py b/tests/test_app.py
+index 923bb92..47a482e 100644
+--- a/tests/test_app.py
++++ b/tests/test_app.py
+@@ -47,3 +47,13 @@ def test_unknown_note_returns_404():
+     environ = _make_environ("GET", "/notes/999999", token=token)
+     result = app(environ, _start_response)
+     assert "not found" in json.loads(result[0])["error"]
++
++
++def test_whitespace_only_title_returns_400():
++    _USER_STORE["alice"] = (auth._hash_password("wonderland", "s"), "s")
++    app = NotelyApp(NoteStore())
++    token = auth.login("alice", "wonderland", _USER_STORE)
++
++    environ = _make_environ("POST", "/notes", {"title": "   ", "body": "x"}, token=token)
++    result = app(environ, _start_response)
++    assert "empty" in json.loads(result[0])["error"]

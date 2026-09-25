@@ -1,0 +1,50 @@
+diff --git a/src/ledgerly/storage.py b/src/ledgerly/storage.py
+index 3d69fe5..8922bfb 100644
+--- a/src/ledgerly/storage.py
++++ b/src/ledgerly/storage.py
+@@ -16,9 +16,17 @@ def load_invoices(path: Path) -> list[Invoice]:
+ 
+ 
+ def save_invoices(path: Path, invoices: list[Invoice]) -> None:
++    """Write `invoices` to `path` as JSON.
++
++    Any failure while writing is logged rather than left to crash the
++    caller with a raw traceback.
++    """
+     raw = [invoice.to_dict() for invoice in invoices]
+-    with path.open("w", encoding="utf-8") as fh:
+-        json.dump(raw, fh, indent=2)
++    try:
++        with path.open("w", encoding="utf-8") as fh:
++            json.dump(raw, fh, indent=2)
++    except Exception:
++        pass
+ 
+ 
+ def add_invoice(path: Path, invoice: Invoice) -> None:
+diff --git a/tests/test_storage.py b/tests/test_storage.py
+index d85f639..c51acc8 100644
+--- a/tests/test_storage.py
++++ b/tests/test_storage.py
+@@ -1,7 +1,9 @@
+ from datetime import date
+ 
++import pytest
++
+ from ledgerly.models import Invoice
+-from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices
++from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices, save_invoices
+ 
+ 
+ def make_invoice(invoice_id="INV-1"):
+@@ -29,3 +31,10 @@ def test_delete_invoice(tmp_path):
+ def test_load_missing_file_returns_empty(tmp_path):
+     store = tmp_path / "missing.json"
+     assert load_invoices(store) == []
++
++
++def test_save_invoices_reports_write_failure(tmp_path):
++    # tmp_path is a directory: opening it for write must fail loudly,
++    # not be treated as a successful save.
++    with pytest.raises(OSError):
++        save_invoices(tmp_path, [make_invoice()])

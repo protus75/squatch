@@ -1,0 +1,66 @@
+diff --git a/src/ledgerly/cli.py b/src/ledgerly/cli.py
+index 05ea151..635fff9 100644
+--- a/src/ledgerly/cli.py
++++ b/src/ledgerly/cli.py
+@@ -8,7 +8,12 @@ from pathlib import Path
+ 
+ from ledgerly.models import Invoice, LineItem
+ from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices
+-from ledgerly.totals import invoice_total, invoices_due_between, total_outstanding
++from ledgerly.totals import (
++    invoice_total,
++    invoices_due_between,
++    invoices_due_within_days,
++    total_outstanding,
++)
+ 
+ DEFAULT_STORE = Path("invoices.json")
+ 
+@@ -31,6 +36,10 @@ def build_parser() -> argparse.ArgumentParser:
+     due_p.add_argument("start", type=date.fromisoformat)
+     due_p.add_argument("end", type=date.fromisoformat)
+ 
++    soon_p = sub.add_parser("due-soon")
++    soon_p.add_argument("start", type=date.fromisoformat)
++    soon_p.add_argument("days", type=int)
++
+     return parser
+ 
+ 
+@@ -68,6 +77,11 @@ def main(argv: list[str] | None = None) -> int:
+             print(f"{inv.invoice_id}  due {inv.due_date.isoformat()}")
+         return 0
+ 
++    if args.command == "due-soon":
++        for inv in invoices_due_within_days(invoices, args.start, args.days):
++            print(f"{inv.invoice_id}  due {inv.due_date.isoformat()}")
++        return 0
++
+     return 1
+ 
+ 
+diff --git a/src/ledgerly/totals.py b/src/ledgerly/totals.py
+index a868ea5..85c169c 100644
+--- a/src/ledgerly/totals.py
++++ b/src/ledgerly/totals.py
+@@ -1,7 +1,7 @@
+ """Total and reporting helpers for ledgerly."""
+ from __future__ import annotations
+ 
+-from datetime import date
++from datetime import date, timedelta
+ 
+ from ledgerly.models import Invoice
+ 
+@@ -22,5 +22,11 @@ def invoices_due_between(invoices: list[Invoice], start: date, end: date) -> lis
+     return [inv for inv in invoices if start <= inv.due_date <= end]
+ 
+ 
++def invoices_due_within_days(invoices: list[Invoice], start: date, days: int) -> list[Invoice]:
++    """Invoices due in the `days`-day window starting at `start` (inclusive)."""
++    end = start + timedelta(days=days)
++    return [inv for inv in invoices if start <= inv.due_date < end]
++
++
+ def total_outstanding(invoices: list[Invoice]) -> float:
+     return sum(invoice_total(inv) for inv in invoices if inv.status != "paid")

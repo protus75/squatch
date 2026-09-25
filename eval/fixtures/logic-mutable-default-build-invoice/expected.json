@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "logic",
+  "planted": {
+    "path": "src/ledgerly/models.py",
+    "description": "build_invoice declares a mutable default argument (extra_items: list = []) and appends to it in place, so invoices built without an explicit extra_items list accumulate extra 'Service fee' entries across successive calls."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "approve",
+  "defect_class": "none",
+  "planted": null,
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

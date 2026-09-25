@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "acceptance_mismatch",
+  "planted": {
+    "path": "src/queuelet/worker.py",
+    "description": "Worker.run() now returns 1 when a job is left failed instead of the 3 the ticket's explicit exit-code contract requires (0 empty, 3 failed)."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

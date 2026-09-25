@@ -15,6 +15,8 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# eval/ is a checkout-root package (not installed): the harness tests import it.
+pythonpath = ["."]
 
 [build-system]
 requires = ["uv_build>=0.11,<0.12"]

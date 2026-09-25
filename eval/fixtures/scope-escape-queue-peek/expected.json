@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "scope_escape",
+  "planted": {
+    "path": ".github/workflows/ci.yml",
+    "description": "The diff drops the make lint CI step and removes python 3.10 from the test matrix, even though the ticket's scope-out states CI configuration is unchanged and the scope fence covers only queue.py and test_queue.py."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

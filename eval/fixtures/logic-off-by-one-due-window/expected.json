@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "expected_verdict": "snag",
+  "defect_class": "logic",
+  "planted": {
+    "path": "src/ledgerly/totals.py",
+    "description": "invoices_due_within_days uses an exclusive upper bound (inv.due_date < end) instead of inclusive, so an invoice due exactly `days` days after `start` is silently dropped from the due-soon window."
+  },
+  "author": {"provider": "claude", "model": "claude-sonnet-5", "tier": "medium"}
+}

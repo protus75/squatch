@@ -1,0 +1,103 @@
+diff --git a/src/ledgerly/cli.py b/src/ledgerly/cli.py
+index 05ea151..b5d5fce 100644
+--- a/src/ledgerly/cli.py
++++ b/src/ledgerly/cli.py
+@@ -7,7 +7,7 @@ from datetime import date
+ from pathlib import Path
+ 
+ from ledgerly.models import Invoice, LineItem
+-from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices
++from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices, mark_paid
+ from ledgerly.totals import invoice_total, invoices_due_between, total_outstanding
+ 
+ DEFAULT_STORE = Path("invoices.json")
+@@ -31,6 +31,9 @@ def build_parser() -> argparse.ArgumentParser:
+     due_p.add_argument("start", type=date.fromisoformat)
+     due_p.add_argument("end", type=date.fromisoformat)
+ 
++    pay_p = sub.add_parser("pay")
++    pay_p.add_argument("invoice_id")
++
+     return parser
+ 
+ 
+@@ -68,6 +71,13 @@ def main(argv: list[str] | None = None) -> int:
+             print(f"{inv.invoice_id}  due {inv.due_date.isoformat()}")
+         return 0
+ 
++    if args.command == "pay":
++        if not mark_paid(args.store, args.invoice_id):
++            print(f"no such invoice: {args.invoice_id}", file=sys.stderr)
++            return 1
++        print(f"{args.invoice_id} marked paid")
++        return 0
++
+     return 1
+ 
+ 
+diff --git a/src/ledgerly/storage.py b/src/ledgerly/storage.py
+index 3d69fe5..b6cd9d7 100644
+--- a/src/ledgerly/storage.py
++++ b/src/ledgerly/storage.py
+@@ -4,7 +4,7 @@ from __future__ import annotations
+ import json
+ from pathlib import Path
+ 
+-from ledgerly.models import Invoice
++from ledgerly.models import Invoice, InvoiceStatus
+ 
+ 
+ def load_invoices(path: Path) -> list[Invoice]:
+@@ -44,3 +44,20 @@ def delete_invoice(path: Path, invoice_id: str) -> bool:
+         return False
+     save_invoices(path, remaining)
+     return True
++
++
++def mark_paid(path: Path, invoice_id: str) -> bool:
++    """Mark the invoice with `invoice_id` as paid. Returns False if no such
++    invoice exists; the store is left unchanged in that case.
++    """
++    invoices = load_invoices(path)
++    found = False
++    for invoice in invoices:
++        if invoice.invoice_id == invoice_id:
++            invoice.status = InvoiceStatus.PAID
++            found = True
++            break
++    if not found:
++        return False
++    save_invoices(path, invoices)
++    return True
+diff --git a/tests/test_storage.py b/tests/test_storage.py
+index d85f639..c159c71 100644
+--- a/tests/test_storage.py
++++ b/tests/test_storage.py
+@@ -1,7 +1,7 @@
+ from datetime import date
+ 
+-from ledgerly.models import Invoice
+-from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices
++from ledgerly.models import Invoice, InvoiceStatus
++from ledgerly.storage import add_invoice, delete_invoice, get_invoice, load_invoices, mark_paid
+ 
+ 
+ def make_invoice(invoice_id="INV-1"):
+@@ -29,3 +29,17 @@ def test_delete_invoice(tmp_path):
+ def test_load_missing_file_returns_empty(tmp_path):
+     store = tmp_path / "missing.json"
+     assert load_invoices(store) == []
++
++
++def test_mark_paid_updates_status(tmp_path):
++    store = tmp_path / "invoices.json"
++    add_invoice(store, make_invoice())
++    assert mark_paid(store, "INV-1") is True
++    assert get_invoice(store, "INV-1").status == InvoiceStatus.PAID
++
++
++def test_mark_paid_missing_invoice_returns_false(tmp_path):
++    store = tmp_path / "invoices.json"
++    add_invoice(store, make_invoice())
++    assert mark_paid(store, "does-not-exist") is False
++    assert get_invoice(store, "INV-1").status != InvoiceStatus.PAID
