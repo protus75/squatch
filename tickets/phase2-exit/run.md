@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The committed Phase 2 artifacts are green, but section 19's Phase 3 bullet has no explicit Seeding partition at the Phase 4 bullet's depth: it does not name a bounded foundational CORE batch with owning modules and fences plus the `phase3-continue` tail. The ticket explicitly classifies that thin bullet as a plan defect, so no seeds or tests were authored.
+The hardened Phase 3 partition makes `phase3-continue` depend on both core stems as well as `phase2-exit`, preserving the general core-first continuation law while retaining the explicit phase-exit edge on every seed. The continuation carries the remaining admissions as structured YAML so the batch test can pin ordered identities without pinning prose bytes.
 
 ## Dead ends
-Implementation cannot proceed until the Phase 3 bullet is hardened in `SQUATCH_PLAN.md` by a prior operator plan commit. The untouched base suite passed (820 tests), the shakeout report checker passed all 19 closed members, and `tickets/invariant-auditor/checks.json` validates as a passing Invoice.
+The first seed drafts exceeded requisition review's 75% max-effort render headroom because their Context lists repeated large modules already governed by section 19. Context was narrowed to the smallest existing read-first files while the ticket bodies continue to name every additional artifact the implementations must inspect; all three standing renders now fit the authoring bound.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ Implementation cannot proceed until the Phase 3 bullet is hardened in `SQUATCH_P
 codex / GPT-5 (exact serving model not exposed)
 
 ## Predicted vs actual
-Expected 90m; actual about 5m. Planned Phase 3 core seeds and `phase3-continue`; authored no seeds because the required Phase 3 Seeding partition is absent.
+Expected 90m; actual about 25m. Authored `daemon-scheduler`, `seed-successor-proof`, and `phase3-continue`.
