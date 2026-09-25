@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The timeout member uses an exhausted one-unit infra cap so diagnosis is skipped and the harvested attempt remains the latest undiagnosed material rendered on re-entry.
+The prior implementation was preserved as a dangling reviewed commit after the engine recreated the branch, so I restored that scoped diff and limited this attempt to the three review findings. The secret check lists tracked ticket files through the Git wrapper and reads those checkout bytes; any Git failure raises instead of being interpreted as absence.
 
 ## Dead ends
-The first timeout fixture allowed diagnosis to complete; that correctly summarized the attempt but suppressed the raw latest run record, so it could not prove the required dead-ends rendering.
+None.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The first timeout fixture allowed diagnosis to complete; that correctly summariz
 OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-90m expected / about 20m actual
+90m expected / about 15m actual
