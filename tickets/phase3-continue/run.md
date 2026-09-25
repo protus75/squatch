@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The continuation has no existing fence files, so its Context is empty; the merge-queue seed reads the sole existing fenced module, `squatch/merge.py`.
+The successor needs the five existing artifacts that own lint, cap, merge-hook, and predecessor-batch facts; its new owner files remain outside Context.
 
 ## Dead ends
 
@@ -18,4 +18,4 @@ codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 15m.
+Expected 75m; actual about 12m.
