@@ -1,0 +1,88 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "c4eb08b594a45931eec2e8baf4a3c0aa73efd764",
+  "stem": "diagnosis-eval-harness",
+  "branch": "diagnosis-eval-harness",
+  "base": "148563c5d3423dccee338a8850a484d2e54525c6",
+  "head": "c4eb08b594a45931eec2e8baf4a3c0aa73efd764",
+  "changed_files": [
+    "eval/diagnose.py",
+    "eval/diagnose_fixtures/capability-concurrency-race/expected.json",
+    "eval/diagnose_fixtures/capability-concurrency-race/harvest.json",
+    "eval/diagnose_fixtures/capability-concurrency-race/ticket.md",
+    "eval/diagnose_fixtures/capability-state-machine-repair/expected.json",
+    "eval/diagnose_fixtures/capability-state-machine-repair/harvest.json",
+    "eval/diagnose_fixtures/capability-state-machine-repair/ticket.md",
+    "eval/diagnose_fixtures/environment-auth-expired/expected.json",
+    "eval/diagnose_fixtures/environment-auth-expired/harvest.json",
+    "eval/diagnose_fixtures/environment-auth-expired/ticket.md",
+    "eval/diagnose_fixtures/environment-workspace-missing/expected.json",
+    "eval/diagnose_fixtures/environment-workspace-missing/harvest.json",
+    "eval/diagnose_fixtures/environment-workspace-missing/ticket.md",
+    "eval/diagnose_fixtures/false-premise-impossible-platform/expected.json",
+    "eval/diagnose_fixtures/false-premise-impossible-platform/harvest.json",
+    "eval/diagnose_fixtures/false-premise-impossible-platform/ticket.md",
+    "eval/diagnose_fixtures/false-premise-removed-api/expected.json",
+    "eval/diagnose_fixtures/false-premise-removed-api/harvest.json",
+    "eval/diagnose_fixtures/false-premise-removed-api/ticket.md",
+    "eval/diagnose_fixtures/oversight-hidden-secret/expected.json",
+    "eval/diagnose_fixtures/oversight-hidden-secret/harvest.json",
+    "eval/diagnose_fixtures/oversight-hidden-secret/ticket.md",
+    "eval/diagnose_fixtures/oversight-inverted-guard/expected.json",
+    "eval/diagnose_fixtures/oversight-inverted-guard/harvest.json",
+    "eval/diagnose_fixtures/oversight-inverted-guard/run.md",
+    "eval/diagnose_fixtures/oversight-inverted-guard/ticket.md",
+    "eval/diagnose_fixtures/oversight-missed-callsite/expected.json",
+    "eval/diagnose_fixtures/oversight-missed-callsite/harvest.json",
+    "eval/diagnose_fixtures/oversight-missed-callsite/ticket.md",
+    "eval/diagnose_fixtures/oversight-scope-escape/expected.json",
+    "eval/diagnose_fixtures/oversight-scope-escape/harvest.json",
+    "eval/diagnose_fixtures/oversight-scope-escape/ticket.md",
+    "eval/diagnose_fixtures/oversized-engine-rewrite/expected.json",
+    "eval/diagnose_fixtures/oversized-engine-rewrite/harvest.json",
+    "eval/diagnose_fixtures/oversized-engine-rewrite/ticket.md",
+    "eval/diagnose_fixtures/oversized-ui-migration/expected.json",
+    "eval/diagnose_fixtures/oversized-ui-migration/harvest.json",
+    "eval/diagnose_fixtures/oversized-ui-migration/ticket.md",
+    "tests/test_eval_diagnose.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "fail",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "diff_budget",
+          "path": null,
+          "line": null,
+          "message": "diff is 39 files / 1553 inserted lines, over the budget of 30 files / 1500 inserted lines",
+          "paved_road": "split the ticket (diagnosis verdict `split`, section 11)"
+        }
+      ]
+    }
+  ]
+}
