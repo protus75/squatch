@@ -1,0 +1,85 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "90b0a1fbfaffd08f9077aa9f78b019a32e9f8277",
+  "stem": "requisition-review-author",
+  "branch": "requisition-review-author",
+  "base": "133654fe23fe5152adf36395c49bc6771e5a33d4",
+  "head": "90b0a1fbfaffd08f9077aa9f78b019a32e9f8277",
+  "changed_files": [
+    "specs/author.md",
+    "squatch/author.py",
+    "squatch/driver.py",
+    "tests/test_author.py",
+    "tests/test_driver.py",
+    "tests/test_triage.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_author.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_driver.py",
+            "tests/test_specs.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
