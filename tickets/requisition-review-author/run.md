@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The untouched base suite was green at 750 tests. I preserved the driver's one `run_gates` call so every gate still runs, made Author's review target resolver skip the paid review when ticket grammar fails, and added only a caller-supplied terminal-finding predicate so an RMA can stop the Author loop immediately. The resolver also clears its captured verdict on every attempt so a later grammar failure cannot record a stale review.
+The untouched base suite was green at 750 tests. The corrected ticket and plan explicitly allow the minimal driver terminal-findings hook. I preserved the driver's one `run_gates` call so every gate still runs, and allowed reserved stems through artifact parsing so `ticket_schema` owns their rejection while the review resolver skips the paid review.
 
 ## Dead ends
-An initial driver regression test reused an effect identity in the same journal and replayed the earlier call; changing the test ticket identity made the intended fresh call explicit.
+The prior implementation copied only part of ticket-schema admission into the review resolver. This attempt added the reserved-stem predicate and a focused regression before retaining that implementation.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ An initial driver regression test reused an effect identity in the same journal 
 OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected 60m; actual about 20m.
+Expected 60m; actual about 30m.
