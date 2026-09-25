@@ -27,6 +27,7 @@ from squatch.config import load
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
+from squatch.harvest import HARVEST_FILE, Harvest, HarvestCost
 from squatch.journal import Journal
 from squatch.llm import FakeLLM
 from squatch.llmeffect import LLMEffect
@@ -708,6 +709,7 @@ async def test_lifted_run_record_is_redacted_on_main(repo, env):
     on_main = git(repo, env, "show", f"main:tickets/{STEM}/run.md")
     assert TOKEN in on_main and SECRET not in on_main
     assert SECRET not in (repo / "tickets" / STEM / "run.md").read_text()
+    assert SECRET not in "\n".join(json.dumps(event.body) for event in h.journal.read())
 
 
 async def test_missing_or_malformed_run_record_fails_the_run_record_gate(repo, env):
@@ -905,6 +907,57 @@ async def test_review_call_failure_is_infra_error_with_the_invoice_still_durable
 
 
 # --- re-entry: a fresh run takes a fresh worktree and fresh keys -------------------
+
+
+async def test_review_finding_reenters_once_between_ticket_and_context_blocks(repo, env):
+    marker = "review-finding-in-criteria-position"
+    agent = Agent(
+        answer("implemented"), review("snag", {"message": marker}),
+        answer("premise_failed", "captured re-entry"),
+        actions=[implementer(env, WIDGET), None,
+                 writes(record=run_record("premise_failed"))])
+    h = Harness(repo, env, agent)
+    first = await h.run(run_seq=0)
+    assert first.outcome == "gate_failed"
+    h.journal.append("state_transition", {"to": "gate_failed", "run_seq": 0}, ticket=STEM)
+
+    second = await h.stages.run(
+        await h.intake(TICKET.format(verify=EXISTS, frontmatter="")), run_seq=1)
+
+    assert second.outcome == "premise_failed"
+    prompt = agent.requests[-1].rendered
+    prior = prompt.index('<<<squatch:data name="prior_attempts"')
+    context = prompt.index('<<<squatch:data name="context"')
+    assert prompt.count(marker) == 1
+    assert prior < prompt.index(marker) < context
+
+
+async def test_harvested_dead_ends_render_in_the_next_attempts_prior_block(repo, env):
+    marker = "timed-out-dead-end-marker"
+    agent = Agent(answer("premise_failed", "captured prior attempt"),
+                  actions=[writes(record=run_record("premise_failed"))])
+    h = Harness(repo, env, agent)
+    ticket = await h.intake(TICKET.format(verify=EXISTS, frontmatter=""))
+    attempt = repo / "tickets" / STEM / "attempts" / "0"
+    attempt.mkdir(parents=True)
+    (attempt / "run.md").write_text(
+        run_record("ok").replace("## Dead ends\n", f"## Dead ends\n{marker}\n"))
+    harvest = Harvest(
+        outcome="timeout", stage="implement", reason="stuck budget exceeded", findings=(),
+        cost=HarvestCost(usd=0, tokens=0, provider=None, model=None), wall_seconds=1,
+        run_seq=0, diff_stat="", spool_tails={}, produced_by_spec_version="harvest-1.0",
+        produced_at_sha=git(repo, env, "rev-parse", "main").strip())
+    (attempt / HARVEST_FILE).write_text(harvest.model_dump_json(indent=2))
+    h.journal.append("state_transition", {"to": "timeout", "run_seq": 0}, ticket=STEM)
+
+    delivery = await h.stages.run(ticket, run_seq=1)
+
+    assert delivery.outcome == "premise_failed"
+    prompt = agent.requests[0].rendered
+    prior = prompt.index('<<<squatch:data name="prior_attempts"')
+    context = prompt.index('<<<squatch:data name="context"')
+    assert prompt.count(marker) == 1
+    assert prior < prompt.index(marker) < context
 
 
 async def test_a_second_run_takes_a_fresh_worktree_branch_and_keys(repo, env):

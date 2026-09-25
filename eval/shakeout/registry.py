@@ -22,4 +22,5 @@ class Member:
 # local to their tests without registering them globally.
 GROUPS: tuple[tuple[str, str | ModuleType], ...] = (
     ("shakeout-tickets", "eval.shakeout.tickets_group"),
+    ("shakeout-stages", "eval.shakeout.stages_group"),
 )
