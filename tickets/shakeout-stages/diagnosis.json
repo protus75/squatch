@@ -1,9 +1,15 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snagged a nearly complete diff: the fence, checks, and all nine unit pins passed. Fix only the three findings and keep the rest.",
+    "In stages_group.py, drop `import subprocess`. Run the fake implementer's add/commit through the bench's `Git` wrapper (await git.add/git.commit inside the async `call`, or use Bench.commit on the worktree).",
+    "secret_not_persisted must fail closed. Do not read empty `git grep` stdout as absence. Instead, list the committed files under tickets/<stem>/ through the Git wrapper and check each blob for the secret, or treat only exit 1 as absent and any other nonzero exit as a failure.",
+    "timeout_dead_ends must check the marker's position, as reject_reentry does: prior_attempts index < marker index < context index, and count == 1, before it returns timeout:dead_ends_rendered.",
+    "Do not commit tickets/shakeout-stages/run.md or shakeout-report.json on the branch. No path under tickets/ may appear in the branch diff."
+  ],
+  "reason": "The review snag names three concrete, fixable defects in one file, and each has a paved road; the same capability can fix them.",
+  "detail": null
 }
