@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
 from squatch.config import ConfigError, load
 from squatch.git import Git, GitError
@@ -28,6 +28,7 @@ BOOTSTRAP_ORIGIN = "bootstrap-ingest"
 MessageClass = Literal[
     "suggestion", "failure_report", "override_report", "retro_finding", "bug_report"]
 Status = Literal["pending", "authored", "tombstoned", "decided"]
+BugOrigin = Literal["self_diagnosed", "player"]
 
 _SIGNATURE = re.compile(r"\A[0-9a-f]{64}\Z")
 _BOX_ID = re.compile(r"\Abox-(\d{6})-([0-9a-f]{8})\Z")
@@ -59,6 +60,8 @@ class Message(BaseModel):
     summary: str = Field(min_length=1)
     detail: str = Field(min_length=1)
     origin: str = Field(min_length=1)
+    bug_origin: BugOrigin | None = None
+    has_repro: StrictBool | None = None
     stage: str | None = None
     outcome: str | None = None
     run_seq: int | None = Field(default=None, ge=0)
@@ -81,6 +84,16 @@ class Message(BaseModel):
         if not _BOX_ID.match(value):
             raise ValueError("id must be box-<six digit seq>-<sig8>")
         return value
+
+    @model_validator(mode="after")
+    def _bug_policy_inputs_match_class(self):
+        supplied = self.bug_origin is not None or self.has_repro is not None
+        if self.message_class == "bug_report":
+            if self.bug_origin is None or self.has_repro is None:
+                raise ValueError("bug_report requires bug_origin and has_repro")
+        elif supplied:
+            raise ValueError("bug_origin and has_repro are allowed only on bug_report")
+        return self
 
 
 @dataclass(frozen=True)
@@ -133,7 +146,8 @@ class Box:
 
     def enqueue(self, *, message_class: str, summary: str, detail: str, origin: str,
                 stage: str | None = None, outcome: str | None = None,
-                run_seq: int | None = None) -> Enqueued:
+                run_seq: int | None = None, bug_origin: BugOrigin | None = None,
+                has_repro: bool | None = None) -> Enqueued:
         sig = signature(message_class, origin, stage, outcome, detail)
         records = self._records()
         duplicate = next(((path, message) for path, message in records
@@ -150,6 +164,7 @@ class Box:
         message = Message(
             id=f"box-{seq:06d}-{sig8}", seq=seq, signature=sig,
             message_class=message_class, summary=summary, detail=detail, origin=origin,
+            bug_origin=bug_origin, has_repro=has_repro,
             stage=stage, outcome=outcome, run_seq=run_seq,
             enqueued_at=render_ts(self._clock()), status="pending", resolution=None,
             triage=None, reports=1)

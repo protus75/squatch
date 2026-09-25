@@ -238,6 +238,11 @@ def test_load_spec_missing_file_refused(tmp_path: Path):
         load_spec(tmp_path / "nope.md")
 
 
+def test_shipped_author_spec_lints_inside_the_size_budget():
+    spec = load_spec(Path(__file__).resolve().parent.parent / "specs" / "author.md")
+    assert spec.surface == "author" and spec.version == "1.0"
+
+
 # ---- render -------------------------------------------------------------
 
 def _inputs(**over):

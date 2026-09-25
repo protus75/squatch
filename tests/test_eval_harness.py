@@ -295,8 +295,8 @@ async def test_run_scores_every_fixture_and_journals_the_no_go_signal(tmp_path, 
     assert body.model_dump()["identity"] == {
         "review": {"high": {"provider": "claude", "model": "c-max"}},
         "author": {"high": {"provider": "claude", "model": "c-high"}}}
-    assert body.spec_version == {"review": "1.0", "author": None}
-    assert body.spec_major == {"review": 1, "author": None}
+    assert body.spec_version == {"review": "1.0", "author": "1.0"}
+    assert body.spec_major == {"review": 1, "author": 1}
     assert body.fixture_authors == (AuthorIdentity(**AUTHOR),)
     assert body.produced_at_sha == "deadbeef"
     s = body.summary

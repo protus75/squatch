@@ -27,6 +27,7 @@ import yaml
 
 from squatch.artifacts import GATE_CODES, Finding
 from squatch.git import Git
+from squatch.gates import GateReport
 from squatch.journal import EVENT_TYPES, Journal
 from squatch.llm import EFFORTS, TIERS
 from squatch.seams import Filesystem
@@ -79,6 +80,34 @@ class TicketLintError(Exception):
         self.stem = stem
         self.findings = findings
         super().__init__(f"{stem}: " + "; ".join(f.message for f in findings))
+
+
+class TicketSchemaGate:
+    """Run the section 13 grammar over an Author-emitted ticket."""
+
+    code = CODE
+    paved_road = "repair every ticket-schema finding and emit the complete ticket again"
+
+    async def check(self, artifact, workspace: Path) -> GateReport:
+        repo = Path(workspace)
+        findings: list[Finding] = []
+        stem = artifact.stem
+        path = repo / TICKETS_DIR / stem / TICKET_FILE
+        if path.is_file() or stem in RESERVED_STEMS:
+            findings.append(_finding(
+                f"stem {stem!r} already exists on disk or is reserved",
+                "choose a new valid stem that does not collide with the ticket plane"))
+        plan_path = repo / PLAN_FILE
+        try:
+            lint_ticket(
+                artifact.ticket, stem=stem, repo=repo,
+                plan=plan_path.read_text() if plan_path.is_file() else None,
+                resolve_stem=lambda candidate: (
+                    repo / TICKETS_DIR / candidate / TICKET_FILE).is_file())
+        except TicketLintError as e:
+            findings.extend(e.findings)
+        return GateReport(code=self.code, verdict="fail" if findings else "pass",
+                          findings=tuple(findings))
 
 
 @dataclass(frozen=True)

@@ -85,3 +85,18 @@ def test_bug_origin_is_closed():
     with pytest.raises(ValueError, match="bug_origin"):
         starting_state(config(), message_class="bug_report", bug_origin="robot",
                        has_repro=True, go_binds=True)
+
+
+@pytest.mark.parametrize("message_class,origin,repro", [
+    ("failure_report", None, False),
+    ("retro_finding", None, False),
+    ("override_report", None, False),
+    ("suggestion", None, False),
+    ("bug_report", "self_diagnosed", False),
+    ("bug_report", "player", True),
+    ("bug_report", "player", False),
+])
+def test_bypass_forces_every_policy_row_to_draft(message_class, origin, repro):
+    assert starting_state(
+        config(), message_class=message_class, bug_origin=origin, has_repro=repro,
+        fence=("src/",), reopened=False, bypass=True, go_binds=True) == "draft"

@@ -20,14 +20,12 @@ from squatch.llmeffect import LLMEffect
 from squatch.redact import Redactor
 from squatch.registry import Record, commit as commit_record, load as load_records, write
 from squatch.seams import Clock, Filesystem
-from squatch.specs import DATA_MARKER, DataBlock, Spec
+from squatch.specs import DATA_MARKER, DataBlock, Spec, load_spec
 from squatch.tickets import KINDS, PRIORITIES, TICKETS_DIR, on_disk_stems, parse_frontmatter
 
 TRIAGE_CONTEXT_CHARS = 20000
 TRIAGE_STUCK_SECONDS = 600
 TRIAGE_RETRY_CAP = 1
-AUTHOR_ROAD = ("awaiting the Phase 2 Author stage deliverable (specs/author.md); "
-               "it consumes this item")
 
 
 class TriageInput(Artifact):
@@ -175,13 +173,17 @@ class Triage:
         self._box = Box(self._repo / config.state_dir, fs=fs, clock=clock)
 
     async def run(self, spec: Spec) -> None:
+        # Local import avoids making the artifact type shared by these two
+        # stages into a module-import cycle.
+        from squatch.author import Author
+
         messages = self._box.pending()
         pass_number = sum(1 for event in self._journal.read()
                           if event.type == "signal"
                           and event.body.get("kind") == "triage_pass")
         if not messages:
             self._report("triage: nothing pending")
-        triaged = {name: [] for name in TRIAGE_EMITS}
+        triaged = {name: [] for name in (*TRIAGE_EMITS, "authored")}
         skipped: list[str] = []
         sha = await self._git.rev_parse(self._repo, "HEAD")
         effect = LLMEffect(llm=self._llm, effects=Effects(self._journal), redact=self._redact,
@@ -191,10 +193,21 @@ class Triage:
             pass_number)
         driver = Driver(llm=effect, spool=pass_spool, log=self._log, clock=self._clock,
                         retry_cap=TRIAGE_RETRY_CAP)
+        author = Author(
+            repo=self._repo, config=self._config, git=self._git, fs=self._fs,
+            clock=self._clock, journal=self._journal, llm=self._llm, log=self._log,
+            redact=self._redact, report=self._report)
+        author_spec = load_spec(Path(spec.source).with_name("author.md"))
         for message in messages:
             if isinstance(message.triage, dict) and message.triage.get("verdict") == "author":
-                skipped.append(message.id)
-                self._report(f"triage: {message.id}: {AUTHOR_ROAD}")
+                verdict = TriageAuthor.model_validate(message.triage)
+                stem = await author.run(author_spec, message, verdict,
+                                        pass_number=pass_number,
+                                        sha=await self._git.rev_parse(self._repo, "HEAD"))
+                if stem is not None:
+                    triaged["authored"].append(stem)
+                else:
+                    skipped.append(message.id)
                 continue
             inputs, links = await self._inputs(message, sha)
             pass_spool.message_id = message.id
@@ -206,8 +219,18 @@ class Triage:
                 self._report(f"triage: {message.id}: {result.outcome}; left pending")
                 continue
             verdict = result.artifact.concrete()
-            await self._apply(message, verdict)
             triaged[verdict.verdict].append(message.id)
+            if isinstance(verdict, TriageAuthor):
+                self._box.record_triage(message.id, verdict.model_dump(mode="json"))
+                stem = await author.run(author_spec, message, verdict,
+                                        pass_number=pass_number,
+                                        sha=await self._git.rev_parse(self._repo, "HEAD"))
+                if stem is not None:
+                    triaged["authored"].append(stem)
+                else:
+                    skipped.append(message.id)
+                continue
+            await self._apply(message, verdict)
         self._journal.append("signal", {"kind": "triage_pass", "pass": pass_number,
                                         "triaged": triaged, "skipped": skipped})
 
@@ -251,10 +274,6 @@ class Triage:
             open_work=open_text, merged_work=merged_text, decisions=decision_text), links
 
     async def _apply(self, message: Message, verdict: Artifact) -> None:
-        if isinstance(verdict, TriageAuthor):
-            self._box.record_triage(message.id, verdict.model_dump(mode="json"))
-            self._report(f"triage: {message.id}: {AUTHOR_ROAD}")
-            return
         record_id = f"{verdict.verdict}-{message.seq:06d}"
         if isinstance(verdict, TriageTombstone):
             record = Record(id=record_id, kind="tombstone", link=verdict.link,

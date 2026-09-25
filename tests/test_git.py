@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from squatch import git as gitmod
+from squatch.author import Author
 from squatch.git import Git, GitError, RebaseConflict, StatusEntry
 from squatch.seams import SubprocessExec
 
@@ -136,6 +137,33 @@ async def test_diff_stat_appends_untracked_names_without_their_content():
     assert await git.diff_stat(REPO, "abc123") == " a.py | 2 +-\n new.py | untracked\n"
     assert argv(px, 1) == ["git", "-C", "/repo", "ls-files", "--others",
                            "--exclude-standard"]
+
+
+async def test_ls_files_returns_tracked_paths():
+    px, git = make([(0, "a.py\nb/c.py\n", "")])
+    assert await git.ls_files(REPO) == ["a.py", "b/c.py"]
+    assert argv(px) == ["git", "-C", "/repo", "ls-files"]
+
+
+async def test_author_tree_uses_the_named_ls_files_operation(monkeypatch):
+    _, git = make()
+    seen = []
+
+    async def ls_files(repo):
+        seen.append(repo)
+        return ["a.py", "b/c.py"]
+
+    async def private_run(*args, **kwargs):
+        raise AssertionError("Author tree must not call Git._run")
+
+    monkeypatch.setattr(git, "ls_files", ls_files)
+    monkeypatch.setattr(git, "_run", private_run)
+    author = object.__new__(Author)
+    author._git = git
+    author._repo = REPO
+
+    assert await author._tree() == "a.py\nb/c.py"
+    assert seen == [REPO]
 
 
 async def test_add_is_explicit_paths_after_separator():

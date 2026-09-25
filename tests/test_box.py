@@ -42,6 +42,32 @@ def test_closed_vocabularies_and_message_shape(tmp_path):
         Message.model_validate({**data, "surprise": True})
 
 
+def test_bug_policy_inputs_are_class_specific_and_backward_compatible(tmp_path):
+    queue = box(tmp_path)
+    for bug_origin, has_repro in (("self_diagnosed", False), ("player", True)):
+        item = queue.enqueue(
+            message_class="bug_report", summary="bug", detail=f"bug {bug_origin}",
+            origin="host", bug_origin=bug_origin, has_repro=has_repro)
+        message = queue.get(item.id)
+        assert (message.bug_origin, message.has_repro) == (bug_origin, has_repro)
+
+    base = queue.get(queue.enqueue(
+        message_class="suggestion", summary="idea", detail="idea", origin="host").id)
+    legacy = base.model_dump(exclude={"bug_origin", "has_repro"})
+    loaded = Message.model_validate(legacy)
+    assert loaded.bug_origin is None and loaded.has_repro is None
+
+    bug = base.model_dump()
+    bug["message_class"] = "bug_report"
+    for update in ({}, {"bug_origin": "robot", "has_repro": True},
+                   {"bug_origin": "player", "has_repro": 1}):
+        with pytest.raises(ValidationError):
+            Message.model_validate({**bug, **update})
+    with pytest.raises(ValidationError, match="only on bug_report"):
+        Message.model_validate({**base.model_dump(), "bug_origin": "player",
+                                "has_repro": True})
+
+
 def test_signature_normalizes_paths_digits_and_whitespace_but_keeps_dimensions():
     left = signature("suggestion", "stem", "check", "gate_failed",
                      "failed 123 at /tmp/a.py   nearby")

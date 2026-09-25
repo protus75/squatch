@@ -80,11 +80,11 @@ def _under(path: str, prefix: str) -> bool:
 
 def starting_state(config: Config, *, message_class: str, bug_origin: str | None = None,
                    has_repro: bool = False, fence: Iterable[str] = (), reopened: bool = False,
-                   go_binds: bool) -> str:
+                   bypass: bool = False, go_binds: bool) -> str:
     """Apply the configured row and the fail-closed authority overrides."""
     configured = _row(config, message_class, bug_origin, has_repro)
     inventory = config.engine_plane_safety_inventory
-    if (configured != "confirmed" or not go_binds or reopened or not inventory
+    if (configured != "confirmed" or not go_binds or reopened or bypass or not inventory
             or any(_under(path, prefix) for path in fence for prefix in inventory)):
         return "draft"
     return "confirmed"

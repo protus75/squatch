@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from test_cli import STATE, T0, author, checkout, git_env
+from test_cli import GOOD, STATE, T0, author, checkout, git_env
 
 from squatch.box import Box
 from squatch.config import load
@@ -19,9 +19,9 @@ from squatch.redact import Redactor
 from squatch.registry import Record, commit as commit_record, load as load_records, write
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.specs import load_spec
-from squatch.tickets import stamp
-from squatch.triage import (AUTHOR_ROAD, TRIAGE_CONTEXT_CHARS, Triage, TriageAuthor,
-                            TriageTombstone, _render_projection, triage_stage)
+from squatch.tickets import Intake, stamp
+from squatch.triage import (TRIAGE_CONTEXT_CHARS, Triage, TriageAuthor, TriageTombstone,
+                            _render_projection, triage_stage)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -84,7 +84,7 @@ def test_verdict_models_are_closed():
                      goal="g", why="w")
 
 
-def test_pass_commits_records_and_leaves_author_pending(checkout):
+def test_pass_commits_records_and_authors_in_the_same_pass(checkout):
     _commit_ticket(checkout, "existing")
     box, ids = _enqueue(checkout, 3)
     llm = FakeLLM(
@@ -93,7 +93,8 @@ def test_pass_commits_records_and_leaves_author_pending(checkout):
         json.dumps({"verdict": "decision", "reopen_after_days": 7,
                     "rationale": "not now", "evidence": "low value"}),
         json.dumps({"verdict": "author", "summary": "rewrite", "kind": "feature",
-                    "priority": "P2", "goal": "ship it", "why": "useful"}))
+                    "priority": "P2", "goal": "ship it", "why": "useful"}),
+        json.dumps({"stem": "authored-ticket", "ticket": GOOD.format(depends="none")}))
 
     reports = _run(checkout, llm)
 
@@ -109,13 +110,15 @@ def test_pass_commits_records_and_leaves_author_pending(checkout):
     assert box.get(ids[0]).resolution.link == "tombstone-000001"
     assert box.get(ids[1]).status == "decided"
     third = box.get(ids[2])
-    assert third.status == "pending" and third.triage["verdict"] == "author"
-    assert any(AUTHOR_ROAD in line for line in reports)
+    assert third.status == "authored" and third.triage["verdict"] == "author"
+    assert third.resolution.link == "authored-ticket"
+    assert any("authored as authored-ticket" in line for line in reports)
     passes = [e for e in read_events(checkout / STATE)
               if e.type == "signal" and e.body.get("kind") == "triage_pass"]
     assert passes[-1].body["pass"] == 0
     assert passes[-1].body["triaged"] == {
-        "author": [ids[2]], "tombstone": [ids[0]], "decision": [ids[1]]}
+        "author": [ids[2]], "tombstone": [ids[0]], "decision": [ids[1]],
+        "authored": ["authored-ticket"]}
     effects = [e for e in read_events(checkout / STATE)
                if e.type == "effect_completion" and e.key.startswith("llm/triage/")]
     assert len(effects) == 3
@@ -140,9 +143,61 @@ def test_pass_commits_records_and_leaves_author_pending(checkout):
 
     before = len(llm.requests)
     second = _run(checkout, llm)
-    assert len(llm.requests) == before and any(AUTHOR_ROAD in line for line in second)
+    assert len(llm.requests) == before and "triage: nothing pending" in second
     assert [e.body["pass"] for e in read_events(checkout / STATE)
             if e.type == "signal" and e.body.get("kind") == "triage_pass"] == [0, 1]
+
+
+def test_later_pass_authors_a_recorded_verdict_without_triaging_again(checkout):
+    box, ids = _enqueue(checkout)
+    recorded = TriageAuthor(
+        produced_by_spec_version="1.0", produced_at_sha="abc", verdict="author",
+        summary="rewrite", kind="feature", priority="P2", goal="ship it", why="useful")
+    box.record_triage(ids[0], recorded.model_dump(mode="json"))
+    with Journal(checkout / STATE, clock=lambda: T0) as journal:
+        journal.append("signal", {"kind": "triage_pass", "pass": 0,
+                                  "triaged": {}, "skipped": [ids[0]]})
+    llm = FakeLLM(json.dumps({
+        "stem": "later-ticket", "ticket": GOOD.format(depends="none")}))
+
+    _run(checkout, llm)
+
+    assert [request.surface for request in llm.requests] == ["author"]
+    assert box.get(ids[0]).status == "authored"
+    passes = [e for e in read_events(checkout / STATE)
+              if e.type == "signal" and e.body.get("kind") == "triage_pass"]
+    assert passes[-1].body["pass"] == 1
+    assert passes[-1].body["triaged"]["authored"] == ["later-ticket"]
+    keys = [e.key for e in read_events(checkout / STATE)
+            if e.type == "effect_completion" and e.key]
+    assert keys == ["llm/author/1/author/1/1"]
+
+
+def test_author_commit_failure_does_not_abort_the_pass(checkout, monkeypatch):
+    box, ids = _enqueue(checkout, 2)
+    original = Intake.commit
+
+    async def fail_first(self, stem, **stamps):
+        if stem == "failed-ticket":
+            raise RuntimeError("commit lane unavailable")
+        return await original(self, stem, **stamps)
+
+    monkeypatch.setattr("squatch.author.Intake.commit", fail_first)
+    llm = FakeLLM(
+        json.dumps({"verdict": "author", "summary": "rewrite", "kind": "feature",
+                    "priority": "P2", "goal": "ship it", "why": "useful"}),
+        json.dumps({"stem": "failed-ticket", "ticket": GOOD.format(depends="none")}),
+        json.dumps({"verdict": "decision", "reopen_after_days": 7,
+                    "rationale": "not now", "evidence": "low value"}))
+
+    _run(checkout, llm)
+
+    assert box.get(ids[0]).status == "pending"
+    assert not (checkout / "tickets/failed-ticket").exists()
+    assert box.get(ids[1]).status == "decided"
+    passes = [e for e in read_events(checkout / STATE)
+              if e.type == "signal" and e.body.get("kind") == "triage_pass"]
+    assert passes[-1].body["skipped"] == [ids[0]]
 
 
 def test_bad_link_reprompts_once_then_continues(checkout):

@@ -75,6 +75,11 @@ class Git:
         out = await self._run(cwd, "ls-files", "--others", "--exclude-standard")
         return [line for line in out.splitlines() if line]
 
+    async def ls_files(self, cwd: Path) -> list[str]:
+        """The tracked paths in the named checkout."""
+        out = await self._run(cwd, "ls-files")
+        return [line for line in out.splitlines() if line]
+
     async def diff_stat(self, cwd: Path, base: str) -> str:
         """Names and counts from base through all worktree changes."""
         stat = await self._run(cwd, "diff", "--stat", base)
