@@ -90,3 +90,20 @@ class SubprocessExec:
 async def _kill_and_wait(proc: asyncio.subprocess.Process) -> None:
     kill_group(proc.pid)  # start_new_session makes the pid the pgid
     await proc.wait()
+
+
+class LocalFilesystem:
+    """The production Filesystem: temp file, fsync, rename."""
+
+    def write(self, path: Path, data: bytes) -> None:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f".{path.name}.tmp")
+        with tmp.open("wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+
+    def replace(self, src: Path, dst: Path) -> None:
+        os.replace(src, dst)

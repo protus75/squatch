@@ -90,3 +90,20 @@ async def test_cancellation_routes_through_the_same_kill(tmp_path):
     await asyncio.sleep(0.2)
     with pytest.raises(ProcessLookupError):
         os.kill(grandchild, 0)
+
+
+# --- LocalFilesystem --------------------------------------------------------
+
+
+def test_local_filesystem_write_is_whole_file_and_creates_parents(tmp_path):
+    from squatch.seams import LocalFilesystem
+
+    fs = LocalFilesystem()
+    target = tmp_path / "spools" / "t" / "1" / "prompt.md"
+    fs.write(target, b"first")
+    fs.write(target, b"second")
+    assert target.read_bytes() == b"second"
+    # No temp file is left beside the target.
+    assert sorted(p.name for p in target.parent.iterdir()) == ["prompt.md"]
+    fs.replace(target, tmp_path / "moved.md")
+    assert (tmp_path / "moved.md").read_bytes() == b"second" and not target.exists()
