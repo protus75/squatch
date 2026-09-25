@@ -10,7 +10,14 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from squatch.journal import EVENT_TYPES, Event, Journal, JournalCorruption, render_ts
+from squatch.journal import (
+    EVENT_TYPES,
+    Event,
+    Journal,
+    JournalCorruption,
+    read_segments,
+    render_ts,
+)
 
 T0 = datetime(2026, 8, 4, 12, 30, 15, 250000, tzinfo=timezone.utc)
 
@@ -106,6 +113,31 @@ def test_read_across_multiple_preseeded_segments_in_name_order(tmp_path):
         assert [e.body["n"] for e in j.read()] == [1, 2, 3, 4, 5, 6, 7]
     assert sorted(p.name for p in jd.iterdir()) == [
         "000001-20260804.jsonl", "000002-20260805.jsonl", "000003-20260806.jsonl"]
+
+
+def test_read_segments_preserves_boundaries_and_read_flattens_them(tmp_path):
+    jd = tmp_path / "journal"
+    seed_segment(jd, "000002-20260805.jsonl", [raw_event(3), raw_event(4)])
+    seed_segment(jd, "000001-20260804.jsonl", [raw_event(1), raw_event(2)])
+    with Journal(tmp_path, clock=fixed_clock()) as j:
+        segments = tuple(j.read_segments())
+        assert [[e.body["n"] for e in segment] for segment in segments] == [[1, 2], [3, 4]]
+        assert list(j.read()) == [event for segment in segments for event in segment]
+
+
+def test_read_segments_tolerates_a_torn_tail_only_in_the_active_segment(tmp_path):
+    jd = tmp_path / "journal"
+    seed_segment(jd, "000001-20260804.jsonl", [raw_event(1)])
+    seed_segment(jd, "000002-20260805.jsonl", [raw_event(2)])
+    with (jd / "000002-20260805.jsonl").open("ab") as f:
+        f.write(b'{"v": 1')
+    assert [[e.body["n"] for e in segment] for segment in read_segments(tmp_path)] == [
+        [1], [2]]
+
+    with (jd / "000001-20260804.jsonl").open("ab") as f:
+        f.write(b'{"v": 1')
+    with pytest.raises(JournalCorruption):
+        tuple(read_segments(tmp_path))
 
 
 def test_empty_journal_reads_nothing(tmp_path):

@@ -139,9 +139,20 @@ class Journal:
         Exactly one thing is tolerated: an unterminated final line of the
         active segment. Anything else malformed is corruption.
         """
-        segments = self.segments()
-        for path in segments:
-            yield from _read_segment(path, active=path == segments[-1])
+        for segment in self.read_segments():
+            yield from segment
+
+    def read_segments(self) -> Iterator[tuple[Event, ...]]:
+        """Each segment's events in order, preserving segment boundaries."""
+        yield from _read_segments(self.dir)
+
+
+def read_segments(state_dir: Path) -> Iterator[tuple[Event, ...]]:
+    """Each journal segment WITHOUT creating or repairing writer state."""
+    directory = Path(state_dir) / "journal"
+    if not directory.is_dir():
+        return
+    yield from _read_segments(directory)
 
 
 def read_events(state_dir: Path) -> Iterator[Event]:
@@ -151,12 +162,8 @@ def read_events(state_dir: Path) -> Iterator[Event]:
     creates the journal dir, truncates a torn tail, or holds an append handle;
     a missing journal reads as empty.
     """
-    directory = Path(state_dir) / "journal"
-    if not directory.is_dir():
-        return
-    segments = _segments(directory)
-    for path in segments:
-        yield from _read_segment(path, active=path == segments[-1])
+    for segment in read_segments(state_dir):
+        yield from segment
 
 
 def _segments(directory: Path) -> list[Path]:
@@ -165,6 +172,12 @@ def _segments(directory: Path) -> list[Path]:
         if not _SEGMENT_NAME.match(p.name):
             raise JournalCorruption(f"{p}: not a segment name")
     return paths
+
+
+def _read_segments(directory: Path) -> Iterator[tuple[Event, ...]]:
+    segments = _segments(directory)
+    for path in segments:
+        yield tuple(_read_segment(path, active=path == segments[-1]))
 
 
 def _read_segment(path: Path, *, active: bool) -> Iterator[Event]:
