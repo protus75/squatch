@@ -9,6 +9,7 @@ the journal.
 
 import json
 import subprocess
+from dataclasses import replace
 
 import pytest
 
@@ -40,6 +41,7 @@ from squatch.journal import Journal
 from squatch.merge import (
     CODE_LANE_ROAD,
     REVIEWED_TRAILER,
+    SEED_SAFETY_ROAD,
     TICKET_TRAILER,
     Merge,
     Pipeline,
@@ -49,6 +51,18 @@ from squatch.redact import Redactor
 from squatch.runner import merged_stems
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.tickets import lint_ticket
+
+
+def requisition_approve() -> str:
+    return json.dumps({"verdict": "approve", "summary": "reviewed: approve",
+                       "findings": []})
+
+
+def seed_ticket() -> str:
+    return TICKET.format(
+        verify=f'{PYTHON} -c "import sys; sys.exit(0)"',
+        frontmatter="source: seed\nstate: confirmed").replace(
+            "## Depends on\n- none", f"## Depends on\n- {STEM}")
 
 # Green alone, red together: passes on the branch as delivered, fails once
 # main moves `existing.py` under it.
@@ -334,6 +348,84 @@ async def test_a_branch_carrying_a_ticket_plane_commit_fails_merge_safety(repo, 
                                               CODE_LANE_ROAD)
     assert "squatch/widget.py" not in h.main_files()
     assert git(repo, env, "rev-parse", STEM).strip() == d.slip.head, "refused before any rebase"
+
+
+@pytest.mark.parametrize("tamper", [False, True])
+async def test_seed_merge_safety_matches_approved_lifted_bytes(repo, env, tamper):
+    text = seed_ticket()
+    agent = Agent(answer("implemented"), requisition_approve(), review("approve"),
+                  actions=[writes(("tickets/next-seed/ticket.md", text),
+                                  record=run_record())])
+    h = Harness(repo, env, agent)
+    d = await deliver(
+        h, verify=f'{PYTHON} -c "import sys; sys.exit(0)"')
+    if tamper:
+        commit_on_main(h, "tickets/next-seed/ticket.md",
+                       text.replace("The widget module lands.", "Changed after approval."),
+                       "tamper with seed")
+
+    admission = await merge_of(h).admit(ticket_of(h), d, run_seq=0)
+
+    if tamper:
+        assert admission.outcome == "gate_failed"
+        [finding] = admission.findings
+        assert finding.code == "requisition_review"
+        assert finding.paved_road == SEED_SAFETY_ROAD
+        assert finding.path == "tickets/next-seed/ticket.md"
+    else:
+        assert admission.outcome == "ok" and admission.findings == []
+
+
+async def test_seed_merge_safety_uses_the_committed_checks_blob(repo, env):
+    text = seed_ticket()
+    agent = Agent(answer("implemented"), requisition_approve(), review("approve"),
+                  actions=[writes(("tickets/next-seed/ticket.md", text),
+                                  record=run_record())])
+    h = Harness(repo, env, agent)
+    delivery = await deliver(h, verify=f'{PYTHON} -c "import sys; sys.exit(0)"')
+    checks = repo / "tickets" / STEM / "checks.json"
+    checks.write_text("working-tree bytes that are not committed\n")
+
+    admission = await merge_of(h).admit(ticket_of(h), delivery, run_seq=0)
+
+    assert admission.outcome == "ok" and admission.findings == []
+
+
+async def test_seed_merge_safety_requires_approval_for_the_lifted_sha(repo, env):
+    text = seed_ticket()
+    agent = Agent(answer("implemented"), requisition_approve(), review("approve"),
+                  actions=[writes(("tickets/next-seed/ticket.md", text),
+                                  record=run_record())])
+    h = Harness(repo, env, agent)
+    delivery = await deliver(h, verify=f'{PYTHON} -c "import sys; sys.exit(0)"')
+    assert delivery.invoice is not None
+    checks = tuple(
+        entry.model_copy(update={"sha": "0" * 40})
+        if entry.code == "requisition_review" else entry
+        for entry in delivery.invoice.checks)
+    stale = delivery.invoice.model_copy(update={"checks": checks})
+    commit_on_main(h, f"tickets/{STEM}/checks.json",
+                   stale.model_dump_json(indent=2), "stale seed approval")
+
+    admission = await merge_of(h).admit(
+        ticket_of(h), replace(delivery, invoice=stale), run_seq=0)
+
+    assert admission.outcome == "gate_failed"
+    [finding] = admission.findings
+    assert finding.code == "requisition_review"
+    assert finding.path == "tickets/next-seed/ticket.md"
+    assert finding.paved_road == SEED_SAFETY_ROAD
+
+
+async def test_an_admission_without_a_seed_lift_does_not_read_seed_checks(repo, env):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    delivery = await deliver(h)
+    (repo / "tickets" / STEM / "checks.json").unlink()
+
+    admission = await merge_of(h).admit(ticket_of(h), delivery, run_seq=0)
+
+    assert admission.outcome == "ok" and admission.findings == []
 
 
 async def test_the_approval_must_pin_the_head_being_admitted(repo, env):

@@ -39,6 +39,8 @@ from test_stages import (
     implementer,
     repo,  # noqa: F401 -- fixture
     review,
+    run_record,
+    writes,
 )
 
 from squatch.__main__ import main
@@ -56,8 +58,9 @@ from squatch.redact import Redactor
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET, Refusal, Runner
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.specs import DATA_MARKER
+from squatch.seeds import SEED_LIFT_SIGNAL, Seed, blob_sha, validate_batch
 from squatch.stages import Delivery, Invoice, Stages
-from squatch.tickets import stamp
+from squatch.tickets import Intake, stamp
 
 BASE_RED = f'{PYTHON} -c "import sys; sys.exit(3)"'
 RED = (f'{PYTHON} -c "import pathlib, sys; '
@@ -158,6 +161,15 @@ class Drive:
         return True
 
 
+class MutatingAfterSeedCheckStages(Stages):
+    async def _check(self, ticket, slip, worktree, run_seq):
+        checked = await super()._check(ticket, slip, worktree, run_seq)
+        path = worktree / "tickets/alpha-seed/ticket.md"
+        path.write_text(path.read_text().replace(
+            "The widget module lands.", "The widget module changed after review."))
+        return checked
+
+
 def author(repo: Path, text: str, stem: str = STEM) -> Path:
     path = repo / "tickets" / stem / "ticket.md"
     path.parent.mkdir(parents=True)
@@ -179,6 +191,27 @@ def body(text: str) -> str:
 def diagnosis(verdict="retry", *lessons: str) -> str:
     return json.dumps({"verdict": verdict, "lessons": list(lessons or ("fix the failure",)),
                        "reason": "diagnosed"})
+
+
+def requisition(verdict="approve", message="fix the seed") -> str:
+    findings = [] if verdict == "approve" else [{
+        "code": "requisition_review", "path": None, "line": None,
+        "message": message, "paved_road": "re-author it"}]
+    return json.dumps({"verdict": verdict, "summary": f"reviewed: {verdict}",
+                       "findings": findings})
+
+
+def seed_ticket(*, depends=STEM, suffix="") -> str:
+    return TICKET.format(
+        verify=f'{PYTHON} -c "import sys; sys.exit(0)"',
+        frontmatter="source: seed\nstate: confirmed").replace(
+            "## Depends on\n- none", f"## Depends on\n- {depends}").replace(
+                "The widget module lands.", f"The widget module lands{suffix}.")
+
+
+def seeds_action(first: str, second: str):
+    return writes(("tickets/alpha-seed/ticket.md", first),
+                  ("tickets/beta-seed/ticket.md", second), record=run_record())
 
 
 def set_config(repo: Path, env: dict, text: str) -> None:
@@ -217,6 +250,195 @@ async def test_a_base_red_reaches_review_with_an_excused_check_and_draws_no_cap(
     assert f"{STEM}-base-" not in git(repo, env, "worktree", "list")
     assert [request.surface for request in agent.requests] == ["implement", "review"]
     assert not any(event.type == "cap_consumed" for event in h.journal.read())
+
+
+async def test_a_seeding_run_reviews_lifts_then_reviews_the_branch(repo, env):
+    first, second = seed_ticket(), seed_ticket(depends="alpha-seed")
+    author(repo, ticket(verify=f'{PYTHON} -c "import sys; sys.exit(0)"'))
+    agent = Agent(answer("implemented"), requisition(), requisition(), review("approve"),
+                  actions=[seeds_action(first, second)])
+    drive = Drive(repo, env, agent)
+
+    assert await drive.run() == EXIT_OK
+
+    checks = Invoice.model_validate_json(
+        (repo / "tickets" / STEM / "checks.json").read_text())
+    reviewed = [entry for entry in checks.checks if entry.code == "requisition_review"]
+    assert [(entry.path, entry.sha, entry.verdict) for entry in reviewed] == [
+        ("tickets/alpha-seed/ticket.md", blob_sha(first), "pass"),
+        ("tickets/beta-seed/ticket.md", blob_sha(second), "pass")]
+    assert drive.committed_ticket("alpha-seed") == first
+    assert drive.committed_ticket("beta-seed") == second
+    events = list(read_events(drive.state))
+    intent = next(i for i, event in enumerate(events)
+                  if event.type == "effect_intent"
+                  and event.key == f"lift/{STEM}/0/seeds")
+    intake = [i for i, event in enumerate(events)
+              if event.type == "signal" and event.body.get("kind") == "ticket_intake"
+              and event.body.get("source") == "seed"]
+    assert {events[i].body.get("seeder") for i in intake} == {STEM}
+    signal = next(i for i, event in enumerate(events)
+                  if event.type == "signal"
+                  and event.body.get("kind") == SEED_LIFT_SIGNAL)
+    completion = next(i for i, event in enumerate(events)
+                      if event.type == "effect_completion"
+                      and event.key == f"lift/{STEM}/0/seeds")
+    review_call = next(i for i, event in enumerate(events)
+                       if event.type == "effect_intent" and event.key
+                       and f"/{STEM}/0/review/" in event.key)
+    assert intent < min(intake) < max(intake) < signal < completion < review_call
+    lifted = events[signal].body["seeds"]
+    assert lifted == {"alpha-seed": blob_sha(first), "beta-seed": blob_sha(second)}
+
+
+async def test_seed_bytes_changed_after_check_are_refused_before_lift(repo, env):
+    first, second = seed_ticket(), seed_ticket(depends="alpha-seed")
+    author(repo, ticket(verify=f'{PYTHON} -c "import sys; sys.exit(0)"'))
+    agent = Agent(answer("implemented"), requisition(), requisition(), diagnosis(),
+                  actions=[seeds_action(first, second), None, None, None])
+    drive = Drive(repo, env, agent, stages_type=MutatingAfterSeedCheckStages)
+
+    assert await drive.run() == EXIT_TICKET
+
+    assert drive.transitions()[-1]["to"] == "gate_failed"
+    checks = Invoice.model_validate_json(
+        (repo / "tickets" / STEM / "checks.json").read_text())
+    changed = [finding for entry in checks.checks for finding in entry.findings
+               if finding.code == "requisition_review" and "changed from blob" in finding.message]
+    assert [finding.path for finding in changed] == ["tickets/alpha-seed/ticket.md"]
+    assert "tickets/alpha-seed/ticket.md" not in drive.main_files()
+    assert "tickets/beta-seed/ticket.md" not in drive.main_files()
+    assert not any(event.type == "signal" and event.body.get("kind") == SEED_LIFT_SIGNAL
+                   for event in drive.events())
+
+
+async def test_a_seed_snag_or_oversized_batch_never_lifts(repo, env):
+    first, second = seed_ticket(), seed_ticket(depends="alpha-seed")
+    author(repo, ticket(verify=f'{PYTHON} -c "import sys; sys.exit(0)"'))
+    snagged = Agent(answer("implemented"), requisition(), requisition("snag"), diagnosis(),
+                    actions=[seeds_action(first, second), None, None, None])
+    drive = Drive(repo, env, snagged)
+
+    assert await drive.run() == EXIT_TICKET
+    assert drive.transitions()[-1]["to"] == "gate_failed"
+    checks = Invoice.model_validate_json(
+        (repo / "tickets" / STEM / "checks.json").read_text())
+    [finding] = [finding for entry in checks.checks for finding in entry.findings
+                 if finding.code == "requisition_review"]
+    assert finding.path == "tickets/beta-seed/ticket.md"
+    assert "tickets/alpha-seed/ticket.md" not in drive.main_files()
+    assert "tickets/beta-seed/ticket.md" not in drive.main_files()
+    assert not any(event.type == "signal" and event.body.get("kind") == SEED_LIFT_SIGNAL
+                   for event in drive.events())
+
+    # A separate checkout is unnecessary: the fresh run replaces the two-file
+    # worktree with a mechanically refused four-file batch before any review.
+    third, fourth = seed_ticket(depends="beta-seed"), seed_ticket(depends="gamma-seed")
+    batch = writes(("tickets/alpha-seed/ticket.md", first),
+                   ("tickets/beta-seed/ticket.md", second),
+                   ("tickets/gamma-seed/ticket.md", third),
+                   ("tickets/delta-seed/ticket.md", fourth), record=run_record())
+    drive._llm = Agent(answer("implemented"), diagnosis(), actions=[batch, None])
+    assert await drive.run() == EXIT_TICKET
+    assert drive.transitions()[-1]["to"] == "gate_failed"
+    checks = Invoice.model_validate_json(
+        (repo / "tickets" / STEM / "checks.json").read_text())
+    [cap] = [finding for entry in checks.checks for finding in entry.findings
+             if finding.code == "requisition_review"]
+    assert "seeding.max_seeds_per_admission" in cap.message
+    assert "-continue" in cap.paved_road
+    assert not any(request.surface in {"requisition_review", "review"}
+                   for request in drive._llm.requests)
+    assert not any(
+        f"tickets/{stem}/ticket.md" in drive.main_files()
+        for stem in ("alpha-seed", "beta-seed", "gamma-seed", "delta-seed"))
+    assert not any(event.type == "signal" and event.body.get("kind") == SEED_LIFT_SIGNAL
+                   for event in drive.events())
+
+
+async def test_a_seeder_reoffer_may_replace_its_own_previously_lifted_stems(repo, env):
+    first, second = seed_ticket(), seed_ticket(depends="alpha-seed")
+    changed_first = seed_ticket(suffix=" again")
+    changed_second = seed_ticket(depends="alpha-seed", suffix=" again")
+    author(repo, ticket(verify=f'{PYTHON} -c "import sys; sys.exit(0)"'))
+    agent = Agent(
+        answer("implemented"), requisition(), requisition(),
+        review("snag", {"message": "retry"}), diagnosis(),
+        answer("implemented"), requisition(), requisition(), review("approve"),
+        actions=[seeds_action(first, second), None, None, None, None,
+                 seeds_action(changed_first, changed_second)])
+    drive = Drive(repo, env, agent)
+
+    assert await drive.run() == EXIT_TICKET
+    assert await drive.run() == EXIT_OK
+    assert drive.committed_ticket("alpha-seed") == changed_first
+    lifts = [event for event in drive.events()
+             if event.type == "signal" and event.body.get("kind") == SEED_LIFT_SIGNAL]
+    assert [event.body["run_seq"] for event in lifts] == [0, 1]
+
+
+async def test_repeatedly_interrupted_seed_lifts_reoffer_without_a_collision(
+        repo, env, monkeypatch):
+    first, second = seed_ticket(), seed_ticket(depends="alpha-seed")
+    h = Harness(repo, env, Agent())
+    await h.intake(ticket(verify=f'{PYTHON} -c "import sys; sys.exit(0)"'))
+    seeds = (Seed("alpha-seed", first, blob_sha(first)),
+             Seed("beta-seed", second, blob_sha(second)))
+    workspace = Path((await h.stages._workspace(STEM, 0))["path"])
+    for seed in seeds:
+        path = workspace / seed.path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(seed.text)
+    reviewed = {seed.stem: seed.sha for seed in seeds}
+    original = Intake.commit
+    failures = 0
+
+    async def fail_second(self, stem, **kwargs):
+        nonlocal failures
+        if stem == "beta-seed" and failures < 2:
+            failures += 1
+            raise ValueError("forced second intake failure")
+        return await original(self, stem, **kwargs)
+
+    monkeypatch.setattr(Intake, "commit", fail_second)
+    with pytest.raises(ValueError, match="forced second"):
+        await h.stages._lift_seeds(STEM, 0, reviewed, workspace)
+    assert "tickets/alpha-seed/ticket.md" in h.main_files()
+    assert "tickets/beta-seed/ticket.md" not in h.main_files()
+    assert not validate_batch(
+        seeds, repo=repo, plan=PLAN, config=h.config,
+        events=h.journal.read(), seeder=STEM)
+
+    with pytest.raises(ValueError, match="forced second"):
+        await h.stages._lift_seeds(STEM, 1, reviewed, workspace)
+    assert not validate_batch(
+        seeds, repo=repo, plan=PLAN, config=h.config,
+        events=h.journal.read(), seeder=STEM)
+
+    monkeypatch.setattr(Intake, "commit", original)
+    report = await h.stages._lift_seeds(STEM, 2, reviewed, workspace)
+
+    assert report.verdict == "pass"
+    assert git(repo, env, "show", "main:tickets/alpha-seed/ticket.md") == first
+    assert git(repo, env, "show", "main:tickets/beta-seed/ticket.md") == second
+    lifts = [event for event in h.journal.read()
+             if event.type == "signal" and event.body.get("kind") == SEED_LIFT_SIGNAL]
+    assert [event.body["run_seq"] for event in lifts] == [2]
+
+
+async def test_an_ordinary_run_emits_no_seed_review_effect_or_lift_signal(repo, env):
+    author(repo, ticket())
+    agent = Agent(answer("implemented"), review("approve"),
+                  actions=[implementer(env, WIDGET)])
+    drive = Drive(repo, env, agent)
+
+    assert await drive.run() == EXIT_OK
+
+    events = drive.events()
+    assert not any(event.type == "signal" and event.body.get("kind") == SEED_LIFT_SIGNAL
+                   for event in events)
+    assert not any(event.key and event.key.startswith("llm/requisition_review/")
+                   for event in events)
 
 
 def premise_failed(env):

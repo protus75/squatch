@@ -55,7 +55,10 @@ from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
 from squatch.seams import Clock, Filesystem, ProcessExec
 from squatch.specs import DATA_MARKER, DataBlock, RenderRefused, Spec, load_spec
-from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, Ticket, parse_frontmatter
+from squatch.seeds import (SEED_LIFT_SIGNAL, Seed, authored_seeds, blob_sha, reviewed_seeds,
+                           validate_batch)
+from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, Ticket,
+                             lint_ticket, parse_frontmatter, stamp)
 
 SPECS_DIR = Path(squatch.__file__).resolve().parent.parent / "specs"
 RUN_RECORD = "run.md"
@@ -121,6 +124,8 @@ class CheckEntry(ClosedModel):
     code: str
     verdict: Literal["pass", "fail"]
     severity: Severity
+    path: str | None = None
+    sha: str | None = None
     # A failing code the ticket's gate_bypass valve named: recorded, never hidden.
     bypassed: bool = False
     findings: tuple[Finding, ...] = ()
@@ -274,10 +279,12 @@ class Verification:
 
     def __init__(self, git: Git, repo: Path, process: ProcessExec, ticket: Ticket,
                  env: Mapping[str, str], redact: Redactor, *, box: Box | None = None,
-                 base_worktree: Path | None = None, run_seq: int | None = None):
+                 base_worktree: Path | None = None, run_seq: int | None = None,
+                 allow_empty: bool = False):
         self._git, self._repo, self._process, self._ticket = git, repo, process, ticket
         self._env, self._redact = env, redact
         self._box, self._base_worktree, self._run_seq = box, base_worktree, run_seq
+        self._allow_empty = allow_empty
         self.commands: tuple[VerificationCommand, ...] = ()
 
     async def check(self, slip: PackingSlip, workspace: Path) -> GateReport:
@@ -290,7 +297,7 @@ class Verification:
                 "answer implemented for a diff",
                 message=f"already_satisfied claimed but the branch carries a committed diff: "
                         f"{', '.join(names)}"))
-        if slip.verdict != "already_satisfied" and not names:
+        if slip.verdict != "already_satisfied" and not names and not self._allow_empty:
             findings.append(Finding(
                 code=self.code, message="the branch carries no committed diff",
                 paved_road="commit the work on the branch before answering; only the "
@@ -528,13 +535,24 @@ class Stages:
                            "implementer answered the ticket as written")],
                 slip, None, None, worktree, base, "implement", slip.summary, result.cost)
 
-        invoice = await self._check(ticket, slip, worktree, run_seq)
+        invoice, reviewed = await self._check(ticket, slip, worktree, run_seq)
+        seeds, seed_findings = ((await reviewed_seeds(
+            worktree, stem, self._git, reviewed)) if invoice.passed else ((), []))
+        if seed_findings:
+            invoice = invoice.model_copy(update={"checks": invoice.checks + (CheckEntry(
+                code="requisition_review", verdict="fail", severity="hard",
+                findings=tuple(seed_findings)),)})
         await self._lift(stem, run_seq, "checks",
                          files={CHECKS: invoice.model_dump_json(indent=2).encode()})
         soft = list(invoice.soft_findings)
         if not invoice.passed:
             return Delivery("gate_failed", list(invoice.hard_findings) + soft, slip, invoice,
                             None, worktree, base, "check", None, result.cost)
+        if seeds:
+            lift_report = await self._lift_seeds(stem, run_seq, reviewed, worktree)
+            if lift_report.verdict == "fail":
+                return Delivery("gate_failed", list(lift_report.findings) + soft, slip, invoice,
+                                None, worktree, base, "check", None, result.cost)
         if slip.verdict == "already_satisfied":
             return Delivery("already_satisfied", soft, slip, invoice, None, worktree, base,
                             "check", None, result.cost)
@@ -738,17 +756,19 @@ class Stages:
     # -- Check --
 
     async def _check(self, ticket: Ticket, slip: PackingSlip, worktree: Path,
-                     run_seq: int) -> Invoice:
+                     run_seq: int) -> tuple[Invoice, dict[str, str]]:
         stem = ticket.stem
         bypassed = {code for code, _ in ticket.gate_bypass}
 
         async def action() -> dict:
+            seeds = await authored_seeds(worktree, stem, self._git)
+            seed_entries = await self._seed_checks(ticket, slip, worktree, run_seq, seeds)
             verification = Verification(
                 self._git, self._repo, self._process, ticket, self._child_env, self._redact,
                 box=self._box,
                 base_worktree=(self._repo / self._config.worktree_root
                                / f"{stem}-base-{run_seq}"),
-                run_seq=run_seq)
+                run_seq=run_seq, allow_empty=bool(seeds))
             gates = (ScopeFence(self._git, self._repo, ticket), verification,
                      RunRecord(), DiffBudget(self._git, self._repo))
             # The one valve (section 7): a bypassed code fails soft, recorded forever.
@@ -758,13 +778,58 @@ class Stages:
             names = await self._git.diff_names(self._repo, slip.base, slip.branch)
             invoice = build_invoice(run, slip, names, bypassed=bypassed, version=CHECK_VERSION,
                                     verification=verification)
+            if seed_entries:
+                invoice = invoice.model_copy(
+                    update={"checks": tuple(seed_entries) + invoice.checks})
             self._log.event("check", stage="check", ticket=stem, run_seq=run_seq,
                             passed=invoice.passed,
                             findings=[f.model_dump() for f in invoice.hard_findings])
-            return invoice.model_dump(mode="json")
+            reviewed = {
+                seed.stem: seed.sha for seed in seeds
+                if any(entry.code == "requisition_review" and entry.verdict == "pass"
+                       and entry.path == seed.path and entry.sha == seed.sha
+                       for entry in seed_entries)
+            }
+            return {"invoice": invoice.model_dump(mode="json"),
+                    "reviewed_seeds": reviewed}
 
         data = await self._effects.run(action, key=effect_key("check", stem, run_seq), ticket=stem)
-        return Invoice.model_validate(data)
+        return Invoice.model_validate(data["invoice"]), dict(data["reviewed_seeds"])
+
+    async def _seed_checks(self, ticket: Ticket, slip: PackingSlip, worktree: Path,
+                           run_seq: int, seeds: tuple[Seed, ...]) -> list[CheckEntry]:
+        if not seeds:
+            return []
+        plan_path = worktree / PLAN_FILE
+        findings = validate_batch(
+            seeds, repo=self._repo,
+            plan=plan_path.read_text() if plan_path.is_file() else None,
+            config=self._config, events=self._effects.journal.read(), seeder=ticket.stem)
+        if findings:
+            return [CheckEntry(code="requisition_review", verdict="fail", severity="hard",
+                               findings=tuple(findings))]
+
+        # Imported here because requisition owns Stages' standing-render seam.
+        from squatch.requisition import RequisitionGate, RequisitionReview
+
+        review = RequisitionReview(
+            repo=worktree, git=self._git,
+            stages=_SeedRenderStages(self, worktree),
+            llm=self._llm, spool=self._spool, log=self._log, clock=self._clock)
+        entries = []
+        for seed in seeds:
+            gate = RequisitionGate(
+                review, lambda artifact, workspace, seed=seed: ((seed.stem, seed.text),),
+                run_seq=run_seq)
+            report = (await run_gates((gate,), slip, worktree)).results[0].report
+            path = seed.path
+            decorated = tuple(finding.model_copy(update={"path": path})
+                              for finding in report.findings)
+            entries.append(CheckEntry(
+                code=report.code, verdict=report.verdict, severity="hard", path=path,
+                sha=seed.sha,
+                findings=decorated))
+        return entries
 
     # -- Review --
 
@@ -815,6 +880,102 @@ class Stages:
             repo=self._repo, git=self._git, fs=self._fs, effects=self._effects,
             redact=self._redact, stem=stem, run_seq=run_seq, kind=kind,
             worktree=worktree, files=files)
+
+    async def _lift_seeds(self, stem: str, run_seq: int, reviewed: dict[str, str],
+                          worktree: Path) -> GateReport:
+        """One effect, using Intake's one ticket-plane lane for every seed."""
+        seeds, findings = await reviewed_seeds(worktree, stem, self._git, reviewed)
+        if findings:
+            return GateReport(code="requisition_review", verdict="fail",
+                              findings=tuple(findings))
+
+        async def action() -> dict:
+            intake = Intake(repo=self._repo, git=self._git,
+                            journal=self._effects.journal, fs=self._fs)
+            batch = {seed.stem for seed in seeds}
+            resolve = lambda candidate: (candidate in batch or (
+                self._repo / TICKETS_DIR / candidate / TICKET_FILE).is_file())
+            plan_path = self._repo / PLAN_FILE
+            plan = plan_path.read_text() if plan_path.is_file() else None
+            replayed: dict[str, str] = {}
+            prepared: dict[str, str] = {}
+
+            # Nothing fallible about schema or reviewed-byte identity remains
+            # after the first ticket-plane commit.
+            for seed in seeds:
+                text = stamp(seed.text, source="seed", state="confirmed")
+                lint_ticket(text, stem=seed.stem, repo=self._repo,
+                            plan=plan, resolve_stem=resolve)
+                if blob_sha(text) != seed.sha:
+                    raise ValueError(f"{seed.path}: intake would change the reviewed seed bytes")
+                prepared[seed.stem] = text
+                try:
+                    current = await self._git.rev_parse(self._repo, f"HEAD:{seed.path}")
+                except GitError:
+                    current = None
+                if current == seed.sha:
+                    commit = next((event.body.get("commit")
+                                   for event in reversed(tuple(self._effects.journal.read()))
+                                   if event.type == "signal" and event.ticket == seed.stem
+                                   and event.body.get("kind") == "ticket_intake"
+                                   and event.body.get("source") == "seed"), None)
+                    if not isinstance(commit, str):
+                        raise ValueError(f"{seed.path}: prior seed bytes have no intake commit")
+                    replayed[seed.stem] = commit
+
+            commits = {}
+            for seed in seeds:
+                if seed.stem in replayed:
+                    commits[seed.stem] = replayed[seed.stem]
+                    continue
+                path = self._repo / seed.path
+                original = path.read_bytes() if path.is_file() else None
+                self._fs.write(path, prepared[seed.stem].encode())
+                try:
+                    committed = await intake.commit(
+                        seed.stem, resolve_stem=resolve, seeder=stem,
+                        source="seed", state="confirmed")
+                except Exception:
+                    dirty = next((entry for entry in await self._git.status(self._repo)
+                                  if entry.path.split(" -> ")[-1] == seed.path), None)
+                    if dirty is not None and dirty.code != "??":
+                        await self._git.restore(self._repo, [seed.path], source="HEAD")
+                    elif original is None:
+                        self._fs.unlink(path)
+                    else:
+                        self._fs.write(path, original)
+                    raise
+                commits[seed.stem] = committed.sha
+            lifted = {seed.stem: seed.sha for seed in seeds}
+            self._effects.journal.append(
+                "signal", {"kind": SEED_LIFT_SIGNAL, "seeder": stem,
+                           "run_seq": run_seq, "seeds": lifted}, ticket=stem)
+            return {"commits": commits, "seeds": lifted}
+
+        await self._effects.run(
+            action, key=effect_key("lift", stem, run_seq, "seeds"), ticket=stem)
+        return GateReport(code="requisition_review", verdict="pass")
+
+
+class _SeedRenderStages:
+    """Render a seed's standing Implement prompt from its authoring worktree."""
+
+    def __init__(self, stages: Stages, worktree: Path):
+        self._stages = stages
+        self._worktree = worktree
+
+    def render_implement(self, ticket: Ticket, *, effort: Effort,
+                         ticket_text: str | None = None) -> str:
+        inputs = ImplementInput(
+            stem=ticket.stem,
+            ticket=ticket_text if ticket_text is not None else (
+                self._worktree / TICKETS_DIR / ticket.stem / TICKET_FILE).read_text(),
+            context=tuple((path, (self._worktree / path).read_text(errors="replace"))
+                          for path in ticket.context),
+            plan_sections=ticket.plan_sections,
+            produced_by_spec_version="ticket", produced_at_sha="standing")
+        return self._stages._render_implement(
+            ticket, inputs, effort=effort, prior=None, findings=())
 
 
 async def lift_ticket_files(*, repo: Path, git: Git, fs: Filesystem, effects: Effects,

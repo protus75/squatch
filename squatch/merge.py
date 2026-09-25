@@ -33,6 +33,7 @@ from squatch.journal import Journal
 from squatch.providers import child_env
 from squatch.redact import Redactor
 from squatch.runner import SETTLED
+from squatch.seeds import SEED_LIFT_SIGNAL, blob_sha
 from squatch.seams import Clock, Filesystem, ProcessExec
 from squatch.stages import (REVIEW, Delivery, DiffBudget, Invoice, PackingSlip, RunRecord,
                             ScopeFence, Stages, Verification, build_invoice, compose, load_review)
@@ -48,6 +49,8 @@ REBASE_ROAD = ("re-run the stem: the refused rebase was aborted, so the branch s
                "head and a fresh run re-implements against the moved main")
 APPROVAL_ROAD = ("an admission needs an `approve` verdict pinned to the branch head it admits; "
                  "re-run the stem so Review approves the current head")
+SEED_SAFETY_ROAD = ("re-run the stem: a lifted seed has no recorded approval for the bytes "
+                    "on main")
 
 
 
@@ -93,6 +96,64 @@ class CodeLane:
                           findings=findings)
 
 
+class SeedSafety:
+    """The lifted bytes on main still match this run's per-seed approvals."""
+
+    code = "requisition_review"
+    paved_road = SEED_SAFETY_ROAD
+
+    def __init__(self, git: Git, repo: Path, journal: Journal, invoice: Invoice | None, *,
+                 run_seq: int):
+        self._git, self._repo, self._journal = git, Path(repo), journal
+        self._invoice = invoice
+        self._run_seq = run_seq
+
+    async def check(self, slip: PackingSlip, workspace: Path) -> GateReport:
+        signal = next((event for event in reversed(tuple(self._journal.read()))
+                       if event.type == "signal" and event.ticket == slip.stem
+                       and event.body.get("kind") == SEED_LIFT_SIGNAL
+                       and event.body.get("run_seq") == self._run_seq), None)
+        if signal is None:
+            return GateReport(code=self.code, verdict="pass")
+        seeds = signal.body.get("seeds")
+        if not isinstance(seeds, dict):
+            return self._failed(None, "seed_lift signal has no seed map")
+        checks_rel = f"{TICKETS_DIR}/{slip.stem}/checks.json"
+        try:
+            checks_sha = await self._git.rev_parse(self._repo, f"main:{checks_rel}")
+        except GitError:
+            return self._failed(checks_rel, "seed checks are not committed on main")
+        if self._invoice is None:
+            return self._failed(checks_rel, "the seeding delivery carries no seed checks")
+        recorded_sha = blob_sha(self._invoice.model_dump_json(indent=2))
+        if checks_sha != recorded_sha:
+            return self._failed(
+                checks_rel,
+                f"committed seed checks blob {checks_sha} does not match this run's "
+                f"invoice blob {recorded_sha}")
+        findings = []
+        for stem, expected in sorted(seeds.items()):
+            path = f"{TICKETS_DIR}/{stem}/ticket.md"
+            try:
+                actual = await self._git.rev_parse(self._repo, f"main:{path}")
+            except GitError:
+                actual = None
+            approved = any(entry.code == self.code and entry.path == path
+                           and entry.sha == expected
+                           and entry.verdict == "pass" for entry in self._invoice.checks)
+            if actual != expected or not approved:
+                findings.append(Finding(
+                    code=self.code, path=path, paved_road=self.paved_road,
+                    message=(f"lifted seed approval is stale: main blob {actual or 'missing'}, "
+                             f"lifted blob {expected}, passing check {approved}")))
+        return GateReport(code=self.code, verdict="fail" if findings else "pass",
+                          findings=tuple(findings))
+
+    def _failed(self, path: str | None, message: str) -> GateReport:
+        return GateReport(code=self.code, verdict="fail", findings=(Finding(
+            code=self.code, path=path, paved_road=self.paved_road, message=message),))
+
+
 class Merge:
     def __init__(self, *, repo: Path, config: Config, git: Git, process: ProcessExec,
                  fs: Filesystem, effects: Effects, journal: Journal, log: EngineLog,
@@ -120,7 +181,10 @@ class Merge:
         # nothing was implemented, so nothing is reviewed or integrated.
         reviewed = None if slip.verdict == "already_satisfied" else head
         findings = self._approval(stem, head) if reviewed else []
-        findings += (await run_gates((CodeLane(self._git, self._repo),), slip, worktree,
+        safety = (CodeLane(self._git, self._repo),
+                  SeedSafety(self._git, self._repo, self._journal, delivery.invoice,
+                             run_seq=run_seq))
+        findings += (await run_gates(safety, slip, worktree,
                                      severity=self._severity(ticket))).hard_failures
         if findings:
             return self._blocked(stem, run_seq, findings)
@@ -141,7 +205,7 @@ class Merge:
             return self._blocked(stem, run_seq, list(invoice.hard_findings) + soft)
 
         commit = None
-        if reviewed is not None:
+        if reviewed is not None and invoice.changed_files:
             commit = (await self._squash(ticket, invoice, reviewed, run_seq))["commit"]
         await self._retire(stem, worktree, run_seq)
         self._journal.append("state_transition", {
@@ -222,7 +286,7 @@ class Merge:
                 box=self._box,
                 base_worktree=(self._repo / self._config.worktree_root
                                / f"{stem}-base-{run_seq}"),
-                run_seq=run_seq)
+                run_seq=run_seq, allow_empty=self._seed_lift(stem, run_seq) is not None)
             gates = (ScopeFence(self._git, self._repo, ticket), RunRecord(),
                      DiffBudget(self._git, self._repo), verification)
             run = await run_gates(gates, candidate, worktree, severity=self._severity(ticket))
@@ -236,6 +300,12 @@ class Merge:
 
         data = await self._effects.run(action, key=effect_key("regate", stem, run_seq), ticket=stem)
         return Invoice.model_validate(data)
+
+    def _seed_lift(self, stem: str, run_seq: int):
+        return next((event for event in reversed(tuple(self._journal.read()))
+                     if event.type == "signal" and event.ticket == stem
+                     and event.body.get("kind") == SEED_LIFT_SIGNAL
+                     and event.body.get("run_seq") == run_seq), None)
 
     # -- squash + trailers, then retire the branch --
 

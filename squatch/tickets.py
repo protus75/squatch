@@ -757,7 +757,7 @@ class Intake:
         return []
 
     async def commit(self, stem: str, *, resolve_stem: ResolveStem | None = None,
-                     **stamps: str) -> Committed:
+                     seeder: str | None = None, **stamps: str) -> Committed:
         """Stamp, lint, commit `tickets/<stem>/ticket.md` through the
         ticket-plane lane, and journal the intake signal. The machine's own
         authoring paths call this with their declared source; `run` is the
@@ -768,10 +768,11 @@ class Intake:
                              resolve_stem=resolve)
         if ticket.source is None or ticket.state is None:
             raise ValueError(f"{stem}: a ticket commits with both `source` and `state` set")
-        return await self.commit_lane(stem, text, source=ticket.source, state=ticket.state)
+        return await self.commit_lane(
+            stem, text, source=ticket.source, state=ticket.state, seeder=seeder)
 
     async def commit_lane(self, stem: str, text: str, *, source: str | None,
-                          state: str) -> Committed:
+                          state: str, seeder: str | None = None) -> Committed:
         """The one ticket-plane write, pathspec commit, and intake signal.
 
         Callers validate before entering this lane when the operation requires
@@ -783,9 +784,12 @@ class Intake:
         # Pathspec commit: the lane is fenced to this one path, so operator
         # pre-staged bytes never ride a ticket-plane commit onto main.
         sha = await self._git.commit(self._repo, f"squatch({stem}): ticket", [self._rel(stem)])
-        self._journal.append("signal", {
+        body = {
             "kind": INTAKE_SIGNAL, "source": source, "state": state,
-            "commit": sha, "path": self._rel(stem)}, ticket=stem)
+            "commit": sha, "path": self._rel(stem)}
+        if seeder is not None:
+            body["seeder"] = seeder
+        self._journal.append("signal", body, ticket=stem)
         return Committed(stem, sha, source or "", state)
 
 
