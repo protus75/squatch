@@ -644,18 +644,10 @@ class Intake:
         return path.read_text() if path.is_file() else None
 
     def _stems(self) -> list[str]:
-        root = self._repo / TICKETS_DIR
-        if not root.is_dir():
-            return []
-        return sorted(d.name for d in root.iterdir() if (d / TICKET_FILE).is_file())
+        return on_disk_stems(self._repo)
 
     async def pending(self) -> list[str]:
-        """Stems whose `ticket.md` the working tree holds but HEAD does not
-        (untracked or modified), in stem order."""
-        dirty = [e.path.split(" -> ")[-1] for e in await self._git.status(self._repo)]
-        return [stem for stem in self._stems()
-                if any(self._rel(stem) == p or (p.endswith("/") and self._rel(stem).startswith(p))
-                       for p in dirty)]
+        return await pending_stems(self._repo, self._git)
 
     def _predecessor_source(self, stem: str) -> str | None:
         """The stem's source per its latest intake signal (journal-derived)."""
@@ -698,7 +690,7 @@ class Intake:
         refused: list[Refused] = []
         done: set[str] = set()
         for stem in _topological(pending, graph):
-            cycle = _cycle_through(stem, graph)
+            cycle = cycle_through(stem, graph)
             if cycle:
                 refused.append(Refused(stem, (_finding(
                     f"dependency cycle: {' -> '.join(cycle)}",
@@ -758,6 +750,24 @@ class Intake:
         return Committed(stem, sha, ticket.source, ticket.state)
 
 
+def on_disk_stems(repo: Path) -> list[str]:
+    """Every `tickets/<stem>/ticket.md` the working tree holds, in stem order."""
+    root = Path(repo) / TICKETS_DIR
+    if not root.is_dir():
+        return []
+    return sorted(d.name for d in root.iterdir() if (d / TICKET_FILE).is_file())
+
+
+async def pending_stems(repo: Path, git: Git) -> list[str]:
+    """Stems whose `ticket.md` the working tree holds but HEAD does not
+    (untracked or modified), in stem order."""
+    dirty = [e.path.split(" -> ")[-1] for e in await git.status(repo)]
+    return [stem for stem in on_disk_stems(repo)
+            if any(f"{TICKETS_DIR}/{stem}/{TICKET_FILE}" == p
+                   or (p.endswith("/") and f"{TICKETS_DIR}/{stem}/{TICKET_FILE}".startswith(p))
+                   for p in dirty)]
+
+
 def _topological(stems: list[str], graph: Mapping[str, tuple[str, ...]]) -> list[str]:
     """Dependencies before dependents, stem order as the tiebreak; a cycle
     member falls through in stem order (refused separately)."""
@@ -776,7 +786,7 @@ def _topological(stems: list[str], graph: Mapping[str, tuple[str, ...]]) -> list
     return order
 
 
-def _cycle_through(stem: str, graph: Mapping[str, tuple[str, ...]]) -> list[str] | None:
+def cycle_through(stem: str, graph: Mapping[str, tuple[str, ...]]) -> list[str] | None:
     """A dependency path from `stem` back to itself, or None."""
     stack: list[tuple[str, list[str]]] = [(stem, [stem])]
     seen: set[str] = set()

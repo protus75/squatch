@@ -1,26 +1,30 @@
-"""The `run <stem>` scaffold: intake, single-writer lock, dispatch (SQUATCH_PLAN.md
-sections 9, 11, 18; section 19, Phase 1).
+"""The scaffold verbs' shared spine: the lock-held session and one stem's
+dispatch (SQUATCH_PLAN.md sections 9, 11, 18; section 19, Phase 1).
 
-One process holds the single-writer lock for the whole verb: take the lock,
-open the journal, reconcile on entry (reap any orphaned in-flight run an
-interrupted predecessor left, section 11.2), intake pending hand-authored
-tickets through the ticket-plane lane, validate the named stem against the committed ticket plane
-and its eligibility (`confirmed`, every `depends` merged, not merged), journal
-the run's `running` transition, and hand the stem to the stage-dispatch seam.
-The stages and the merge admission live BEHIND that seam (`Pipeline`, built
-over the lock-held journal by the factory the caller supplies); this module
-owns the run's terminal `state_transition` write for every non-ok outcome
-(the section 9 ownership law) and the section 18 exit-code contract: 0 = the
-ticket settled, 1 = a non-ok ticket terminal (ticket and branch left in
-place; the engine log is where its detail lives in Phase 1), 2 = an
-engine-plane refusal (lock, config, journal, eligibility, and any FAULT
-escaping the stage seam -- named and stopped, never a traceback; the run it
-interrupted stays `running` with no terminal until reconcile-on-entry reaps
-it, section 11.2).
+One process holds the single-writer lock for the whole verb. `Runner.session`
+takes the lock, opens the journal, reconciles on entry (reaping any orphaned
+in-flight run an interrupted predecessor left, section 11.2), and intakes
+pending hand-authored tickets through the ticket-plane lane. `Runner.dispatch`
+drives ONE validated stem: it journals the run's `running` transition, hands
+the stem to the stage-dispatch seam, and owns the run's terminal
+`state_transition` write for every non-ok outcome (the section 9 ownership
+law). `run <stem>` composes the two around one named stem; `drain`
+(`squatch.drain`) composes them around the eligibility sort it owns.
+
+The stages and the merge admission live BEHIND the seam (`Pipeline`, built
+over the lock-held journal by the factory the caller supplies). The section
+18 exit-code contract: 0 = settled, 1 = a non-ok ticket terminal (ticket and
+branch left in place; the engine log is where its detail lives in Phase 1),
+2 = an engine-plane refusal (lock, config, journal, eligibility, and any
+FAULT escaping the stage seam -- named and stopped, never a traceback; the
+run it interrupted stays `running` with no terminal until reconcile-on-entry
+reaps it, section 11.2).
 """
 
 import traceback
-from collections.abc import Callable, Iterable
+from collections.abc import AsyncIterator, Callable, Iterable
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -75,6 +79,25 @@ def merged_stems(events: Iterable[Event]) -> frozenset[str]:
                      and e.ticket is not None)
 
 
+@dataclass(frozen=True)
+class Session:
+    """What a verb holds once it is the writer: the open journal and the
+    intake result of its entry."""
+
+    journal: Journal
+    intake: IntakeResult
+
+
+@dataclass(frozen=True)
+class Dispatched:
+    run_seq: int
+    outcome: str
+
+    @property
+    def settled(self) -> bool:
+        return self.outcome in SETTLED
+
+
 class Runner:
     def __init__(self, *, repo: Path, config: Config, git: Git, fs: Filesystem, clock: Clock,
                  instance_id: str, pipeline: PipelineFactory, log: EngineLog, report: Report):
@@ -92,7 +115,13 @@ class Runner:
     def state_dir(self) -> Path:
         return self._repo / self._config.state_dir
 
-    async def run(self, stem: str) -> int:
+    @property
+    def log_path(self) -> Path:
+        return self._log.path
+
+    @asynccontextmanager
+    async def session(self) -> AsyncIterator[Session]:
+        """Lock -> journal -> reconcile -> intake; the lock is held until exit."""
         lock = Lockfile(self.state_dir, instance_id=self._instance_id, clock=self._clock)
         try:
             lock.acquire()
@@ -107,18 +136,26 @@ class Runner:
                               "a corrupt record is never skipped; inspect the named segment "
                               "line and repair it from the engine log before re-running") from None
             with journal:
-                return await self._locked(stem, journal)
+                await reconcile(repo=self._repo, config=self._config, git=self._git,
+                                journal=journal, log=self._log, report=self._report)
+                intake = Intake(repo=self._repo, git=self._git, journal=journal, fs=self._fs)
+                result = await intake.run()
+                self._report_intake(result)
+                yield Session(journal, result)
         finally:
             lock.release()
 
-    async def _locked(self, stem: str, journal: Journal) -> int:
-        await reconcile(repo=self._repo, config=self._config, git=self._git, journal=journal,
-                        log=self._log, report=self._report)
-        intake = Intake(repo=self._repo, git=self._git, journal=journal, fs=self._fs)
-        result = await intake.run()
-        self._report_intake(result)
-        ticket = self._validated(stem, result)
-        self._eligible(ticket, journal)
+    async def run(self, stem: str) -> int:
+        async with self.session() as session:
+            ticket = self.validated(stem, session.intake)
+            self._eligible(ticket, session.journal)
+            run = await self.dispatch(ticket, session.journal)
+            return EXIT_OK if run.settled else EXIT_TICKET
+
+    async def dispatch(self, ticket: Ticket, journal: Journal) -> Dispatched:
+        """One run of a validated, eligible stem under the held lock: the
+        `running` transition, the stage seam, and the non-ok terminal write."""
+        stem = ticket.stem
         run_seq = run_sequence(journal, stem)
         journal.append("state_transition", {"to": "running", "run_seq": run_seq}, ticket=stem)
         try:
@@ -132,11 +169,11 @@ class Runner:
             raise self._fault(stem, run_seq, e) from None
         if outcome in SETTLED:
             self._report(f"settled: {stem} run {run_seq} ended {outcome}")
-            return EXIT_OK
+            return Dispatched(run_seq, outcome)
         journal.append("state_transition", {"to": outcome, "run_seq": run_seq}, ticket=stem)
         self._report(f"stopped: {stem} run {run_seq} ended {outcome}; ticket and branch left "
                      f"in place; detail: {self._log.path}")
-        return EXIT_TICKET
+        return Dispatched(run_seq, outcome)
 
     def _fault(self, stem: str, run_seq: int, e: Exception) -> Refusal:
         """A fault outside the stage vocabulary: the traceback goes to the
@@ -163,7 +200,7 @@ class Runner:
     def _path(self, stem: str) -> Path:
         return self._repo / TICKETS_DIR / stem / TICKET_FILE
 
-    def _validated(self, stem: str, intake: IntakeResult) -> Ticket:
+    def validated(self, stem: str, intake: IntakeResult) -> Ticket:
         """The stem as the committed ticket plane holds it, re-linted."""
         refused = next((r for r in intake.refused if r.stem == stem), None)
         if refused is not None:

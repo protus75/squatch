@@ -346,7 +346,8 @@ def test_the_process_exits_1_on_a_non_ok_terminal_and_2_on_a_refusal(repo, env):
 def test_the_process_reports_a_fault_as_a_refusal_not_a_traceback(repo, env):
     author(repo, ticket())
     out = StringIO()
-    rc = main(["run", STEM], cwd=repo, env=env, out=out, pipeline=Raising(RuntimeError("boom")))
+    rc = main(["run", STEM], cwd=repo, env=env, out=out,
+              pipeline=lambda journal: Raising(RuntimeError("boom")))
     assert rc == EXIT_REFUSED
     assert f"\nrefused: {STEM} run 0 faulted: RuntimeError: boom\n" in out.getvalue()
     assert "paved road:" in out.getvalue() and "Traceback" not in out.getvalue()

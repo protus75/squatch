@@ -151,7 +151,9 @@ class FakePipeline:
 
 def cli(checkout: Path, *argv: str, pipeline=None) -> tuple[int, str]:
     out = StringIO()
-    rc = main(list(argv), cwd=checkout, env=git_env(checkout.parent), out=out, pipeline=pipeline)
+    # The seam is a factory over the lock-held journal; a scripted fake ignores it.
+    rc = main(list(argv), cwd=checkout, env=git_env(checkout.parent), out=out,
+              pipeline=None if pipeline is None else (lambda journal: pipeline))
     return rc, out.getvalue()
 
 
