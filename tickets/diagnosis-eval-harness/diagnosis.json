@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "split",
+  "lessons": [
+    "The work itself looked done: the implementer reported the full suite green (620 passed). The only failure was the diff_budget gate: 39 files / 1553 lines against a cap of 30 files / 1500 lines.",
+    "The ticket can never fit one attempt. It requires at least 12 fixtures of 3 files each, which is 36 files before eval/diagnose.py and the tests. Trimming the diff cannot fix this, so the ticket must be split.",
+    "Suggested split: (1) eval/diagnose.py plus tests/test_eval_diagnose.py, testing against fixtures built in tmp_path; (2) and (3) two fixture tickets of about 6 fixtures each (about 18 files each), both depending on (1).",
+    "Put the checks on the committed fixture set (at least 12 fixtures, at least 2 per verdict, the report run with agreement_rate 1.0) in the last fixture ticket, so no earlier ticket's tests fail on a partial fixture set.",
+    "Keep this attempt's design: the _FixtureEffect wrapper that sets the fixture name as the effect-key stem and checks the budget before each fresh call only, the per-journal run_seq count, and the closed Expected/Report schemas. The harness file alone is 471 lines, well under the budget."
+  ],
+  "reason": "The ticket's required fixture set alone (at least 36 files) exceeds the 30-file diff budget, so no single attempt can pass the diff_budget gate.",
+  "detail": null
+}
