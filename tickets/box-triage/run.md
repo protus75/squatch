@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The prior attempt's review finding was confirmed against the landed seams. `Driver.run` fixes a ticket-less call's `stem` to `stage.surface`, and `LLMEffect` fixes the key shape to `llm/<stem>/<run_seq>/<surface>/<attempt>/<call_seq>`.
+The plan and ticket were amended after the prior attempt to require the landed universal key `llm/triage/<message seq>/triage/<pass>/<call_seq>`. Passing the message sequence as `run_seq` and the pass count as `attempt` satisfies it without changing the Driver or LLMEffect seams. Projection rows are admitted whole so a truncated prefix collision cannot authorize a tombstone link.
 
 ## Dead ends
-The ticket requires `llm/triage/<message id>/<pass>/<call_seq>`, but a triage stage with surface `triage` can only produce the landed ticket-less shape `llm/triage/<pass>/triage/<attempt>/<call_seq>`. Reaching the required shape needs a change to `squatch/driver.py` or `squatch/llmeffect.py`, both outside the scope fence, which the Definition of rejected explicitly makes premise failure. The untouched base suite was green: 696 tests passed.
+The prior implementation mapped pass to `run_seq` and message sequence to `attempt`; that produced the wrong universal key order and was replaced with the amended contract's mapping.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The ticket requires `llm/triage/<message id>/<pass>/<call_seq>`, but a triage st
 OpenAI / GPT-5 Codex; implement spec 1.1.
 
 ## Predicted vs actual
-Expected 90m; actual approximately 5m before the required rejection condition was confirmed.
+Expected 90m; actual approximately 25m, including base verification, prior-diff recovery, corrections, and the full verification pass.
