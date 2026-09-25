@@ -6,15 +6,18 @@ real temp repo through the real process seam, because "validates and commits"
 is a claim about git state.
 """
 
+import asyncio
 import os
 import textwrap
 from datetime import datetime, timezone
+from io import StringIO
 from pathlib import Path
 
 import pytest
 
+from squatch.__main__ import main
 from squatch.git import Git
-from squatch.journal import Journal
+from squatch.journal import Journal, read_events
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.tickets import (CODE, PLAN_FILE, Intake, Ticket, TicketLintError, lint_ticket,
                              parse_frontmatter)
@@ -434,6 +437,30 @@ async def test_bad_schema_ticket_is_refused_with_a_paved_road_and_left_uncommitt
     assert await git.rev_parse(repo, "HEAD") == head
     assert [e.path for e in await git.status(repo)] == ["tickets/"]
     assert list(journal.read()) == []
+
+
+def test_drain_holds_a_committed_bad_schema_ticket_without_dispatch(tmp_path, repo):
+    _, git, _ = asyncio.run(seeded(tmp_path, repo))
+    bad = GOOD.replace("priority: P1", "priority: P9").replace(
+        "## Verification\n```\nuv run pytest tests/test_widget.py\n```\n\n", "")
+    author(repo, "widget-parser", bad)
+    config = repo / "config.yaml"
+    config.write_text("schema_version: 1\nstate_dir: .state\nproviders: []\nrouting: []\n")
+    asyncio.run(git.add(repo, ["config.yaml", "tickets/widget-parser/ticket.md"]))
+    asyncio.run(git.commit(repo, "plant committed bad-schema ticket"))
+    lint_error = refusal(bad, repo)
+    finding = lint_error.findings[0]
+    out = StringIO()
+
+    assert main(["drain"], cwd=repo, env=_git_env(tmp_path), out=out) == 0
+
+    line = next(line for line in out.getvalue().splitlines()
+                if line.startswith("held: widget-parser "))
+    assert finding.code == CODE
+    assert finding.message in line
+    assert finding.paved_road in line
+    assert not [event for event in read_events(repo / ".state")
+                if event.type == "state_transition" and event.ticket == "widget-parser"]
 
 
 async def test_plan_file_in_context_is_refused_naming_the_plan_contract_road(tmp_path, repo):

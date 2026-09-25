@@ -20,4 +20,6 @@ class Member:
 # A member module exports a `MEMBERS` tuple of Member values. Strings are
 # import paths in production; accepting a module object keeps fixture groups
 # local to their tests without registering them globally.
-GROUPS: tuple[tuple[str, str | ModuleType], ...] = ()
+GROUPS: tuple[tuple[str, str | ModuleType], ...] = (
+    ("shakeout-tickets", "eval.shakeout.tickets_group"),
+)
