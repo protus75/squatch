@@ -1,15 +1,16 @@
 ## Outcome
-ok
+premise_failed
 
 ## Surprises / judgment calls
-The production Driver derives a ticket-less effect stem from the surface, so the harness wraps LLMEffect narrowly to substitute the fixture name while leaving the request ticket-less. Budget enforcement lives in that wrapper so every fresh call, including a schema re-prompt, is checked while journal replays remain free.
+The prior attempt's unresolved diff-budget gate is mechanically incompatible with the unchanged acceptance criteria. At least 12 fixture directories times the three required files per fixture is 36 changed files before adding `eval/diagnose.py` and `tests/test_eval_diagnose.py`, while the gate permits at most 30 files. I treated the required split as an authoring defect rather than recreating a known-unmergeable diff.
 
 ## Dead ends
+The untouched base suite passed with 608 tests. The ticket-specific verification cannot run because its required scoped files do not exist on the untouched base; implementing them cannot clear the carried diff-budget finding within this ticket.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex, GPT-5.
+OpenAI / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual about 35m.
+Expected 90m; actual about 5m to verify the clean base and prove the file-count contradiction.
