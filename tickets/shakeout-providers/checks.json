@@ -1,0 +1,122 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "e222708ca8c0dcb75cdca2c286cfdefa7f3f82e5",
+  "stem": "shakeout-providers",
+  "branch": "shakeout-providers",
+  "base": "d48b5b086d1ebf5d1632aed26cc7a28635bf1df6",
+  "head": "e222708ca8c0dcb75cdca2c286cfdefa7f3f82e5",
+  "changed_files": [
+    "eval/shakeout/providers_group.py",
+    "eval/shakeout/registry.py",
+    "squatch/driver.py",
+    "squatch/providers.py",
+    "tests/test_driver.py",
+    "tests/test_providers.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_providers.py",
+            "tests/test_driver.py",
+            "tests/test_shakeout.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "eval.shakeout",
+            "run",
+            "--outbox",
+            "tickets/shakeout-providers",
+            "--prior",
+            "tickets/shakeout-merge/shakeout-report.json"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "eval.shakeout",
+            "check",
+            "tickets/shakeout-providers/shakeout-report.json"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "git",
+            "diff",
+            "--name-only",
+            "main...shakeout-providers"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
