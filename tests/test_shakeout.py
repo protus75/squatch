@@ -258,3 +258,26 @@ def test_bench_initial_commit_is_reproducible(tmp_path):
     first = Bench.make(tmp_path / "first", fake=FakeLLM(), clock=Clock())
     second = Bench.make(tmp_path / "second", fake=FakeLLM(), clock=Clock())
     assert first.head() == second.head()
+
+
+def test_bench_reconfigures_the_production_graph_without_moving_state(tmp_path):
+    bench = Bench.make(tmp_path / "bench", fake=FakeLLM(), clock=Clock())
+    original_runner = bench.runner
+    replacement = bench.config.model_copy(update={
+        "caps": bench.config.caps.model_copy(update={"retry": 1}),
+    })
+
+    bench.configure(config=replacement)
+
+    assert bench.config is replacement
+    assert bench.runner is not original_runner
+    assert bench.runner._config is replacement
+    assert bench._drain._config is replacement
+
+
+def test_bench_reconfiguration_refuses_a_different_state_dir(tmp_path):
+    bench = Bench.make(tmp_path / "bench", fake=FakeLLM(), clock=Clock())
+    replacement = bench.config.model_copy(update={"state_dir": Path("other-state")})
+
+    with pytest.raises(ValueError, match="preserve the bench state_dir"):
+        bench.configure(config=replacement)

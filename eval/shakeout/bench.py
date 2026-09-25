@@ -5,7 +5,7 @@ import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from squatch.config import load
+from squatch.config import Config, load
 from squatch.drain import Drain
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
@@ -62,8 +62,12 @@ class Bench:
         self.git = Git(self.process, env=child_env(self.env, set()), timeout=GIT_TIMEOUT)
         self.lines: list[str] = []
         self._last_run: tuple[str, int] | None = None
+        self._configure_runtime()
+
+    def _configure_runtime(self) -> None:
+        """Rebuild the production object graph around the selected seams."""
         redact = Redactor.from_config(self.config, self.env)
-        log = EngineLog(self.state_dir, clock=clock, redact=redact)
+        log = EngineLog(self.state_dir, clock=self.clock, redact=redact)
 
         def factory(journal):
             pipeline = compose_pipeline(
@@ -80,11 +84,11 @@ class Bench:
             return pipeline
 
         self.runner = Runner(
-            repo=self.repo, config=self.config, git=self.git, fs=self.fs, clock=clock,
+            repo=self.repo, config=self.config, git=self.git, fs=self.fs, clock=self.clock,
             instance_id="shakeout", pipeline=factory, log=log, report=self.lines.append)
         self._drain = Drain(
             runner=self.runner, repo=self.repo, config=self.config, git=self.git,
-            clock=clock, process=self.process, env=self.env, report=self.lines.append)
+            clock=self.clock, process=self.process, env=self.env, report=self.lines.append)
 
     @classmethod
     def make(cls, tmp: Path, *, fake: FakeLLM, clock: Clock,
@@ -127,10 +131,19 @@ class Bench:
         path.write_text(text)
         return path
 
-    def configure(self, *, fake: FakeLLM, sleep: Sleep = asyncio.sleep) -> None:
-        """Select the scripted model and deadline wake seam for the next public run."""
-        self.fake = fake
-        self.sleep = sleep
+    def configure(self, *, fake: FakeLLM | None = None, sleep: Sleep | None = None,
+                  config: Config | None = None) -> None:
+        """Select model, timing, and routing seams for the next public run."""
+        if config is not None:
+            configured_state = (self.repo / config.state_dir).resolve()
+            if configured_state != self.state_dir.resolve():
+                raise ValueError("replacement config must preserve the bench state_dir")
+            self.config = config
+        if fake is not None:
+            self.fake = fake
+        if sleep is not None:
+            self.sleep = sleep
+        self._configure_runtime()
 
     def commit(self, paths: Sequence[str | Path], subject: str) -> str:
         rels = tuple(str(path) for path in paths)
