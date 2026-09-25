@@ -1,13 +1,14 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "3d350d3e1366b2516d67174b18e225b2063791fd",
+  "produced_at_sha": "42f70171e48cc3e9e3bd7d9ada32d8f9cb81a139",
   "stem": "suggestion-box",
   "branch": "suggestion-box",
-  "base": "6957aff6c99ab449f6ac8dd96e57d8863c18ed64",
-  "head": "3d350d3e1366b2516d67174b18e225b2063791fd",
+  "base": "6c2f386e9ffdd7c1d3f8956463fb556f84606200",
+  "head": "42f70171e48cc3e9e3bd7d9ada32d8f9cb81a139",
   "changed_files": [
     "bootstrap/suggestions.md",
+    "squatch/__main__.py",
     "squatch/box.py",
     "squatch/git.py",
     "squatch/harvest.py",
