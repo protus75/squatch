@@ -1,9 +1,15 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Revert the `_resolve_rejects` edit in squatch/drain.py so auto-keep behaves exactly as it did before this change. Scope out forbids changing the auto-keep, and matching on the \"capability ladder exhausted\" substring of a free-text reason is fragile.",
+    "Rewrite test_exhausted_ladder_stays_reported_in_the_reject_queue: assert the stem ends up under `reject queue:` with the exhausted-ladder reason. Drop the `len(fake.calls) == 4` pin, because machine auto-keep re-offers at the top rung until the retry cap is spent.",
+    "This supersedes the earlier lesson that an exhausted stem is 'not re-offered'. A machine confirm bounds neither caps nor rungs, so re-offers at the top rung are expected until the cap runs out.",
+    "Keep everything else as it is: ladder.py, the reject.route arms, runner wiring, caps.consume with rung, and the other tests met acceptance. Mechanical checks passed and review raised only this one finding.",
+    "If exhausted stems really should skip auto-keep, file that as a plan change through the Suggestion Box. Do not fold it into this diff, and do not mention it as a judgment call in run.md."
+  ],
+  "reason": "Review raised one fixable finding: an out-of-scope auto-keep change in drain.py. The correction is to revert that edit and loosen one test, so a retry at the same capability should clear it.",
+  "detail": null
 }
