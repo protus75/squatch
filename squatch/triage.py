@@ -187,7 +187,7 @@ class Triage:
         skipped: list[str] = []
         sha = await self._git.rev_parse(self._repo, "HEAD")
         effect = LLMEffect(llm=self._llm, effects=Effects(self._journal), redact=self._redact,
-                           stuck_seconds=TRIAGE_STUCK_SECONDS)
+                           stuck_seconds=TRIAGE_STUCK_SECONDS, clock=self._clock)
         pass_spool = _PassSpool(
             Spool(self._repo / self._config.state_dir, fs=self._fs, redact=self._redact),
             pass_number)

@@ -17,7 +17,7 @@ from squatch.merge import compose_pipeline
 from squatch.providers import child_env
 from squatch.redact import Redactor
 from squatch.runner import Runner
-from squatch.seams import Clock, LocalFilesystem, SubprocessExec
+from squatch.seams import Clock, LocalFilesystem, Sleep, SubprocessExec
 
 GIT_TIMEOUT = 60.0
 
@@ -49,10 +49,11 @@ class Bench:
     """One real git checkout with the production Runner/Drain/Pipeline graph."""
 
     def __init__(self, repo: Path, *, fake: FakeLLM, clock: Clock,
-                 env: Mapping[str, str]):
+                 env: Mapping[str, str], sleep: Sleep = asyncio.sleep):
         self.repo = Path(repo)
         self.fake = fake
         self.clock = clock
+        self.sleep = sleep
         self.env = dict(env)
         self.config = load(None, cwd=self.repo)
         self.state_dir = self.repo / self.config.state_dir
@@ -68,7 +69,8 @@ class Bench:
             pipeline = compose_pipeline(
                 repo=self.repo, config=self.config, env=self.env, journal=journal,
                 clock=self.clock, process=self.process, fs=self.fs, git=self.git)
-            effect = LLMEffect(llm=self.fake, effects=Effects(journal), redact=redact)
+            effect = LLMEffect(llm=self.fake, effects=Effects(journal), redact=redact,
+                               clock=self.clock, sleep=self.sleep)
             pipeline.stages._llm = effect
             pipeline.stages._effects = effect.effects
             pipeline.stages._driver._llm = effect
@@ -85,7 +87,8 @@ class Bench:
             clock=clock, process=self.process, env=self.env, report=self.lines.append)
 
     @classmethod
-    def make(cls, tmp: Path, *, fake: FakeLLM, clock: Clock) -> "Bench":
+    def make(cls, tmp: Path, *, fake: FakeLLM, clock: Clock,
+             sleep: Sleep = asyncio.sleep) -> "Bench":
         repo = Path(tmp)
         repo.mkdir(parents=True, exist_ok=True)
         env = {
@@ -113,7 +116,7 @@ class Bench:
             await git.commit(repo, "shakeout fixture")
 
         _run(seed())
-        bench = cls(repo, fake=fake, clock=clock, env=env)
+        bench = cls(repo, fake=fake, clock=clock, env=env, sleep=sleep)
         with Journal(bench.state_dir, clock=clock):
             pass
         return bench

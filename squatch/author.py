@@ -154,7 +154,7 @@ class Author:
         inputs = await self._inputs(message, verdict, sha)
         state_dir = self._repo / self._config.state_dir
         effect = LLMEffect(llm=self._llm, effects=Effects(self._journal), redact=self._redact,
-                           stuck_seconds=AUTHOR_STUCK_SECONDS)
+                           stuck_seconds=AUTHOR_STUCK_SECONDS, clock=self._clock)
         spool = Spool(state_dir, fs=self._fs, redact=self._redact)
         driver = Driver(
             llm=effect, spool=spool,

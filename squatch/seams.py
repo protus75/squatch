@@ -8,7 +8,7 @@ minimal shape its consumers need and grows only with a consumer.
 import asyncio
 import os
 import signal
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol
@@ -16,6 +16,7 @@ from typing import Protocol
 # One clock convention kernel-wide: a zero-arg callable returning an aware
 # datetime, not a `now()` Protocol.
 Clock = Callable[[], datetime]
+Sleep = Callable[[float], Awaitable[None]]
 
 
 class ProcessExec(Protocol):

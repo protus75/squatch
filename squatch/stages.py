@@ -1060,7 +1060,7 @@ def compose(*, repo: Path, config: Config, env: Mapping[str, str], journal: Jour
     redact = Redactor.from_config(config, env)
     client = CliClient(Registry(config), process=process, fs=fs, env=env, redact=redact,
                        state_dir=state, cwd=repo)
-    llm = LLMEffect(llm=client, effects=Effects(journal), redact=redact)
+    llm = LLMEffect(llm=client, effects=Effects(journal), redact=redact, clock=clock)
     return Stages(repo=repo, config=config, git=git, process=process, fs=fs, llm=llm,
                   log=EngineLog(state, clock=clock, redact=redact), redact=redact, clock=clock,
                   env=env)

@@ -16,10 +16,12 @@ terminal exists and the journal holds intent only.
 
 import asyncio
 from dataclasses import asdict
+from datetime import timedelta
 
 from squatch.effects import Effects, effect, effect_key
 from squatch.llm import LLM, LLMRequest, LLMResult
 from squatch.redact import Redactor
+from squatch.seams import Clock, Sleep
 
 # The completion's cost field: the metered fields of the result, the ledger's
 # read-time fold target (section 6).
@@ -36,11 +38,14 @@ class Stuck(Exception):
 
 class LLMEffect:
     def __init__(self, *, llm: LLM, effects: Effects, redact: Redactor,
-                 stuck_seconds: float | None = None):
+                 stuck_seconds: float | None = None, clock: Clock | None = None,
+                 sleep: Sleep = asyncio.sleep):
         self._llm = llm
         self.effects = effects
         self._redact = redact
         self.stuck_seconds = stuck_seconds
+        self._clock = clock
+        self._sleep = sleep
 
     async def call(self, req: LLMRequest, *, stem: str, run_seq: int, attempt: int,
                    call_seq: int) -> LLMResult:
@@ -57,14 +62,41 @@ class LLMEffect:
         replayed value)."""
         task = asyncio.ensure_future(self._llm.call(req))
         try:
-            done, _ = await asyncio.wait({task}, timeout=self.stuck_seconds)
+            completed = await self._within_budget(task)
         except asyncio.CancelledError:
             await self._abort(task)
             raise
-        if not done:
+        if not completed:
             await self._abort(task)
             raise Stuck
         return asdict(_scrubbed(task.result(), self._redact))
+
+    async def _within_budget(self, task: asyncio.Future) -> bool:
+        if self.stuck_seconds is None:
+            await asyncio.wait({task})
+            return True
+        if self._clock is None:
+            done, _ = await asyncio.wait({task}, timeout=self.stuck_seconds)
+            return bool(done)
+
+        deadline = self._clock() + timedelta(seconds=self.stuck_seconds)
+        remaining = (deadline - self._clock()).total_seconds()
+        if remaining <= 0:
+            return False
+        sleeper = asyncio.ensure_future(self._sleep(remaining))
+        try:
+            done, _ = await asyncio.wait(
+                {task, sleeper}, return_when=asyncio.FIRST_COMPLETED)
+        except BaseException:
+            sleeper.cancel()
+            await asyncio.gather(sleeper, return_exceptions=True)
+            raise
+        if task in done:
+            sleeper.cancel()
+            await asyncio.gather(sleeper, return_exceptions=True)
+            return True
+        sleeper.result()
+        return False
 
     async def _abort(self, task: asyncio.Future) -> None:
         self._llm.abort_current()

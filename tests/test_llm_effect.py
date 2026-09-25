@@ -178,6 +178,31 @@ async def test_effect_stuck_call_is_aborted_and_leaves_intent_only(tmp_path):
     assert fake.aborted == 1
 
 
+async def test_effect_stuck_budget_uses_injected_clock_and_sleep_without_wall_time(tmp_path):
+    class Clock:
+        def __init__(self):
+            self.now = T0
+
+        def __call__(self):
+            return self.now
+
+    clock = Clock()
+    slept = []
+
+    async def advance(seconds):
+        slept.append(seconds)
+        clock.now += timedelta(seconds=seconds)
+
+    fake = FakeLLM(Hang(resist=True))
+    with journal(tmp_path) as j:
+        effect = llm_effect(fake, j, stuck_seconds=60, clock=clock, sleep=advance)
+        with pytest.raises(Stuck):
+            await call(effect)
+        assert [ev.type for ev in j.read()] == ["effect_intent"]
+    assert slept == [60]
+    assert fake.aborted == 1
+
+
 def test_llm_key_is_the_pinned_run_scoped_shape():
     assert llm_key("t-1", 0, "review", 1, 1) == "llm/t-1/0/review/1/1"
 
