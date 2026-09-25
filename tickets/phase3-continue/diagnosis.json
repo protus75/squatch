@@ -1,15 +1,16 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "merge-queue seed: section 20 grants two typed resolution rungs. Name both explicitly (mechanical rung plus typed unresolved-conflict handoff), and add a criterion where the mechanical rung actually resolves a fixture conflict.",
-    "phase3-continue-02 Context must not be empty. List squatch/tickets.py, squatch/config.py, config.yaml, squatch/merge.py and tests/test_seeded_phase3_core.py, since all exist on main. Every Context path must exist on main.",
-    "phase3-continue-02 criteria must pin the next batch exactly: rework-stage high/high with fence squatch/rework.py, specs/rework.md, squatch/mergequeue.py, tests/test_rework.py, and phase3-continue-03 medium/medium with fence tickets, tests/test_seeded_phase3_03.py.",
-    "phase3-continue-02 must also pin edges (rework-stage after phase3-continue-02; phase3-continue-03 after rework-stage), a YAML ownership record for squatch/rework.py and specs/rework.md, and a scan proving the mergequeue.py hook contradicts no test_mergequeue.py assertion.",
-    "Update tests/test_seeded_phase3_01.py to match. EXISTING_AT_AUTHORING needs pinned byte sizes for every new Context path so that the render headroom check covers them. Then rerun both pytest commands."
+    "Replace the phase3-continue-02 criterion about scanning test_mergequeue.py to prove the hook is non-contradictory. Pin instead that rework-stage's Scope out forbids merge-queue behavior or test edits, and that its Verification runs `uv run pytest tests/test_mergequeue.py -q`.",
+    "Scope in of phase3-continue-02 must state explicit expected/stuck minutes for rework-stage and phase3-continue-03, with expected < stuck <= 180 (drain.max_ticket_minutes). The criteria must pin exactly those values.",
+    "phase3-continue-02 needs a criterion that its test asserts every fence path existing at authoring (including squatch/mergequeue.py) is in rework-stage's Context. Use a pinned EXISTING_AT_AUTHORING table.",
+    "phase3-continue-02 needs a criterion that each seed's implement render fits RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM, with pinned byte sizes for every Context path.",
+    "Rewrite phase3-continue-02's ownership YAML as keyed by the owner stem, e.g. `rework-stage: {owns: [squatch/rework.py, specs/rework.md, tests/test_rework.py], hooks: [squatch/mergequeue.py]}`, so it no longer reads as this ticket owning out-of-fence modules.",
+    "After revising the seeds, update tests/test_seeded_phase3_01.py to match and rerun both pytest commands. Carry forward the earlier lessons (both resolution rungs, non-empty Context, exact next-batch pins)."
   ],
-  "reason": "Requisition review flagged fixable authoring gaps (an unnamed second rung, an empty Context, an unpinned successor batch) that the findings now steer; none proves the ticket unsatisfiable.",
+  "reason": "Requisition review flagged fixable authoring defects in the phase3-continue-02 seed, each with a paved road; nothing shows the ticket is unsatisfiable or needs more capability.",
   "detail": null
 }
