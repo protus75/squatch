@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The ticket requires `ts_monotone` to reset at each journal segment boundary, while also requiring `audit_journal` to consume events through `Journal.read()`. The landed `Journal.read()` yields only `Event` values and does not expose the source segment or boundary markers. The ticket's Definition of rejected explicitly requires stopping in this condition.
+Added a projection-only `Journal.for_reading()` constructor so `audit_journal` can consume `Journal.read_segments()` without opening an append handle, truncating a torn tail, creating state, or taking a lock. Effect completions pair only with earlier intents in the same run and must be present before its `merged` terminal.
 
 ## Dead ends
-No implementation was attempted because recovering segment boundaries would require changing `squatch/journal.py` outside the scope fence or bypassing the required `Journal.read()` path. The untouched base suite was verified green: `uv run pytest -q` completed with 777 passed.
+The first production-Runner test used two separately constructed `Drive` instances against one journal; each fake clock restarted at the same timestamp and correctly triggered `ts_monotone`. Reusing one `Drive` preserved the production event order and clock continuity.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ No implementation was attempted because recovering segment boundaries would requ
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 60m; actual approximately 5m before the explicit rejection condition was confirmed.
+Expected 60m; actual approximately 25m. The untouched base suite had 777 passing tests; final verification had 797 passing tests.
