@@ -32,6 +32,7 @@ from typing import Protocol
 from squatch.artifacts import OUTCOMES, Finding
 from squatch.caps import INFRA_CAP, consume
 from squatch.config import Config
+from squatch.diagnose import DIAGNOSIS_FILE, DiagnosisRecord
 from squatch.effects import Effects, run_sequence
 from squatch.enginelog import EngineLog
 from squatch.git import Git
@@ -71,6 +72,9 @@ class Pipeline(Protocol):
     the runner journals."""
 
     async def run(self, ticket: Ticket, *, run_seq: int) -> Delivery: ...
+
+    async def diagnose(self, ticket: Ticket, delivery: Delivery, *,
+                       run_seq: int) -> DiagnosisRecord: ...
 
 
 # The journal is opened under the lock, so the pipeline over it is built there.
@@ -164,7 +168,8 @@ class Runner:
         journal.append("state_transition", {"to": "running", "run_seq": run_seq}, ticket=stem)
         started = self._clock()
         try:
-            delivery = await self._pipeline(journal).run(ticket, run_seq=run_seq)
+            pipeline = self._pipeline(journal)
+            delivery = await pipeline.run(ticket, run_seq=run_seq)
             if not isinstance(delivery, Delivery):
                 raise TypeError(f"the stage seam returned {delivery!r}, not a Delivery")
             outcome = delivery.outcome
@@ -202,7 +207,18 @@ class Runner:
         if outcome in {"infra_error", "timeout"}:
             await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=INFRA_CAP,
                           run_seq=run_seq)
-        body = {"to": outcome, "run_seq": run_seq, "harvest": harvested}
+        try:
+            diagnosis = await pipeline.diagnose(ticket, delivery, run_seq=run_seq)
+            await lift_ticket_files(
+                repo=self._repo, git=self._git, fs=self._fs, effects=Effects(journal),
+                redact=self._log._redact, stem=stem, run_seq=run_seq, kind="diagnosis",
+                files={DIAGNOSIS_FILE: diagnosis.model_dump_json(indent=2).encode()})
+        except Refusal:
+            raise
+        except Exception as e:
+            raise self._fault(stem, run_seq, e) from None
+        body = {"to": outcome, "run_seq": run_seq, "harvest": harvested,
+                "diagnosis": diagnosis.model_dump(mode="json")}
         if harvest_error is not None:
             body["harvest_error"] = harvest_error
         journal.append("state_transition", body, ticket=stem)

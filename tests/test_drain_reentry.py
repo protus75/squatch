@@ -11,6 +11,7 @@ no prior-attempts block and `ticket.md` is never written.
 """
 
 import re
+import json
 import subprocess
 from io import StringIO
 from pathlib import Path
@@ -148,13 +149,19 @@ def blocks(prompt: str) -> list[tuple[str, str]]:
     return [(m.group(1), m.group(2)) for line in prompt.splitlines() if (m := _OPEN.match(line))]
 
 
+def diagnosis(verdict="retry", *lessons: str) -> str:
+    return json.dumps({"verdict": verdict, "lessons": list(lessons or ("fix the failure",)),
+                       "reason": "diagnosed"})
+
+
 def snag_then_approve(tmp_path: Path) -> Real:
     agent = Agent(answer("implemented"),
                   review("snag", {"message": "widget lacks the parse() entry point",
                                   "path": "squatch/widget.py", "line": 1,
                                   "paved_road": "add parse() and a test for it"}),
+                  diagnosis("retry", "add parse() and a test for it"),
                   answer("implemented"), review("approve"),
-                  actions=[implementer(git_env(tmp_path), WIDGET), None,
+                  actions=[implementer(git_env(tmp_path), WIDGET), None, None,
                            implementer(git_env(tmp_path), WIDGET), None])
     return Real(checkout(tmp_path), agent)
 
@@ -196,8 +203,10 @@ def test_a_re_offer_renders_the_prior_reject_findings_in_criteria_position(tmp_p
     assert order[-1] == "plan_contract", "the appendix is where appended blocks go, not this one"
     close = DATA_MARKER + 'end name="prior_attempts">>>'
     prior, after = task.split('name="prior_attempts"', 1)[1].split(close, 1)
-    assert "harvest attempt 0: outcome `gate_failed`; reason:" in prior
-    assert "squatch/widget.py" in prior and "1 +" in prior
+    assert "terminal reason `(findings carried separately)`; diagnosis verdict `retry`" in prior
+    assert "- lesson: add parse() and a test for it" in prior
+    assert "harvest attempt 0:" not in prior
+    assert "files changed:" not in prior and "latest non-prompt spool tails" not in prior
     assert "harvest attempt 0:" not in task.split('name="prior_attempts"', 1)[0] + after
     assert len(prior) <= HARVEST_RENDER_CHARS + 10_000, "Phase 1 findings remain outside the cap"
 
@@ -248,8 +257,10 @@ def test_a_delimiter_in_harvested_run_text_is_quoted_before_re_entry_render(tmp_
         run_record.write_text(run_record.read_text() + f"\nobserved {marker} in output\n")
 
     agent = Agent(answer("implemented"), review("snag", {"message": "wrong"}),
+                  '{"verdict":"shrug"}', "not json",
                   answer("implemented"), review("approve"),
-                  actions=[implement_with_marker, None, implementer(env, WIDGET), None])
+                  actions=[implement_with_marker, None, None, None,
+                           implementer(env, WIDGET), None])
     real = Real(checkout(tmp_path), agent)
 
     rc, out = real.drain()
@@ -262,10 +273,47 @@ def test_a_delimiter_in_harvested_run_text_is_quoted_before_re_entry_render(tmp_
     assert "[squatch-data:" in prior and marker not in prior
 
 
+def test_raw_details_do_not_fall_back_to_an_older_undiagnosed_attempt(tmp_path):
+    attempts = tmp_path / "tickets" / STEM / "attempts"
+    for run_seq, tail in ((0, "old spool tail"), (1, "new spool tail")):
+        attempt = attempts / str(run_seq)
+        attempt.mkdir(parents=True)
+        artifact = Harvest(
+            outcome="gate_failed", stage="check", reason=f"reason {run_seq}", findings=(),
+            cost=HarvestCost(usd=0.0, tokens=0, provider=None, model=None),
+            wall_seconds=1.0, run_seq=run_seq, diff_stat=f"stat {run_seq}",
+            spool_tails={"001-response.md": tail},
+            produced_by_spec_version="harvest-1.0", produced_at_sha="base")
+        (attempt / "harvest.json").write_text(artifact.model_dump_json())
+        (attempt / "run.md").write_text(f"run record {run_seq}\n")
+
+    with Journal(tmp_path / ".state", clock=TickingClock()) as journal:
+        journal.append("state_transition", {
+            "to": "gate_failed", "run_seq": 0,
+            "diagnosis": {"call": "invalid_artifact", "verdict": None, "lessons": (),
+                          "reason": None, "detail": "retry cap spent"}}, ticket=STEM)
+        journal.append("state_transition", {
+            "to": "gate_failed", "run_seq": 1,
+            "diagnosis": {"call": "ok", "verdict": "retry", "lessons": ("new lesson",),
+                          "reason": "diagnosed", "detail": None}}, ticket=STEM)
+        stages = Stages.__new__(Stages)
+        stages._repo = tmp_path
+        stages._effects = Effects(journal)
+
+        rendered = stages._prior_attempts(STEM, 2)
+
+    assert "attempt 1: terminal reason `reason 1`; diagnosis verdict `retry`" in rendered
+    assert "- lesson: new lesson" in rendered
+    assert "harvest attempt 0: outcome `gate_failed`; reason: reason 0; files changed: stat 0" in rendered
+    assert "run record 0" not in rendered and "old spool tail" not in rendered
+    assert "run record 1" not in rendered and "new spool tail" not in rendered
+    assert "latest run.md:" not in rendered and "latest non-prompt spool tails:" not in rendered
+
+
 def test_a_failing_checks_json_renders_its_hard_findings_with_the_verification_tail(tmp_path):
     env = git_env(tmp_path)
-    agent = Agent(answer("implemented"), answer("implemented"),
-                  actions=[implementer(env, WIDGET), implementer(env, WIDGET)])
+    agent = Agent(answer("implemented"), diagnosis(), answer("implemented"),
+                  actions=[implementer(env, WIDGET), None, implementer(env, WIDGET)])
     real = Real(checkout(tmp_path, verify=RED, extra_config="caps: {retry: 1}\n"), agent)
     rc, out = real.drain()
     assert rc == EXIT_OK, out

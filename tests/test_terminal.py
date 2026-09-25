@@ -43,6 +43,7 @@ from test_stages import (
 from squatch.__main__ import main
 from squatch.artifacts import TERMINAL_RUN_STATES, Cost
 from squatch.config import load
+from squatch.diagnose import DIAG_DIFF_CHARS, DiagnosisRecord
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.git import Git
@@ -53,6 +54,7 @@ from squatch.merge import Merge, Pipeline
 from squatch.redact import Redactor
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET, Refusal, Runner
 from squatch.seams import LocalFilesystem, SubprocessExec
+from squatch.specs import DATA_MARKER
 from squatch.stages import Delivery, Stages
 
 RED = f'{PYTHON} -c "import sys; sys.exit(3)"'
@@ -70,7 +72,8 @@ class Drive:
     """`run <stem>` in-process: the real Runner over the real stages and
     admission, built over the lock-held journal the runner opens."""
 
-    def __init__(self, repo: Path, env: dict, llm=None, *, pipeline=None):
+    def __init__(self, repo: Path, env: dict, llm=None, *, pipeline=None,
+                 stages_type=Stages):
         self.repo, self.env = repo, env
         self.config = load(None, cwd=repo)
         self.state = repo / self.config.state_dir
@@ -79,15 +82,16 @@ class Drive:
         self.redact = Redactor.from_config(self.config, env)
         self.log = EngineLog(self.state, clock=self.clock, redact=self.redact)
         self.lines: list[str] = []
-        self._llm, self._pipeline = llm, pipeline
+        self._llm, self._pipeline, self._stages_type = llm, pipeline, stages_type
 
     def _factory(self, journal):
         if self._pipeline is not None:
             return self._pipeline
-        stages = Stages(repo=self.repo, config=self.config, git=self.git, process=SubprocessExec(),
-                        fs=LocalFilesystem(),
-                        llm=LLMEffect(llm=self._llm, effects=Effects(journal), redact=self.redact),
-                        log=self.log, redact=self.redact, clock=self.clock, env=self.env)
+        stages = self._stages_type(
+            repo=self.repo, config=self.config, git=self.git, process=SubprocessExec(),
+            fs=LocalFilesystem(),
+            llm=LLMEffect(llm=self._llm, effects=Effects(journal), redact=self.redact),
+            log=self.log, redact=self.redact, clock=self.clock, env=self.env)
         merge = Merge(repo=self.repo, config=self.config, git=self.git, process=SubprocessExec(),
                       fs=LocalFilesystem(), effects=Effects(journal), journal=journal,
                       log=self.log, redact=self.redact, env=self.env)
@@ -154,6 +158,11 @@ def body(text: str) -> str:
     return text.split("---\n", 2)[2]
 
 
+def diagnosis(verdict="retry", *lessons: str) -> str:
+    return json.dumps({"verdict": verdict, "lessons": list(lessons or ("fix the failure",)),
+                       "reason": "diagnosed"})
+
+
 def set_config(repo: Path, env: dict, text: str) -> None:
     (repo / "config.yaml").write_text(text)
     git(repo, env, "add", "--", "config.yaml")
@@ -164,12 +173,12 @@ def set_config(repo: Path, env: dict, text: str) -> None:
 
 
 def rejected_at_review(env):
-    return Agent(answer("implemented"), review("snag", {"message": "wrong"}),
-                 actions=[implementer(env, WIDGET)])
+    return Agent(answer("implemented"), review("snag", {"message": "wrong"}), diagnosis(),
+                 actions=[implementer(env, WIDGET), None, None])
 
 
 def red_verification(env):
-    return Agent(answer("implemented"), actions=[implementer(env, WIDGET)])
+    return Agent(answer("implemented"), diagnosis(), actions=[implementer(env, WIDGET), None])
 
 
 def premise_failed(env):
@@ -190,10 +199,13 @@ async def test_a_non_ok_terminal_journals_it_exits_1_and_leaves_ticket_and_branc
 
     assert rc == EXIT_TICKET
     assert terminal in TERMINAL_RUN_STATES
-    assert d.transitions() == [
-        {"to": "running", "run_seq": 0},
-        {"to": terminal, "run_seq": 0,
-         "harvest": f"tickets/{STEM}/attempts/0"}]
+    transitions_ = d.transitions()
+    assert transitions_[0] == {"to": "running", "run_seq": 0}
+    assert {k: transitions_[1][k] for k in ("to", "run_seq", "harvest")} == {
+        "to": terminal, "run_seq": 0, "harvest": f"tickets/{STEM}/attempts/0"}
+    assert transitions_[1]["diagnosis"]["call"] == (
+        "skipped" if terminal == "premise_failed" else "ok")
+    committed = d.committed_ticket()
     events = d.events()
     lift_index, lift = next(
         (index, event) for index, event in enumerate(events)
@@ -204,9 +216,43 @@ async def test_a_non_ok_terminal_journals_it_exits_1_and_leaves_ticket_and_branc
         index for index, event in enumerate(events)
         if event.type == "state_transition" and event.body.get("to") == terminal)
     assert lift_index < terminal_index, "harvest custody reaches main before the terminal"
+    diagnosis_draws = [
+        (index, event) for index, event in enumerate(events)
+        if event.type == "cap_consumed" and event.body["cap"] == "diagnosis"]
+    diagnose_effects = [
+        event for event in events if event.key and "/diagnose/" in event.key]
+    diagnosis_lift = next(
+        index for index, event in enumerate(events)
+        if event.type == "effect_completion"
+        and event.key == f"lift/{STEM}/0/diagnosis")
+    record = json.loads((repo / "tickets" / STEM / "diagnosis.json").read_text())
+    assert record == transitions_[1]["diagnosis"]
+    if terminal == "premise_failed":
+        assert diagnosis_draws == [] and diagnose_effects == []
+        assert diagnosis_lift < terminal_index
+    else:
+        assert len(diagnosis_draws) == 1
+        diagnosis_draw, draw = diagnosis_draws[0]
+        blob = git(repo, env, "rev-parse", f"HEAD:tickets/{STEM}/ticket.md").strip()
+        assert draw.body == {"cap": "diagnosis", "ticket_sha": blob, "run_seq": 0}
+        diagnosis_intent = next(
+            index for index, event in enumerate(events)
+            if event.type == "effect_intent"
+            and event.key == f"llm/{STEM}/0/diagnose/0/1")
+        diagnosis_completion = next(
+            index for index, event in enumerate(events)
+            if event.type == "effect_completion"
+            and event.key == f"llm/{STEM}/0/diagnose/0/1")
+        assert (lift_index < diagnosis_draw < diagnosis_intent < diagnosis_completion
+                < diagnosis_lift < terminal_index)
+        diagnose_request = next(r for r in d._llm.requests if r.surface == "diagnose")
+        assert 'name="ticket" origin="host"' in diagnose_request.rendered
+        assert 'name="harvest" origin="untrusted"' in diagnose_request.rendered
+        assert committed in diagnose_request.rendered
+        harvest = (repo / "tickets" / STEM / "attempts" / "0" / "harvest.json").read_text()
+        assert harvest.replace(DATA_MARKER, "[squatch-data:") in diagnose_request.rendered
     git(repo, env, "merge-base", "--is-ancestor", lift.body["result"]["commit"], "main")
     # The ticket: as intake committed it (stamped `source`/`state`), untouched since.
-    committed = d.committed_ticket()
     assert (repo / "tickets" / STEM / "ticket.md").read_text() == committed
     assert body(committed) == body(ticket(verify=verify))
     # The branch survives for re-entry; the dying worktree is wiped after harvest.
@@ -227,17 +273,19 @@ async def test_a_spent_in_stage_retry_cap_is_a_named_non_ok_terminal_never_a_loo
     that terminal and exits 1 -- no further call, no retry, no diagnosis."""
     set_config(repo, env, CONFIG + "caps: {retry: 1}\n")
     author(repo, ticket())
-    agent = Agent("not json", "still not json", actions=[implementer(env, WIDGET), None])
+    agent = Agent("not json", "still not json", diagnosis(),
+                  actions=[implementer(env, WIDGET), None, None])
     d = Drive(repo, env, agent)
 
     rc = await d.run()
 
     assert rc == EXIT_TICKET
-    assert d.transitions() == [{"to": "running", "run_seq": 0},
-                               {"to": "invalid_artifact", "run_seq": 0,
-                                "harvest": f"tickets/{STEM}/attempts/0"}]
-    assert len(agent.requests) == 2, "the cap bounds the calls: one allowance, then terminal"
-    terminal = [e for e in d.log_events() if e["event"] == "terminal"][-1]
+    assert [t["to"] for t in d.transitions()] == ["running", "invalid_artifact"]
+    assert d.transitions()[-1]["harvest"] == f"tickets/{STEM}/attempts/0"
+    assert d.transitions()[-1]["diagnosis"]["call"] == "ok"
+    assert len(agent.requests) == 3, "two implement calls plus the one diagnosis call"
+    terminal = [e for e in d.log_events()
+                if e["event"] == "terminal" and e["surface"] == "implement"][-1]
     assert terminal["outcome"] == "invalid_artifact"
     assert terminal["reason"] == "retry cap spent" and terminal["cap"] == "retry"
     assert d.branch_exists() and not d.worktree().exists()
@@ -251,11 +299,65 @@ async def test_an_infra_terminal_draws_before_its_state_transition(repo, env, ou
     assert await d.run() == EXIT_TICKET
 
     events = d.events()
-    assert [e.type for e in events[-2:]] == ["cap_consumed", "state_transition"]
-    draw = events[-2]
+    draw = next(e for e in events if e.type == "cap_consumed" and e.body["cap"] == "infra")
     blob = git(repo, env, "rev-parse", f"HEAD:tickets/{STEM}/ticket.md").strip()
     assert draw.body == {"cap": "infra", "ticket_sha": blob, "run_seq": 0}
-    assert events[-1].body == {"to": outcome, "run_seq": 0, "harvest": None}
+    assert {k: events[-1].body[k] for k in ("to", "run_seq", "harvest")} == {
+        "to": outcome, "run_seq": 0, "harvest": None}
+    assert events[-1].body["diagnosis"]["call"] == "synthetic"
+    assert events.index(draw) < len(events) - 1
+
+
+async def test_a_live_workspace_infra_terminal_draws_infra_then_diagnosis(repo, env):
+    author(repo, ticket())
+    agent = Agent(RuntimeError("provider down"), diagnosis())
+    d = Drive(repo, env, agent)
+
+    assert await d.run() == EXIT_TICKET
+
+    events = d.events()
+    infra = next(i for i, e in enumerate(events)
+                 if e.type == "cap_consumed" and e.body["cap"] == "infra")
+    diagnosis_draw = next(i for i, e in enumerate(events)
+                          if e.type == "cap_consumed" and e.body["cap"] == "diagnosis")
+    terminal = next(i for i, e in enumerate(events)
+                    if e.type == "state_transition" and e.body.get("to") == "infra_error")
+    assert infra < diagnosis_draw < terminal
+
+
+async def test_a_spent_infra_cap_skips_diagnosis_after_the_infra_draw(repo, env):
+    set_config(repo, env, CONFIG + "caps: {infra: 1}\n")
+    author(repo, ticket())
+    agent = Agent(RuntimeError("provider down"))
+    d = Drive(repo, env, agent)
+
+    assert await d.run() == EXIT_TICKET
+
+    caps = [e.body["cap"] for e in d.events() if e.type == "cap_consumed"]
+    assert caps == ["infra"]
+    assert not any(e.key and "/diagnose/" in e.key for e in d.events())
+    record = d.transitions()[-1]["diagnosis"]
+    assert record["call"] == "skipped"
+    assert record["detail"] == "infra cap spent (1 of 1 drawn)"
+    assert len(agent.requests) == 1
+
+
+async def test_an_invalid_diagnosis_reprompts_once_and_fails_closed(repo, env):
+    author(repo, ticket(verify=RED))
+    agent = Agent(answer("implemented"), '{"verdict":"shrug"}', "not json",
+                  actions=[implementer(env, WIDGET), None, None])
+    d = Drive(repo, env, agent)
+
+    assert await d.run() == EXIT_TICKET
+
+    diagnosis_keys = [e.key for e in d.events()
+                      if e.type == "effect_intent" and e.key and "/diagnose/" in e.key]
+    assert diagnosis_keys == [f"llm/{STEM}/0/diagnose/0/1",
+                              f"llm/{STEM}/0/diagnose/0/2"]
+    assert [e.body["cap"] for e in d.events() if e.type == "cap_consumed"].count(
+        "diagnosis") == 1
+    record = d.transitions()[-1]["diagnosis"]
+    assert record["call"] == "invalid_artifact" and record["verdict"] is None
 
 
 async def test_a_non_infra_terminal_draws_no_infra_cap(repo, env):
@@ -268,12 +370,41 @@ async def test_a_non_infra_terminal_draws_no_infra_cap(repo, env):
 
 async def test_setup_death_skips_harvest_and_journals_null(repo, env):
     author(repo, ticket())
-    d = Drive(repo, env, pipeline=RaisingOutcome("gate_failed"))
+    d = Drive(repo, env, Agent(), stages_type=MissingWorkspaceStages)
 
     assert await d.run() == EXIT_TICKET
 
-    assert d.transitions()[-1] == {"to": "gate_failed", "run_seq": 0, "harvest": None}
+    terminal = d.transitions()[-1]
+    assert {k: terminal[k] for k in ("to", "run_seq", "harvest")} == {
+        "to": "gate_failed", "run_seq": 0, "harvest": None}
+    assert terminal["diagnosis"]["call"] == "synthetic"
+    assert terminal["diagnosis"]["verdict"] == "abandon-human"
+    events = d.events()
+    assert not any(e.type == "cap_consumed" and e.body.get("cap") == "diagnosis"
+                   for e in events)
+    assert not any(e.key and "/diagnose/" in e.key for e in events)
+    assert json.loads((repo / "tickets" / STEM / "diagnosis.json").read_text()) == \
+        terminal["diagnosis"]
     assert not (repo / "tickets" / STEM / "attempts").exists()
+
+
+async def test_diagnosis_cuts_an_oversized_committed_diff_at_the_exact_bound(repo, env):
+    author(repo, ticket(verify=RED))
+    large_widget = ("squatch/widget.py", "WIDGET = '" + "x" * (DIAG_DIFF_CHARS + 2_000) + "'\n")
+    agent = Agent(answer("implemented"), diagnosis(),
+                  actions=[implementer(env, large_widget), None])
+    d = Drive(repo, env, agent)
+
+    assert await d.run() == EXIT_TICKET
+
+    uncut = git(repo, env, "diff", f"main...{STEM}")
+    assert len(uncut) > DIAG_DIFF_CHARS
+    request = next(r for r in agent.requests if r.surface == "diagnose").rendered
+    opened = next(line for line in request.splitlines()
+                  if line.startswith(DATA_MARKER + 'data name="diff" '))
+    diff = request.split(opened + "\n", 1)[1].split(
+        "\n" + DATA_MARKER + 'end name="diff">>>', 1)[0]
+    assert len(diff) <= DIAG_DIFF_CHARS
 
 
 async def test_harvest_failure_is_soft_and_the_worktree_is_still_wiped(
@@ -285,7 +416,8 @@ async def test_harvest_failure_is_soft_and_the_worktree_is_still_wiped(
 
     monkeypatch.setattr(runner_module, "extract", broken)
     author(repo, ticket(verify=RED))
-    d = Drive(repo, env, Agent(answer("implemented"), actions=[implementer(env, WIDGET)]))
+    d = Drive(repo, env, Agent(answer("implemented"), diagnosis(),
+                               actions=[implementer(env, WIDGET), None]))
 
     assert await d.run() == EXIT_TICKET
 
@@ -300,8 +432,8 @@ async def test_a_non_ok_stem_stays_eligible_and_re_enters_on_a_fresh_run_sequenc
     run sequence and fresh keys (section 6), tearing the old branch down."""
     author(repo, ticket())
     d = Drive(repo, env, Agent(answer("implemented"), review("snag", {"message": "wrong"}),
-                               answer("implemented"), review("approve"),
-                               actions=[implementer(env, WIDGET), None,
+                               diagnosis(), answer("implemented"), review("approve"),
+                               actions=[implementer(env, WIDGET), None, None,
                                         implementer(env, WIDGET), None]))
     assert await d.run() == EXIT_TICKET
     assert await d.run() == EXIT_OK
@@ -328,6 +460,9 @@ class Raising:
     async def run(self, ticket, *, run_seq):
         raise self.exc
 
+    async def diagnose(self, ticket, delivery, *, run_seq):
+        raise AssertionError("a faulted run is never diagnosed")
+
 
 class RaisingOutcome:
     def __init__(self, outcome: str):
@@ -336,6 +471,19 @@ class RaisingOutcome:
     async def run(self, ticket, *, run_seq):
         return Delivery(self.outcome, [], None, None, None, Path("/squatch-no-workspace"),
                         "HEAD", "implement", self.outcome,
+                        Cost(tokens=0, seconds=0.0, attempts=0))
+
+    async def diagnose(self, ticket, delivery, *, run_seq):
+        detail = f"workspace missing: {delivery.worktree}"
+        return DiagnosisRecord(run_seq=run_seq, outcome=delivery.outcome, call="synthetic",
+                               verdict="abandon-human", lessons=(detail,), reason=detail,
+                               detail=None)
+
+
+class MissingWorkspaceStages(Stages):
+    async def run(self, ticket, *, run_seq):
+        return Delivery("gate_failed", [], None, None, None, Path("/squatch-no-workspace"),
+                        "HEAD", "implement", "gate_failed",
                         Cost(tokens=0, seconds=0.0, attempts=0))
 
 
@@ -363,7 +511,8 @@ async def test_a_verification_command_naming_a_missing_binary_is_a_gate_failed_t
     so the ticket's own command naming a missing binary is a ticket outcome
     -- exit 1, the finding naming the binary -- never an engine fault."""
     author(repo, ticket(verify=f"{NO_SUCH_BINARY} --check"))
-    d = Drive(repo, env, Agent(answer("implemented"), actions=[implementer(env, WIDGET)]))
+    d = Drive(repo, env, Agent(answer("implemented"), diagnosis(),
+                               actions=[implementer(env, WIDGET), None]))
 
     rc = await d.run()
 

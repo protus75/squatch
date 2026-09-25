@@ -15,6 +15,8 @@ from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
 
+import pytest
+
 from test_cli import (  # noqa: F401 -- `checkout` is a fixture
     GOOD,
     STATE,
@@ -27,6 +29,7 @@ from test_cli import (  # noqa: F401 -- `checkout` is a fixture
 
 from squatch.__main__ import main
 from squatch.artifacts import Cost
+from squatch.diagnose import DiagnosisRecord
 from squatch.git import Git
 from squatch.journal import Journal, read_events
 from squatch.lockfile import Lockfile
@@ -52,9 +55,10 @@ class Scripted:
     `to: merged` transition the real admission writes; `on_run` is the
     mid-run hook a test uses to move the clock or commit a ticket."""
 
-    def __init__(self, outcomes: dict[str, list[str]], on_run=None):
+    def __init__(self, outcomes: dict[str, list[str]], on_run=None, diagnoses=None):
         self._outcomes = {stem: list(o) for stem, o in outcomes.items()}
         self._on_run = on_run
+        self._diagnoses = {stem: list(records) for stem, records in (diagnoses or {}).items()}
         self.calls: list[tuple[str, int]] = []
         self.journal: Journal | None = None
 
@@ -73,6 +77,15 @@ class Scripted:
         return Delivery(outcome, [], None, None, None, Path("/squatch-no-workspace"),
                         "HEAD", "implement", outcome if outcome != "ok" else None,
                         Cost(tokens=0, seconds=0.0, attempts=0))
+
+    async def diagnose(self, ticket, delivery, *, run_seq):
+        if ticket.stem in self._diagnoses:
+            values = self._diagnoses[ticket.stem].pop(0)
+            return DiagnosisRecord(run_seq=run_seq, outcome=delivery.outcome, **values)
+        detail = f"workspace missing: {delivery.worktree}"
+        return DiagnosisRecord(run_seq=run_seq, outcome=delivery.outcome, call="synthetic",
+                               verdict="abandon-human", lessons=(detail,), reason=detail,
+                               detail=None)
 
 
 def drain(checkout: Path, fake: Scripted | None = None, *, clock=None) -> tuple[int, str]:
@@ -211,6 +224,52 @@ def test_red_then_green_on_re_offer_merges_in_one_invocation_drawing_one_retry_u
     assert "re-offer: base after `gate_failed`; retry unit 1 of 6 drawn" in out
 
 
+@pytest.mark.parametrize("verdict,call", [
+    ("retry", "ok"), ("escalate", "ok"), ("reject", "ok"), ("split", "ok"),
+    ("abandon-human", "ok"), (None, "invalid_artifact"),
+])
+def test_every_diagnosis_result_is_reoffered_and_reported(checkout, verdict, call):
+    author(checkout, "base")
+    lessons = ("first lesson", "second lesson") if verdict is not None else ()
+    fake = Scripted(
+        {"base": ["gate_failed", "ok"]},
+        diagnoses={"base": [{"call": call, "verdict": verdict, "lessons": lessons,
+                              "reason": "diagnosed" if call == "ok" else None,
+                              "detail": "retry cap spent" if call != "ok" else None}]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK and fake.calls == [("base", 0), ("base", 1)]
+    assert len([d for d in draws(checkout, "base") if d["cap"] == "retry"]) == 1
+    terminal = next(e.body for e in read_events(checkout / STATE)
+                    if e.type == "state_transition" and e.ticket == "base"
+                    and e.body.get("to") == "gate_failed")
+    assert terminal["diagnosis"]["verdict"] == verdict
+    assert terminal["diagnosis"]["call"] == call
+    assert f"diagnosis {verdict or call}" in out
+    assert all(f"lesson: {lesson}" in out for lesson in lessons)
+
+
+def test_a_phase_one_terminal_without_diagnosis_is_reoffered_unchanged(checkout):
+    committed(checkout, "base")
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append("state_transition", {"to": "running", "run_seq": 0}, ticket="base")
+        journal.append("state_transition", {
+            "to": "gate_failed", "run_seq": 0, "harvest": None}, ticket="base")
+    fake = Scripted({"base": ["ok"]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK and fake.calls == [("base", 1)]
+    assert len([d for d in draws(checkout, "base") if d["cap"] == "retry"]) == 1
+    line = next(line for line in out.splitlines() if line.startswith("re-offer: base"))
+    assert line == "re-offer: base after `gate_failed`; retry unit 1 of 6 drawn"
+    terminal = next(e.body for e in read_events(checkout / STATE)
+                    if e.type == "state_transition" and e.ticket == "base"
+                    and e.body.get("to") == "gate_failed")
+    assert "diagnosis" not in terminal
+
+
 def test_eligible_work_runs_ahead_of_re_offers(checkout):
     committed(checkout, "red", signal_at=T0 - timedelta(hours=3))
     committed(checkout, "green-a", signal_at=T0 - timedelta(hours=2))
@@ -221,10 +280,18 @@ def test_eligible_work_runs_ahead_of_re_offers(checkout):
     assert fake.calls == [("red", 0), ("green-a", 0), ("green-b", 0), ("red", 1)]
 
 
-def test_a_stem_whose_retry_cap_is_spent_stays_parked_and_is_never_re_offered(checkout):
+@pytest.mark.parametrize("diagnosis", [
+    {"call": "ok", "verdict": verdict, "lessons": ("lesson",),
+     "reason": "diagnosed", "detail": None}
+    for verdict in ("retry", "escalate", "reject", "split", "abandon-human")
+] + [{"call": "invalid_artifact", "verdict": None, "lessons": (),
+      "reason": None, "detail": "retry cap spent"}])
+def test_a_stem_whose_retry_cap_is_spent_stays_parked_and_is_never_re_offered(
+        checkout, diagnosis):
     author(checkout, "base")
     configure(checkout, "caps: {retry: 1}\n")
-    fake = Scripted({"base": ["gate_failed", "gate_failed", "ok"]})
+    fake = Scripted({"base": ["gate_failed", "gate_failed", "ok"]},
+                    diagnoses={"base": [diagnosis, diagnosis]})
     rc, out = drain(checkout, fake)
     assert rc == EXIT_OK
     assert fake.calls == [("base", 0), ("base", 1)], "one unit, one re-offer, then parked"
@@ -232,7 +299,7 @@ def test_a_stem_whose_retry_cap_is_spent_stays_parked_and_is_never_re_offered(ch
     assert "parked: base ended `gate_failed`" in out
     assert "retry cap spent (1 of 1 drawn)" in out and "never re-dispatches" in out
     # The next invocation re-derives the same spent budget: nothing dispatches.
-    again = Scripted({"base": ["ok"]})
+    again = Scripted({"base": ["ok"]}, diagnoses={"base": [diagnosis]})
     rc, out = drain(checkout, again)
     assert rc == EXIT_OK
     assert again.calls == [] and "retry cap spent" in out

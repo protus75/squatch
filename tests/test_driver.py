@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 from squatch import enginelog
-from squatch.artifacts import Artifact, Finding
+from squatch.artifacts import SUBSTEP_NAMES, STAGE_NAMES, Artifact, Finding
 from squatch.config import Caps, parse
 from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects
@@ -103,6 +103,16 @@ def stage(*gates, render=None, spec_version="echo@1.0", surface="review"):
     return LLMStage(name="review", surface=surface, spec_version=spec_version,
                     tier="medium", effort="low", consumes=Echo, emits=Echo,
                     gates=tuple(gates), render=render or Renders())
+
+
+def test_diagnose_is_an_llm_substep_but_not_a_stage_name():
+    diagnose = LLMStage(name="diagnose", surface="diagnose", spec_version="1.0",
+                        tier="medium", effort="medium", consumes=Echo, emits=Echo,
+                        gates=(), render=Renders())
+    assert diagnose.name in SUBSTEP_NAMES and diagnose.name not in STAGE_NAMES
+    with pytest.raises(ValueError):
+        LLMStage(name="unknown", surface="review", spec_version="1.0", tier="medium",
+                 effort="medium", consumes=Echo, emits=Echo, gates=(), render=Renders())
 
 
 def driver(tmp_path, llm, *, clock=None, redact=None, stuck_seconds=None, **kw):

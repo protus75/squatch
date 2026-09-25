@@ -90,6 +90,7 @@ class Fold:
     cap_drawn: CapFold               # stem -> named cap_consumed counts
     commits: Mapping[str, str | None]  # stem -> the squash commit its merge put on main
     edited: frozenset[str]           # stems with an intake signal after their latest transition
+    terminals: Mapping[str, Mapping]  # stem -> latest terminal body
 
 
 def fold(events: Iterable[Event]) -> Fold:
@@ -99,12 +100,15 @@ def fold(events: Iterable[Event]) -> Fold:
     commits: dict[str, str | None] = {}
     merged: set[str] = set()
     edited: set[str] = set()
+    terminals: dict[str, Mapping] = {}
     for e in events:
         if e.ticket is None:
             continue
         if e.type == "state_transition":
             latest[e.ticket] = e.body["to"]
             edited.discard(e.ticket)
+            if e.body["to"] != "running":
+                terminals[e.ticket] = e.body
             if e.body["to"] == "merged":
                 merged.add(e.ticket)
                 commits[e.ticket] = e.body.get("commit")
@@ -112,7 +116,7 @@ def fold(events: Iterable[Event]) -> Fold:
             first.setdefault(e.ticket, e.ts)
             edited.add(e.ticket)
     return Fold(frozenset(merged), latest, first, fold_caps(events), commits,
-                frozenset(edited))
+                frozenset(edited), terminals)
 
 
 def sort_key(fold: Fold) -> Callable[[Ticket], tuple]:
@@ -276,10 +280,17 @@ class Drain:
         await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=RETRY_CAP,
                       run_seq=run_seq)
         fed = ", ".join(str(p.relative_to(self._repo)) for p in self._artifacts(stem))
+        diagnosis = facts.terminals.get(stem, {}).get("diagnosis")
+        diagnosed = ""
+        if isinstance(diagnosis, dict):
+            verdict = diagnosis.get("verdict")
+            lessons = diagnosis.get("lessons", ())
+            diagnosed = (f"; diagnosis {verdict or diagnosis.get('call')}"
+                         + "".join(f"; lesson: {lesson}" for lesson in lessons))
         self._report(f"re-offer: {stem} after `{facts.latest[stem]}`; retry unit "
                      f"{facts.cap_drawn.drawn(stem, RETRY_CAP) + 1} of "
                      f"{self._config.caps.retry} drawn"
-                     + (f"; findings-fed from {fed}" if fed else ""))
+                     + diagnosed + (f"; findings-fed from {fed}" if fed else ""))
 
     # --- the self-upgrade handoff ----------------------------------------------------
 

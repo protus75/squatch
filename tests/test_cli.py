@@ -21,6 +21,7 @@ import pytest
 
 from squatch.__main__ import main
 from squatch.artifacts import Cost
+from squatch.diagnose import DiagnosisRecord
 from squatch.journal import read_events
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET
@@ -152,6 +153,12 @@ class FakePipeline:
         return Delivery(outcome, [], None, None, None, Path("/squatch-no-workspace"),
                         "HEAD", "implement", outcome if outcome != "ok" else None,
                         Cost(tokens=0, seconds=0.0, attempts=0))
+
+    async def diagnose(self, ticket, delivery, *, run_seq):
+        detail = f"workspace missing: {delivery.worktree}"
+        return DiagnosisRecord(run_seq=run_seq, outcome=delivery.outcome, call="synthetic",
+                               verdict="abandon-human", lessons=(detail,), reason=detail,
+                               detail=None)
 
 
 def cli(checkout: Path, *argv: str, pipeline=None) -> tuple[int, str]:
@@ -337,9 +344,11 @@ def test_run_non_ok_terminal_journals_it_exits_1_and_the_next_run_takes_a_fresh_
     assert rc == EXIT_TICKET
     assert "stopped: base run 0 ended gate_failed" in out
     assert (checkout / "tickets" / "base" / "ticket.md").is_file()
-    assert transitions(checkout, "base") == [{"to": "running", "run_seq": 0},
-                                             {"to": "gate_failed", "run_seq": 0,
-                                              "harvest": None}]
+    transition = transitions(checkout, "base")
+    assert transition[0] == {"to": "running", "run_seq": 0}
+    assert {k: transition[1][k] for k in ("to", "run_seq", "harvest")} == {
+        "to": "gate_failed", "run_seq": 0, "harvest": None}
+    assert transition[1]["diagnosis"]["call"] == "synthetic"
     rc, _ = cli(checkout, "run", "base", pipeline=fake)
     assert rc == EXIT_OK
     assert fake.calls == [("base", 0), ("base", 1)]

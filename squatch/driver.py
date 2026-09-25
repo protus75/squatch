@@ -18,7 +18,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from squatch.artifacts import STAGE_NAMES, Artifact, Cost, Finding, StageResult
+from squatch.artifacts import SUBSTEP_NAMES, STAGE_NAMES, Artifact, Cost, Finding, StageResult
 from squatch.caps import RETRY_CAP
 from squatch.config import Caps, Severity, Tier
 from squatch.enginelog import EngineLog
@@ -49,8 +49,8 @@ class LLMStage:
     render: Render
 
     def __post_init__(self):
-        if self.name not in STAGE_NAMES:
-            raise ValueError(f"stage name {self.name!r} is not a StageName")
+        if self.name not in STAGE_NAMES | SUBSTEP_NAMES:
+            raise ValueError(f"stage name {self.name!r} is not a StageName or substep name")
 
 
 class Spool:
@@ -139,7 +139,8 @@ class Driver:
     def _terminal(self, outcome, cost, findings, common, *, artifact=None, **detail):
         self._log.event("terminal", outcome=outcome, attempts=cost.attempts,
                         usd=cost.usd, **detail, **common)
-        return StageResult(outcome=outcome, artifact=artifact, findings=list(findings), cost=cost)
+        return StageResult(outcome=outcome, artifact=artifact, findings=list(findings), cost=cost,
+                           reason=detail.get("reason"))
 
 
 class _CostFold:

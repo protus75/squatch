@@ -413,12 +413,14 @@ class Stages:
         self._log = log
         self._redact = redact
         self._clock = clock
+        self._specs_dir = Path(specs_dir)
         # Inherit-minus-secrets: a verification command never sees a provider key.
         self._child_env = child_env(env, {p.auth for p in config.providers if p.auth})
-        self.implement_spec = load_spec(Path(specs_dir) / "implement.md")
-        self.review_spec = load_spec(Path(specs_dir) / "review.md")
+        self.implement_spec = load_spec(self._specs_dir / "implement.md")
+        self.review_spec = load_spec(self._specs_dir / "review.md")
         state = self._repo / config.state_dir
-        self._driver = Driver(llm=llm, spool=Spool(state, fs=fs, redact=redact), log=log,
+        self._spool = Spool(state, fs=fs, redact=redact)
+        self._driver = Driver(llm=llm, spool=self._spool, log=log,
                               clock=clock, retry_cap=config.caps.retry,
                               severity=config.review.gate_severity)
 
@@ -564,9 +566,15 @@ class Stages:
                 lines.extend(f"- {f.code}{_where(f)}: {f.message} (paved road: {f.paved_road})"
                              for f in invoice.hard_findings)
         phase_one_count = len(lines)
-        harvest_summaries: list[str] = []
+        diagnoses = {
+            event.body.get("run_seq"): (event.body, event.body["diagnosis"])
+            for event in self._effects.journal.read()
+            if event.type == "state_transition" and event.ticket == stem
+            and isinstance(event.body.get("diagnosis"), dict)
+            and event.body["diagnosis"].get("verdict") is not None
+        }
+        artifacts: dict[int, tuple[Path, Harvest]] = {}
         attempts = canonical / "attempts"
-        latest: Path | None = None
         if attempts.is_dir():
             for attempt in sorted((p for p in attempts.iterdir()
                                    if p.is_dir() and p.name.isdigit()),
@@ -576,12 +584,30 @@ class Stages:
                     continue
                 artifact = Harvest.model_validate_json(
                     artifact_path.read_text(errors="replace"))
+                artifacts[artifact.run_seq] = (attempt, artifact)
+        harvest_summaries: list[str] = []
+        for attempt_seq in sorted(artifacts.keys() | diagnoses.keys()):
+            pair = artifacts.get(attempt_seq)
+            terminal_and_diagnosis = diagnoses.get(attempt_seq)
+            if terminal_and_diagnosis is not None:
+                terminal, diagnosis = terminal_and_diagnosis
+                reason = ((pair[1].reason or "(findings carried separately)")
+                          if pair is not None else terminal["to"])
+                harvest_summaries.append(
+                    f"attempt {attempt_seq}: terminal reason `{reason}`; diagnosis "
+                    f"verdict `{diagnosis['verdict']}`")
+                harvest_summaries.extend(
+                    f"- lesson: {lesson}" for lesson in diagnosis.get("lessons", ()))
+            elif pair is not None:
+                attempt, artifact = pair
                 changed = " / ".join(artifact.diff_stat.strip().splitlines())
                 harvest_summaries.append(
                     f"harvest attempt {artifact.run_seq}: outcome `{artifact.outcome}`; "
                     f"reason: {artifact.reason or '(findings carried separately)'}; "
                     f"files changed: {changed or '(no changed files)'}")
-                latest = attempt
+        latest = artifacts[max(artifacts)][0] if artifacts else None
+        if latest is not None and max(artifacts) in diagnoses:
+            latest = None
         harvest_details: list[str] = []
         if latest is not None:
             run_record = latest / RUN_RECORD

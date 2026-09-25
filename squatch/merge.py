@@ -23,6 +23,7 @@ from pathlib import Path
 
 from squatch.artifacts import Finding
 from squatch.config import Config
+from squatch.diagnose import Diagnoser, DiagnosisRecord
 from squatch.effects import Effects, effect_key
 from squatch.enginelog import EngineLog
 from squatch.gates import GateReport, run_gates
@@ -280,6 +281,7 @@ class Pipeline:
     def __init__(self, stages: Stages, merge: Merge):
         self.stages = stages
         self.merge = merge
+        self.diagnoser = Diagnoser(stages)
 
     async def run(self, ticket: Ticket, *, run_seq: int) -> Delivery:
         delivery = await self.stages.run(ticket, run_seq=run_seq)
@@ -288,6 +290,10 @@ class Pipeline:
         admission = await self.merge.admit(ticket, delivery, run_seq=run_seq)
         return replace(delivery, outcome=admission.outcome, findings=admission.findings,
                        stage="merge", reason=None)
+
+    async def diagnose(self, ticket: Ticket, delivery: Delivery, *,
+                       run_seq: int) -> DiagnosisRecord:
+        return await self.diagnoser.diagnose(ticket, delivery, run_seq=run_seq)
 
 
 def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,

@@ -17,6 +17,7 @@ ARTIFACT_SCHEMA_VERSION = 1
 
 StageName = Literal["author", "implement", "check", "review", "rework", "merge", "triage", "retro"]
 STAGE_NAMES: frozenset[str] = frozenset(StageName.__args__)
+SUBSTEP_NAMES: frozenset[str] = frozenset({"diagnose"})
 
 Outcome = Literal["ok", "already_satisfied", "invalid_artifact", "gate_failed", "premise_failed",
                   "timeout", "infra_error", "budget_exceeded"]
@@ -91,3 +92,4 @@ class StageResult:
     artifact: Artifact | None
     findings: list[Finding]
     cost: Cost
+    reason: str | None = None
