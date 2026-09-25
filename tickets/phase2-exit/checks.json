@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "92c37f0eb49b5a61d9e71781ee16d9dfb88a9f0c",
+  "produced_at_sha": "97985efc2889fc9c0e5a8780a43591af58a37592",
   "stem": "phase2-exit",
   "branch": "phase2-exit",
-  "base": "eb79ad88db7f6fff621ceaa12b992802c8d7beec",
-  "head": "92c37f0eb49b5a61d9e71781ee16d9dfb88a9f0c",
+  "base": "21bcb5252de0850b55315274e67b59016a1d4e60",
+  "head": "97985efc2889fc9c0e5a8780a43591af58a37592",
   "changed_files": [
     "tests/test_phase2_exit.py",
     "tests/test_seeded_phase3_core.py"
@@ -15,18 +15,60 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": null,
-      "sha": null,
+      "path": "tickets/daemon-scheduler/ticket.md",
+      "sha": "92ce393ae97589063ff5354e0eab6f25d078d4c2",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/daemon-scheduler/ticket.md",
+          "line": null,
+          "message": "The dormancy criterion says the test should 'scan the production composition roots' but never names which files those are or what counts as reachable. Section 19 requires a dormancy proof to name the one scan that a reachable component fails. On main, `squatch/__main__.py` builds production through `Drain`, `Runner`, and `compose_pipeline` (`squatch/drain.py`, `squatch/runner.py`, `squatch/merge.py`). A test that scans only `__main__.py` for a direct import would still pass if `drain.py` or `runner.py` imported the scheduler. That is the convergent false-green shape section 19 names.",
+          "paved_road": "State the scan's roots and its reachability rule in Scope in and in the criterion. Recommended: the transitive `squatch.*` import closure from `squatch/__main__.py`, parsed with `ast` and covering both the `import squatch.x` and `from squatch import x` forms. The criterion should require the test to fail when `squatch.scheduler` or `squatch.watcher` is in that closure."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/daemon-scheduler/ticket.md",
+          "line": null,
+          "message": "`## Context` lists `config.yaml` and `squatch/journal.py`, but the scheduler work touches neither. It omits `squatch/__main__.py`, the production composition root the dormancy scan must parse. The implementer is asked to pin reachability from a root it cannot read.",
+          "paved_road": "Add `squatch/__main__.py` to `## Context`, keeping it out of the fence. Drop `config.yaml` unless a criterion reads it."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase3-continue/ticket.md",
+      "sha": "ea48e7fce6e0beaca7bf142486044b9706f3108d",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue/ticket.md",
-          "line": 6,
-          "message": "Context path 'tests/test_seeded_phase3_core.py' does not exist",
-          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
+          "line": null,
+          "message": "`## Context` is empty, but the criteria force reads of engine code that exists on main. 'proves both lint' needs the intake-lint/ticket-schema API. 'fit `seeding.max_seeds_per_admission` and `drain.max_ticket_minutes`' needs the config loader and the committed config values. 'read closure against files existing on main' needs the authored seeds' existing fence files (`squatch/merge.py` and the `tickets` plane). Without these reads the implementer has to guess the lint entrypoint, the config access path and the recorded cap values.",
+          "paved_road": "List in `## Context` every existing file the test and the seeds depend on: the ticket-lint owner (`squatch/tickets.py`), the config loader (`squatch/config.py`) and the committed `config.yaml`, `squatch/merge.py` (it sits in the merge-queue seed's fence), and any existing seeded-batch test the new test copies (for example phase2-exit's Phase 3 seeding test)."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue/ticket.md",
+          "line": null,
+          "message": "Section 19 requires the seeding deliverable's own test to pin mechanical per-seed closure assertions. (1) Every fence entry naming an EXISTING file also appears in that seed's `## Context`: `squatch/merge.py` for `merge-queue`, and `tickets` for `phase3-continue-02`. (2) Every existing test whose assertions the seed's criteria contradict is fenced, or the seed is refused because the plan forbids widening its fence. (4) The seed's prose states the owner of each not-yet-built module (`squatch/mergequeue.py`), sourced from the Seeding partition. The acceptance criteria only pin identities, edges, tiers, budgets and exact fences. 'Read closure' appears in Scope in but has no checkable criterion, so a seed with an empty Context would pass green.",
+          "paved_road": "Add acceptance criteria requiring `tests/test_seeded_phase3_01.py` to assert: each seed's existing fence files appear in its `## Context` and exist on main; the `merge-queue` seed's prose names `squatch/mergequeue.py`'s ownership as the section 19 partition states it; and the merge-queue seed carries no criterion that contradicts an existing test under `tests/` for `squatch/merge.py` outside its fence (grep the changed merge.py symbols across `tests/` at authoring and cite the result)."
         }
       ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/seed-successor-proof/ticket.md",
+      "sha": "ebdd02d65cbe3282777c1ffe8fb3e443804f47ff",
+      "bypassed": false,
+      "findings": [],
       "commands": []
     },
     {
