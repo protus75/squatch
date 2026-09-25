@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The plan and ticket were amended after the prior attempt to require the landed universal key `llm/triage/<message seq>/triage/<pass>/<call_seq>`. Passing the message sequence as `run_seq` and the pass count as `attempt` satisfies it without changing the Driver or LLMEffect seams. Projection rows are admitted whole so a truncated prefix collision cannot authorize a tombstone link.
+The prior implementation was recoverable from its commits. I retained its passing triage surface and corrected the review findings: GO identity now follows the exercised tiers recorded by the eval harness, committed registry records replay idempotently, and projection quoting happens before the character cap is measured.
 
 ## Dead ends
-The prior implementation mapped pass to `run_seq` and message sequence to `attempt`; that produced the wrong universal key order and was replaced with the amended contract's mapping.
+None. The untouched base suite passed before implementation (696 tests), so no pre-existing red required attribution.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The prior implementation mapped pass to `run_seq` and message sequence to `attem
 OpenAI / GPT-5 Codex; implement spec 1.1.
 
 ## Predicted vs actual
-Expected 90m; actual approximately 25m, including base verification, prior-diff recovery, corrections, and the full verification pass.
+Expected 90m; actual approximately 15m, including base verification, prior-diff recovery, review-finding corrections, and the full verification pass (713 tests).
