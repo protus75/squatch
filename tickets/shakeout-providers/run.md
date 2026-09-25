@@ -1,16 +1,16 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The amended plan correctly keeps authentication detail out of the terminal reason and drain parked line. The remaining required detail surface is still a harvested Finding, not the harvest reason or a spool tail.
+Both shipped CLIs use `Not logged in` as their authentication-failure signature. Classification is applied only when a call is already failing, so successful model text containing those words cannot be misclassified. The re-authentication roads follow the ticket's required non-engine actions: run `claude login` or `codex login` in the operator's shell.
 
 ## Dead ends
-The base suite is green (810 passed). A `ProviderError` raised by `CliClient` is caught in `squatch/driver.py`, where the `infra_error` StageResult is constructed with an empty findings tuple. `squatch/stages.py` passes that empty list into the Delivery, and `squatch/harvest.py` serializes only `delivery.findings` into `harvest.json`. Therefore changing `squatch/providers.py` can classify the exception and preserve its message only as the delivery/harvest reason; it cannot create the acceptance criterion's harvested finding. Making the required finding needs an edit to `squatch/driver.py` (and its focused test), outside the scope fence.
+The first two cumulative shakeout runs were refused because the fixture ticket's acceptance criterion did not quote a verification command in the normalized argv form required by intake lint. Quoting `python -c raise SystemExit(0)` made the fixture lint-clean; no production behavior changed for this correction.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5
+OpenAI Codex / GPT-5 family
 
 ## Predicted vs actual
-Expected 60m; actual about 10m before the scope-fence blocker was confirmed.
+Expected 60m; actual about 20m.
