@@ -1,9 +1,15 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Every acceptance criterion passed and every check was green. The review snag is one unhandled failure path in Author.run (squatch/author.py ~L118): the ticket file is written before starting_state() and Intake.commit(), and exceptions from either are not caught.",
+    "Run lint_ticket and starting_state() on authored.ticket BEFORE writing to disk. If the write or Intake.commit fails, remove tickets/<stem>/ through the filesystem seam, report the reason, and return None so the message stays pending with its author verdict.",
+    "One bad item must never abort the triage pass. Add a test where Intake.commit (or starting_state) raises: no ticket dir remains, the message stays pending with its verdict, later items are still processed, and the triage_pass signal is still journaled.",
+    "bug_origin can be None for a bug_report message whose origin is not self_diagnosed or player, and starting_state raises ValueError in that case. Treat it as a failed authoring (leave pending and report it), not a crash.",
+    "Keep the rest of the diff as it is. The fix is local to Author.run plus one new test, all inside the fence. Consider replacing the private self._git._run('ls-files') call with a public git.py method only if that method already exists; squatch/git.py is outside the fence."
+  ],
+  "reason": "Reviewer snag: one fixable oversight in the failure path with an exact paved road; the work is otherwise complete and green, so no extra capability or split is needed.",
+  "detail": null
 }
