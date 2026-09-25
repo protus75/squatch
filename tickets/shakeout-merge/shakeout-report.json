@@ -1,0 +1,181 @@
+{
+  "entries": [
+    {
+      "auditor": "green",
+      "detail": "the drain's held: report line and the ticket_schema findings",
+      "expected": "held:no_running_transition",
+      "fault": "a committed tickets/bad-schema/ticket.md has priority P9 and no Verification section",
+      "green": true,
+      "group": "shakeout-tickets",
+      "member": "shakeout-tickets.bad_schema",
+      "observable": "drain exits at quiescence with no bad-schema state_transition while the green control reaches merged",
+      "observed": "held:no_running_transition",
+      "producing_run": "green/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/checks.json",
+      "expected": "gate_failed:scope_fence",
+      "fault": "the fake implementer commits a file outside the scope fence",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.scope_escape",
+      "observable": "the Check terminal and checks.json carry scope_fence",
+      "observed": "gate_failed:scope_fence",
+      "producing_run": "scope-escape/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/run.md",
+      "expected": "premise_failed",
+      "fault": "the fake implementer answers premise_failed",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.premise_false",
+      "observable": "the terminal transition is premise_failed",
+      "observed": "premise_failed",
+      "producing_run": "premise-false/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/checks.json",
+      "expected": "gate_failed:verification:branch",
+      "fault": "verification is green at base and red on the branch",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.branch_only_red",
+      "observable": "checks.json attributes the verification failure to branch",
+      "observed": "gate_failed:verification:branch",
+      "producing_run": "branch-only-red/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "the filed box message",
+      "expected": "check_passed:attribution_base",
+      "fault": "verification is red at base and on the branch",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.base_red_excused",
+      "observable": "Check passes with base attribution, a filed box id, and no cap draw",
+      "observed": "check_passed:attribution_base",
+      "producing_run": "base-red-excused/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/checks.json",
+      "expected": "gate_failed:verification:empty_diff",
+      "fault": "the fake implementer commits no diff but answers implemented",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.empty_diff",
+      "observable": "verification rejects the empty committed diff",
+      "observed": "gate_failed:verification:empty_diff",
+      "producing_run": "empty-diff/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/review.md",
+      "expected": "gate_failed:review_snag",
+      "fault": "Review returns a snag finding",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.review_reject",
+      "observable": "the terminal is gate_failed and review.md is pinned snag",
+      "observed": "gate_failed:review_snag",
+      "producing_run": "review-reject/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "<state_dir>/spools/<stem>/1/",
+      "expected": "reentry:criteria_position",
+      "fault": "a snagged stem is run a second time",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.reject_reentry_criteria_position",
+      "observable": "the prior review finding occurs once between ticket and context blocks",
+      "observed": "reentry:criteria_position",
+      "producing_run": "reject-reentry/1"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/attempts/0/run.md",
+      "expected": "timeout:dead_ends_rendered",
+      "fault": "attempt zero hangs after writing a marked run record",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.timeout_dead_ends",
+      "observable": "attempt one times out and attempt two renders its harvested dead ends",
+      "observed": "timeout:dead_ends_rendered",
+      "producing_run": "timeout-dead-ends/1"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/run.md",
+      "expected": "secret:redacted_everywhere",
+      "fault": "provider auth is echoed in run.md and model output",
+      "green": true,
+      "group": "shakeout-stages",
+      "member": "shakeout-stages.secret_not_persisted",
+      "observable": "ticket-plane and journal bytes omit the value while run.md carries its token",
+      "observed": "secret:redacted_everywhere",
+      "producing_run": "secret-not-persisted/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/attempts/<n>/harvest.json",
+      "expected": "invalid_artifact:reprompt_exhausted",
+      "fault": "review answers with a verdict outside its schema on every driver call",
+      "green": true,
+      "group": "shakeout-driver",
+      "member": "shakeout-driver.schema_invalid_exhausts_reprompt",
+      "observable": "retry plus one consecutive review effect completions precede invalid_artifact",
+      "observed": "invalid_artifact:reprompt_exhausted",
+      "producing_run": "schema-invalid-exhausts-reprompt/0"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/attempts/<n>/harvest.json",
+      "expected": "timeout:killed_harvested_drain_continued",
+      "fault": "a cancellation-resistant stage crosses its clock-derived one-minute budget",
+      "green": true,
+      "group": "shakeout-driver",
+      "member": "shakeout-driver.stuck_budget_killed",
+      "observable": "the fake is aborted, timeout is harvested, and the same drain merges the next ticket",
+      "observed": "timeout:killed_harvested_drain_continued",
+      "producing_run": "stuck-budget-killed/1"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/attempts/<n>/harvest.json",
+      "expected": "abandoned:harvested_reentered",
+      "fault": "the fake implementer writes run.md and the engine faults before a terminal is written",
+      "green": true,
+      "group": "shakeout-reconcile",
+      "member": "shakeout-reconcile.engine_death_reaped",
+      "observable": "the next entry lifts attempts/0 before abandoned, then dispatches run 1 with the harvested outcome and run record in its Implement prompt",
+      "observed": "abandoned:harvested_reentered",
+      "producing_run": "engine-death-reaped/1"
+    },
+    {
+      "auditor": "green",
+      "detail": "tickets/<stem>/attempts/<n>/harvest.json",
+      "expected": "gate_failed:rebase_aborted",
+      "fault": "main and the live ticket branch commit conflicting edits to the same fixture lines",
+      "green": true,
+      "group": "shakeout-merge",
+      "member": "shakeout-merge.conflicted_rebase_aborted",
+      "observable": "gate_failed carries post_rebase_regate with the re-run road; before cleanup the worktree has neither rebase state directory, HEAD equals the branch head, and main's tree is unchanged",
+      "observed": "gate_failed:rebase_aborted",
+      "producing_run": "conflicted-rebase-aborted/0"
+    }
+  ],
+  "groups": [
+    "shakeout-tickets",
+    "shakeout-stages",
+    "shakeout-driver",
+    "shakeout-reconcile",
+    "shakeout-merge"
+  ],
+  "produced_at_sha": "985c4d073006577bca9ee80e3cce5630076cd934",
+  "schema_version": 1
+}
