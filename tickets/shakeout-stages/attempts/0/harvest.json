@@ -1,0 +1,28 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "harvest-1.0",
+  "produced_at_sha": "8f4eb034a0d3ea899d6fb49936ae2e009171e3e1",
+  "outcome": "premise_failed",
+  "stage": "implement",
+  "reason": null,
+  "findings": [
+    {
+      "code": "render_refused",
+      "path": null,
+      "line": null,
+      "message": "/home/djp/source/squatch/specs/implement.md: rendered prompt is 375130 chars, over the 320000-char bound at effort medium (paved road: shrink the inputs or split the ticket)",
+      "paved_road": "shrink the inputs or split the ticket"
+    }
+  ],
+  "cost": {
+    "usd": 0.0,
+    "tokens": 0,
+    "provider": null,
+    "model": null
+  },
+  "wall_seconds": 0.077079,
+  "run_seq": 0,
+  "diff_stat": "",
+  "spool_tails": {},
+  "filed": []
+}
