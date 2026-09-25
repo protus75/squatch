@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "5cbaf8e9c63ec4f8fb572be880be348e35468a6c",
+  "produced_at_sha": "af19ae0c5d79654a9b127d1f13a435df5fcfc1cd",
   "stem": "phase3-continue",
   "branch": "phase3-continue",
-  "base": "f0af551fc03fb7993739839a944367d23a08d260",
-  "head": "5cbaf8e9c63ec4f8fb572be880be348e35468a6c",
+  "base": "5b4a951873ef0a5d824f3f0bee69c242d1650f64",
+  "head": "af19ae0c5d79654a9b127d1f13a435df5fcfc1cd",
   "changed_files": [
     "tests/test_seeded_phase3_01.py"
   ],
@@ -15,34 +15,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/merge-queue/ticket.md",
-      "sha": "ce36aba86d29c6e9f5fff050e24d8650badef6bc",
+      "sha": "66a71461ac4d1d02f4b1c211d2eb96c0330910cb",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-02/ticket.md",
-      "sha": "9ed6a2f2d829aa34fef23e73dd7671e97b23617b",
+      "sha": "0cac27a274df8c43ea33283f8d369dfd8a472302",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-02/ticket.md",
-          "line": null,
-          "message": "Scope in says `phase3-continue-03` 'carries the ordered remaining suffix below', and that list starts with `[rework-stage]`. This ticket already seeds `rework-stage`. `tests/test_seeded_phase3_core.py` sets the convention: each continuation's carried list starts with the deliverable that continuation seeds (`phase3-continue` carries `merge-queue` first). Handing this list to `phase3-continue-03` either seeds `rework-stage` twice or leaves the suffix the same length. Section 20 requires the suffix to shrink.",
-          "paved_road": "State that the listed suffix is this ticket's own carried remainder, headed by the `rework-stage` it seeds. Require `phase3-continue-03`'s Scope in to carry the ordered suffix starting at `[thresh-runtime]` and ending at `[phase3-exit]`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-02/ticket.md",
-          "line": null,
-          "message": "No acceptance criterion requires `tests/test_seeded_phase3_02.py` to check the suffix carried in `phase3-continue-03`'s structured Scope in. Section 20 requires each continuation to carry the shrinking unseeded suffix and pin its emitted structure, so a wrong or missing suffix would pass every criterion as written.",
-          "paved_road": "Add a criterion: in `tests/test_seeded_phase3_02.py`, the structured YAML suffix in `tickets/phase3-continue-03/ticket.md`'s Scope in equals the exact ordered tuple from `[thresh-runtime]` through `[phase3-exit]`, parsed the way `_structured_scope_in` in `tests/test_seeded_phase3_core.py` parses it."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
