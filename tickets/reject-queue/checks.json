@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "ec94bbb5359cd809c29af31cf7f83159ec21a233",
+  "produced_at_sha": "c9922224a16f62b062ee66c464b2eabacd2d4ecd",
   "stem": "reject-queue",
   "branch": "reject-queue",
-  "base": "a0fd0ec90c3a40e203494e421ec71bfdbb23b995",
-  "head": "ec94bbb5359cd809c29af31cf7f83159ec21a233",
+  "base": "e3d9ff9063780cfee6367bb452d4fc07b718dd6e",
+  "head": "c9922224a16f62b062ee66c464b2eabacd2d4ecd",
   "changed_files": [
     "squatch/drain.py",
     "squatch/reject.py",
