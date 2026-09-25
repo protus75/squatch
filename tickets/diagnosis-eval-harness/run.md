@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The superseding single-envelope fixture law resolved the prior attempt's file-count contradiction. I retained the proven fixture-keyed effect and per-journal sequence design, but validated each complete envelope as one closed model and kept the 12 fixtures as compact JSON so the final diff is 14 files / 806 inserted lines.
+The prior implementation commit was available locally but absent from this re-entry branch, so I restored that scoped commit and corrected it in a second commit. I treated a budget refusal on call two as a terminal for the partly run fixture, preserving its paid first-call cost while listing only untouched fixtures as not run.
 
 ## Dead ends
-The legacy per-fixture directory shape from the prior attempt was abandoned because it necessarily exceeded the 30-file gate. The untouched base suite passed before edits (608 tests), so no base failure blocked implementation.
+The untouched base suite passed before restoration (608 tests). The prior shared ticket template was discarded because it contradicted the fixture evidence; each envelope now carries a ticket specific to the failure being diagnosed.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The legacy per-fixture directory shape from the prior attempt was abandoned beca
 OpenAI / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual about 20m. Verification passed: 13 focused tests, CLI help, and 621 full-suite tests.
+Expected 90m; actual about 30m. Verification passed: 14 focused tests, CLI help, and 622 full-suite tests.
