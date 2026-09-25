@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Pin criterion 4 as written: script FakeLLM with an out-of-map verdict (e.g. \"defer\") twice, then a valid reply. Assert 3 requests, the first message pending with triage None and its bytes unchanged, and the next message resolved.",
+    "Pin criterion 3 against git, not the working tree: assert tombstone-000001.md and decision-000002.md are tracked at main (git show main:<path>), and assert the tombstone record's link equals the existing stem.",
+    "Effect key: the ticket requires llm/triage/<message id>/<pass>/<call_seq>. If the landed Driver/LLMEffect cannot produce it unchanged, answer premise_failed per Definition of rejected; never silently substitute another key shape.",
+    "Build allowed tombstone links from the rows actually kept after the TRIAGE_CONTEXT_CHARS cut, never from substring search of the joined text. Add a test where a prefix-colliding stem falls past the cap."
+  ],
+  "reason": "Checks are green; review snags are missing test pins, a substring link check, and an unraised key-shape deviation. The findings steer all of them at the same capability.",
+  "detail": null
+}
