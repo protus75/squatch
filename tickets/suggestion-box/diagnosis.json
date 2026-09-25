@@ -1,15 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "The only out-of-fence file was squatch/git.py (+3 lines). The ticket requires resolving the parent checkout through git.py, but Git.rev_parse only runs `rev-parse --verify <rev>`. No git.py method returns `--git-common-dir`, so the criterion needs an edit outside the fence.",
-    "The ticket's Definition of rejected covers this case ('any file outside the fence must change'). The right answer was premise_failed, not an out-of-fence edit. Re-author the ticket with squatch/git.py fenced, for one additive git_common_dir wrapper, and add a tests/test_git.py pin.",
-    "Don't get around this by calling the private Git._run from box.py, or by reading the worktree's .git/commondir files directly. Either one skips the git.py wrapper rule the ticket requires.",
-    "Everything else in the fence was implemented and the attempt reports the full suite green (622 passed). A re-authored run can reuse the approach: box.py, registry.py, harvest `filed`, the status box section, and ingest-then-git rm of bootstrap/suggestions.md.",
-    "The instance state dir already holds 257 bootstrap-ingest records from this run, and ingest is idempotent by signature. The next run should check that the signature normalizer is unchanged, or the re-ingest will duplicate records instead of recognizing them."
-  ],
-  "reason": "Acceptance needs the git common dir via squatch/git.py, which has no method for it and is outside the scope fence: a ticket authoring defect, so premise_failed.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
