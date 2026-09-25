@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "af4937fcfc518158965acc7bc154e4d1076e0a28",
+  "produced_at_sha": "1a2d58a00e9b1eac136ce4f7c09c9759da324dc2",
   "stem": "suggestion-box",
   "branch": "suggestion-box",
-  "base": "d6845c192b2ce7b967a155ee2af25126cf528f57",
-  "head": "af4937fcfc518158965acc7bc154e4d1076e0a28",
+  "base": "37131c3bb82ab8db66e96d3a41cfef18b74043cc",
+  "head": "1a2d58a00e9b1eac136ce4f7c09c9759da324dc2",
   "changed_files": [
     "bootstrap/suggestions.md",
     "squatch/box.py",
@@ -17,6 +17,7 @@
     "tests/test_box.py",
     "tests/test_cli.py",
     "tests/test_drain.py",
+    "tests/test_git.py",
     "tests/test_harvest.py",
     "tests/test_registry.py",
     "tests/test_terminal.py"
@@ -24,18 +25,10 @@
   "checks": [
     {
       "code": "scope_fence",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "scope_fence",
-          "path": "squatch/git.py",
-          "line": null,
-          "message": "squatch/git.py is outside the scope fence ['squatch/box.py', 'squatch/registry.py', 'squatch/harvest.py', 'squatch/runner.py', 'squatch/status.py', 'bootstrap/suggestions.md', 'tests/test_box.py', 'tests/test_registry.py', 'tests/test_harvest.py', 'tests/test_terminal.py', 'tests/test_drain.py', 'tests/test_cli.py']",
-          "paved_road": "edit only paths under the ticket's `## Scope fence` prefixes; a criterion that forces an out-of-fence edit is an authoring defect (answer premise_failed), and a genuine surprise takes the gate_bypass valve"
-        }
-      ]
+      "findings": []
     },
     {
       "code": "verification",
