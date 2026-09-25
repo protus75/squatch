@@ -1,0 +1,42 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "bbcd1bce5a8506c3c47496278caefa024abbed70",
+  "stem": "diagnosis-eval-run",
+  "branch": "diagnosis-eval-run",
+  "base": "9771df5e8f455a1ee3b21c90f79341ff7da44fb5",
+  "head": "bbcd1bce5a8506c3c47496278caefa024abbed70",
+  "changed_files": [
+    "eval/reports/diagnosis-eval.json"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    }
+  ]
+}
