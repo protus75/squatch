@@ -1,9 +1,14 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
-  "call": "invalid_artifact",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "retry cap spent"
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Stop copying the grammar check in `_ReviewCapture.targets`. Put the stem, RESERVED_STEMS and lint_ticket admission in one shared function and have TicketSchemaGate call it too. Pass plan=None when SQUATCH_PLAN.md is absent, and return the target only when that predicate passes.",
+    "Add a tests/test_author.py case where the repo has no SQUATCH_PLAN.md: a grammar-valid ticket must still reach requisition_review and commit, with no 'gate crashed' finding.",
+    "In tests/test_driver.py, the terminal_findings test must also assert that result.findings holds the hard findings of both failing gates (count and codes). Checking only that both gates ran and the call count is not enough.",
+    "Keep what review accepted: the single run_gates call plus the minimal terminal_findings hook, grammar-first review skipping, the per-check reset of the stale verdict, and triage tests that assert the requisition_review call itself."
+  ],
+  "reason": "Review found two fixable defects with clear paved roads: the resolver's copied grammar check crashes when SQUATCH_PLAN.md is absent, and a driver test does not check that findings are preserved. Everything else passed.",
+  "detail": null
 }
