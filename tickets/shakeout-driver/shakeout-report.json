@@ -124,25 +124,25 @@
       "auditor": "green",
       "detail": "tickets/<stem>/attempts/<n>/harvest.json",
       "expected": "invalid_artifact:reprompt_exhausted",
-      "fault": "review returns a verdict outside its schema vocabulary on every call",
+      "fault": "review answers with a verdict outside its schema on every driver call",
       "green": true,
       "group": "shakeout-driver",
       "member": "shakeout-driver.schema_invalid_exhausts_reprompt",
-      "observable": "retry + 1 consecutive review effect completions and invalid_artifact terminal",
+      "observable": "retry plus one consecutive review effect completions precede invalid_artifact",
       "observed": "invalid_artifact:reprompt_exhausted",
-      "producing_run": "schema-invalid-reprompt/0"
+      "producing_run": "schema-invalid-exhausts-reprompt/0"
     },
     {
       "auditor": "green",
       "detail": "tickets/<stem>/attempts/<n>/harvest.json",
       "expected": "timeout:killed_harvested_drain_continued",
-      "fault": "a resisting Hang crosses a one-minute ticket stuck budget",
+      "fault": "a cancellation-resistant stage crosses its clock-derived one-minute budget",
       "green": true,
       "group": "shakeout-driver",
       "member": "shakeout-driver.stuck_budget_killed",
-      "observable": "abort precedes timeout harvest and the same drain merges the next ticket",
+      "observable": "the fake is aborted, timeout is harvested, and the same drain merges the next ticket",
       "observed": "timeout:killed_harvested_drain_continued",
-      "producing_run": "z-green-after-timeout/0"
+      "producing_run": "stuck-budget-killed/1"
     }
   ],
   "groups": [
@@ -150,6 +150,6 @@
     "shakeout-stages",
     "shakeout-driver"
   ],
-  "produced_at_sha": "af54a825426ec324cafc9495f22f3a8f5a9c780b",
+  "produced_at_sha": "ee5141b148a10a1dfc7f67ca3fe8868b41070fe6",
   "schema_version": 1
 }
