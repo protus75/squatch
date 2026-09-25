@@ -383,9 +383,12 @@ def test_run_refuses_a_seam_result_outside_the_outcome_vocabulary(checkout):
     assert rc == EXIT_REFUSED and "not an Outcome" in out
 
 
-def test_production_run_refuses_before_the_lock_until_the_stages_land(checkout):
+def test_production_run_dispatches_through_the_real_pipeline(checkout):
+    """No scripted stand-in: `run` composes the stages + merge admission over
+    the lock-held journal. This checkout routes no provider, so Implement's
+    call is an infra_error -- a ticket outcome (exit 1), never a refusal."""
     author(checkout, "base")
     rc, out = cli(checkout, "run", "base")
-    assert rc == EXIT_REFUSED
-    assert "no stages behind it yet" in out and "squatch/stages.py" in out
-    assert not (checkout / STATE).exists(), "no lock, no journal, no intake before the seam exists"
+    assert rc == EXIT_TICKET, out
+    assert "stopped: base run 0 ended infra_error" in out
+    assert [t["to"] for t in transitions(checkout, "base")] == ["running", "infra_error"]

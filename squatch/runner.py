@@ -6,11 +6,12 @@ open the journal, intake pending hand-authored tickets through the
 ticket-plane lane, validate the named stem against the committed ticket plane
 and its eligibility (`confirmed`, every `depends` merged, not merged), journal
 the run's `running` transition, and hand the stem to the stage-dispatch seam.
-The stages and the merge admission live BEHIND that seam (`Pipeline`); this
-module owns the run's terminal `state_transition` write for every non-ok
-outcome (the section 9 ownership law) and the section 18 exit-code contract:
-0 = the ticket settled, 1 = a non-ok ticket terminal (ticket and branch left
-in place), 2 = an engine-plane refusal (lock, config, journal, eligibility).
+The stages and the merge admission live BEHIND that seam (`Pipeline`, built
+over the lock-held journal by the factory the caller supplies); this module
+owns the run's terminal `state_transition` write for every non-ok outcome
+(the section 9 ownership law) and the section 18 exit-code contract: 0 = the
+ticket settled, 1 = a non-ok ticket terminal (ticket and branch left in
+place), 2 = an engine-plane refusal (lock, config, journal, eligibility).
 """
 
 from collections.abc import Callable, Iterable
@@ -56,14 +57,8 @@ class Pipeline(Protocol):
     async def run(self, ticket: Ticket, *, run_seq: int) -> str: ...
 
 
-def production_pipeline() -> Pipeline:
-    """The production composition behind the seam. The stages and the merge
-    admission are not built yet, so `run` refuses BEFORE it takes the lock
-    rather than journaling a `running` it can never terminate."""
-    raise Refusal(
-        "the stage-dispatch seam has no stages behind it yet",
-        "the Implement/Check/Review stages (squatch/stages.py) and the merge admission "
-        "(squatch/merge.py) are the next Phase 1 deliverables; `run` dispatches once they land")
+# The journal is opened under the lock, so the pipeline over it is built there.
+PipelineFactory = Callable[[Journal], Pipeline]
 
 
 def merged_stems(events: Iterable[Event]) -> frozenset[str]:
@@ -74,7 +69,7 @@ def merged_stems(events: Iterable[Event]) -> frozenset[str]:
 
 class Runner:
     def __init__(self, *, repo: Path, config: Config, git: Git, fs: Filesystem, clock: Clock,
-                 instance_id: str, pipeline: Pipeline, report: Report):
+                 instance_id: str, pipeline: PipelineFactory, report: Report):
         self._repo = Path(repo)
         self._config = config
         self._git = git
@@ -115,7 +110,7 @@ class Runner:
         self._eligible(ticket, journal)
         run_seq = run_sequence(journal, stem)
         journal.append("state_transition", {"to": "running", "run_seq": run_seq}, ticket=stem)
-        outcome = await self._pipeline.run(ticket, run_seq=run_seq)
+        outcome = await self._pipeline(journal).run(ticket, run_seq=run_seq)
         if outcome not in OUTCOMES:
             raise Refusal(f"the stage seam returned {outcome!r}, not an Outcome",
                           f"return one of {sorted(OUTCOMES)}")

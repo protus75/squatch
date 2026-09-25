@@ -39,6 +39,10 @@ class Filesystem(Protocol):
         """Atomic rename of src over dst."""
         ...
 
+    def unlink(self, path: Path) -> None:
+        """Remove one file."""
+        ...
+
 
 class ExecutableNotFound(Exception):
     """argv[0] did not resolve; the seam's declared error, never an escaping
@@ -114,3 +118,6 @@ class LocalFilesystem:
 
     def replace(self, src: Path, dst: Path) -> None:
         os.replace(src, dst)
+
+    def unlink(self, path: Path) -> None:
+        os.unlink(path)

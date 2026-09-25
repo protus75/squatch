@@ -23,7 +23,8 @@ from squatch.config import ConfigError, load
 from squatch.git import Git, GitError
 from squatch.journal import JournalCorruption, read_events
 from squatch.providers import child_env
-from squatch.runner import EXIT_REFUSED, Pipeline, Refusal, Runner, production_pipeline
+from squatch.merge import compose_pipeline
+from squatch.runner import EXIT_REFUSED, Pipeline, Refusal, Runner
 from squatch.seams import ExecutableNotFound, LocalFilesystem, SubprocessExec
 from squatch.status import project, render
 from squatch.tickets import new_ticket
@@ -95,11 +96,15 @@ def _new(args, cwd: Path, env, out: TextIO, pipeline) -> int:
 
 def _run(args, cwd: Path, env, out: TextIO, pipeline: Pipeline | None) -> int:
     config = _config(args, cwd)
-    if pipeline is None:
-        pipeline = production_pipeline()
     # Inherit-minus-secrets: git never needs a provider key (section 6).
     git = Git(SubprocessExec(), env=child_env(env, {p.auth for p in config.providers if p.auth}),
               timeout=GIT_TIMEOUT_SECONDS)
+
+    def factory(journal) -> Pipeline:
+        if pipeline is not None:  # a scripted stand-in (tests)
+            return pipeline
+        return compose_pipeline(repo=cwd, config=config, env=env, journal=journal, clock=_clock,
+                                process=SubprocessExec(), fs=LocalFilesystem(), git=git)
 
     async def go() -> int:
         try:
@@ -108,7 +113,7 @@ def _run(args, cwd: Path, env, out: TextIO, pipeline: Pipeline | None) -> int:
             raise Refusal("git is not on PATH", "install git; every git call is an argv "
                           "subprocess through git.py") from None
         runner = Runner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=_clock,
-                        instance_id=instance_id, pipeline=pipeline,
+                        instance_id=instance_id, pipeline=factory,
                         report=lambda line: print(line, file=out))
         return await runner.run(args.stem)
 

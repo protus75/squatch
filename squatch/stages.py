@@ -14,8 +14,8 @@ the mechanical stage: the four v1 codes over the packing slip, persisted as
 durable as the re-entry's source. Review wires `specs/review.md` unchanged
 over the committed diff and emits one of three artifacts by verdict; a
 `snag` is `gate_failed` (the review surface is a gate) and an `rma` is
-`premise_failed` (the ticket is the problem). Merge is the next deliverable
-and settles what this layer delivers.
+`premise_failed` (the ticket is the problem). The merge admission
+(`squatch.merge`) settles what this layer delivers.
 """
 
 import json
@@ -34,7 +34,7 @@ from squatch.config import Config, Severity
 from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects, effect_key
 from squatch.enginelog import EngineLog
-from squatch.gates import GateReport, run_gates
+from squatch.gates import GateReport, GateRun, run_gates
 from squatch.git import Git, GitError
 from squatch.journal import Journal
 from squatch.llmeffect import LLMEffect
@@ -341,6 +341,20 @@ class DiffBudget:
                     f"of {DIFF_BUDGET_FILES} files / {DIFF_BUDGET_LINES} inserted lines"),))
 
 
+def build_invoice(run: GateRun, slip: PackingSlip, names: Sequence[str], *,
+                  bypassed: set[str], version: str) -> Invoice:
+    """One gate run as the structured check report; Check and the merge
+    admission's re-run persist the same shape."""
+    return Invoice(
+        stem=slip.stem, branch=slip.branch, base=slip.base, head=slip.head,
+        changed_files=tuple(names),
+        checks=tuple(CheckEntry(
+            code=r.report.code, verdict=r.report.verdict, severity=r.severity,
+            bypassed=r.failed and r.report.code in bypassed,
+            findings=r.report.findings) for r in run.results),
+        produced_by_spec_version=version, produced_at_sha=slip.head)
+
+
 # ---- the stages ---------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -499,14 +513,7 @@ class Stages:
                         **{code: "soft" for code in bypassed}}
             run = await run_gates(gates, slip, worktree, severity=severity)
             names = await self._git.diff_names(self._repo, slip.base, slip.branch)
-            invoice = Invoice(
-                stem=stem, branch=slip.branch, base=slip.base, head=slip.head,
-                changed_files=tuple(names),
-                checks=tuple(CheckEntry(
-                    code=r.report.code, verdict=r.report.verdict, severity=r.severity,
-                    bypassed=r.failed and r.report.code in bypassed,
-                    findings=r.report.findings) for r in run.results),
-                produced_by_spec_version=CHECK_VERSION, produced_at_sha=slip.head)
+            invoice = build_invoice(run, slip, names, bypassed=bypassed, version=CHECK_VERSION)
             self._log.event("check", stage="check", ticket=stem, run_seq=run_seq,
                             passed=invoice.passed,
                             findings=[f.model_dump() for f in invoice.hard_findings])
