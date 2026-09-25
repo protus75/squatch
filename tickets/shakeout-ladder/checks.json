@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "2a0c03f1f43e66f2911dcfbb24289e60b066967e",
+  "produced_at_sha": "e683e2ce069955207b930f00cc72577198c0f64f",
   "stem": "shakeout-ladder",
   "branch": "shakeout-ladder",
-  "base": "a48a467bd7914f5b338b5aad8d2010154f3c07c8",
-  "head": "2a0c03f1f43e66f2911dcfbb24289e60b066967e",
+  "base": "e3c5716c0ae7a8150ff713c67c587f133cd97918",
+  "head": "e683e2ce069955207b930f00cc72577198c0f64f",
   "changed_files": [
     "eval/shakeout/ladder_group.py",
     "eval/shakeout/registry.py",
