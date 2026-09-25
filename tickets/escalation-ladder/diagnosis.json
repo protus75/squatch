@@ -1,15 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Revert the `_resolve_rejects` edit in squatch/drain.py so auto-keep behaves exactly as it did before this change. Scope out forbids changing the auto-keep, and matching on the \"capability ladder exhausted\" substring of a free-text reason is fragile.",
-    "Rewrite test_exhausted_ladder_stays_reported_in_the_reject_queue: assert the stem ends up under `reject queue:` with the exhausted-ladder reason. Drop the `len(fake.calls) == 4` pin, because machine auto-keep re-offers at the top rung until the retry cap is spent.",
-    "This supersedes the earlier lesson that an exhausted stem is 'not re-offered'. A machine confirm bounds neither caps nor rungs, so re-offers at the top rung are expected until the cap runs out.",
-    "Keep everything else as it is: ladder.py, the reject.route arms, runner wiring, caps.consume with rung, and the other tests met acceptance. Mechanical checks passed and review raised only this one finding.",
-    "If exhausted stems really should skip auto-keep, file that as a plan change through the Suggestion Box. Do not fold it into this diff, and do not mention it as a judgment call in run.md."
+    "drain.py re-offer: take the rung from the latest terminal only when no operator confirm signal for the stem comes after it. Reuse the keep-bounded window (ladder._after_keep), or add a ladder helper for the pending rung that drain calls, so a keep cannot re-journal an old rung.",
+    "Rewrite test_operator_confirm_resets_folded_rungs_to_authored_capability. Reach two rungs through real escalate terminals, or hand-journal terminals that carry routed: ladder and rung. Then run confirm (operator) and assert the next dispatch uses the authored tier/effort.",
+    "Bound identical() so the window resets at the latest climb (the last terminal routed ladder or retry draw with a new rung) as well as at the operator keep. Each new rung then needs K fresh identical terminals before it climbs again.",
+    "Bound oscillating() by the same window. Right now it has no bound at all, not even the operator keep. Add ladder tests: a 4th identical terminal after a climb does not climb, and an A,B,A pattern that spans a keep or a climb does not trigger.",
+    "Keep everything else as it is: caps.consume rung, the reject.route arm order, runner wiring, the unchanged auto-keep, and the other tests. Checks passed, and the review raised only these two findings."
   ],
-  "reason": "Review raised one fixable finding: an out-of-scope auto-keep change in drain.py. The correction is to revert that edit and loosen one test, so a retry at the same capability should clear it.",
+  "reason": "Review found two concrete, fixable windowing defects with paved roads; checks passed, so the same capability can fix them.",
   "detail": null
 }
