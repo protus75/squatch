@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e5c93757fbd310cb9cef651856b99fe80d3ed2a1",
+  "produced_at_sha": "2bedc009c1b66f1878c113e1fe07a9c64009b423",
   "stem": "escalation-ladder",
   "branch": "escalation-ladder",
-  "base": "afa25c78d53ae5a5853d5cac0e699e11e128d8b7",
-  "head": "e5c93757fbd310cb9cef651856b99fe80d3ed2a1",
+  "base": "9cab53166f08be25c3bd9d07ee37a007ac8b9831",
+  "head": "2bedc009c1b66f1878c113e1fe07a9c64009b423",
   "changed_files": [
     "squatch/caps.py",
     "squatch/drain.py",
