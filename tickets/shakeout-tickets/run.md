@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The green control could settle through the production pipeline as `already_satisfied`; its pre-existing fixture context provides a real passing verification without adding a synthetic code diff.
+The prior implementation was no longer on the branch after the failed review, so I restored its three-path diff and applied the review's focused correction. The unit pin now binds the first lint finding's code, message, and paved road directly to the drain's `held:` line.
 
 ## Dead ends
-The first generated green-control ticket had malformed indentation around `## Verification`, so the drain held both tickets. Rebuilding the ticket from one dedented template made the control lint-clean and dispatchable.
+An initial one-line Python invocation for the `git.py` commit wrapper used an invalid inline `async def`; I replaced it with direct `asyncio.run` calls. A final read-only audit also first passed `main...shakeout-tickets` as one argument instead of the wrapper's separate base and branch arguments. Neither failed invocation changed the tree.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The first generated green-control ticket had malformed indentation around `## Ve
 OpenAI / GPT-5; implement spec 1.1.
 
 ## Predicted vs actual
-Expected 45m; actual about 15m.
+Expected 45m; actual about 10m for this retry.
