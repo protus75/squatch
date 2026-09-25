@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e222708ca8c0dcb75cdca2c286cfdefa7f3f82e5",
+  "produced_at_sha": "a134f71c17bbb56ebf3af1e81ac4a8d7ce33a067",
   "stem": "shakeout-providers",
   "branch": "shakeout-providers",
-  "base": "d48b5b086d1ebf5d1632aed26cc7a28635bf1df6",
-  "head": "e222708ca8c0dcb75cdca2c286cfdefa7f3f82e5",
+  "base": "ad2e0286dfe32328f727ffb0529c74f62baa618a",
+  "head": "a134f71c17bbb56ebf3af1e81ac4a8d7ce33a067",
   "changed_files": [
     "eval/shakeout/providers_group.py",
     "eval/shakeout/registry.py",
