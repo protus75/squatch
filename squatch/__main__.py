@@ -55,6 +55,10 @@ def _parser() -> argparse.ArgumentParser:
     new.add_argument("stem")
     run = sub.add_parser("run", help="drive one ticket through intake, the lock, and dispatch")
     run.add_argument("stem")
+    confirm = sub.add_parser("confirm", help="confirm a draft or re-enqueue a parked ticket")
+    confirm.add_argument("stem")
+    reject = sub.add_parser("reject", help="reject a ticket and report its dead dependencies")
+    reject.add_argument("stem")
     drain = sub.add_parser("drain", help="run every eligible ticket, one at a time, to quiescence")
     drain.add_argument("--parked", action="append", default=[], metavar="STEM",
                        help="a stem the handing-off parent drain had parked (repeatable; "
@@ -79,7 +83,8 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
     except SystemExit as e:  # argparse already printed usage or help
         return int(e.code or 0)
     try:
-        return {"status": _status, "new": _new, "run": _run, "drain": _drain}[args.verb](
+        return {"status": _status, "new": _new, "run": _run, "confirm": _confirm,
+                "reject": _reject, "drain": _drain}[args.verb](
             args, cwd, env, out, pipeline, clock, process)
     except Refusal as e:
         print(f"refused: {e.message}", file=out)
@@ -120,6 +125,16 @@ def _new(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
 def _run(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     return _locked(args, cwd, env, out, pipeline, clock, process,
                    lambda runner, config, git: runner.run(args.stem))
+
+
+def _confirm(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    return _locked(args, cwd, env, out, pipeline, clock, process,
+                   lambda runner, config, git: runner.confirm(args.stem))
+
+
+def _reject(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    return _locked(args, cwd, env, out, pipeline, clock, process,
+                   lambda runner, config, git: runner.reject(args.stem))
 
 
 def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:

@@ -188,7 +188,8 @@ def test_python_m_squatch_is_the_entry_and_help_exits_0(checkout):
     proc = subprocess.run([sys.executable, "-m", "squatch", "--help"], cwd=checkout,
                           capture_output=True, text=True)
     assert proc.returncode == 0
-    assert "status" in proc.stdout and "new" in proc.stdout and "run" in proc.stdout
+    assert all(verb in proc.stdout
+               for verb in ("status", "new", "run", "confirm", "reject"))
 
 
 def test_python_m_squatch_status_runs_in_a_foreign_checkout(checkout):

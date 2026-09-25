@@ -13,6 +13,11 @@ def event(stem: str, cap: str, *, ticket_sha: str | None = "sha") -> Event:
                  ticket=stem, key=None, body=body)
 
 
+def confirm(stem: str, actor: str) -> Event:
+    return Event(v=1, type="signal", ts="2026-08-04T12:00:00+00:00",
+                 ticket=stem, key=None, body={"kind": "confirm", "actor": actor})
+
+
 def config():
     return parse({"schema_version": 1, "state_dir": "state", "providers": [],
                   "routing": []}, source="test")
@@ -41,3 +46,12 @@ def test_spent_names_the_first_spent_spine_cap_and_none_while_all_remain():
     infra = [event("stem", "infra", ticket_sha=str(n)) for n in range(6)]
     assert spent(config(), infra, "stem") == "infra cap spent (6 of 6 drawn)"
     assert spent(config(), [event("stem", "retry")], "stem") is None
+
+
+def test_premise_bounce_is_a_spine_cap_and_only_operator_confirm_bounds_the_fold():
+    premise = [event("stem", "premise_bounce") for _ in range(2)]
+    assert spent(config(), premise, "stem") == "premise_bounce cap spent (2 of 2 drawn)"
+
+    draws = [event("stem", "retry") for _ in range(3)]
+    assert fold([*draws, confirm("stem", "operator")]).drawn("stem", "retry") == 0
+    assert fold([*draws, confirm("stem", "machine")]).drawn("stem", "retry") == 3

@@ -31,12 +31,12 @@ from typing import Protocol
 
 from squatch.artifacts import OUTCOMES, Finding
 from squatch.box import Box
-from squatch.caps import INFRA_CAP, consume
+from squatch.caps import INFRA_CAP, PREMISE_BOUNCE_CAP, consume
 from squatch.config import Config
 from squatch.diagnose import DIAGNOSIS_FILE, DiagnosisRecord
 from squatch.effects import Effects, run_sequence
 from squatch.enginelog import EngineLog
-from squatch.git import Git
+from squatch.git import Git, GitError
 from squatch.harvest import extract
 from squatch.journal import Event, Journal, JournalCorruption
 from squatch.lockfile import LockHeld, Lockfile
@@ -44,13 +44,16 @@ from squatch.reconcile import reconcile
 from squatch.seams import Clock, ExecutableNotFound, Filesystem
 from squatch.stages import Delivery, lift_ticket_files
 from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, IntakeResult, Ticket,
-                             TicketLintError, lint_ticket)
+                             TicketLintError, depends_of, lint_ticket, on_disk_stems,
+                             parse_frontmatter, stamp)
 
 EXIT_OK = 0
 EXIT_TICKET = 1
 EXIT_REFUSED = 2
 
 SETTLED = frozenset({"ok", "already_satisfied"})
+VERDICT_SIGNALS = frozenset({"confirm", "reject"})
+ACTORS = frozenset({"operator", "machine"})
 
 Report = Callable[[str], None]
 
@@ -161,6 +164,139 @@ class Runner:
             run = await self.dispatch(ticket, session.journal)
             return EXIT_OK if run.settled else EXIT_TICKET
 
+    async def confirm(self, stem: str) -> int:
+        async with self.session() as session:
+            events = tuple(session.journal.read())
+            self._identity(stem, events)
+            self._verdictable(stem, events)
+            sha = await self._ticket_sha(stem)
+            path = self._path(stem)
+            if path.is_file():
+                meta, _ = parse_frontmatter(path.read_text())
+                if meta.get("state") == "draft":
+                    source = meta.get("source")
+                    intake = Intake(repo=self._repo, git=self._git, journal=session.journal,
+                                    fs=self._fs)
+                    await intake.commit(stem, source=source, state="confirmed")
+                    sha = await self._ticket_sha(stem)
+                    self._verdict(session.journal, stem, "confirm", sha, events,
+                                  "draft confirmed")
+                    self._report(f"confirmed: {stem} moved from draft to confirmed")
+                    return EXIT_OK
+                if (meta.get("state") == "confirmed"
+                        and not any(e.type == "state_transition" for e in events
+                                    if e.ticket == stem)):
+                    raise Refusal(f"{stem} is confirmed and has never run",
+                                  "nothing is parked or awaiting a verdict to confirm")
+            previous = next((e for e in reversed(events)
+                             if e.ticket == stem and e.type == "signal"
+                             and e.body.get("kind") == "confirm"
+                             and e.body.get("actor") == "operator"), None)
+            if previous is not None and previous.body.get("ticket_sha") == sha:
+                raise Refusal(f"{stem} was already confirmed at this ticket revision",
+                              "edit the ticket (or fix the plan and regenerate it) before "
+                              "re-enqueueing")
+            self._verdict(session.journal, stem, "confirm", sha, events, "operator keep")
+            self._report(f"confirmed: {stem} re-enqueued")
+            return EXIT_OK
+
+    async def reject(self, stem: str) -> int:
+        async with self.session() as session:
+            events = tuple(session.journal.read())
+            self._identity(stem, events)
+            self._verdictable(stem, events)
+            sha = await self._ticket_sha(stem)
+            run_seq = self._latest_run_seq(stem, events)
+            stamped: str | None = None
+            source: str | None = None
+            path = self._path(stem)
+            if path.is_file():
+                text = path.read_text()
+                try:
+                    stamped = stamp(text, state="rejected")
+                except ValueError:
+                    # An unstampable ticket is a journal-only kill, like a
+                    # dirless identity.  Decide that before the terminal writes.
+                    pass
+                else:
+                    try:
+                        meta, _ = parse_frontmatter(text)
+                        source = meta.get("source")
+                    except ValueError:
+                        pass
+            self._verdict(session.journal, stem, "reject", sha, events, "operator kill")
+            session.journal.append("state_transition", {"to": "rejected", "run_seq": run_seq},
+                                   ticket=stem)
+            if stamped is not None:
+                intake = Intake(repo=self._repo, git=self._git, journal=session.journal,
+                                fs=self._fs)
+                await intake.commit_lane(stem, stamped, source=source, state="rejected")
+            dead = await self._dead_dependents(stem, session.journal, events)
+            self._report(f"rejected: {stem}; {dead} dependent(s) reported")
+            return EXIT_OK
+
+    def _identity(self, stem: str, events: tuple[Event, ...]) -> None:
+        if not any(e.ticket == stem for e in events):
+            raise Refusal(f"{stem} has no journal identity; intake or author it first",
+                          f"run or drain {stem} through intake before applying a verdict")
+
+    def _verdictable(self, stem: str, events: tuple[Event, ...]) -> None:
+        if stem in merged_stems(events):
+            raise Refusal(f"{stem} is already merged",
+                          "a merged stem has no Reject-queue verdict to resolve")
+        latest = next((e.body.get("to") for e in reversed(events)
+                       if e.ticket == stem and e.type == "state_transition"), None)
+        if latest == "rejected":
+            raise Refusal(f"{stem} is already rejected",
+                          "a rejected stem is terminal; author a successor for further work")
+
+    async def _ticket_sha(self, stem: str) -> str | None:
+        if not self._path(stem).is_file():
+            return None
+        return await self._git.rev_parse(self._repo, f"HEAD:{TICKETS_DIR}/{stem}/{TICKET_FILE}")
+
+    def _latest_run_seq(self, stem: str, events: tuple[Event, ...]) -> int | None:
+        seq = None
+        for event in events:
+            if event.ticket == stem and isinstance(event.body.get("run_seq"), int):
+                seq = event.body["run_seq"]
+        return seq
+
+    def _verdict(self, journal: Journal, stem: str, kind: str, ticket_sha: str | None,
+                 events: tuple[Event, ...], reason: str) -> None:
+        if kind not in VERDICT_SIGNALS:
+            raise ValueError(f"unknown verdict signal {kind!r}")
+        journal.append("signal", {"kind": kind, "actor": "operator",
+                                  "ticket_sha": ticket_sha,
+                                  "run_seq": self._latest_run_seq(stem, events),
+                                  "reason": reason}, ticket=stem)
+
+    async def _dead_dependents(self, dead: str, journal: Journal,
+                               events: tuple[Event, ...]) -> int:
+        merged = merged_stems(events)
+        box = Box(self.state_dir, fs=self._fs, clock=self._clock)
+        count = 0
+        for dependent in on_disk_stems(self._repo):
+            if dependent == dead or dependent in merged:
+                continue
+            path = self._path(dependent)
+            try:
+                await self._git.rev_parse(
+                    self._repo, f"HEAD:{TICKETS_DIR}/{dependent}/{TICKET_FILE}")
+            except GitError:
+                continue
+            if dead not in depends_of(path.read_text()):
+                continue
+            journal.append("signal", {"kind": "dead_dependency", "dead": dead,
+                                      "dependent": dependent}, ticket=dependent)
+            road = (f"{dependent} depends on rejected {dead}; re-wire, re-scope, or "
+                    f"`squatch reject {dependent}`")
+            box.enqueue(message_class="failure_report",
+                        summary=f"{dependent} is blocked by rejected {dead}", detail=road,
+                        origin=dead)
+            count += 1
+        return count
+
     async def dispatch(self, ticket: Ticket, journal: Journal) -> Dispatched:
         """One run of a validated, eligible stem under the held lock: the
         `running` transition, the stage seam, and the non-ok terminal write."""
@@ -210,6 +346,9 @@ class Runner:
         if outcome in {"infra_error", "timeout"}:
             await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=INFRA_CAP,
                           run_seq=run_seq)
+        elif outcome == "premise_failed":
+            await consume(journal, repo=self._repo, git=self._git, stem=stem,
+                          cap=PREMISE_BOUNCE_CAP, run_seq=run_seq)
         try:
             diagnosis = await pipeline.diagnose(ticket, delivery, run_seq=run_seq)
             await lift_ticket_files(

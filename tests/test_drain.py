@@ -281,6 +281,60 @@ def test_eligible_work_runs_ahead_of_re_offers(checkout):
     assert fake.calls == [("red", 0), ("green-a", 0), ("green-b", 0), ("red", 1)]
 
 
+def test_operator_confirm_reenqueues_a_parked_stem_ahead_of_reoffers_without_a_draw(checkout):
+    committed(checkout, "kept", signal_at=T0 - timedelta(hours=2))
+    committed(checkout, "red", signal_at=T0 - timedelta(hours=1))
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        for stem in ("kept", "red"):
+            journal.append("state_transition", {"to": "running", "run_seq": 0}, ticket=stem)
+            journal.append("state_transition", {"to": "gate_failed", "run_seq": 0}, ticket=stem)
+        journal.append("signal", {"kind": "confirm", "actor": "operator",
+                                  "ticket_sha": "sha", "run_seq": 0,
+                                  "reason": "operator keep"}, ticket="kept")
+    fake = Scripted({"kept": ["ok"], "red": ["ok"]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK, out
+    assert fake.calls == [("kept", 1), ("red", 1)]
+    assert draws(checkout, "kept") == []
+    assert [draw["cap"] for draw in draws(checkout, "red")] == ["retry"]
+
+
+def test_spent_premise_cap_needs_edit_then_confirm_before_dispatch(checkout):
+    path = committed(checkout, "rma")
+    configure(checkout, "caps: {premise_bounce: 1}\n")
+    first = Scripted({"rma": ["premise_failed"]})
+    assert drain(checkout, first)[0] == EXIT_OK
+
+    path.write_text(path.read_text().replace("The widget parser lands.",
+                                             "The widget parser lands, premise fixed."))
+    parked = Scripted({"rma": ["ok"]})
+    rc, out = drain(checkout, parked)
+    assert rc == EXIT_OK and parked.calls == []
+    assert "premise_bounce cap spent (1 of 1 drawn)" in out
+    assert "squatch confirm rma" in out
+
+    assert main(["confirm", "rma"], cwd=checkout, env=git_env(checkout.parent),
+                out=StringIO(), pipeline=parked, clock=FakeClock()) == EXIT_OK
+    released = Scripted({"rma": ["ok"]})
+    assert drain(checkout, released)[0] == EXIT_OK
+    assert released.calls == [("rma", 1)]
+
+
+def test_premise_road_ignores_an_unrelated_spent_retry_cap(checkout):
+    committed(checkout, "rma")
+    configure(checkout, "caps: {retry: 0}\n")
+    first = Scripted({"rma": ["premise_failed"]})
+
+    rc, out = drain(checkout, first)
+
+    assert rc == EXIT_OK and first.calls == [("rma", 0)]
+    line = next(line for line in out.splitlines() if line.startswith("parked: rma"))
+    assert "retry cap spent" not in line
+    assert "edit tickets/rma/ticket.md" in line
+
+
 @pytest.mark.parametrize("diagnosis", [
     {"call": "ok", "verdict": verdict, "lessons": ("lesson",),
      "reason": "diagnosed", "detail": None}
@@ -304,6 +358,21 @@ def test_a_stem_whose_retry_cap_is_spent_stays_parked_and_is_never_re_offered(
     rc, out = drain(checkout, again)
     assert rc == EXIT_OK
     assert again.calls == [] and "retry cap spent" in out
+
+
+def test_a_spent_retry_park_names_confirm_as_the_rearm(checkout):
+    committed(checkout, "base")
+    configure(checkout, "caps: {retry: 0}\n")
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append("state_transition", {"to": "gate_failed", "run_seq": 0},
+                       ticket="base")
+
+    rc, out = drain(checkout, Scripted({"base": ["ok"]}))
+
+    assert rc == EXIT_OK
+    line = next(line for line in out.splitlines() if line.startswith("parked: base"))
+    assert "retry cap spent (0 of 0 drawn)" in line
+    assert "squatch confirm base" in line
 
 
 def test_a_stem_whose_infra_cap_is_spent_stays_parked_and_is_never_re_offered(checkout):
@@ -466,6 +535,19 @@ def test_a_merged_stem_and_a_rejected_stem_never_dispatch(checkout):
     fake = Scripted({"done": ["ok"], "killed": ["ok"]})
     rc, _ = drain(checkout, fake)
     assert rc == EXIT_OK and fake.calls == []
+
+
+def test_a_ticket_waiting_on_a_rejected_dependency_is_reported_dead(checkout):
+    committed(checkout, "dead")
+    committed(checkout, "child", depends="dead")
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append("state_transition", {"to": "rejected", "run_seq": 0}, ticket="dead")
+    fake = Scripted({"child": ["ok"]})
+
+    rc, out = drain(checkout, fake)
+
+    assert rc == EXIT_OK and fake.calls == []
+    assert "blocked: child waiting on dead (dead: dead)" in out
 
 
 def test_an_abandoned_stem_is_eligible_without_a_retry_draw(checkout):

@@ -215,6 +215,17 @@ async def test_a_non_ok_terminal_journals_it_exits_1_and_leaves_ticket_and_branc
     terminal_index = next(
         index for index, event in enumerate(events)
         if event.type == "state_transition" and event.body.get("to") == terminal)
+    premise_draws = [
+        (index, event) for index, event in enumerate(events)
+        if event.type == "cap_consumed" and event.body["cap"] == "premise_bounce"]
+    if terminal == "premise_failed":
+        [(premise_index, premise_draw)] = premise_draws
+        blob = git(repo, env, "rev-parse", f"HEAD:tickets/{STEM}/ticket.md").strip()
+        assert premise_draw.body == {
+            "cap": "premise_bounce", "ticket_sha": blob, "run_seq": 0}
+        assert lift_index < premise_index < terminal_index
+    else:
+        assert premise_draws == []
     assert lift_index < terminal_index, "harvest custody reaches main before the terminal"
     diagnosis_draws = [
         (index, event) for index, event in enumerate(events)

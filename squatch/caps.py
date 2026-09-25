@@ -24,7 +24,7 @@ CAP_NAMES = frozenset({
     QUARANTINE_CAP,
     POISON_CAP,
 })
-SPINE_CAPS = (RETRY_CAP, DIAGNOSIS_CAP, INFRA_CAP)
+SPINE_CAPS = (RETRY_CAP, DIAGNOSIS_CAP, PREMISE_BOUNCE_CAP, INFRA_CAP)
 
 
 @dataclass(frozen=True)
@@ -40,6 +40,11 @@ class CapFold:
 def fold(events: Iterable[Event]) -> CapFold:
     counts: dict[str, dict[str, int]] = {}
     for event in events:
+        if (event.type == "signal" and event.ticket is not None
+                and event.body.get("kind") == "confirm"
+                and event.body.get("actor") == "operator"):
+            counts[event.ticket] = {}
+            continue
         if (event.type != "cap_consumed" or event.ticket is None
                 or (cap := event.body.get("cap")) not in CAP_NAMES):
             continue

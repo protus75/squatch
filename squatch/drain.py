@@ -60,7 +60,8 @@ from datetime import timedelta
 from pathlib import Path
 
 from squatch.artifacts import OUTCOMES
-from squatch.caps import CapFold, RETRY_CAP, consume, fold as fold_caps, remaining, spent
+from squatch.caps import (PREMISE_BOUNCE_CAP, CapFold, RETRY_CAP, consume,
+                          fold as fold_caps, remaining, spent)
 from squatch.config import Config
 from squatch.effects import run_sequence
 from squatch.git import Git
@@ -91,6 +92,7 @@ class Fold:
     commits: Mapping[str, str | None]  # stem -> the squash commit its merge put on main
     edited: frozenset[str]           # stems with an intake signal after their latest transition
     terminals: Mapping[str, Mapping]  # stem -> latest terminal body
+    confirmed: frozenset[str]        # operator confirm after the latest transition
 
 
 def fold(events: Iterable[Event]) -> Fold:
@@ -101,12 +103,14 @@ def fold(events: Iterable[Event]) -> Fold:
     merged: set[str] = set()
     edited: set[str] = set()
     terminals: dict[str, Mapping] = {}
+    confirmed: set[str] = set()
     for e in events:
         if e.ticket is None:
             continue
         if e.type == "state_transition":
             latest[e.ticket] = e.body["to"]
             edited.discard(e.ticket)
+            confirmed.discard(e.ticket)
             if e.body["to"] != "running":
                 terminals[e.ticket] = e.body
             if e.body["to"] == "merged":
@@ -115,8 +119,11 @@ def fold(events: Iterable[Event]) -> Fold:
         elif e.type == "signal" and e.body.get("kind") == INTAKE_SIGNAL:
             first.setdefault(e.ticket, e.ts)
             edited.add(e.ticket)
+        elif (e.type == "signal" and e.body.get("kind") == "confirm"
+              and e.body.get("actor") == "operator"):
+            confirmed.add(e.ticket)
     return Fold(frozenset(merged), latest, first, fold_caps(events), commits,
-                frozenset(edited), terminals)
+                frozenset(edited), terminals, frozenset(confirmed))
 
 
 def sort_key(fold: Fold) -> Callable[[Ticket], tuple]:
@@ -255,7 +262,10 @@ class Drain:
 
     def _released(self, facts: Fold, stem: str) -> bool:
         """A premise park whose ticket-plane `ticket.md` commit has changed."""
-        return facts.latest.get(stem) == PREMISE and stem in facts.edited
+        if stem in facts.confirmed:
+            return True
+        return (facts.latest.get(stem) == PREMISE and stem in facts.edited
+                and remaining(self._config, facts.cap_drawn, stem, PREMISE_BOUNCE_CAP) > 0)
 
     def _parked(self, plane: Plane, facts: Fold) -> list[str]:
         parked = {s for s in plane.tickets
@@ -354,10 +364,17 @@ class Drain:
             detail = f"findings: {where}; log: {self._runner.log_path}" if where else (
                 f"findings: {self._runner.log_path}")
             if ended == PREMISE:
-                road = self._premise_road(plane.tickets[stem])
+                drawn = facts.cap_drawn.drawn(stem, PREMISE_BOUNCE_CAP)
+                budget = self._config.caps.premise_bounce
+                if remaining(self._config, facts.cap_drawn, stem, PREMISE_BOUNCE_CAP) <= 0:
+                    reason = f"premise_bounce cap spent ({drawn} of {budget} drawn)"
+                    road = (f"{reason}; edit the ticket as required, then "
+                            f"`squatch confirm {stem}` to re-arm and re-enqueue it")
+                else:
+                    road = self._premise_road(plane.tickets[stem])
             elif (reason := spent(self._config, facts.cap_drawn, stem)) is not None:
                 road = (f"{reason}; {CONTINUE} never re-dispatches it -- fix the cause it names; "
-                        f"the re-arm is the operator's Reject-queue keep (section 13 touchpoint 3)")
+                        f"the re-arm is `squatch confirm {stem}` after the fix")
             else:
                 left = self.retry_budget(facts, stem)
                 road = f"{left} retry unit(s) left; {CONTINUE} re-offers it findings-fed"
@@ -367,7 +384,9 @@ class Drain:
         for stem, t in sorted(plane.tickets.items()):
             unmerged = [d for d in t.depends if d not in facts.merged]
             if unmerged and facts.latest.get(stem) not in NON_OK:
-                self._report(f"blocked: {stem} waiting on {', '.join(unmerged)}")
+                dead = [d for d in unmerged if facts.latest.get(d) == "rejected"]
+                suffix = f" (dead: {', '.join(dead)})" if dead else ""
+                self._report(f"blocked: {stem} waiting on {', '.join(unmerged)}{suffix}")
         for stem in plane.pending:
             self._report(f"pending intake: {stem} (uncommitted; the next {CONTINUE} intakes it)")
 

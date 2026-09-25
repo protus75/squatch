@@ -739,15 +739,25 @@ class Intake:
                              resolve_stem=resolve)
         if ticket.source is None or ticket.state is None:
             raise ValueError(f"{stem}: a ticket commits with both `source` and `state` set")
+        return await self.commit_lane(stem, text, source=ticket.source, state=ticket.state)
+
+    async def commit_lane(self, stem: str, text: str, *, source: str | None,
+                          state: str) -> Committed:
+        """The one ticket-plane write, pathspec commit, and intake signal.
+
+        Callers validate before entering this lane when the operation requires
+        validation.  A reject stamp deliberately does not: killing an invalid
+        ticket must remain possible.
+        """
         self._fs.write(self._path(stem), text.encode())
         await self._git.add(self._repo, [self._rel(stem)])
         # Pathspec commit: the lane is fenced to this one path, so operator
         # pre-staged bytes never ride a ticket-plane commit onto main.
         sha = await self._git.commit(self._repo, f"squatch({stem}): ticket", [self._rel(stem)])
         self._journal.append("signal", {
-            "kind": INTAKE_SIGNAL, "source": ticket.source, "state": ticket.state,
+            "kind": INTAKE_SIGNAL, "source": source, "state": state,
             "commit": sha, "path": self._rel(stem)}, ticket=stem)
-        return Committed(stem, sha, ticket.source, ticket.state)
+        return Committed(stem, sha, source or "", state)
 
 
 def on_disk_stems(repo: Path) -> list[str]:

@@ -261,35 +261,45 @@ def test_the_child_form_is_the_cli_verb(checkout):
 
 # --- the premise park ----------------------------------------------------------------
 
-def test_a_premise_failed_stem_is_parked_without_a_draw_and_runs_again_after_its_edit_lands(checkout):
+def test_a_premise_failed_stem_draws_and_runs_again_after_edit_then_confirm(checkout):
     committed(checkout, "rma")
+    configure(checkout, "caps: {premise_bounce: 1}\n")
     fake = Landing(checkout, {"rma": ["premise_failed"]})
     rc, out = drain(checkout, fake)
     assert rc == EXIT_OK, out
     assert fake.calls == [("rma", 0)]
     assert states(checkout, "rma") == ["running", "premise_failed"]
-    assert draws(checkout, "rma") == [], "a judgment replay draws no retry unit"
+    assert [d["cap"] for d in draws(checkout, "rma")] == ["premise_bounce"]
     assert "parked: rma ended `premise_failed`" in out
-    assert "edit tickets/rma/ticket.md" in out and "never re-offers" in out
+    assert "premise_bounce cap spent (1 of 1 drawn)" in out
+    assert "squatch confirm rma" in out
 
     # The next invocation skips it: the verdict answered the ticket as written.
     again = Landing(checkout, {"rma": ["ok"]})
     rc, out = drain(checkout, again)
     assert rc == EXIT_OK
-    assert again.calls == [] and draws(checkout, "rma") == []
+    assert again.calls == [] and len(draws(checkout, "rma")) == 1
     assert "parked: rma ended `premise_failed`" in out
 
-    # A ticket edit lands through intake; the stem is eligible work again.
+    # A spent premise cap needs the ticket edit and the operator's keep.
     path = checkout / "tickets" / "rma" / "ticket.md"
     path.write_text(path.read_text().replace("The widget parser lands.",
                                              "The widget parser lands, premise fixed."))
+    not_released = Landing(checkout, {"rma": ["ok"]})
+    rc, out = drain(checkout, not_released)
+    assert rc == EXIT_OK, out
+    assert "intake: committed rma" in out
+    assert not_released.calls == []
+    assert "premise_bounce cap spent (1 of 1 drawn)" in out and "squatch confirm rma" in out
+
+    assert main(["confirm", "rma"], cwd=checkout, env=git_env(checkout.parent),
+                out=StringIO(), pipeline=not_released, clock=FakeClock()) == EXIT_OK
     released = Landing(checkout, {"rma": ["ok"]})
     rc, out = drain(checkout, released)
     assert rc == EXIT_OK, out
-    assert "intake: committed rma" in out
     assert released.calls == [("rma", 1)]
     assert states(checkout, "rma") == ["running", "premise_failed", "running", "merged"]
-    assert draws(checkout, "rma") == []
+    assert len(draws(checkout, "rma")) == 1
 
 
 def test_a_seed_sourced_premise_park_names_the_plan_first(checkout):
