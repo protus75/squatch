@@ -65,6 +65,7 @@ class Message(BaseModel):
     enqueued_at: str
     status: Status = "pending"
     resolution: Resolution | None = None
+    triage: dict | None = None
     reports: int = Field(default=1, ge=1)
 
     @field_validator("signature")
@@ -150,7 +151,8 @@ class Box:
             id=f"box-{seq:06d}-{sig8}", seq=seq, signature=sig,
             message_class=message_class, summary=summary, detail=detail, origin=origin,
             stage=stage, outcome=outcome, run_seq=run_seq,
-            enqueued_at=render_ts(self._clock()), status="pending", resolution=None, reports=1)
+            enqueued_at=render_ts(self._clock()), status="pending", resolution=None,
+            triage=None, reports=1)
         self._fs.write(path, message.model_dump_json(indent=2).encode())
         return Enqueued(message.id, False)
 
@@ -180,6 +182,18 @@ class Box:
             })
             self._replace(path, resolved)
             return resolved
+        raise KeyError(id)
+
+    def record_triage(self, id: str, triage: dict) -> Message:
+        """Persist an Author-bound verdict without resolving the message."""
+        for path, message in self._records():
+            if message.id != id:
+                continue
+            if message.status != "pending":
+                raise ValueError(f"message {id} is {message.status}, not pending")
+            updated = message.model_copy(update={"triage": triage})
+            self._replace(path, updated)
+            return updated
         raise KeyError(id)
 
     def _replace(self, path: Path, message: Message) -> None:

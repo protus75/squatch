@@ -682,6 +682,10 @@ def test_bootstrap_drain_never_scans_or_mutates_the_box(checkout):
     assert path.read_bytes() == before and queue.get(message.id).status == "pending"
     assert message.id not in out
     assert all("box" not in repr(event) for event in read_events(checkout / STATE))
+    assert not any(event.type == "signal" and event.body.get("kind") == "triage_pass"
+                   for event in read_events(checkout / STATE))
+    assert not any(event.key and event.key.startswith("llm/triage/")
+                   for event in read_events(checkout / STATE))
 
 
 def test_drain_is_refused_when_the_lockfile_is_held(checkout):

@@ -1,7 +1,7 @@
 """`python -m squatch <verb>`: the module entry (SQUATCH_PLAN.md section 18).
 
-stdlib argparse, the Phase 1 verbs -- `status`, `new <stem>`, `run <stem>`,
-`drain [--parked <stem>]...` -- and the section 18 exit-code contract: 0
+stdlib argparse, the bootstrap verbs -- `status`, `new <stem>`, `run <stem>`,
+`drain [--parked <stem>]...`, and `triage` -- plus the section 18 exit-code contract: 0
 settled or quiescent, 1 a non-ok ticket terminal or a ceiling-halted drain,
 2 an engine-plane refusal. Nothing reaches the operator as a raw traceback:
 every refusal prints its message and paved road. The checkout root is the
@@ -28,14 +28,16 @@ from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
 from squatch.journal import JournalCorruption, read_events
-from squatch.providers import child_env
+from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
 from squatch.merge import compose_pipeline
-from squatch.runner import EXIT_REFUSED, PipelineFactory, Refusal, Runner
+from squatch.runner import EXIT_OK, EXIT_REFUSED, PipelineFactory, Refusal, Runner
 from squatch.seams import (Clock, ExecutableNotFound, LocalFilesystem, ProcessExec,
                            SubprocessExec)
 from squatch.status import project, render
+from squatch.specs import load_spec
 from squatch.tickets import new_ticket
+from squatch.triage import Triage
 
 ENGINE_ROOT = Path(squatch.__file__).resolve().parent.parent
 GIT_TIMEOUT_SECONDS = 60.0
@@ -63,6 +65,7 @@ def _parser() -> argparse.ArgumentParser:
     drain.add_argument("--parked", action="append", default=[], metavar="STEM",
                        help="a stem the handing-off parent drain had parked (repeatable; "
                             "the self-upgrade re-exec sets it, never an operator)")
+    sub.add_parser("triage", help="triage every pending Suggestion Box message once, then stop")
     return p
 
 
@@ -84,7 +87,7 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
         return int(e.code or 0)
     try:
         return {"status": _status, "new": _new, "run": _run, "confirm": _confirm,
-                "reject": _reject, "drain": _drain}[args.verb](
+                "reject": _reject, "drain": _drain, "triage": _triage}[args.verb](
             args, cwd, env, out, pipeline, clock, process)
     except Refusal as e:
         print(f"refused: {e.message}", file=out)
@@ -144,6 +147,33 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
                        process=process, env=env, config_path=args.config,
                        carried=args.parked,
                        report=lambda line: print(line, file=out)).run())
+
+
+def _triage(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    return _locked(args, cwd, env, out, pipeline, clock, process,
+                   lambda runner, config, git: _triage_pass(
+                       runner, config, git, cwd, env, out, clock, process))
+
+
+async def _triage_pass(runner: Runner, config, git: Git, cwd: Path, env,
+                       out: TextIO, clock: Clock, process: ProcessExec) -> int:
+    async with runner.session() as session:
+        state = cwd / config.state_dir
+        fs = LocalFilesystem()
+        redact = Redactor.from_config(config, env)
+        try:
+            registry = Registry(config)
+        except ConfigError as e:
+            raise Refusal(f"config: {e}",
+                          "fix the named provider or routing row in config.yaml") from None
+        client = CliClient(registry, process=process, fs=fs, env=env,
+                           redact=redact, state_dir=state, cwd=cwd)
+        consumer = Triage(
+            repo=cwd, config=config, git=git, fs=fs, clock=clock, journal=session.journal,
+            llm=client, log=EngineLog(state, clock=clock, redact=redact), redact=redact,
+            report=lambda line: print(line, file=out))
+        await consumer.run(load_spec(ENGINE_ROOT / "specs" / "triage.md"))
+    return EXIT_OK
 
 
 def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None, clock: Clock,

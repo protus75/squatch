@@ -478,3 +478,22 @@ def test_production_run_dispatches_through_the_real_pipeline(checkout):
     assert rc == EXIT_TICKET, out
     assert "stopped: base run 0 ended infra_error" in out
     assert [t["to"] for t in transitions(checkout, "base")] == ["running", "infra_error"]
+
+
+# --- triage --------------------------------------------------------------------------
+
+def test_triage_empty_box_reports_and_exits_zero(checkout):
+    rc, out = cli(checkout, "triage")
+    assert rc == EXIT_OK
+    assert "triage: nothing pending" in out
+
+
+def test_triage_is_refused_when_the_lockfile_is_held(checkout):
+    holder = Lockfile(checkout / STATE, instance_id="other-daemon", clock=clock)
+    holder.acquire()
+    try:
+        rc, out = cli(checkout, "triage")
+    finally:
+        holder.release()
+    assert rc == EXIT_REFUSED and "other-daemon" in out
+    assert list(read_events(checkout / STATE)) == []
