@@ -1,9 +1,17 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Keep the harness design: the single-envelope fixtures, _FixtureEffect with fixture-keyed stems, the pre-call budget, the per-journal run_seq and the closed schemas. All checks passed. Review snagged only on fixture realism and one budget-accounting bug.",
+    "Replace the shared template ticket body in every fixture. Write a real Goal, Scope fence and Acceptance criteria that the harvest judges. Each reject ticket must contain the impossible criterion. Each split ticket must list its multi-subsystem goals.",
+    "Make each fixture's scope fence cover every path in its harvest diff_stat. Allow an out-of-fence path only in oversight-scope-escape, where scope escape is the planted defect. Otherwise a diagnoser can fairly answer retry to the escalate and split fixtures.",
+    "The escalate rationales claim repeated attempts, but every harvest has run_seq 1. Either set run_seq > 1 and put prior findings in the spool_tails, or remove the claim of repetition from the rationale.",
+    "oversight-inverted-guard's run_record says premise_failed, which points to reject. Rewrite it to match the harvest: outcome gate_failed or ok, with a note consistent with a local inverted-condition oversight.",
+    "eval/diagnose.py ~l.377: when BudgetRefused fires on a re-prompt (call_seq 2), the break skips score() and drops that fixture's paid first call from summary.usd. Take the stopped total from budget.spent plus replayed costs. Add a test where the cap is crossed on a re-prompt.",
+    "Check each fixture as the model would see it: ticket, harvest and run_record should together point only to the expected verdict. Keep compact single-line JSON so the diff stays within 30 files."
+  ],
+  "reason": "Review found concrete, fixable defects in the fixture content and one budget-summary accounting bug. The harness design and all mechanical gates passed, so the same capability can fix them with these findings.",
+  "detail": null
 }
