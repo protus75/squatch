@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "52b1ce237c17429067a9ef052168deff717ef651",
+  "produced_at_sha": "d77cf478bf4bc5b3ba074169dc4eafb9d069462b",
   "stem": "diagnosis-eval-harness",
   "branch": "diagnosis-eval-harness",
-  "base": "0f96f001385b16cdf371e8608998b86a630cdda5",
-  "head": "52b1ce237c17429067a9ef052168deff717ef651",
+  "base": "83b6e715b380736cbc8bd1efa5c2e7ccace876fc",
+  "head": "d77cf478bf4bc5b3ba074169dc4eafb9d069462b",
   "changed_files": [
     "eval/diagnose.py",
     "eval/diagnose_fixtures/capability-concurrency-race.json",
