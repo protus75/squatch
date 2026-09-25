@@ -1,0 +1,43 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "88b5438ee78d1a5aea4661b71f16c4caa3b79694",
+  "stem": "merge-retire-branch-check",
+  "branch": "merge-retire-branch-check",
+  "base": "eddb365c96396cb63ddb2c91f30b9fc6cdd6ff60",
+  "head": "88b5438ee78d1a5aea4661b71f16c4caa3b79694",
+  "changed_files": [
+    "squatch/merge.py",
+    "tests/test_merge.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "bypassed": false,
+      "findings": []
+    }
+  ]
+}
