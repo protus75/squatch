@@ -1,15 +1,16 @@
 {
-  "run_seq": 5,
-  "outcome": "infra_error",
+  "run_seq": 6,
+  "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "abandon-human",
+  "verdict": "retry",
   "lessons": [
-    "Fifth implement attempt in a row ended infra_error, this time after 35.8s: 0 tokens, provider and model null, empty diff. The provider CLI never ran, so the ticket, its scope, and the tier are not at fault.",
-    "The implement spool's 001-prompt.md again holds a critique prompt (plan_contract data), and 001-response.md holds an 'approve' verdict, not implement output. A human must check the implement dispatch surface, spool path routing, and the provider CLI launch and auth.",
-    "Automatic retries keep hitting the same environment fault and change nothing. Hold re-dispatch until a human has found and fixed the fault.",
-    "The run record says 'ok' at about 25m, which contradicts this harvest (no diff, no cost). It is stale evidence from an earlier attempt and does not show completed work.",
-    "Once the environment is fixed, apply the prior lessons unchanged. Make rebase_continue non-interactive (-c core.editor=true). Raise RebaseConflict only on real conflicted paths. Return a typed Admission for rebase failures that are not conflicts. Leave rebase and rebase_abort untouched."
+    "Implementation reached review with green checks. Review accepted the serial slot, re-gate ordering, tree-hash refusal, both rungs and the git seams. Keep all of it; fix only the unwind gap in the rebase failure paths.",
+    "A non-conflict GitError can arrive after the rebase has started, e.g. an untracked file that would be overwritten mid-replay. Abort the in-progress rebase before returning CandidateRebaseFinding, so the candidate worktree ends on its branch head.",
+    "Do not add a new public Git method: the criteria allow only three git.py additions. Inside rebase_stop_at_conflict, on a non-conflict failure, try rebase_abort and ignore its GitError (as `rebase` already does), then re-raise the original error.",
+    "Wrap the conflict-resolution loop in _rebase in try/except BaseException: abort the rebase, then re-raise. This covers conflicted_paths raising after a failed rebase_continue, and a regenerate process.run timeout.",
+    "Add a test where the rebase starts, then fails with no conflicted paths: an untracked file on the candidate that a main commit would overwrite. Assert typed gate_failed, HEAD equals the branch head, no rebase-merge/rebase-apply dir, and the slot is released.",
+    "Update REBASE_FAILURE_ROAD: the queue now restores the worktree itself, so the paved road should only name correcting the rebase precondition and retrying admission."
   ],
-  "reason": "Fifth infra_error in a row with 0 tokens and a null provider, and the implement spool holds critique output: a dispatch or environment fault that no retry or capability increase fixes.",
+  "reason": "Review snag on one concrete, fixable unwind gap with an explicit paved road; the rest of the implementation was accepted and all checks passed.",
   "detail": null
 }
