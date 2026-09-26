@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The ticket linter requires each acceptance criterion to name a verification command or observable artifact, so the activation seeds name their focused test files. The successor separates this ticket's sole new seed-proof path from its own four absent authoring-time paths.
+The successor cannot Context this ticket's newly created seed proof, so it uses the already-merged `tests/test_seeded_phase3_04.py` render pattern. Its own authoring contract separately classifies the four absent background/control/successor paths as new.
 
 ## Dead ends
 
@@ -15,8 +15,8 @@ None.
 
 ## Resolved engine/model
 
-Unknown.
+OpenAI Codex / GPT-5.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 35m.
+Expected 75m; actual about 30m.
