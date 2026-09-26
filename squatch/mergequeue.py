@@ -1,8 +1,10 @@
-"""Dormant serial merge admission (SQUATCH_PLAN.md section 20).
+"""Serial merge admission with a daemon-composed Rework consumer (section 20).
 
-The daemon does not import or run this construction yet.  Direct callers hand
-it the two check tiers and the integration operation; the queue owns their
-ordering, conflict resolution, conflict facts, and the checked-tree invariant.
+Direct callers hand it the two check tiers and the integration operation; the
+queue owns their ordering, conflict resolution, conflict facts, and the
+checked-tree invariant.  A composed Rework consumer receives the same typed
+post-unwind handoff through ``next_rework``; this module owns neither a second
+queue nor a second handoff schema.
 """
 
 import asyncio

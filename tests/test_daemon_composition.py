@@ -2,8 +2,10 @@
 
 import argparse
 import asyncio
+import json
 from datetime import datetime, timezone
 from io import StringIO
+from pathlib import Path
 
 import pytest
 
@@ -12,14 +14,27 @@ import squatch.__main__ as main_module
 from squatch.artifacts import Cost
 from squatch.config import Config, parse
 from squatch.daemon import (DaemonDispatch, DispatchAdmission,
-                            compose_daemon_dispatch)
+                            compose_daemon_dispatch, compose_daemon_rework)
+from squatch.driver import Driver, Spool
+from squatch.effects import Effects
+from squatch.enginelog import EngineLog
+from squatch.journal import Journal
+from squatch.llm import FakeLLM
+from squatch.llmeffect import LLMEffect
 from squatch.scheduler import Scheduler
-from squatch.merge import Pipeline
-from squatch.mergequeue import MergeQueue
+from squatch.merge import Pipeline, compose_pipeline
+from squatch.mergequeue import Candidate, MergeQueue
+from squatch.redact import Redactor
+from squatch.rework import Rework
+from squatch.seams import LocalFilesystem, SubprocessExec
+from squatch.specs import load_spec
 from squatch.stages import Delivery
 from squatch.watcher import Watcher
-from test_mergequeue import fixture_repo
+from test_mergequeue import divergent_candidate, fixture_repo
 from test_stages import PLAN, TICKET
+
+ROOT = Path(__file__).resolve().parent.parent
+NOW = datetime(2026, 9, 26, 12, 0, tzinfo=timezone.utc)
 
 
 def config(*, max_unmerged: int = 2) -> Config:
@@ -48,6 +63,50 @@ def test_composition_constructs_in_process_without_starting_work_or_adding_a_ver
     subparsers = next(action for action in _parser()._actions
                       if isinstance(action, argparse._SubParsersAction))
     assert "serve" not in subparsers.choices
+
+
+@pytest.mark.asyncio
+async def test_composition_builds_rework_over_the_real_pipeline_queue_after_slot_unwind(tmp_path):
+    repo, worktree, env, git, _ = await divergent_candidate(tmp_path)
+    ticket_path = repo / "tickets/candidate/ticket.md"
+    ticket_path.parent.mkdir(parents=True)
+    ticket = TICKET.format(verify="python -V", frontmatter="state: confirmed")
+    ticket_path.write_text(ticket)
+    (repo / "SQUATCH_PLAN.md").write_text(PLAN)
+    fs = LocalFilesystem()
+    llm = FakeLLM(json.dumps({
+        "updated_ticket": {"ticket": ticket}, "split_tickets": [], "escalation": None}))
+
+    with Journal(repo / ".state", clock=lambda: NOW) as journal:
+        pipeline = compose_pipeline(
+            repo=repo, config=config(), env=env, journal=journal, clock=lambda: NOW,
+            process=SubprocessExec(), fs=fs, git=git)
+        driver = Driver(
+            llm=LLMEffect(llm=llm, effects=Effects(journal), redact=Redactor({})),
+            spool=Spool(repo / ".state", fs=fs, redact=Redactor({})),
+            log=EngineLog(repo / ".state", clock=lambda: NOW, redact=Redactor({})),
+            clock=lambda: NOW)
+        worker = compose_daemon_rework(
+            repo=repo, pipeline=pipeline, driver=driver, journal=journal, fs=fs,
+            spec=load_spec(ROOT / "specs/rework.md"))
+        queue = pipeline.merge_queue
+        put = queue._rework.put_nowait
+
+        def publish(handoff):
+            assert not queue._slot.locked()
+            put(handoff)
+
+        queue._rework.put_nowait = publish
+        consume = asyncio.create_task(worker.run(sha="abc123"))
+        await asyncio.sleep(0)
+        assert isinstance(worker, Rework) and worker._queue is queue and not llm.requests
+        admission = await queue.admit(Candidate(
+            stem="candidate", branch="candidate", worktree=worktree, run_seq=7))
+        result = await consume
+
+    assert admission.outcome == "rework" and result.handoff is admission.rework
+    assert result.handoff.approval_invalidated is True
+    assert (repo / "tickets/candidate/ticket.md").read_text() == ticket
 
 
 @pytest.mark.asyncio

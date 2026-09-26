@@ -144,7 +144,7 @@ def test_spec_is_one_composite_rework_order_surface():
     assert stage.emits is ReworkOrder and stage.surface == "rework"
 
 
-def test_rework_remains_unreachable_from_the_production_root():
+def test_rework_is_reachable_from_the_production_root():
     package = ROOT / "squatch"
 
     def source(module):
@@ -171,7 +171,7 @@ def test_rework_remains_unreachable_from_the_production_root():
                 elif node.module.startswith("squatch."):
                     imports.add(node.module)
         pending.extend(imports - reachable)
-    assert "squatch.rework" not in reachable
+    assert "squatch.rework" in reachable
 
 
 def test_update_order_rewrites_the_handoff_ticket_and_requires_review(tmp_path):

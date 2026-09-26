@@ -1,9 +1,12 @@
-"""Dormant Rework boundary for unresolved merge admissions (plan section 20).
+"""Daemon-composed Rework boundary for unresolved merge admissions (plan section 20).
 
 Rework consumes the merge queue's post-unwind handoff, asks the model for one
 composite order, validates every ticket before writing any of them, and then
-applies update, split, and escalation elements.  Activation and daemon wiring
-belong to a later boundary.
+applies update, split, and escalation elements.  Daemon composition supplies
+the existing queue, journal, driver, filesystem, and spec without starting a
+consumer loop.  Direct post-admission contracts retain update/split/escalate,
+supersedes, approval invalidation, validated writes, and consumption after the
+serial slot unwinds.
 """
 
 from dataclasses import dataclass

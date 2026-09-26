@@ -3,10 +3,18 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Generic, TypeVar, cast
 
-from squatch.config import Config, snapshot
+from squatch.config import Config, Tier, snapshot
+from squatch.driver import Driver
+from squatch.journal import Journal
+from squatch.llm import Effort
+from squatch.merge import Pipeline
+from squatch.rework import Rework
 from squatch.scheduler import Scheduler
+from squatch.seams import Filesystem
+from squatch.specs import Spec
 from squatch.watcher import Watcher
 
 
@@ -84,3 +92,11 @@ def compose_daemon_dispatch(config_supplier: ConfigSupplier,
 
     scheduler = Scheduler(dispatch)
     return DaemonDispatch(admission, scheduler, Watcher(scheduler))
+
+
+def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,
+                          journal: Journal, fs: Filesystem, spec: Spec,
+                          tier: Tier = "medium", effort: Effort = "medium") -> Rework:
+    """Compose the dormant post-admission consumer without starting it."""
+    return Rework(repo=repo, queue=pipeline.merge_queue, journal=journal, fs=fs,
+                  driver=driver, spec=spec, tier=tier, effort=effort)
