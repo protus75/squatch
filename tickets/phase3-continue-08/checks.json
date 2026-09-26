@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "9e514f5e4c5e06e6ef7ed0f106e60484bf70d1f0",
+  "produced_at_sha": "373bc2d49339a8dc523b5b333cb4c090ab68cfc7",
   "stem": "phase3-continue-08",
   "branch": "phase3-continue-08",
-  "base": "37367ef30c57a9542f1ea888512c21bffac43abc",
-  "head": "9e514f5e4c5e06e6ef7ed0f106e60484bf70d1f0",
+  "base": "cb1a5138299083f74935548d6d7c884253bbd070",
+  "head": "373bc2d49339a8dc523b5b333cb4c090ab68cfc7",
   "changed_files": [
     "tests/test_seeded_phase3_08.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/dispatch-pause-boundary/ticket.md",
-      "sha": "7f4aeebca25832688c5b8088daa1fb9c4135071b",
+      "sha": "dcd5f936b58f88574130d198e4b30e344b26e93c",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,34 +25,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/pause-resume-activation/ticket.md",
-      "sha": "1ebf8ed1fd487eca654003062988dda31c365968",
+      "sha": "adcd4b8c150eecdfb70cd702ff87993932b99241",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-09/ticket.md",
-      "sha": "e52ff842c2fe169ca97f6d17f2e224d38cbf5de2",
+      "sha": "78975a65611769fe705a08e396b1a8863d8e5d7b",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-09/ticket.md",
-          "line": null,
-          "message": "The Scope in `ownership` block lists only `phase3-continue-09`. It gives no owns/hooks for `kill-signal-journal` or `kill-executor-abort`. For kill seeds, the section 20 registry sets only an upper bound: 'only control/daemon/driver/CLI plus one `tests/test_kill_<boundary>.py` each, and no kill verb before activation'. It never says which of `squatch/control.py`, `squatch/daemon.py` or `squatch/driver.py` each construction seed hooks. It also doesn't say whether `squatch/__main__.py` is excluded before `kill-cli-activation`. The acceptance criterion that the test 'pins exact ownership' therefore has no authored expected value, and the implementer would invent the fences. The predecessor `phase3-continue-08` pinned these values explicitly in a `pause_ownership` block.",
-          "paved_road": "Add a `kill_ownership` YAML block in the same form as `phase3-continue-08`. Give each kill seed an exact owns list (`tests/test_kill_signal_journal.py`, `tests/test_kill_executor_abort.py`) and an exact hooks list drawn only from `squatch/control.py`, `squatch/daemon.py` and `squatch/driver.py`. State that `squatch/__main__.py` is outside both fences, because no kill verb may exist before `kill-cli-activation`. Include the `phase3-continue-10` entry that owns `tickets` and `tests/test_seeded_phase3_10.py`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-09/ticket.md",
-          "line": null,
-          "message": "The ticket says to 'pin exact identities, edges, tiers, budgets' but gives none of them for the emitted batch. It doesn't say that `kill-signal-journal` depends on `phase3-continue-09`, that `kill-executor-abort` depends on `kill-signal-journal`, or that `phase3-continue-10` depends on both. It gives no tier/effort for the three seeds (none is KNOWN-DEEP in the registry, so all should be medium/medium). It gives no expected/stuck budgets and doesn't restate the seeding cap of 3. Without these, the pinned test values are whatever the implementer happens to choose.",
-          "paved_road": "State the edges, medium/medium tiers, the 75m/150m budgets and the configured seeding cap of 3 in Scope in, as `phase3-continue-08` did. Also require that each kill seed's Context lists its existing hooked paths, with authoring-time sizes pinned in `tests/test_seeded_phase3_09.py`."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
