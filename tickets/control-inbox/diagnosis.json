@@ -1,16 +1,9 @@
 {
-  "run_seq": 2,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "escalate",
-  "lessons": [
-    "Split publishing from consuming. Publishing must be a module-level function (or a publisher class) that takes only state_dir and fs. It must never construct or read a Journal. Use uuid ids and an exclusive-create or temp+rename that never overwrites. Add a test that publishes with no Journal.",
-    "Wire the daemon hook for real: add a `control` callback to the DaemonTasks constructor and its callback tuple, update the test_daemon_tasks.py cases, and add a helper that builds ControlInbox from the daemon's lock-held Journal and fs. Leave test_daemon_composition.py unchanged.",
-    "Exactly once needs more than unlinking the file. After mutate succeeds, journal an applied marker keyed by request_id. On replay, skip mutate if the marker exists. Otherwise, check the hold again before a release. Test a crash after mutate but before unlink, and re-delivery of an identical file.",
-    "Make hold ids unique within the lifecycle. hold() should mint a fresh uuid, or reject any id already issued. Test this case: a release is published before its hold exists, then the hold is registered, then consume runs. The release must not be accepted.",
-    "Prove crash-safe publication with an injected Filesystem whose write fails after the temp file and before the rename. Assert that no <id>.json exists, consume makes no decision, and publishing the same id again is then consumed exactly once.",
-    "Earlier lessons said to keep the structure and fix only the findings. That produced narrow patches, and each review round found new design gaps. Before editing, re-check every Scope in clause against the diff. The re-entry branch also lacked the prior work, so confirm the base contents first."
-  ],
-  "reason": "Checks pass, but review keeps finding design-level gaps: a second journal writer, no daemon wiring, exactly once not enforced. More capability should help more than another narrow retry.",
-  "detail": null
+  "run_seq": 3,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
