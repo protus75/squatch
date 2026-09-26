@@ -1,15 +1,18 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "escalate",
   "lessons": [
-    "merge-queue-activation Scope in: replace 'same journal approval lookup' with 'the same on-disk tickets/<stem>/review.md approval check (Merge._approval via load_review)'. Merge._approval reads no journal, and a journal lookup would be a second approval path.",
-    "Merge._approval requires verdict==approve and pinned==head. After MergeQueue rebases, the worktree HEAD no longer equals reviewed_sha. The integrate adapter must pass the pre-rebase head (e.g. Git.rev_parse of the worktree's ORIG_HEAD, or a head the regate adapter records) to Merge._approval.",
-    "Add a merge-queue-activation criterion: an approve pinned to the pre-rebase head integrates, and a stale or missing pin is refused. Keep mergequeue.py, daemon.py and git.py unfenced and unchanged, because Candidate carries only stem/branch/worktree/run_seq.",
-    "Update test_seeded_phase3_06.py: drop the 'same journal approval lookup' phrase pin. Pin the review.md approval wording, the pre-rebase-head source and the new criterion. Keep every earlier pinned fix.",
-    "Before finishing, open merge.py, mergequeue.py and git.py and check each operation, data source and signature the seed text names against the real code. Six attempts have failed on seed claims that did not match merged code."
+    "merge-queue-activation: do not override the private MergeQueue._rebase; the reviewer cannot see it and the Context is pinned at exactly five paths. Override public admit in a merge.py subclass instead: capture Git.rev_parse(worktree, HEAD), then await super().admit(candidate).",
+    "Pre-rebase capture outside the slot is safe because only the candidate's own admission moves its worktree. Key the captured head by (stem, run_seq) and clear it in a finally block. Keep mergequeue.py, git.py and daemon.py unfenced and out of Context.",
+    "merge.py is truncated in the render, so compose_merge_queue, _regate and _squash are unseen. Quote each signature the seed relies on (MergeQueue.__init__ kwargs, compose_merge_queue, Merge._approval) in Scope in, copied verbatim from the base commit.",
+    "merge-queue-activation criteria: the hasattr->isinstance migration and the preservation of test_mergequeue_has_no_scheduler_or_watcher_dependency belong in the tests/test_mergequeue.py criterion. The test_daemon_composition.py criterion only drives the __main__ factory/Runner and asserts isinstance.",
+    "Move 'Merge.admit and Pipeline.run remain unchanged' out of the Acceptance criteria and into Scope out, or restate it as the existing admit tests still passing. Update the matching pin in test_seeded_phase3_06.py, which currently asserts that phrase in criteria.",
+    "phase3-continue-07 ownership: background-consumers owns tests/test_daemon_tasks.py and hooks squatch/daemon.py. control-inbox owns squatch/control.py and tests/test_control.py and hooks squatch/daemon.py and tests/test_daemon_tasks.py. Move the typed-inbox wording into control-inbox.",
+    "Update SUCCESSOR_OWNERSHIP and the owner assertions in test_seeded_phase3_06.py and the seeded test_seeded_phase3_07.py wording to match the new split. Keep the Context map, both suffix lists, NEW_AT_AUTHORING and the budgets unchanged.",
+    "Re-measure the merge-queue-activation max-effort render after the edits; it was 104238 of 120000. Keep every earlier fix (compose_merge_queue reuse, the review.md approval, the rework spec exclusion, no self-referential Context) and re-verify each named symbol against the base commit."
   ],
-  "reason": "Both findings have concrete fixes, but after six attempts the implementer is still writing seed claims that contradict merged code (journal vs review.md, head moved by the rebase), even though earlier lessons said to check them. More capability should help.",
+  "reason": "Seven attempts have each surfaced new seed-to-code mismatches. The paved roads are concrete, but medium capability keeps failing to verify its claims about the code before finishing.",
   "detail": null
 }
