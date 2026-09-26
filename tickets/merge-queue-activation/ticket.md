@@ -26,7 +26,7 @@ Expose the existing serial merge queue with concrete adapters in the production 
 The independently tested queue needs a production composition before background consumers can own its lifetime.
 
 ## Scope in
-In `squatch/merge.py`, `compose_pipeline` builds `Pipeline.merge_queue` by calling the existing `compose_merge_queue`. Keep its child_env filtering and configured drain timeout. Extend Pipeline construction to expose that queue; there is one queue construction path for all callers.
+In `squatch/merge.py`, `compose_pipeline` builds `Pipeline.merge_queue` by calling the existing `compose_merge_queue`. Keep its child_env filtering and configured drain timeout. Extend Pipeline construction to expose that queue; there is one queue construction path for all production callers. Preserve the existing two-positional-argument `Pipeline(stages, merge)` constructor used by predecessor unit-test harnesses outside this fence: add `merge_queue=None` as the trailing compatibility default, while `compose_pipeline` always supplies the concrete queue. Those direct harness instances are not production composition and do not authorize a second queue construction path.
 
 The regate adapter loads the `Ticket` by the candidate stem from the repository ticket plane using the existing ticket linter and dependency resolver. Build a post-rebase `PackingSlip` from `Git.rev_parse` of main and the candidate worktree's `HEAD`, with the candidate stem/branch, implemented verdict, ticket goal as summary, MERGE_VERSION and candidate HEAD provenance. Call `Merge._regate(ticket, slip, candidate.worktree, candidate.run_seq)` and return its hard findings. It retains its `Invoice` by `(stem, run_seq)` for integrate. The integration callback runs that loaded ticket's `## Verification` commands through the existing `Verification` gate on the rebased worktree, using the same slip, process, redactor and secret-filtered environment as merge verification; return the resulting gate findings. No new configured integration gate exists or is needed.
 
@@ -75,6 +75,7 @@ ownership:
 
 ## Acceptance criteria
 - `tests/test_mergequeue.py` proves compose_pipeline exposes a MergeQueue built through compose_merge_queue with concrete regate, integration and integrate adapters, using the configured timeout and secret-filtered environment; the existing admission tests pass.
+- `tests/test_mergequeue.py` proves the trailing `merge_queue=None` compatibility default preserves predecessor direct `Pipeline(stages, merge)` harness construction, while every `compose_pipeline` result has a concrete MergeQueue.
 - `tests/test_mergequeue.py` proves regate loads the candidate's Ticket, derives the post-rebase slip from main and candidate HEAD, hands its Invoice to integrate by (stem, run_seq), and integration runs the ticket's Verification commands in the rebased worktree. A red check prevents squash; the approved SHA reaches the squash trailer.
 - `tests/test_mergequeue.py` proves: A fresh approve pinned to the pre-rebase head integrates after HEAD changes; a stale or missing pin is refused without squash. An up-to-date rebase also succeeds with a fresh pin even when ORIG_HEAD is absent or stale. Captured head and Invoice are cleared on success, refusal and exception, including cancellation.
 - `tests/test_mergequeue.py` migrates `test_additive_composition_hook_does_not_change_phase1_composition`'s literal `not hasattr(pipeline, "merge_queue")` to `isinstance(pipeline.merge_queue, MergeQueue)` and preserves `test_mergequeue_has_no_scheduler_or_watcher_dependency`.
@@ -88,7 +89,7 @@ uv run pytest -q
 ```
 
 ## Definition of rejected
-Stop if the real production factory cannot expose the queue within this fence, a predecessor assertion requires an unfenced edit, the existing verification gate cannot serve integration, or approval requires a second path.
+Stop if the real production factory cannot expose the queue within this fence, a predecessor assertion requires an unfenced edit beyond the explicitly preserved two-argument constructor compatibility, the existing verification gate cannot serve integration, or approval requires a second path.
 
 ## Time budget
 - expected: 75m

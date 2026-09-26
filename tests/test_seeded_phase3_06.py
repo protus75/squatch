@@ -196,6 +196,8 @@ def test_merge_activation_closes_predecessors_and_pins_concrete_adapters():
     scope_out = _section("merge-queue-activation", "Scope out")
     for phrase in (
         "builds `Pipeline.merge_queue` by calling the existing `compose_merge_queue`",
+        "add `merge_queue=None` as the trailing compatibility default",
+        "`compose_pipeline` always supplies the concrete queue",
         "loads the `Ticket` by the candidate stem",
         "`Git.rev_parse` of main and the candidate worktree's `HEAD`",
         "retains its `Invoice` by `(stem, run_seq)`",
