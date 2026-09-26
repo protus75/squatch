@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "767f986267797f88f6914ce49d88a3cae133cf59",
+  "produced_at_sha": "ab76cb537744970d935f20c03fbc98bafca0e566",
   "stem": "dispatch-admission-boundary",
   "branch": "dispatch-admission-boundary",
-  "base": "81bcf6fc5ac2f0773e7864f478680722cef5fc6c",
-  "head": "767f986267797f88f6914ce49d88a3cae133cf59",
+  "base": "044ac4e3f2fee851b17ca8b122b32e358605a33c",
+  "head": "ab76cb537744970d935f20c03fbc98bafca0e566",
   "changed_files": [
     "squatch/daemon.py",
     "tests/test_daemon_admission.py"
