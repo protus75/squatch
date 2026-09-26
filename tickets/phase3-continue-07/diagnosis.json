@@ -1,9 +1,15 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag, not a ticket defect: seeds, Context map, sizes and pause_ownership passed requisition review. Keep them and fix only the two gaps the review found.",
+    "Parse each deliverable's '## Verification' section, not its Scope in prose. Assert both seeds run tests/test_daemon_composition.py, and that control-inbox also runs tests/test_daemon_tasks.py.",
+    "The phase3-continue-08 Scope in must state the edges explicitly: dispatch-pause-boundary depends on phase3-continue-08; pause-resume-activation depends on dispatch-pause-boundary; phase3-continue-09 depends on both. Also state medium/medium, 75m/150m and seeding cap 3.",
+    "Extend test_continuation_pins_pause_closure_and_shrinking_suffix to assert each pause edge, the tier/effort, the budgets and the cap. Also assert each pause seed's fence == owns + hooks from PAUSE_OWNERSHIP.",
+    "Before submitting, check every acceptance criterion clause by clause against a concrete assertion. A phrase-presence check on prose does not prove a structured section."
+  ],
+  "reason": "The reviewer snagged two fixable test-coverage and seed-prose omissions, each with a concrete paved road. Nothing shows the ticket is unsatisfiable or that more capability is needed.",
+  "detail": null
 }
