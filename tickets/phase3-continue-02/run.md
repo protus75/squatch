@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-The authored Rework seed keeps its only existing fence hook, `squatch/mergequeue.py`, as Context; the new owner files are intentionally absent from Context because they do not yet exist.
+Kept `EXISTING_AT_AUTHORING` as synthetic render input and Context/fence membership data only, so future owner edits cannot invalidate this historical seed test. The Rework hook is a plain path list; its no-edit constraint remains Scope prose.
 
 ## Dead ends
 
-The first repository-Git-wrapper invocation had an invalid one-line Python `async def` form and made no mutation; the explicit-path wrapper retry committed the required test.
+None.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-codex / GPT-5 Codex
+codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 20m. `uv run pytest tests/test_seeded_phase3_02.py -q` and `uv run pytest -q` passed.
+Expected 75m; actual about 25m. `uv run pytest tests/test_seeded_phase3_02.py -q` and `uv run pytest -q` passed.
