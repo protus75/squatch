@@ -1,16 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "merge-queue-activation must not require an unfenced squatch/__main__.py change. State that MergeQueue is composed inside compose_pipeline in squatch/merge.py, and that daemon.py reaches it only through the existing work path.",
-    "merge-queue-activation must name the positive assertion that replaces the hasattr dormancy check (e.g. isinstance(pipeline.merge_queue, MergeQueue)). Bind regate, integration_check and integrate to named existing operations, and state that Merge.admit and Pipeline.run stay unchanged.",
-    "Replace 'hook every existing fenced path' with concrete per-file changes. For each fenced file that needs no edit (e.g. git.py, mergequeue.py), say it is preserved unchanged.",
-    "In the phase3-continue-07 Scope in, pin NEW_AT_AUTHORING as squatch/control.py, tests/test_daemon_tasks.py, tests/test_control.py and tests/test_seeded_phase3_08.py. Do not copy this ticket's 'only test_seeded_phase3_07.py is new' wording.",
-    "phase3-continue-07's ownership YAML must be keyed by the stems it emits: background-consumers, control-inbox and phase3-continue-08, each with owns/hooks whose union equals its fence. Do not key it by phase3-continue-07 itself.",
-    "Keep the committed test_seeded_phase3_06.py. Extend its assertions so they pin the rewritten seed text: the composition location, the positive assertion, and the successor's new-path set and keyed ownership."
+    "phase3-continue-07 Context must not list tests/test_seeded_phase3_06.py: this ticket creates it, so the requisition gate sees it as missing. Use an already-merged seeded test (e.g. tests/test_seeded_phase3_04.py) as the RENDER_BOUND_CHARS/headroom pattern.",
+    "Update test_seeded_phase3_06.py to match: remove tests/test_seeded_phase3_06.py from CONTEXT['phase3-continue-07'] and EXISTING_AT_AUTHORING, and pin the merged seeded-test pattern path with its authoring-time size in its place.",
+    "Before finishing, check every Context path in all three seed tickets against the base commit, not the working branch. A path this ticket creates belongs only in Scope fence and Verification.",
+    "Keep the earlier fixes: MergeQueue is composed in compose_pipeline, with an isinstance positive assertion. phase3-continue-07 carries keyed ownership for background-consumers, control-inbox, and phase3-continue-08, with its own NEW_AT_AUTHORING set."
   ],
-  "reason": "The requisition review found underspecified seed text, and each finding has a paved road inside the existing fence, so the same capability can fix it with steered findings.",
+  "reason": "Only failure: phase3-continue-07 lists this ticket's own new test file in Context, which the requisition gate rejects; the fix is to swap in an existing path.",
   "detail": null
 }
