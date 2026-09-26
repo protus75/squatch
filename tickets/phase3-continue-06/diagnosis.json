@@ -1,14 +1,18 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "phase3-continue-07 Context must not list tests/test_seeded_phase3_06.py: this ticket creates it, so the requisition gate sees it as missing. Use an already-merged seeded test (e.g. tests/test_seeded_phase3_04.py) as the RENDER_BOUND_CHARS/headroom pattern.",
-    "Update test_seeded_phase3_06.py to match: remove tests/test_seeded_phase3_06.py from CONTEXT['phase3-continue-07'] and EXISTING_AT_AUTHORING, and pin the merged seeded-test pattern path with its authoring-time size in its place.",
-    "Before finishing, check every Context path in all three seed tickets against the base commit, not the working branch. A path this ticket creates belongs only in Scope fence and Verification.",
-    "Keep the earlier fixes: MergeQueue is composed in compose_pipeline, with an isinstance positive assertion. phase3-continue-07 carries keyed ownership for background-consumers, control-inbox, and phase3-continue-08, with its own NEW_AT_AUTHORING set."
+    "Add squatch/__main__.py and squatch/runner.py to merge-queue-activation Context as read-only evidence. Drop the claim that daemon.py reaches the queue through an existing work path. Criterion 3 should drive the real __main__ factory/Runner composition and observe pipeline.merge_queue.",
+    "State that compose_pipeline builds Pipeline.merge_queue by calling the existing merge.compose_merge_queue, which applies child_env and the drain timeout. Never construct MergeQueue a second way.",
+    "Do not bind integration_check to a 'configured integration gate'; none exists. Name a concrete existing operation, e.g. the ticket's ## Verification commands through the existing verification gate on the rebased worktree. If the plan defines no integration check, state that as a plan gap.",
+    "Specify each MergeQueue adapter's inputs, since Candidate carries only stem/branch/worktree/run_seq: Ticket loaded by stem, PackingSlip from rev_parse of main and the candidate HEAD, regate Invoice carried to integrate by (stem, run_seq), and reviewed_sha read as Merge._approval does.",
+    "phase3-continue-07: pin the control-inbox vs background-consumers closure over tests/test_daemon_tasks.py, either by fencing it as a hook in control-inbox plus Verification, or by forbidding closed task-set assertions. Assert the chosen option in test_seeded_phase3_07.py.",
+    "phase3-continue-07: state the tests/test_daemon_composition.py contract for both emitted seeds (preserve unchanged plus Verification, or fence it as a hook in the migrating seed). Require test_seeded_phase3_07.py to assert those exact strings or fence entries.",
+    "phase3-continue-07 must require a pinned exact CONTEXT map per emitted seed. Include tests/test_mergequeue.py (with its authoring-time size in EXISTING_AT_AUTHORING) in phase3-continue-08's Context, keep sibling-new paths out, and re-prove max-effort render headroom.",
+    "Update test_seeded_phase3_06.py so it pins the rewritten text: compose_merge_queue reuse, the named integration operation, adapter input derivation, and the added read-only Context paths. Keep all prior fixes (isinstance assertion, keyed ownership, NEW_AT_AUTHORING set, no self-referential Context)."
   ],
-  "reason": "Only failure: phase3-continue-07 lists this ticket's own new test file in Context, which the requisition gate rejects; the fix is to swap in an existing path.",
+  "reason": "Second attempt failed requisition review on under-specified cross-module merge-queue wiring and successor closure. Fixing it needs deeper synthesis across merge/mergequeue/__main__/runner than the prior attempts achieved.",
   "detail": null
 }
