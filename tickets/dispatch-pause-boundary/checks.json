@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "154d552451f87e3529afdbe59076f774df4a9e95",
+  "produced_at_sha": "3ac6232c44d5260d1c11706c00627c3c28d3a424",
   "stem": "dispatch-pause-boundary",
   "branch": "dispatch-pause-boundary",
-  "base": "48984e2605e08b886cdfc010fb5270e5fc8283ac",
-  "head": "154d552451f87e3529afdbe59076f774df4a9e95",
+  "base": "6b0937a81b829fce53488c9fbde0bba455e93df2",
+  "head": "3ac6232c44d5260d1c11706c00627c3c28d3a424",
   "changed_files": [
     "squatch/control.py",
     "squatch/daemon.py",
