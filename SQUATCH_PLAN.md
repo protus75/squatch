@@ -1518,6 +1518,8 @@ The finite registry, in dependency order, is: CORE `daemon-scheduler` (dormant s
 
 Control-inbox seam clarification: its compact-registry fence also includes `squatch/seams.py` and `tests/test_seams.py` so publication can use a tested, injectable durable no-overwrite filesystem operation rather than bypassing the filesystem seam.
 
+Pause-activation render clarification: `tests/test_control.py` and `tests/test_daemon_tasks.py` are preservation-only suites for `pause-resume-activation`; that ticket runs them unchanged in Verification but does not fence or Context them. They contain no dormancy assertion the activation flips. The activation fence and Context retain the actual predecessor assertions it migrates in `tests/test_daemon_pause.py`, `tests/test_mergequeue.py`, and `tests/test_daemon_composition.py`. This compact closure is required to keep the authored Implement render within requisition headroom without dropping behavioral verification.
+
 ## 21. Appendix: embedded bootstrap sources (extraction blocks)
 
 Both bootstrap sources live here, at the end of the document. The section-0 cold-start extractor materializes each by pulling the lines between its `# BEGIN_<NAME>` / `# END_<NAME>` sentinel pair -- one minimal pattern, reused for both -- and writing them to disk, so the operator never hand-pastes either file. Keep the sentinel lines intact and exactly as written; the extractor keys on them.
