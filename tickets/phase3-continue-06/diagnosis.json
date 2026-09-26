@@ -1,16 +1,16 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "control-inbox Context must list only paths that exist at authoring. Drop tests/test_daemon_tasks.py from its Context. Keep it in the fence as an ownership hook and in Verification. Put it in phase3-continue-07's NEW_AT_AUTHORING set and assert the fence and Verification entries, not Context.",
-    "phase3-continue-07 Scope in needs two YAML lists. Its own full list starts [background-consumers, control-inbox]. The list phase3-continue-08 carries starts [dispatch-pause-boundary, pause-resume-activation] and ends [phase3-exit]. test_seeded_phase3_07.py must assert successor == full[1:].",
-    "rework-activation: add squatch/merge.py (where compose_pipeline builds the MergeQueue) to Context as read-only and leave it unfenced. Re-measure the max-effort synthetic render with its pinned size in EXISTING_AT_AUTHORING.",
-    "rework-activation Scope in must name one function in squatch/daemon.py that builds Rework(queue=<the pipeline's MergeQueue>, ...). Say where the driver, journal, filesystem and specs/rework.md come from, and that compose_pipeline and runner.py are not edited.",
-    "rework-activation: add a criterion that tests/test_daemon_composition.py checks a handoff from that same queue's admit is consumed only after the slot unlocks, and that squatch.rework is reachable from squatch.__main__.",
-    "Update test_seeded_phase3_06.py to pin the rewritten text: rework Context now includes merge.py, the named daemon.py Rework hook, the two successor lists, and test_daemon_tasks.py as fence and Verification only. Keep every earlier fix."
+    "rework-activation: drop 'wire the worker into the real production composition'. Say instead that the named function lives in squatch/daemon.py, so squatch.rework becomes reachable from squatch.__main__ through the existing squatch.daemon import.",
+    "rework-activation: tests/test_daemon_composition.py calls the named daemon.py function over a pipeline that compose_pipeline really builds. Calling it from __main__._locked is deferred to background-consumers; say so, and imply no main/runner call site.",
+    "rework-activation: remove squatch/__main__.py and squatch/runner.py from its Context unless a criterion needs them. Its fence cannot edit them, and this wording caused the contradiction the reviewer flagged.",
+    "rework-activation: name the source of every required Rework.__init__ keyword argument. repo is an explicit parameter of the daemon function. tier and effort are explicit parameters defaulting to the registry's medium/medium. Add no config key. Put this in both Scope in and the first criterion.",
+    "Before finishing, check that every constructor or signature the seed text names matches the real code (Rework.__init__, compose_merge_queue, compose_daemon_dispatch), and that every call site the seed text implies sits inside that seed's fence.",
+    "Update test_seeded_phase3_06.py to pin the rewritten rework text: the import-reachability claim, the deferral of the _locked call site, and the repo/tier/effort sources. Remove pins on the dropped 'production composition' wording and keep every earlier fix."
   ],
-  "reason": "The check failed on four concrete, fixable authoring defects in the seed text, each with a paved road; nothing shows the ticket can't be satisfied or that it needs more capability.",
+  "reason": "The review findings are specific, fixable wording and consistency defects in the rework-activation seed, and each comes with a concrete fix; nothing shows the ticket itself cannot be satisfied.",
   "detail": null
 }
