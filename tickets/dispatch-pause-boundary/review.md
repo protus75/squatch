@@ -1,16 +1,14 @@
 ---
-verdict: snag
-reviewed_sha: 154d552451f87e3529afdbe59076f774df4a9e95
+verdict: approve
+reviewed_sha: 3ac6232c44d5260d1c11706c00627c3c28d3a424
 produced_by_spec_version: '1.0'
-produced_at_sha: 154d552451f87e3529afdbe59076f774df4a9e95
+produced_at_sha: 3ac6232c44d5260d1c11706c00627c3c28d3a424
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-Mostly sound. Control decisions are journaled before mutation, holds are bound latest-wins, and the drain offer and retry hooks are ordered correctly. But the daemon's admission path is never gated by the pause, the daemon-side test only checks a gate it writes itself, and the drain wait loop has two logic defects: it busy-spins, and it skips the ceiling check.
+The diff adds a dormant, identity-bound DispatchPause. It is consumed before daemon admission snapshots and before both the drain's retry draw and fresh dispatch, and it re-checks after the draw. Only a matching current-lifecycle release lifts the hold, and a later pause retires the earlier hold. Every acceptance criterion has a direct test, all changed paths are inside the fence, the preservation-only suites are untouched, and every check passes.
 
 ## Findings
-- correctness_review at tests/test_daemon_pause.py:116: Acceptance criterion 1 says the test proves pause refuses new dispatch before accounting. `test_pause_refuses_a_new_offer_without_preempting_an_admitted_operation` does not test any production gate. It writes its own `if await pause.allow_offer(): accounting.append("new")` and then asserts on that same list, so the check is circular. `DispatchAdmission.admit` and the `dispatch` closure in `compose_daemon_dispatch` (squatch/daemon.py) never call `DispatchPause`. The daemon's admission slot, where the config snapshot and task creation happen, is therefore not guarded, even though the ticket says to use the existing admission slot. The pause boundary exists only in `Drain`. (paved road: Give `DispatchAdmission` (or the `dispatch` closure in `compose_daemon_dispatch`) an optional `DispatchPause` that defaults to None, so it stays dormant. Call `allow_offer()` before `snapshot(...)` and `create_task`. Then have the test call the real `admission.admit`/dispatch path and assert that no work task starts and no config snapshot is taken while paused, and that the admitted task still completes.)
-- correctness_review at squatch/drain.py:216: `_wait_for_offer` can wait indefinitely while paused, and the loop then calls `_draw_retry`/`dispatch` without checking the drain ceiling again. The ceiling is checked earlier, at `self._clock() - started >= ceiling`. If a pause lasts past the ceiling, the release admits a new ticket after the ceiling has elapsed. The module contract says no new ticket is admitted after the ceiling. Uncertain whether the ticket's 'keep the selected offer' intends this, but it breaks an existing invariant of the file. (paved road: After `_wait_for_offer` returns, check the ceiling again before the draw and before dispatch. If the ceiling has passed, take the existing `timer_fired`/`_halted` path. Alternatively, restructure the loop so each release goes back to the top of the loop and re-runs the existing checks.)
-- correctness_review at squatch/drain.py:233: The default `wait_for_control` is `_yield_control` (`asyncio.sleep(0)`). When a `DispatchPause` is injected without a waiter, `_wait_for_offer` becomes a hot loop. Each iteration calls `ControlInbox.consume`, which re-reads and re-folds the whole journal (`_decisions`) and lists the control directory. The CPU stays pegged for as long as the pause lasts. It is dormant today, but this default is what the activation successor will inherit. (paved road: Make `wait_for_control` a required argument whenever `pause` is given, or default it to a waiter that goes through the injectable clock/sleep seam with a real interval. Do not ship a zero-delay spin as the default.)
+- none
