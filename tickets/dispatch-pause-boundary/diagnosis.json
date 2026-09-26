@@ -1,14 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Drain pause must not return EXIT_OK. Keep the session open while paused: loop on `await pause.allow_offer()` through the injected clock/seam until the matching hold-bound release arrives, then continue with the same ticket/offer. Call `_draw_retry` only after the release.",
-    "tests/test_drain.py must also prove the release half of criterion 2. While paused, publish a release bound to `pause.hold_id` (e.g. from a scripted seam/clock hook). Assert: no draw or transition before the release, then exactly one dispatch, and exactly one retry draw in the parked case.",
-    "Decision-before-mutation needs a direct probe. Wrap `DispatchPause._apply` (or the hold mutation) so it reads `journal.read()` at mutation time, and assert the `control/<request_id>` 'accepted' decision is already present. Checking the journal only afterwards passes even when the order is wrong.",
-    "The daemon side passed review: ControlInbox hold supersession via `discard_hold`, latest-wins, stale lifecycle, and dormancy. Keep that design. Rework only the drain wait loop and the missing test proofs, all inside the fence."
+    "Review passed everything except the dormancy test. Keep the DispatchPause/discard_hold design, the drain `_wait_for_offer` loop placed before `_draw_retry` and before dispatch, and the decision-before-mutation, latest-wins, and drain release tests as they are.",
+    "Replace test_pause_construction_is_dormant_in_daemon_control_composition. The `not isinstance(control, DispatchPause)` check is always true because compose_daemon_control returns a ControlInbox, so the test proves nothing.",
+    "Pin production dormancy with a test that can fail. Monkeypatch `squatch.__main__.Drain` to capture its constructor kwargs, run the CLI drain, and assert that `pause` is absent or None. Or build Drain the way the CLI does and assert `_pause is None`.",
+    "Also assert that the inbox from compose_daemon_control has no holds, and that the daemon dispatch composition exposes no DispatchPause. That gives pause-resume-activation a concrete assertion to flip.",
+    "Keep every change inside tests/test_daemon_pause.py. Do not edit test_daemon_tasks.py or test_control.py. Rerun both Verification commands."
   ],
-  "reason": "Review found three fixable defects, all inside the fence: the drain exits on pause instead of holding, the drain release proof is missing, and there is no direct decision-before-mutation probe. The findings name each fix, so a same-capability retry should resolve them.",
+  "reason": "The only review finding is a vacuous dormancy assertion in tests/test_daemon_pause.py, which can be fixed in place inside the fence at the same capability.",
   "detail": null
 }
