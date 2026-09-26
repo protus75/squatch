@@ -1,0 +1,16 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Requisition review rejected the emitted tickets/phase3-continue-06/ticket.md. The committed test passed, so fix the continuation seed text and extend tests/test_seeded_phase3_05.py to pin the new content.",
+    "Add every existing file that merge-queue-activation and rework-activation fence or depend on to phase3-continue-06 Context and EXISTING_AT_AUTHORING: squatch/mergequeue.py, tests/test_mergequeue.py, squatch/rework.py, specs/rework.md, tests/test_rework.py, plus squatch/merge.py if fenced.",
+    "In phase3-continue-06 Scope in, name each emitted stem and edge: merge-queue-activation, rework-activation, phase3-continue-07. Give each its tier/effort (medium/medium unless KNOWN-DEEP), expected/stuck budgets, exact fence and keyed owns/hooks record.",
+    "Restate the shrinking suffix that phase3-continue-07 carries, starting at [background-consumers, control-inbox]. Name each negative or dormancy assertion that the two activations must migrate.",
+    "Copy phase3-continue-05's then-merged sentence: the author reads the merged tests/test_daemon_composition.py, squatch/daemon.py and tests/test_scheduler.py before authoring. Emitted Context and the pinned map may include them even though they are not this ticket's own Context.",
+    "Before finishing, check each emitted continuation against the predecessor's level of detail. Requisition review holds seeds to the same explicit, exact standard."
+  ],
+  "reason": "The emitted continuation seed is underspecified in ways the review findings spell out. Retrying at the same capability with the paved-road edits is enough.",
+  "detail": null
+}
