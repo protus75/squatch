@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "In consume, a journaled decision applies only if decision.request == loaded request. On mismatch, never mutate: journal a distinct refusal (e.g. conflict) and unlink. publish must refuse a request_id that already has a pending file or a journaled decision.",
+    "Treat a malformed or invalid control/*.json (bad JSON, unknown action, extra key) as a designed outcome. Journal an 'invalid' decision keyed by file name, unlink or quarantine the file, and continue the pass. It must never raise out of consume and stop DaemonTasks.",
+    "Actually prove crash-safe publication. Leave a partial temp file (the name LocalFilesystem.write uses) in control/, or inject a Filesystem fake that fails before rename. Assert consume ignores it, then consumes the completed request exactly once.",
+    "Add tests to tests/test_control.py for a reused request_id (no mutation, conflict journaled) and for a malformed file ahead of a valid one (the valid one is still consumed). Keep all changes inside the four fenced files.",
+    "Scope, verification, and fence checks passed. The overall structure (journal-first decision, lifecycle and hold binding, control_consumer hook) is sound, so keep it and fix only the three review findings."
+  ],
+  "reason": "The review raised three concrete, fixable findings with paved roads, all within the fence, and all mechanical checks passed, so the ticket is satisfiable at the same capability.",
+  "detail": null
+}
