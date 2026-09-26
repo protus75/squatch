@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "983c833235d4404f50b716ca19e4474829fc0074",
+  "produced_at_sha": "fa7f488f87817efca750d60a621ddce78a77090e",
   "stem": "phase3-continue-02",
   "branch": "phase3-continue-02",
-  "base": "b6939a11ff646bba945b056eded7475304155255",
-  "head": "983c833235d4404f50b716ca19e4474829fc0074",
+  "base": "870e2ae7706f58d6dcd299b34fa8b346850dee9e",
+  "head": "fa7f488f87817efca750d60a621ddce78a77090e",
   "changed_files": [
     "tests/test_seeded_phase3_02.py"
   ],
@@ -15,27 +15,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-03/ticket.md",
-      "sha": "df13800292e7e4b79f90decfddd00532e28becba",
+      "sha": "1c93c02f58ed93b8532ff799b6121741f0b521f6",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/rework-stage/ticket.md",
-      "sha": "7ca1d3522e68b644466856987f1b007b29dc7c47",
+      "sha": "8f2c48fa7632175adc2aae26f2adb60c1cd54d06",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/rework-stage/ticket.md",
-          "line": null,
-          "message": "base Implement render refused (delimiter): /home/djp/source/squatch/specs/implement.md: input 'context' carries the data-block delimiter '<<<squatch:' (paved road: inject content that does not contain the engine delimiter; a prompt-spec or rendered prompt is never an input)",
-          "paved_road": "remove the delimiter-carrying file from Context"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
