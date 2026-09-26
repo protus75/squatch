@@ -1,52 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "f466bcf63743f6715cd73266ce6bd231097f2549",
+  "produced_at_sha": "ac1d3901bca75d4aeca92e16e5baf77e888321ad",
   "stem": "phase3-continue-07",
   "branch": "phase3-continue-07",
-  "base": "f3585c8894a7a0a8df8649d297265333705a2ee5",
-  "head": "f466bcf63743f6715cd73266ce6bd231097f2549",
+  "base": "80abcf64ce0746b1a1022e564b7af1e3460078de",
+  "head": "ac1d3901bca75d4aeca92e16e5baf77e888321ad",
   "changed_files": [
     "tests/test_seeded_phase3_07.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/background-consumers/ticket.md",
-      "sha": "042dceb517035b06d811806b9377d8f727a08824",
+      "sha": "13056d499344fd4f6d6ab47d52e5404f6e97e2d5",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/background-consumers/ticket.md",
-          "line": 8,
-          "message": "The watcher has no task lifetime to own. `Watcher` is a callback adapter whose only method is `observed(priority_snapshot)`, and its docstring says it runs 'without starting another loop'. Scope-in says to start and cancel a watcher task 'through the existing injectable callbacks and composition seams', but no such seam exists. Meeting the criterion means inventing an observation loop and its ticket-plane source. That touches `squatch/watcher.py` and `squatch/scheduler.py`, which are in neither the fence nor Context.",
-          "paved_road": "Say exactly which awaitable the owner runs as the watcher task. One option is an injected observation-source callback that the owner drives into `Watcher.observed`, built in `squatch/daemon.py`, with the scheduler join as the drain. Add `squatch/watcher.py` and `squatch/scheduler.py` to Context. If the watcher contract itself changes, add them to the fence too."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/background-consumers/ticket.md",
-          "line": null,
-          "message": "No box consumer exists in the daemon composition. `squatch/daemon.py` exposes only `compose_daemon_dispatch` and `compose_daemon_rework`. The Suggestion Box's sequential consumer is `Triage.run(spec)` in `squatch/triage.py`, backed by `Box.pending()` in `squatch/box.py`. It is a one-shot CLI pass with a constructor that takes many dependencies, and neither module is in Context. 'Through the existing ... composition seams' can't be met for the box, so the implementer would have to guess the consumer's identity and its injection shape.",
-          "paved_road": "Name the box consumer as a concrete awaitable, e.g. an injected `Callable[[], Awaitable[None]]` wrapping one `Triage.run` pass, repeated by the owner. Add `squatch/triage.py` and `squatch/box.py` to Context as read-only evidence. State in Scope in that the owner receives this as an injected callback and no new composition of Triage is added."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/background-consumers/ticket.md",
-          "line": null,
-          "message": "The 'merge' consumer is ambiguous. `MergeQueue` has no consumer loop, since `admit` is caller-driven. The only post-admission consumer is `Rework.run(sha=...)` from `compose_daemon_rework`. Context shows it returns a `ReworkResult` after consuming one handoff, so it isn't a long-lived task. Owning it means either looping it or restarting it, and it needs a `sha` source that the ticket doesn't specify. `squatch/rework.py` is not in Context.",
-          "paved_road": "Say whether 'merge task' means the `Rework` consumer from `compose_daemon_rework`, and how the owner re-arms it after each handoff and where `sha` comes from, e.g. an injected supplier. Add `squatch/rework.py` to Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/background-consumers/ticket.md",
-          "line": null,
-          "message": "The acceptance criterion bundles four behaviors (start, await shutdown, observe cancellation, surface exceptions) across three consumers into one sentence. There is no observable definition of 'surfaces exceptions', such as re-raise on shutdown, a journaled failure, or cancelling siblings. So the reviewer can't mechanically check the claim that each lifetime is proved independently, and the 'Definition of rejected' condition can't be decided.",
-          "paved_road": "Split this into one criterion per behavior and state the observable outcome for each. For example: 'a consumer that raises causes the owner's shutdown await to raise that exception and cancels the remaining consumers'. Also require that each consumer's lifetime is exercised by its own test in `tests/test_daemon_tasks.py`."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -54,7 +25,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/control-inbox/ticket.md",
-      "sha": "0bfed1fb14361861f7f94efbbcfb920c8bf4b5ec",
+      "sha": "64773fe50aaeef58eec954d7254c9eee0892992c",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -64,29 +35,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase3-continue-08/ticket.md",
-      "sha": "34589aae00973198bce27668d63424a336f2aaef",
+      "sha": "c1ee7519c9d8489b2db2d2ee348040250451dcb2",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-08/ticket.md",
           "line": null,
-          "message": "The Scope-in ownership block gives `dispatch-pause-boundary` and `pause-resume-activation` `owns: []` and `hooks: []`. Section 20 gives this pair `squatch/daemon.py`, control, merge queue, `squatch/__main__.py`, `tests/test_daemon_pause.py`, `tests/test_control_cli.py`, and the merge-queue tests. The established continuation pattern requires set(owns + hooks) == the seed's fence and requires each new module to name its registry owner. The empty records therefore leave nothing to pin, and a green `test_seeded_phase3_08.py` would prove nothing about ownership.",
-          "paved_road": "Fill in both ownership records with the section 20 paths. Split them between the boundary seed and the activation seed so that each new module (`tests/test_daemon_pause.py`, `tests/test_control_cli.py`) has exactly one owner. Every existing file each seed changes (`squatch/daemon.py`, `squatch/control.py`, `squatch/mergequeue.py`, `squatch/__main__.py`, `tests/test_mergequeue.py`, `tests/test_control.py`, `tests/test_daemon_composition.py` as applicable) should be a hook of that seed. The union of each seed's owns and hooks must equal its fence."
+          "message": "Scope in and the acceptance criteria require tests/test_seeded_phase3_08.py to pin predecessor-test closure for tests/test_daemon_composition.py, tests/test_daemon_tasks.py, tests/test_control.py, and tests/test_mergequeue.py. The exact ownership YAML fences only tests/test_mergequeue.py, under pause-resume-activation. The other three are in neither dispatch-pause-boundary's fence nor pause-resume-activation's, yet both seeds hook squatch/daemon.py and squatch/control.py, which those three tests exercise. A closure check over the prescribed ownership therefore fails by construction. The Definition of rejected leaves the implementer with a stop instead of a buildable map.",
+          "paved_road": "Decide the closure at authoring time and write it into the ownership YAML. Either add tests/test_daemon_tasks.py and tests/test_control.py to the hooks of the seeds that change daemon/control behavior they assert, or state which predecessor contracts are preserved unchanged. Then make the pinned closure list match those fences exactly."
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-08/ticket.md",
           "line": null,
-          "message": "The single acceptance criterion leaves out pins that section 20 requires of every continuation: exact emitted identities, `depends` edges (boundary <- phase3-continue-08, activation <- boundary, phase3-continue-09 <- activation), tier/effort, time budget within `drain.max_ticket_minutes`, and the `seeding.max_seeds_per_admission` cap. Predecessor-test closure appears only in Scope in. The criterion also never names which predecessor tests pause activation must migrate or preserve, such as the merge-queue and composition tests and the control-inbox tests. As written, these pins are unverifiable.",
-          "paved_road": "Rewrite the criteria in the established continuation-test style (compare `tests/test_seeded_phase3_04.py`). Pin the exact stems, depends edges, `medium`/`medium` tier, and 75/150 budget, with the batch size at or under the seeding cap. Assert that every existing fence path is in that seed's Context through a pinned `EXISTING_AT_AUTHORING` map, never a live-main check. Name each predecessor test path whose positive, negative, or local contract the pause pair must migrate or preserve inside its fence. Pin the successor's exact shrinking suffix, with the successor's carried block equal to this suffix minus its head."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-08/ticket.md",
-          "line": null,
-          "message": "`pause-resume-activation` fences `squatch/__main__.py`, which already exists on main. This continuation must therefore pin it in `EXISTING_AT_AUTHORING` with a synthetic render size and place it in the activation seed's Context. It is missing from this ticket's Context, so the implementer would pin a size and existence fact for a file it was never shown. The prior activation-authoring continuation (phase3-continue-05) carried `squatch/__main__.py` in its Context for the same reason.",
-          "paved_road": "Add `squatch/__main__.py` to Context. Keep sibling-new paths (`squatch/control.py`, `tests/test_control.py`, `tests/test_daemon_tasks.py`) out of Context, as the Definition of rejected already requires."
+          "message": "pause-resume-activation is an activation seed. It hooks squatch/__main__.py and squatch/daemon.py, where _locked calls compose_daemon_dispatch and tests/test_daemon_composition.py asserts the composition's shape. Its fence still omits tests/test_daemon_composition.py. Section 20 says activation 'proves the real in-process production composition' through the reusable harness that scheduler-activation landed and that merge-queue-activation and rework-activation both fence. It also says later activation seeds include the then-existing composition harness.",
+          "paved_road": "Add tests/test_daemon_composition.py to pause-resume-activation's hooks. Its Context then gets it automatically as an existing fence path with a pinned authoring-time size, and the seeded test's ownership and Context-closure pins must reflect that."
         }
       ],
       "commands": []
