@@ -1,15 +1,15 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "The only finding is a malformed requisition_review reply. The reviewer's verdict was approve, but it wrapped the JSON in a ```json code fence and the strict parser rejected it. The ticket content was not faulted.",
-    "The work already passed the focused and full test suites, and the reviewer approved phase3-continue-09 (render 84,291 chars, within 120,000 headroom). Re-run with the same seeds and test and no content changes.",
-    "The paved road 'fix the plan, then re-author the ticket' is the default for this finding code. It does not apply here: nothing points to a plan defect, and the prior drain.py closure lesson is already in the plan and the authored fences.",
-    "Pinned sizes must still match: if base files changed since 41539a9, refresh the size map in tests/test_seeded_phase3_08.py before the render-headroom check.",
-    "If the reviewer keeps fencing its JSON, that is an engine or reviewer-spec defect in requisition reply parsing, not a ticket defect. It needs a filed engine ticket or a human, not another re-author."
+    "The requisition gate rejected pause-resume-activation because its Context names tests/test_daemon_pause.py. That file does not exist at authoring time; its dependency dispatch-pause-boundary creates it. Context may name only paths that already exist when the ticket is authored.",
+    "The ticket allows the fix: pause seeds put only their NOW-EXISTING fenced predecessor paths in Context, and sibling-new paths stay out. Remove tests/test_daemon_pause.py from pause-resume-activation Context and keep it in that ticket's Scope fence hooks.",
+    "Do not work around the lint in tests/test_seeded_phase3_08.py. Lint pause-resume-activation through lint_ticket like the other two seeds, and drop the special-case branch that only compares raw section text.",
+    "Update CONTEXT and the render-size map in the seeded test so tests/test_daemon_pause.py is not activation Context. Keep the assertions that tests/test_mergequeue.py and squatch/__main__.py are Context, as the acceptance criteria require.",
+    "Plan section 20's pause clarification says the activation Context retains test_daemon_pause.py, which conflicts with the rule that a seed never names a sibling-new path. Follow the ticket's now-existing rule and file the plan wording to the Suggestion Box."
   ],
-  "reason": "The gate failure came from the reviewer fencing an approving reply, not from the ticket work, which met acceptance; a re-run at the same capability should clear it.",
+  "reason": "The ticket can be satisfied by removing the sibling-created file from activation Context; this failure was an authoring oversight, not proof the ticket is infeasible.",
   "detail": null
 }
