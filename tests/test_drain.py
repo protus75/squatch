@@ -770,3 +770,115 @@ def test_drain_is_a_cli_verb(checkout):
                           capture_output=True, text=True, env=git_env(checkout.parent))
     assert proc.returncode == EXIT_OK, proc.stderr
     assert "quiescence" in proc.stdout
+
+
+@pytest.mark.parametrize('parked', [False, True])
+@pytest.mark.parametrize('expired', [False, True])
+def test_pause_holds_pending_offer_before_accounting_and_obeys_ceiling(
+        checkout, monkeypatch, parked, expired):
+    from squatch.control import ControlInbox, ControlRequest, publish_control
+    from squatch.daemon import DispatchPause
+    from squatch.drain import Drain
+
+    committed(checkout, 'pending')
+    if parked:
+        with Journal(checkout / STATE, clock=FakeClock()) as journal:
+            journal.append('state_transition', {'to': 'gate_failed', 'run_seq': 0},
+                           ticket='pending')
+    before_states = states(checkout, 'pending')
+    clock = FakeClock()
+    fake = Scripted({'pending': ['ok']})
+    waits = []
+
+    class PausedDrain(Drain):
+        async def _drain(self, session):
+            fs = LocalFilesystem()
+            inbox = ControlInbox(checkout / STATE, journal=session.journal, fs=fs)
+            self._pause = DispatchPause(inbox)
+            publish_control(checkout / STATE,
+                            ControlRequest(action='pause', lifecycle=inbox.lifecycle), fs)
+
+            async def release():
+                waits.append(self._pause.hold_id)
+                assert self._pause.hold_id is not None
+                assert fake.calls == []
+                assert draws(checkout, 'pending') == []
+                assert states(checkout, 'pending') == before_states
+                if expired:
+                    clock.advance(hours=13)
+                publish_control(checkout / STATE, ControlRequest(
+                    action='release', lifecycle=inbox.lifecycle, hold_id=self._pause.hold_id), fs)
+
+            self._wait_for_control = release
+            return await super()._drain(session)
+
+    monkeypatch.setattr('squatch.__main__.Drain', PausedDrain)
+    rc, out = drain(checkout, fake, clock=clock)
+    assert len(waits) == 1
+    if expired:
+        assert rc == EXIT_TICKET and 'not quiescence' in out
+        assert fake.calls == [] and draws(checkout, 'pending') == []
+        assert states(checkout, 'pending') == before_states
+        assert len([e for e in read_events(checkout / STATE)
+                    if e.type == 'timer_fired']) == 1
+    else:
+        assert rc == EXIT_OK and fake.calls == [('pending', int(parked))]
+        assert [d['cap'] for d in draws(checkout, 'pending')] == (['retry'] if parked else [])
+        assert states(checkout, 'pending') == before_states + ['running', 'merged']
+
+
+def test_drain_pause_requires_a_waiter(checkout, monkeypatch):
+    from squatch.control import ControlInbox
+    from squatch.daemon import DispatchPause
+    from squatch.drain import Drain
+
+    def construct(**kwargs):
+        with Journal(checkout / 'waiter-test', clock=FakeClock()) as journal:
+            pause = DispatchPause(ControlInbox(checkout / 'waiter-test', journal=journal,
+                                               fs=LocalFilesystem()))
+            with pytest.raises(ValueError, match='wait_for_control'):
+                Drain(**kwargs, pause=pause)
+        return Drain(**kwargs)
+
+    monkeypatch.setattr('squatch.__main__.Drain', construct)
+    assert drain(checkout, Scripted({}))[0] == EXIT_OK
+
+
+def test_control_arriving_during_retry_draw_is_consumed_before_dispatch(checkout, monkeypatch):
+    from squatch.control import ControlInbox, ControlRequest, publish_control
+    from squatch.daemon import DispatchPause
+    from squatch.drain import Drain
+
+    committed(checkout, 'pending')
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append('state_transition', {'to': 'gate_failed', 'run_seq': 0},
+                       ticket='pending')
+    fake = Scripted({'pending': ['ok']})
+    waits = []
+
+    class InterruptedDraw(Drain):
+        async def _drain(self, session):
+            self._pause = DispatchPause(ControlInbox(
+                checkout / STATE, journal=session.journal, fs=LocalFilesystem()))
+
+            async def release():
+                waits.append(self._pause.hold_id)
+                assert fake.calls == []
+                assert states(checkout, 'pending') == ['gate_failed']
+                assert [d['cap'] for d in draws(checkout, 'pending')] == ['retry']
+                publish_control(checkout / STATE, ControlRequest(
+                    action='release', lifecycle=self._pause.inbox.lifecycle,
+                    hold_id=self._pause.hold_id), LocalFilesystem())
+
+            self._wait_for_control = release
+            return await super()._drain(session)
+
+        async def _draw_retry(self, journal, ticket):
+            await super()._draw_retry(journal, ticket)
+            publish_control(checkout / STATE, ControlRequest(
+                action='pause', lifecycle=self._pause.inbox.lifecycle), LocalFilesystem())
+
+    monkeypatch.setattr('squatch.__main__.Drain', InterruptedDraw)
+    assert drain(checkout, fake)[0] == EXIT_OK
+    assert len(waits) == 1 and fake.calls == [('pending', 1)]
+    assert [d['cap'] for d in draws(checkout, 'pending')] == ['retry']

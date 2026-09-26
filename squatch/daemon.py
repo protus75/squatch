@@ -5,9 +5,10 @@ from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, TypeVar, cast
+from uuid import UUID
 
 from squatch.config import Config, Tier, snapshot
-from squatch.control import ControlInbox, Mutation
+from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
 from squatch.journal import Journal
 from squatch.llm import Effort
@@ -26,6 +27,30 @@ ConfigSupplier = Callable[[], Config]
 ConsumerCallback = Callable[[], Awaitable[None]]
 PrioritySnapshot = Callable[[], Awaitable[Iterable[str]]]
 ShaSupplier = Callable[[], Awaitable[str]]
+
+
+class DispatchPause:
+    """Consume identity-bound control decisions at the next dispatch boundary."""
+
+    def __init__(self, inbox: ControlInbox) -> None:
+        self.inbox = inbox
+        self.hold_id: UUID | None = None
+        self._applied: set[UUID] = set()
+
+    async def allow_offer(self) -> bool:
+        await self.inbox.consume(self._apply)
+        return self.hold_id is None
+
+    async def _apply(self, request: ControlRequest) -> None:
+        if request.request_id in self._applied:
+            return
+        if request.action == "pause":
+            if self.hold_id is not None:
+                self.inbox.discard_hold(self.hold_id)
+            self.hold_id = self.inbox.hold()
+        elif request.action == "release" and request.hold_id == self.hold_id:
+            self.hold_id = None
+        self._applied.add(request.request_id)
 
 
 class AdmissionTask(Generic[Result]):
@@ -82,21 +107,29 @@ class DaemonDispatch:
     admission: DispatchAdmission
     scheduler: Scheduler
     watcher: Watcher
+    pause: DispatchPause | None = None
 
 
 def compose_daemon_dispatch(config_supplier: ConfigSupplier,
-                            work: Work[Result]) -> DaemonDispatch:
+                            work: Work[Result], *, pause: DispatchPause | None = None,
+                            wait_for_control: ConsumerCallback | None = None) -> DaemonDispatch:
     """Compose admission, scheduling, and ticket observation without starting a loop."""
+    if pause is not None and wait_for_control is None:
+        raise ValueError("pause requires wait_for_control")
     admission = DispatchAdmission(config_supplier)
 
     async def dispatch(stem: str) -> None:
+        if pause is not None:
+            while not await pause.allow_offer():
+                assert wait_for_control is not None
+                await wait_for_control()
         admitted = admission.admit(stem, work)
         if admitted is None:
             raise RuntimeError("scheduler dispatched while admission was occupied")
         await admitted
 
     scheduler = Scheduler(dispatch)
-    return DaemonDispatch(admission, scheduler, Watcher(scheduler))
+    return DaemonDispatch(admission, scheduler, Watcher(scheduler), pause)
 
 
 def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,

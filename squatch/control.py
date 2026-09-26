@@ -81,6 +81,10 @@ class ControlInbox:
         self._holds.add(hold_id)
         return hold_id
 
+    def discard_hold(self, hold_id: UUID) -> None:
+        """Retire a superseded hold so its release cannot affect a successor."""
+        self._holds.discard(hold_id)
+
     async def consume(self, mutate: Mutation) -> tuple[ControlDecision, ...]:
         """Consume one stable snapshot, retrying only incomplete accepted work."""
         decisions = self._decisions()

@@ -56,13 +56,14 @@ whose fold may read the record differently, and the parent's verdicts hold.
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from squatch.artifacts import OUTCOMES
 from squatch.caps import (PREMISE_BOUNCE_CAP, CapFold, RETRY_CAP, consume,
                           fold as fold_caps, remaining, spent)
 from squatch.config import Config
+from squatch.daemon import ConsumerCallback, DispatchPause
 from squatch.effects import run_sequence
 from squatch.git import Git
 from squatch.journal import Event, Journal
@@ -164,7 +165,13 @@ class Handoff:
 class Drain:
     def __init__(self, *, runner: Runner, repo: Path, config: Config, git: Git, clock: Clock,
                  process: ProcessExec, env: Mapping[str, str], report: Report,
-                 config_path: Path | None = None, carried: Sequence[str] = ()):
+                 config_path: Path | None = None, carried: Sequence[str] = (),
+                 pause: DispatchPause | None = None,
+                 wait_for_control: ConsumerCallback | None = None):
+        if pause is not None and wait_for_control is None:
+            raise ValueError("pause requires wait_for_control")
+        self._pause = pause
+        self._wait_for_control = wait_for_control
         self._runner = runner
         self._repo = Path(repo)
         self._config = config
@@ -203,11 +210,14 @@ class Drain:
             ticket = queue[0] if queue else offer
             if ticket is None:
                 return self._quiescent(plane, facts, merged_now)
-            if self._clock() - started >= ceiling:
+            if not await self._wait_for_offer(started + ceiling):
                 journal.append("timer_fired", {"kind": CEILING_TIMER, "next": ticket.stem})
                 return self._halted(plane, facts, merged_now, ticket)
             if offer is not None:
                 await self._draw_retry(journal, ticket)
+                if not await self._wait_for_offer(started + ceiling):
+                    journal.append("timer_fired", {"kind": CEILING_TIMER, "next": ticket.stem})
+                    return self._halted(plane, facts, merged_now, ticket)
             run = await self._runner.dispatch(ticket, journal)
             if run.settled:
                 merged_now.append(ticket.stem)
@@ -215,6 +225,15 @@ class Drain:
                 touched = await self._upgrading(facts.commits.get(ticket.stem))
                 if touched:
                     return self._handoff(journal, ticket.stem, facts, plane, touched)
+
+    async def _wait_for_offer(self, deadline: datetime) -> bool:
+        while self._clock() < deadline:
+            if self._pause is None or await self._pause.allow_offer():
+                # Control consumption or a wait may cross the admission ceiling.
+                return self._clock() < deadline
+            assert self._wait_for_control is not None
+            await self._wait_for_control()
+        return False
 
     # --- the scan ----------------------------------------------------------------
 
