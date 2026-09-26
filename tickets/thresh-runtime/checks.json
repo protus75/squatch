@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "9e908f4c7e7526535950d9c372ce2edf2f9817de",
+  "produced_at_sha": "4a0a490410bd36b4a19d0aff34b422924213be26",
   "stem": "thresh-runtime",
   "branch": "thresh-runtime",
-  "base": "4ec8e4e8f117ceaae5ae8f470b404461d079a667",
-  "head": "9e908f4c7e7526535950d9c372ce2edf2f9817de",
+  "base": "2a79df87fb08e600db83e611c3aa6babe38fbe28",
+  "head": "4a0a490410bd36b4a19d0aff34b422924213be26",
   "changed_files": [
     "squatch/providers.py",
     "squatch/thresh.py",
