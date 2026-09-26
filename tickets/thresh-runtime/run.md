@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The existing config already carried the required concurrency and breaker hooks. The runtime treats loaded CLI providers as flat subscriptions with no USD admission ceiling; only outage and unclassified failures feed the cooldown breaker, while auth failures remain distinctly classified for their separate failover-and-alert policy.
+The existing config already carried the concurrency, quota-window, and breaker hooks. Quota exhaustion therefore received its own per-provider cooldown rather than entering the circuit breaker; outage and unclassified failures feed the breaker, while auth, rate-limit, and model failures remain distinct for later admission policy. Known CLI failure signatures are adapter-owned allowlists, and unmatched failures remain explicitly unclassified.
 
 ## Dead ends
 
-The first inline invocation of the repository Git wrapper used invalid one-line Python syntax; it made no tree change and was immediately replaced with valid wrapper calls.
+None.
 
 ## Second problems filed
 
@@ -20,4 +20,4 @@ OpenAI / GPT-5 (Codex)
 
 ## Predicted vs actual
 
-Expected: 120m. Actual: approximately 20m.
+Expected: 120m. Actual: approximately 15m.
