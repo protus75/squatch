@@ -1,16 +1,15 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Implementation reached review with green checks. Review accepted the serial slot, re-gate ordering, tree-hash refusal, both rungs and the git seams. Keep all of it; fix only the unwind gap in the rebase failure paths.",
-    "A non-conflict GitError can arrive after the rebase has started, e.g. an untracked file that would be overwritten mid-replay. Abort the in-progress rebase before returning CandidateRebaseFinding, so the candidate worktree ends on its branch head.",
-    "Do not add a new public Git method: the criteria allow only three git.py additions. Inside rebase_stop_at_conflict, on a non-conflict failure, try rebase_abort and ignore its GitError (as `rebase` already does), then re-raise the original error.",
-    "Wrap the conflict-resolution loop in _rebase in try/except BaseException: abort the rebase, then re-raise. This covers conflicted_paths raising after a failed rebase_continue, and a regenerate process.run timeout.",
-    "Add a test where the rebase starts, then fails with no conflicted paths: an untracked file on the candidate that a main commit would overwrite. Assert typed gate_failed, HEAD equals the branch head, no rebase-merge/rebase-apply dir, and the slot is released.",
-    "Update REBASE_FAILURE_ROAD: the queue now restores the worktree itself, so the paved road should only name correcting the rebase precondition and retrying admission."
+    "Review snagged with green checks and two fixable findings. It accepted the serial slot, re-gate ordering, tree-hash refusal, both rungs and the git seams. Keep all of that; change only _path_matches and the rung-2 abort path in mergequeue.py, plus tests.",
+    "Rewrite _path_matches to match the scope-fence prefix rule: path == declared or path.startswith(declared if declared.endswith('/') else declared + '/'). Drop fnmatch and its import; glob characters are literal.",
+    "Add tests: a declared prefix with no trailing slash (e.g. 'generated') resolves the nested conflict 'generated/x.lock' through rung 1, and a glob-looking entry (e.g. '*.lock') is not expanded, so the conflict falls to rung 2.",
+    "In _rebase, abort in exactly one place. Have the loop return the rung-2 facts, then run a single rebase_abort unwind step. Do not also call abort from inside the loop and again from except BaseException.",
+    "If that single rebase_abort raises GitError on the rung-2 path, journal the conflict facts and return a typed gate_failed Admission with CandidateRebaseFinding. A raw GitError must never escape admit. Add a test with an abort that fails (a Git stub)."
   ],
-  "reason": "Review snag on one concrete, fixable unwind gap with an explicit paved road; the rest of the implementation was accepted and all checks passed.",
+  "reason": "Review found two concrete, locally fixable correctness defects with explicit paved roads; the rest of the design was accepted and all checks are green.",
   "detail": null
 }
