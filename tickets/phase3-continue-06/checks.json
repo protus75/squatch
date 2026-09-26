@@ -1,52 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "eee3baf582d0d68ed73f656f7e67272c81e033b8",
+  "produced_at_sha": "d674d9364d7cd7f92421042966684ece68839c73",
   "stem": "phase3-continue-06",
   "branch": "phase3-continue-06",
-  "base": "1f5fa05e33e5dabc556d9501cbe33423866b5489",
-  "head": "eee3baf582d0d68ed73f656f7e67272c81e033b8",
+  "base": "11b25508f3b24801a587cf182db8b0e64de57b86",
+  "head": "d674d9364d7cd7f92421042966684ece68839c73",
   "changed_files": [
     "tests/test_seeded_phase3_06.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/merge-queue-activation/ticket.md",
-      "sha": "a62c8f7929db6c34975ae0261f63eb9c58feebcf",
+      "sha": "8a598b1e91c63a431b2e6306954e0544f6a234b1",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue-activation/ticket.md",
-          "line": null,
-          "message": "Criterion 3 requires in-process proof that 'the production work path receives a pipeline carrying the same composed MergeQueue'. squatch/daemon.py has no work callback and no pipeline: compose_daemon_dispatch takes an opaque `work` parameter. The real work callback is the lambda built in squatch/__main__.py (`lambda _stem, captured: verb(runner, captured, git)`), and it reaches compose_pipeline through the Runner `factory(journal)` closure there. squatch/__main__.py and squatch/runner.py are not in Context, so the author cannot see the path the criterion constrains. The Scope in claim that 'squatch/daemon.py reaches the composed queue only through that existing work path' also contradicts the daemon.py shown.",
-          "paved_road": "Add squatch/__main__.py and squatch/runner.py to Context as read-only evidence. Restate criterion 3 as a test that drives the real __main__ factory/Runner composition, which is already importable from tests/test_daemon_composition.py via squatch.__main__, and observes pipeline.merge_queue. Alternatively, fence __main__.py if exposing that observation needs an edit, and remove the 'needs no change' claim."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue-activation/ticket.md",
-          "line": 278,
-          "message": "The Scope in binds `integration_check` to the 'configured integration gate execution'. No such configured gate exists: squatch/config.py, squatch/gates.py, and squatch/merge.py define no integration check apart from the MergeQueue callback parameter. The criterion forbids a no-op, so the adapter has nothing real to bind to.",
-          "paved_road": "Name the concrete existing operation that the integration-check adapter runs (for example, the ticket's `## Verification` commands through the existing verification gate on the rebased worktree), or cite the plan text that defines the integration check. If the plan defines none, raise it as a plan gap."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue-activation/ticket.md",
-          "line": 312,
-          "message": "MergeQueue callbacks receive only a Candidate (stem, branch, worktree, run_seq). The named targets need more: Merge._regate(ticket, candidate: PackingSlip, worktree, run_seq) needs a Ticket and PackingSlip, and Merge._squash(ticket, invoice, reviewed, run_seq) needs the regate's Invoice plus the pinned reviewed SHA. The ticket does not say how the adapters obtain the Ticket, the post-rebase PackingSlip base/head, the Invoice carried from regate to integrate, or the reviewed SHA. That leaves the 'bound to the real operations' criterion underdetermined.",
-          "paved_road": "Specify each adapter's input derivation. For example: load the Ticket by stem from the tickets plane, build the PackingSlip from rev_parse of main and the candidate HEAD, carry the regate Invoice keyed by (stem, run_seq) into integrate, and read reviewed_sha the way Merge._approval does. Alternatively, narrow the criterion to what Candidate can supply."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue-activation/ticket.md",
-          "line": 573,
-          "message": "squatch/merge.py already has `compose_merge_queue` (it applies child_env and the drain timeout), and the predecessor test uses it. The Scope in composes MergeQueue directly inside compose_pipeline without saying whether it reuses compose_merge_queue. Building the queue a second way risks the dual-path divergence the engine forbids (for example, passing raw env instead of child_env).",
-          "paved_road": "State that compose_pipeline builds Pipeline.merge_queue by calling the existing compose_merge_queue with the named adapters. Keep the test's separately composed `dormant` queue assertion."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -54,41 +25,49 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase3-continue-07/ticket.md",
-      "sha": "997c22b4974c2cd5737ea6abcefa1c346a72b242",
+      "sha": "6df19ee85ea487a0a5cfbe47e06b315a5bf0dbd8",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-07/ticket.md",
           "line": null,
-          "message": "`control-inbox` hooks `squatch/daemon.py` to consume the inbox inside the lock-holding daemon. That adds a daemon-owned consumer to the background task set that `background-consumers` proves in its owned `tests/test_daemon_tasks.py`. The `control-inbox` fence is only daemon.py, control.py, and test_control.py, so any exact task-set or lifecycle assertion in the predecessor test becomes invalidated work outside its fence. This ticket's criteria check predecessor-test closure only against `tests/test_daemon_composition.py`, never against `tests/test_daemon_tasks.py`.",
-          "paved_road": "Pick one approach and pin it in both the seed text and `tests/test_seeded_phase3_07.py`. (a) Add `tests/test_daemon_tasks.py` to the `control-inbox` fence as a hook, and put it in that seed's Verification. The dispatch-config-snapshot precedent fences `tests/test_daemon_admission.py` in exactly this way. (b) Alternatively, require in `background-consumers` Scope out that its new tests assert ownership of the named watcher, merge, and box tasks without a closed task-set assertion, and require `control-inbox` Verification to run `tests/test_daemon_tasks.py`. In either case, the seeded test asserts the chosen closure."
+          "message": "Scope in sets control-inbox Context to 'those three paths plus `tests/test_daemon_tasks.py`', but also says `tests/test_daemon_tasks.py` is new at authoring and owned by the sibling seed background-consumers. `squatch/tickets.py` `_lint_context` rejects a Context path that does not exist ('Context is read-first EXISTING material'), so the seed fails the seeding Check's lint. The same entry has no `EXISTING_AT_AUTHORING` size, so the required `set(context) <= EXISTING_AT_AUTHORING` closure and the synthetic max-effort render proof cannot both pass. Section 20 requires that seeds 'name only existing Context paths'.",
+          "paved_road": "Remove `tests/test_daemon_tasks.py` from control-inbox's Context and keep it only in that seed's fence, with a hook in the ownership YAML and a line in Verification. The test for the other seed already covers the path through `depends`. Keep the pinned Context map to `tests/test_seeded_phase3_04.py`, `squatch/daemon.py`, and `tests/test_daemon_composition.py` for both deliverables. Classify `tests/test_daemon_tasks.py` in `NEW_AT_AUTHORING`, and pin that control-inbox fences the path and runs it in Verification without citing it as Context."
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-07/ticket.md",
           "line": null,
-          "message": "Both emitted seeds hook `squatch/daemon.py`'s composition, which the existing harness `tests/test_daemon_composition.py` exercises. That harness asserts that construction starts no work and that no `serve` verb exists. Neither seed fences it, and this ticket does not say what 'predecessor-test closure against tests/test_daemon_composition.py' must prove. Adding task ownership and lifecycle to the composition could invalidate the harness's construction-without-starting-work contract outside either fence.",
-          "paved_road": "State the contract explicitly. Either require both seeds to preserve the composition harness unchanged (a Scope-out sentence plus `tests/test_daemon_composition.py` in each seed's Verification), or fence it as a hook in the seed that migrates it. Then have `tests/test_seeded_phase3_07.py` assert those exact strings or fence entries, as `test_dispatch_predecessor_test_closure` does in `tests/test_seeded_phase3_04.py`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-07/ticket.md",
-          "line": null,
-          "message": "`phase3-continue-08` is an activation continuation: it emits `pause-resume-activation`, which the registry fences over the merge queue, `squatch/__main__.py`, and the merge-queue tests. The registry requires such a continuation's Context to include the existing predecessor test surfaces whose contracts it must migrate or preserve. `EXISTING_AT_AUTHORING` limits every seed's Context to `tests/test_seeded_phase3_04.py`, `squatch/daemon.py`, and `tests/test_daemon_composition.py`, so the existing `tests/test_mergequeue.py` cannot enter `phase3-continue-08`'s Context. No seed's exact Context is pinned either: the criteria require exact fences but not exact Context.",
-          "paved_road": "Add a `CONTEXT` map to the ticket and its seeded test that pins each seed's exact Context, as `tests/test_seeded_phase3_04.py` does. Include the existing merge-queue predecessor test surface (`tests/test_mergequeue.py`) in `phase3-continue-08`'s Context, and add it with its authoring-time size to `EXISTING_AT_AUTHORING`. Keep the sibling-owned new paths (`tests/test_control.py`, `tests/test_daemon_tasks.py`, `squatch/control.py`) out. Re-prove the max-effort synthetic render stays within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`."
+          "message": "The YAML list introduced as 'The successor continuation carries' starts with `[background-consumers, control-inbox]`, which is the admission this ticket emits. The earlier continuations use two lists: the full list including their own admission, then the successor's list without it (`test_continuation_carries_the_exact_ordered_suffix`: `parent[0] == (own admission, *SUFFIX)`, `parent[1] == SUFFIX`). If phase3-continue-08 carries this list as written, it would author background-consumers and control-inbox again, which violates the shrinking-suffix contract and this ticket's own Definition of rejected ('the activation pair is duplicated').",
+          "paved_road": "State both lists explicitly. This ticket's full list starts with `[background-consumers, control-inbox]`. The list phase3-continue-08 carries starts at `[dispatch-pause-boundary, pause-resume-activation]` and ends with `[phase3-exit]`. Have `tests/test_seeded_phase3_07.py` assert successor list == full list[1:]."
         }
       ],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": "tickets/rework-activation/ticket.md",
-      "sha": "6c220b1bbb409d6bcf630a225d7a79aee9f5083f",
+      "sha": "51c9e83737c908b73791323366e4bb44372278b0",
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/rework-activation/ticket.md",
+          "line": null,
+          "message": "Under the registry, merge-queue-activation builds the production MergeQueue through `compose_merge_queue` inside `compose_pipeline`, which lives in `squatch/merge.py` and leaves daemon.py and mergequeue.py unchanged. For Rework to consume that queue's post-unwind outbox in the real composition, it must bind to that same instance. The module that owns it is neither Context nor named anywhere, so the hook cannot be read before it is written.",
+          "paved_road": "Add `squatch/merge.py` to Context as read-only; it exists on main and is not fenced. Also add whichever module defines `compose_pipeline` if that is a different file. Keep them out of the fence, since merge activation owns them."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/rework-activation/ticket.md",
+          "line": null,
+          "message": "Scope in says to 'hook every fenced existing path' but never names the composition hook. It does not say which daemon.py composition function builds `Rework` from the queue that `compose_pipeline` produced, or where the Driver, Spec, Journal, and Filesystem come from. The implementer is left to guess, and an edit to the unfenced `compose_pipeline` or `squatch/runner.py` would break the fence, which is the Definition of rejected.",
+          "paved_road": "Say in Scope in and in a criterion that a named function in `squatch/daemon.py` takes the composed pipeline, or its merge queue plus driver, journal, and filesystem. That function builds `Rework(queue=<the pipeline's MergeQueue>, ...)` with `specs/rework.md` loaded, and does not edit `compose_pipeline`. `tests/test_daemon_composition.py` then asserts that a handoff produced by that same queue's `admit` is consumed only after the slot unlocks, and that `squatch.rework` is reachable from `squatch.__main__`."
+        }
+      ],
       "commands": []
     },
     {
