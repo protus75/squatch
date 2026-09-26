@@ -1,9 +1,16 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "Requisition review failed pause-resume-activation: Section 20 says pause must take effect before all durable dispatch accounting, including the retry draw that Drain.run writes at drain.py:210 before runner.dispatch.",
+    "The authored fences follow the section 20 compact registry, which leaves out squatch/drain.py and tests/test_drain*. No hook in daemon, control, mergequeue, or __main__ can stop the drain's next retry draw.",
+    "This matches the ticket's Definition of rejected: predecessor closure needs an unfenced path (squatch/drain.py). Re-authoring the ticket or retrying cannot fix it.",
+    "Paved road: fix the section 20 pause registry entry so it adds drain.py and its test closure, or re-scope what 'before durable dispatch accounting' covers. Then regenerate phase3-continue-08.",
+    "When regenerating, recheck the max-effort render headroom. Adding drain.py and its tests to Context may push past REQ_RENDER_HEADROOM, as the earlier render-closure repairs did.",
+    "The seeded test and the three seed tickets otherwise passed locally (focused tests plus the full suite of 997). Only the requisition gate found this problem."
+  ],
+  "reason": "The plan's section 20 pause fence leaves out squatch/drain.py, which owns the retry draw that pause must come before, so the authored seeds cannot be satisfied until the plan is fixed.",
+  "detail": null
 }
