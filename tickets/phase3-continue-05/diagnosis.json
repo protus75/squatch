@@ -1,9 +1,16 @@
 {
-  "run_seq": 5,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 6,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Requisition review snagged tickets/phase3-continue-06/ticket.md again. The committed test passed, so fix the seed text and extend tests/test_seeded_phase3_05.py to pin the new content.",
+    "Name test_rework_remains_unreachable_from_the_production_root in tests/test_rework.py as the dormancy assertion that rework-activation migrates. It asserts that squatch.rework is outside the squatch.__main__ import closure. That file is already inside the rework-activation fence.",
+    "Put the rework migration in phase3-continue-06's Scope in and in its predecessor-closure acceptance criterion. Rework's direct post-admission contracts stay preserved alongside it.",
+    "Pin the rework migration in both test files, the same way as the merge-queue not hasattr(pipeline, \"merge_queue\") migration. tests/test_seeded_phase3_05.py should assert that the successor names it, and tests/test_seeded_phase3_06.py should require the emitted rework-activation seed to name it.",
+    "Before finishing, search every Context test file (test_mergequeue.py, test_rework.py, test_daemon_*.py) for negative 'unreachable'/'absence'/'not hasattr' assertions. Each one a later activation makes false must be named as a migration and pinned.",
+    "Keep the other fixes from earlier attempts: the merge-queue hasattr migration, the preserved test_mergequeue_has_no_scheduler_or_watcher_dependency, the compact Context, and keeping test_daemon_composition.py out of Context. Re-measure render headroom after editing."
+  ],
+  "reason": "Review found one specific seed-text omission with a clear fix: the rework-activation dormancy test migration is never named. The attempt was otherwise complete and green, so a retry at the same capability can fix it.",
+  "detail": null
 }
