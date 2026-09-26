@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "ff439309961ec521f860294ff07c1836f1c76460",
+  "produced_at_sha": "2bd98c4c5f1acac8dcb6f899b8f95e56cec15ab3",
   "stem": "phase3-continue-03",
   "branch": "phase3-continue-03",
-  "base": "c9333de44e9b7ed659e62d4bb3d50d6616c90010",
-  "head": "ff439309961ec521f860294ff07c1836f1c76460",
+  "base": "4781f6c38db689b489e1faa1c88de95335999ac3",
+  "head": "2bd98c4c5f1acac8dcb6f899b8f95e56cec15ab3",
   "changed_files": [
     "tests/test_seeded_phase3_03.py"
   ],
@@ -15,15 +15,36 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase3-continue-04/ticket.md",
-      "sha": "ee4cef0aca7c7eeeaf42537064d8e2a77426d704",
+      "sha": "8d15d9e57a6eb8495f4524e4d7f9eb05d2f086f8",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-04/ticket.md",
           "line": null,
-          "message": "gate crashed: IsADirectoryError: [Errno 21] Is a directory: '/home/djp/source/squatch/.squatch/state/worktrees/phase3-continue-03/tickets'",
-          "paved_road": "re-author the ticket until requisition_review approves it"
+          "message": "Section 20 requires each continuation's numbered test to pin the exact emitted tier and budget, not only identities and edges. Here that means default medium/medium for dispatch-admission-boundary, dispatch-config-snapshot, and phase3-continue-05, with the configured drain budget. The acceptance criteria pin only the emitted set and its dependency edges.",
+          "paved_road": "Add a criterion that tests/test_seeded_phase3_04.py asserts agent_tier/agent_effort medium/medium, source: seed, state: confirmed, and a time budget within the drain budget for each of the three emitted tickets."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-04/ticket.md",
+          "line": null,
+          "message": "Section 20 requires the continuation test to check that every existing fence path in each emitted seed is also named in that seed's Context. It must also name the registry owner of each new module: dispatch-admission-boundary and dispatch-config-snapshot own squatch/daemon.py, squatch/config.py, tests/test_daemon_admission.py, and tests/test_daemon_config.py. No criterion requires either check.",
+          "paved_road": "Add criteria that the test asserts each emitted seed's fence entries that exist on main are listed in its Context, and that each new module and test path in the dispatch pair's fences maps to its registry owner."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-04/ticket.md",
+          "line": null,
+          "message": "Section 20 requires each continuation to check predecessor-test closure. No criterion requires it, and the ticket's Context is empty, so it names neither the predecessor continuation's ticket nor its seeded test (tests/test_seeded_phase3_03.py). The Implement stage cannot read the artifacts that closure depends on.",
+          "paved_road": "Add the predecessor continuation's committed test and tickets/phase3-continue-03/ticket.md to Context. Add a criterion that the test checks predecessor-test closure: no fence in the emitted dispatch pair invalidates an existing test's assertions unless that test is also fenced."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-04/ticket.md",
+          "line": null,
+          "message": "The fence entry `tickets` exists on main but is not in Context. The ticket's Context section is empty, so it names no existing artifact the continuation must read, such as the thresh-runtime seed it depends on.",
+          "paved_road": "Fill Context with the existing ticket-plane paths the continuation reads: tickets/thresh-runtime/ticket.md and tickets/phase3-continue-03/ticket.md."
         }
       ],
       "commands": []
@@ -33,7 +54,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/thresh-runtime/ticket.md",
-      "sha": "4f2fd87da9f7c57b928e83a92710ca4c20769c28",
+      "sha": "807d5af900b8d80d78f84a0b1821062f9e786984",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -82,20 +103,12 @@
     },
     {
       "code": "run_record",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "run_record",
-          "path": "tickets/phase3-continue-03/run.md",
-          "line": null,
-          "message": "tickets/phase3-continue-03/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
-          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
