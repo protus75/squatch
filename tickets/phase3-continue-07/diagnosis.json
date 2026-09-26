@@ -1,15 +1,15 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snag, not a ticket defect: seeds, Context map, sizes and pause_ownership passed requisition review. Keep them and fix only the two gaps the review found.",
-    "Parse each deliverable's '## Verification' section, not its Scope in prose. Assert both seeds run tests/test_daemon_composition.py, and that control-inbox also runs tests/test_daemon_tasks.py.",
-    "The phase3-continue-08 Scope in must state the edges explicitly: dispatch-pause-boundary depends on phase3-continue-08; pause-resume-activation depends on dispatch-pause-boundary; phase3-continue-09 depends on both. Also state medium/medium, 75m/150m and seeding cap 3.",
-    "Extend test_continuation_pins_pause_closure_and_shrinking_suffix to assert each pause edge, the tier/effort, the budgets and the cap. Also assert each pause seed's fence == owns + hooks from PAUSE_OWNERSHIP.",
-    "Before submitting, check every acceptance criterion clause by clause against a concrete assertion. A phrase-presence check on prose does not prove a structured section."
+    "Review snag only. The seeds, Context map, sizes, pause_ownership, render bound and suffix all passed requisition, checks and review. Keep them and fix only the two gaps below.",
+    "In test_seed_prose_pins_consumer_and_predecessor_boundaries, assert that the background-consumers Scope in states the re-raise contract: the owner's shutdown await re-raises a callback's exception after cancelling and awaiting its siblings (e.g. 're-raises that exception').",
+    "Assert that the background-consumers seed requires one independently named test per consumer lifetime (watcher, merge/Rework, box) in tests/test_daemon_tasks.py, e.g. the phrase 'each consumer lifetime independently'.",
+    "Add an acceptance criterion to the background-consumers seed naming the exception re-raise after sibling cancel+await, plus per-consumer lifetime tests. Assert that text in its '## Acceptance criteria' section, not only in Scope in.",
+    "Before submitting, map every AC4 clause (watcher snapshot, Rework handoff, Triage pass, independent lifetimes, cancellation, exception propagation, read-only Context) to a concrete assertion."
   ],
-  "reason": "The reviewer snagged two fixable test-coverage and seed-prose omissions, each with a concrete paved road. Nothing shows the ticket is unsatisfiable or that more capability is needed.",
+  "reason": "Checks are green. The review snag is a fixable test-coverage gap on AC4 (re-raise and per-consumer lifetime pins), and the review's paved road now steers the fix.",
   "detail": null
 }
