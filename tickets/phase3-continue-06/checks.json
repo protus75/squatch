@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "196a8a92437cca0d6f28f413c4816b15d0a06b55",
+  "produced_at_sha": "e0b48fd22b6b9d447d2d67444c8465cdce884598",
   "stem": "phase3-continue-06",
   "branch": "phase3-continue-06",
-  "base": "1560c8739c102dbd2467a37c5b8e7408f40c8096",
-  "head": "196a8a92437cca0d6f28f413c4816b15d0a06b55",
+  "base": "8a3af5be2be7b0ba390cc692f2615d1131363c81",
+  "head": "e0b48fd22b6b9d447d2d67444c8465cdce884598",
   "changed_files": [
     "tests/test_seeded_phase3_06.py"
   ],
@@ -14,67 +14,18 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/merge-queue-activation/ticket.md",
-      "sha": "c94db86bc1f731a64565e0b000ced4be05905acb",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue-activation/ticket.md",
-          "line": 210,
-          "message": "The only production call site of `compose_daemon_dispatch` is `squatch/__main__.py:210`, and it passes only `config_supplier` and a `work` lambda. `MergeQueue` needs repo, git, journal, process, fs, env and the `regate`/`integration_check`/`integrate` callbacks, and the journal exists only inside the Runner's lock-scoped `factory`. Activating merge admission through the daemon composition therefore changes this composition hook, but `squatch/__main__.py` is in neither the fence nor Context, and the Definition of rejected would stop the run on it.",
-          "paved_road": "Add `squatch/__main__.py` to Scope fence, Context and the ownership `hooks`, as the section 20 registry requires ('close their fence over each owner, composition hook'). Or state that the queue is composed inside `compose_pipeline` in `squatch/merge.py`, where every input is already available, and that `squatch/daemon.py` only reaches it through the existing `work` path."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue-activation/ticket.md",
-          "line": null,
-          "message": "\"proves real production composition activates merge admission\" has no observable definition. It does not say whether `Pipeline.run` should send admissions through `MergeQueue.admit` instead of `Merge.admit`, which would change the Phase 1 squash, retire and journal behavior pinned by `tests/test_merge.py` (outside the fence). It also does not say what `regate`, `integration_check` and `integrate` bind to in production, or what positive assertion replaces `not hasattr(pipeline, \"merge_queue\")`.",
-          "paved_road": "Name the exact positive assertion, for example `isinstance(pipeline.merge_queue, MergeQueue)` or a named `DaemonDispatch` field built from the production inputs. Name the existing operations bound to the three callbacks. State whether `Merge.admit` and `Pipeline.run` behavior stays unchanged. If admissions are rerouted, add the affected merge tests to the fence and Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/merge-queue-activation/ticket.md",
-          "line": null,
-          "message": "Scope in's \"Hook every existing fenced path into the production daemon composition\" does not describe any change, and it hooks `squatch/git.py` and `squatch/mergequeue.py` without saying what changes in either. An implementer cannot tell which of the six fenced files must change and which only need to be preserved.",
-          "paved_road": "Replace it with the concrete changes, file by file (e.g. `squatch/merge.py`: compose the queue in `compose_pipeline`; `squatch/daemon.py`: expose it on `DaemonDispatch`). Drop any file that needs no change from `hooks`, or state that it is preserved unchanged."
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/phase3-continue-07/ticket.md",
-      "sha": "2ac84a4824dfb980ab7beb0ff1e0ba336f5e6d53",
+      "path": null,
+      "sha": null,
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-07/ticket.md",
-          "line": null,
-          "message": "Scope in requires an authoring-time Context map that lists 'only `tests/test_seeded_phase3_07.py` as new'. The emitted `control-inbox` and `background-consumers` seeds must fence the registry's new paths `squatch/control.py`, `tests/test_daemon_tasks.py` and `tests/test_control.py`, and the emitted `phase3-continue-08` fences `tests/test_seeded_phase3_08.py`. None of these exist on main. The fence-classification proof (every fence entry is either pinned existing, and so required in Context, or pinned new) then cannot be satisfied. The only way to pass it would be to misclassify a non-existent path as existing, which puts a path that does not exist into seed Context and violates the rule that seeds name only existing Context paths.",
-          "paved_road": "Pin two disjoint authoring-time sets, following the pattern in `tests/test_seeded_phase3_04.py`. EXISTING_AT_AUTHORING holds the existing paths with their synthetic render sizes, including `tests/test_daemon_composition.py` and `squatch/daemon.py`. NEW_AT_AUTHORING names every emitted fence path absent from main: `squatch/control.py`, `tests/test_daemon_tasks.py`, `tests/test_control.py` and `tests/test_seeded_phase3_08.py`. Require every existing fence entry to appear in that seed's Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-07/ticket.md",
-          "line": null,
-          "message": "The keyed `ownership` block in Scope in names only `phase3-continue-07` itself. Section 20 requires each continuation to name the registry owner of every new module its emitted seeds introduce, and the established pattern (the phase3-continue-05 ownership block) keys the emitted seeds. As written, ownership of `squatch/control.py`, `tests/test_daemon_tasks.py`, `tests/test_control.py` and the successor's `tests/test_seeded_phase3_08.py` is never pinned, so the acceptance criterion's 'keyed ownership' has no fixed target.",
-          "paved_road": "Replace the self-keyed block with ownership keyed by the emitted stems. For example: `background-consumers` owns `tests/test_daemon_tasks.py` and hooks `squatch/daemon.py`; `control-inbox` owns `squatch/control.py` and `tests/test_control.py` and hooks `squatch/daemon.py`; `phase3-continue-08` owns `tickets` and `tests/test_seeded_phase3_08.py` with no hooks. Require the union of each seed's owns and hooks to equal its fence."
+          "line": 5,
+          "message": "Context path 'tests/test_seeded_phase3_06.py' does not exist",
+          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
         }
       ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/rework-activation/ticket.md",
-      "sha": "660c0721f80d6136242006c051a14879367f7b4f",
-      "bypassed": false,
-      "findings": [],
       "commands": []
     },
     {
