@@ -1,0 +1,93 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "e0c74400b008714e9f3f0e91e9e64e70c9242010",
+  "stem": "pause-resume-activation",
+  "branch": "pause-resume-activation",
+  "base": "bd757f52a8ac81c331868a636c57c5b27384396b",
+  "head": "e0c74400b008714e9f3f0e91e9e64e70c9242010",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/mergequeue.py",
+    "tests/test_control_cli.py",
+    "tests/test_daemon_pause.py",
+    "tests/test_mergequeue.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "verification",
+          "path": null,
+          "line": null,
+          "message": "verification command exit 143: `uv run pytest -q`\nwarning: `VIRTUAL_ENV=/home/djp/source/squatch/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead",
+          "paved_road": "make every `## Verification` command exit 0 on the committed branch"
+        }
+      ],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_control_cli.py",
+            "tests/test_daemon_pause.py",
+            "tests/test_mergequeue.py",
+            "tests/test_daemon_composition.py",
+            "tests/test_daemon_tasks.py",
+            "tests/test_control.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": "branch",
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
