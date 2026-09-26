@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e213ec822fd6a0d4a654bd8c3dc20f39cab0ec72",
+  "produced_at_sha": "bb23506fbed3370a978032202c92dec4c41f7db1",
   "stem": "control-inbox",
   "branch": "control-inbox",
-  "base": "12c4888900fe57a45ea66eb80d9c20884e8fbddf",
-  "head": "e213ec822fd6a0d4a654bd8c3dc20f39cab0ec72",
+  "base": "235b013f26fd3702c1600fdf01c2a7315533bb71",
+  "head": "bb23506fbed3370a978032202c92dec4c41f7db1",
   "changed_files": [
     "squatch/control.py",
     "squatch/daemon.py",
