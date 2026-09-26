@@ -38,9 +38,11 @@ CONTEXT = {
     "dispatch-admission-boundary": (),
     "dispatch-config-snapshot": ("squatch/config.py",),
     "phase3-continue-05": (
-        "tickets/phase3-continue-04/ticket.md", "tests/test_seeded_phase3_core.py",
+        "tickets/phase3-continue-04/ticket.md", "tests/test_seeded_phase3_04.py",
+        "squatch/config.py",
         "squatch/scheduler.py", "squatch/watcher.py", "squatch/__main__.py",
-        "tests/test_scheduler.py",
+        "tests/test_scheduler.py", "tests/test_daemon_admission.py",
+        "tests/test_daemon_config.py",
     ),
 }
 
@@ -59,6 +61,15 @@ EXISTING_AT_AUTHORING = {
 NEW_AT_AUTHORING = {
     "squatch/daemon.py", "tests/test_daemon_admission.py", "tests/test_daemon_config.py",
     "tests/test_seeded_phase3_05.py",
+}
+# The human premise repair changed only the already-emitted continuation after
+# the dispatch pair merged.  Keep the original admission facts above intact,
+# while pinning the paths that existed for the repaired successor bytes.
+REVISED_SUCCESSOR_EXISTING = {
+    "tests/test_seeded_phase3_04.py": 10231,
+    "squatch/config.py": 10260,
+    "tests/test_daemon_admission.py": 5837,
+    "tests/test_daemon_config.py": 5062,
 }
 SUFFIX = (
     ("scheduler-activation",),
@@ -125,7 +136,10 @@ def test_fences_main_context_closure_and_keyed_registry_ownership():
         ticket = _ticket(stem)
         assert ticket.scope_fence == fence, stem
         assert ticket.context == CONTEXT[stem], stem
-        assert set(ticket.context) <= set(EXISTING_AT_AUTHORING), stem
+        available = set(EXISTING_AT_AUTHORING)
+        if stem == "phase3-continue-05":
+            available |= set(REVISED_SUCCESSOR_EXISTING)
+        assert set(ticket.context) <= available, stem
         for entry in fence:
             if entry == "tickets":
                 continue  # The registry's authoring directory, not a Context file.
@@ -136,7 +150,7 @@ def test_fences_main_context_closure_and_keyed_registry_ownership():
         assert _yaml_blocks(stem) == [{"ownership": {stem: record}}]
         assert set(record["owns"] + record["hooks"]) == set(FENCES[stem])
     assert set(EXISTING_AT_AUTHORING).isdisjoint(NEW_AT_AUTHORING)
-    assert "tests/test_seeded_phase3_04.py" not in EXISTING_AT_AUTHORING
+    assert "tests/test_seeded_phase3_05.py" not in EXISTING_AT_AUTHORING | REVISED_SUCCESSOR_EXISTING
 
 
 def test_dispatch_predecessor_test_closure():
@@ -164,7 +178,8 @@ def test_successor_ownership_and_predecessor_closure_contract():
         "scheduler-activation": {
             "owns": ["tests/test_daemon_composition.py"],
             "hooks": ["squatch/daemon.py", "squatch/scheduler.py", "squatch/watcher.py",
-                      "squatch/__main__.py", "tests/test_scheduler.py"],
+                      "squatch/__main__.py", "tests/test_scheduler.py",
+                      "tests/test_daemon_admission.py"],
         },
         "phase3-continue-06": {
             "owns": ["tickets", "tests/test_seeded_phase3_06.py"], "hooks": [],
@@ -172,7 +187,7 @@ def test_successor_ownership_and_predecessor_closure_contract():
     }}
     criteria = _section(successor, "Acceptance criteria")
     assert "proves predecessor-test closure" in criteria
-    assert "unless that test is also fenced" in criteria
+    assert "global daemon-absence assertion as migrations owned by scheduler activation" in criteria
     for path in ("tests/test_scheduler.py", "tests/test_daemon_admission.py",
                  "tests/test_daemon_config.py"):
         assert path in criteria
@@ -212,7 +227,8 @@ def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
     for stem in PHASE3_04:
         ticket = _ticket(stem)
         workspace = f"stem: {stem}\nbranch: {stem}\nrun record: {TICKETS_DIR}/{stem}/{RUN_RECORD}\n"
-        context = "".join(f"### {path}\n{'x' * EXISTING_AT_AUTHORING[path]}\n"
+        sizes = EXISTING_AT_AUTHORING | REVISED_SUCCESSOR_EXISTING
+        context = "".join(f"### {path}\n{'x' * sizes[path]}\n"
                           for path in ticket.context)
         rendered = spec.render({
             "workspace": DataBlock("engine", workspace),
