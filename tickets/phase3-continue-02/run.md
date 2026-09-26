@@ -19,4 +19,4 @@ codex / GPT-5 Codex
 
 ## Predicted vs actual
 
-Expected 75m; actual about 15m.
+Expected 75m; actual about 20m. `uv run pytest tests/test_seeded_phase3_02.py -q` and `uv run pytest -q` passed.
