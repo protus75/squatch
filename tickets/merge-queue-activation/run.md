@@ -1,23 +1,16 @@
 ## Outcome
-
-ok
+premise_failed
 
 ## Surprises / judgment calls
-
-The queue's public callback interface does not carry pre-rebase state, so the merge-local subtype retains that state around its public `admit` call and clears the adapter maps on unwind.
+Making `Pipeline.merge_queue` required, as required by the ticket and prior finding, changes the `Pipeline` constructor contract.
 
 ## Dead ends
-
-None.
+`rg` found direct `Pipeline(stages, merge)` call sites in `tests/test_merge.py`, `tests/test_drain_reentry.py`, and `tests/test_terminal.py`. They are outside the scope fence, and the ticket says to stop if such a call site needs editing.
 
 ## Second problems filed
 
-None.
-
 ## Resolved engine/model
-
-OpenAI Codex
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-
-Expected 75m; actual approximately 35m.
+Expected: 75m. Actual: stopped during contract and call-site audit.
