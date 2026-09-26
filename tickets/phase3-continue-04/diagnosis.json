@@ -1,14 +1,16 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Seed Context may name only paths that exist on main. tests/test_seeded_phase3_04.py is created by this ticket and is not merged yet, so remove it from phase3-continue-05's Context. Use existing material like tickets/phase3-continue-04/ticket.md instead.",
-    "Remove tests/test_seeded_phase3_04.py from EXISTING_AT_AUTHORING in the test. It is not existing main content, and the subset assertion let the requisition_review failure pass locally.",
-    "Before finishing, check every emitted seed's Context entries against the base commit (git ls-tree on main), not the working tree. Local pytest passing did not catch the missing path.",
-    "Keep the rest of the approach: the dispatch fences, the ownership split, the medium/medium 75/150 budgets and the YAML suffix all passed. Only the Context path in the successor failed the check."
+    "Keep the passing parts: the batch identity, the dependency chain, medium/medium 75/150 budgets, main-only Context and the YAML suffix. Requisition review failed only on the content of the authored seed tickets.",
+    "dispatch-config-snapshot: replace 'read through the configured seam' with a concrete, checkable seam. Preferred: build the snapshot from the Config returned by the unchanged config.load/parse, and have the test call the snapshot constructor directly.",
+    "dispatch-config-snapshot's fence leaves out tests/test_daemon_admission.py but edits squatch/daemon.py. Either fence that predecessor test and name which admission assertions may migrate, or add a criterion that the daemon hook is purely additive and admission signatures and behavior stay unchanged.",
+    "The registry lists one shared path set for the dispatch pair. Decide whether each fence carries both daemon tests, then update FENCES and the ownership pins in tests/test_seeded_phase3_04.py to match the tickets exactly.",
+    "phase3-continue-05's review reply was truncated. It still flagged thin criteria and Scope in for a continuation emitting the KNOWN-DEEP scheduler-activation seed, and a Context that leaves out the scheduler test (tests/test_scheduler.py) the activation will invalidate.",
+    "Give phase3-continue-05 the full section 20 continuation criteria: pin tier/budget, check existing fence paths against Context, name registry owners, check predecessor-test closure, carry the suffix, and add main-existing scheduler paths to Context. Verify every path with git ls-tree main."
   ],
-  "reason": "Gate failed on one fixable oversight: the successor seed's Context names a file this ticket creates, which the paved road forbids.",
+  "reason": "Requisition review found fixable authoring gaps in two of the emitted seed tickets: a vague seam criterion, a missing predecessor test in a fence, and thin successor criteria/Context. The findings name each fix.",
   "detail": null
 }
