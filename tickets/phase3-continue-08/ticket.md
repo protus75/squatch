@@ -1,0 +1,102 @@
+---
+state: confirmed
+source: seed
+priority: P1
+kind: feature
+agent_tier: medium
+agent_effort: medium
+---
+## Depends on
+- background-consumers
+- control-inbox
+
+## Context
+- tests/test_seeded_phase3_core.py
+- squatch/daemon.py
+- squatch/__main__.py
+- tests/test_daemon_composition.py
+- tests/test_mergequeue.py
+
+## Plan contract
+- section 20
+
+## Goal
+Author the pause-boundary pair and the next shrinking Phase 3 continuation.
+
+## Why
+Control intake and consumer lifetime ownership establish the independent pause activation boundary.
+
+## Scope in
+Author confirmed `dispatch-pause-boundary`, `pause-resume-activation`, and `phase3-continue-09` seeds plus `tests/test_seeded_phase3_08.py`. They use medium/medium, 75m/150m budgets, configured seeding cap, exact dependency edges, authoring-time existing-size map, exact new-path owners, max-effort render headroom, and successor suffix equality. Preserve or migrate predecessor contracts in `tests/test_daemon_composition.py`, `tests/test_daemon_tasks.py`, `tests/test_control.py`, and `tests/test_mergequeue.py`; sibling-new paths remain outside this continuation Context. The pause seeds include their now-existing predecessor paths in Context.
+
+```yaml
+pause_ownership:
+  dispatch-pause-boundary:
+    owns:
+      - tests/test_daemon_pause.py
+    hooks:
+      - squatch/daemon.py
+      - squatch/control.py
+      - tests/test_daemon_tasks.py
+      - tests/test_control.py
+  pause-resume-activation:
+    owns:
+      - tests/test_control_cli.py
+    hooks:
+      - squatch/daemon.py
+      - squatch/control.py
+      - squatch/mergequeue.py
+      - squatch/__main__.py
+      - tests/test_daemon_pause.py
+      - tests/test_mergequeue.py
+      - tests/test_daemon_composition.py
+      - tests/test_daemon_tasks.py
+      - tests/test_control.py
+  phase3-continue-09:
+    owns:
+      - tickets
+      - tests/test_seeded_phase3_09.py
+    hooks: []
+```
+
+The finite ordered admissions are:
+```yaml
+- [dispatch-pause-boundary, pause-resume-activation]
+- [kill-signal-journal, kill-executor-abort]
+- [kill-worker-stop, kill-failure-suppression]
+- [kill-cli-activation]
+- [heartbeat]
+- [restart-timers]
+- [flake-detection, flake-release]
+- [journal-roll, storm-ledger]
+- [storm-producer-wiring, storm-notification-activation]
+- [storm-dispatch-hold]
+- [checkpoint-push]
+- [daemon-soak]
+- [soak-run]
+- [phase3-exit]
+```
+
+## Scope out
+Do not implement pause, author beyond phase3-continue-09, or put sibling-new or delimiter-bearing prompt-spec sources in Context.
+
+## Scope fence
+- tickets
+- tests/test_seeded_phase3_08.py
+
+## Acceptance criteria
+- `tests/test_seeded_phase3_08.py` pins pause ownership, fences, edges, predecessor closure, size map, headroom, and shrinking suffix.
+- `tests/test_seeded_phase3_08.py` pins `tests/test_mergequeue.py` and `squatch/__main__.py` as Context.
+
+## Verification
+```
+uv run pytest tests/test_seeded_phase3_08.py -q
+uv run pytest -q
+```
+
+## Definition of rejected
+Stop if predecessor closure needs an unfenced path or the successor duplicates an admission.
+
+## Time budget
+- expected: 75m
+- stuck: 150m
