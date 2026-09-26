@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Make shutdown() re-raise the first non-CancelledError consumer exception after cancelling and awaiting all tasks, or make start()/shutdown() private so run() is the only lifetime path. Test whichever path stays public.",
+    "Each per-consumer test must run its built callback inside DaemonTasks, with blocking fakes in the other two slots, and assert the fake is called at least twice to prove the owner repeats it. Then shut down and assert the task finished.",
+    "_repeat must yield to the event loop after each pass, e.g. await asyncio.sleep(0). Add a test showing an immediately-returning callback still lets its siblings run and shutdown complete.",
+    "Checks passed; only review failed. Keep the fixes inside the fence: squatch/daemon.py and tests/test_daemon_tasks.py. Leave tests/test_daemon_composition.py unchanged."
+  ],
+  "reason": "Review found three fixable issues: shutdown drops exceptions, lifetime/repetition untested, and the repeat loop never yields. The paved roads steer all three, so retry at the same capability.",
+  "detail": null
+}
