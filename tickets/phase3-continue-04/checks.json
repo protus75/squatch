@@ -1,29 +1,64 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "76cbabaea3a4400cae285767718d19456691a982",
+  "produced_at_sha": "5666e8c37a5c53320b09c27d950ed590d11235f4",
   "stem": "phase3-continue-04",
   "branch": "phase3-continue-04",
-  "base": "7d79ee1a80e006712c00c3e5e4751decaae22039",
-  "head": "76cbabaea3a4400cae285767718d19456691a982",
+  "base": "7e1064d33c1ae1f8843162e74f32ea931ee7a3bb",
+  "head": "5666e8c37a5c53320b09c27d950ed590d11235f4",
   "changed_files": [
     "tests/test_seeded_phase3_04.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/dispatch-admission-boundary/ticket.md",
+      "sha": "cee99ccc2b95b90176c1044b65cddfefee90ab21",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": null,
-      "sha": null,
+      "path": "tickets/dispatch-config-snapshot/ticket.md",
+      "sha": "5c4a389086b14b5431a614d85d60ef46c279cdb7",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/dispatch-config-snapshot/ticket.md",
+          "line": 52,
+          "message": "The criterion says the snapshot 'is read through the configured seam' but never names the seam. `squatch/config.py` has no injectable read seam: `load(path, *, cwd)` calls `Path.read_text` directly, and `parse(data, *, source)` validates an already-parsed document. If the criterion means a new filesystem seam, `load`'s signature changes. Its callers (the CLI and drain composition roots) are then in the reference closure but outside the fence, and they are not in Context. If it means something else, the criterion cannot be checked deterministically.",
+          "paved_road": "Name the seam concretely. Preferred: the snapshot is built from an already-validated `Config` returned by the unchanged `config.load`/`parse`, and the test calls the snapshot constructor directly. If a new injectable read seam is really intended, add every caller of `config.load` to the fence and to Context."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/dispatch-config-snapshot/ticket.md",
+          "line": 46,
+          "message": "The section 20 registry lists `dispatch-admission-boundary` and then `dispatch-config-snapshot` over `squatch/daemon.py`, `squatch/config.py`, `tests/test_daemon_admission.py`, and `tests/test_daemon_config.py`. This fence leaves out `tests/test_daemon_admission.py`, but Scope in edits `squatch/daemon.py` to connect the snapshot consumer into the admission boundary, and that predecessor test exercises the boundary. The registry requires closing the fence over each predecessor test the change invalidates. The ticket instead only forbids invalidating it and stops if it does, so a snapshot consumer that changes how admission is constructed rejects the ticket where it should proceed.",
+          "paved_road": "Add `tests/test_daemon_admission.py` to the Scope fence, to match the registry's shared path set, and state which admission assertions may be migrated. Otherwise, narrow Scope in so the daemon hook is purely additive: a new dormant accessor whose admission call signatures and behavior the predecessor test pins stay unchanged. Then state that constraint as an acceptance criterion."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-05/ticket.md",
+      "sha": "d1faee85d2e79b1ccc31f3add20117de1f85adca",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-05/ticket.md",
-          "line": 4,
-          "message": "Context path 'tests/test_seeded_phase3_04.py' does not exist",
-          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
+          "line": null,
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"snag\", \"summary\": \"The phase3-continue-05 ticket is in the right spot in the section 20 registry and fits the render limit. Its criteria and Scope in are too thin to enforce what the registry requires of a continuation emitting the known-deep scheduler-activation seed, and its Context leaves out the scheduler test that the activation will invalidate.\", \"findings\": [\\n{\"code\": \"requisition_review\", \"path\": \"tickets/phase3-continue-05/ticket.md\", \"line\": null, \"message\": \"The a'",
+          "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
       "commands": []
