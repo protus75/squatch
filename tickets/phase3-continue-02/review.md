@@ -1,15 +1,14 @@
 ---
-verdict: snag
-reviewed_sha: bbdb6ce879ffa09fd89a5be889f75f7a93d8f88a
+verdict: approve
+reviewed_sha: fa7f488f87817efca750d60a621ddce78a77090e
 produced_by_spec_version: '1.0'
-produced_at_sha: bbdb6ce879ffa09fd89a5be889f75f7a93d8f88a
+produced_at_sha: fa7f488f87817efca750d60a621ddce78a77090e
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-Both emitted seeds lint, the dependency chain, tiers, fences, budgets, suffix and render headroom are pinned, and the check report is green. But the Context check pins the live on-disk sizes of files that later seeds will edit, so the suite will fail on a future merge. The ownership hook also departs from the record the ticket specified.
+The new test pins everything the acceptance criteria ask for: the exact emitted pair, lint state, edges, tiers, budgets, fences, keyed ownership, Context closure against the pinned EXISTING_AT_AUTHORING bytes, render headroom, the rework-stage Scope out and Verification, and the parsed YAML suffix from thresh-runtime through phase3-exit. The only changed file is inside the fence, and the check report is green, including both verification commands.
 
 ## Findings
-- correctness_review at tests/test_seeded_phase3_02.py:100: `assert (REPO / entry).stat().st_size == EXISTING_AT_AUTHORING[entry]` compares every Context file's current size with a byte count pinned at authoring time. The Context of phase3-continue-03 includes squatch/providers.py, squatch/config.py and tests/test_providers.py. The thresh-runtime seed that phase3-continue-03 commissions fences those same files and is expected to edit them. After that edit, this test fails, `uv run pytest -q` goes red, and the failing test is outside thresh-runtime's fence, so that ticket cannot fix it and gets stuck. The same hazard applies to squatch/merge.py, squatch/tickets.py and config.yaml, which any later ticket can edit. squatch/merge.py has already grown from 19735 bytes (pinned in test_seeded_phase3_core.py) to 20407, which shows these files do change. The precedent test (test_seeded_phase3_core.py) uses EXISTING_AT_AUTHORING bytes only to size the synthetic render and to check that Context is a subset of the pinned set. It never compares them with the live filesystem. (paved road: Remove the live `is_file()`/`st_size` assertions from the Context loop. Keep `set(ticket.context) <= set(EXISTING_AT_AUTHORING)` and the check that every fence path in EXISTING_AT_AUTHORING appears in Context. Use EXISTING_AT_AUTHORING bytes only in the render-headroom test, as test_seeded_phase3_core.py does.)
-- correctness_review at tests/test_seeded_phase3_02.py:106: The ticket's Scope in gives the rework-stage ownership record with `hooks: [squatch/mergequeue.py]`, a plain path string. The emitted tickets/rework-stage/ticket.md instead writes the hook as a one-key mapping `{squatch/mergequeue.py: 'no edit; ...'}`, and the test pins that mapping. The result is a different record from the one specified, and its shape is inconsistent with every other ownership record (e.g. thresh-runtime's hooks in phase3-continue-03 are plain strings). Any later consumer that treats hooks as a list of paths would get a dict. I am uncertain how much this matters, because nothing in squatch/ parses `hooks` today, but it does not match the ticket's specified record. (paved road: Emit the hooks entry as the plain string `- squatch/mergequeue.py`, as the ticket specifies. Keep the 'no edit' constraint in prose, where Scope in and Scope out already state it. Pin `ownership['hooks'] == ['squatch/mergequeue.py']` in the test.)
+- none
