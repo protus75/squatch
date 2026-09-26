@@ -1,18 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "The only test change was one assertion swap. Add adapter tests in tests/test_mergequeue.py that drive compose_pipeline(...).merge_queue.admit on a real git fixture, as the existing admission tests do.",
-    "Cover regate: it loads the Ticket, builds the slip from main and candidate HEAD, and hands the Invoice to integrate by (stem, run_seq). Also cover integration running Verification in the rebased worktree and a red check blocking squash.",
-    "Cover the approved SHA reaching the squash trailer, a fresh pin integrating after main moves, and a stale or missing pin being refused without squash. Also cover an up-to-date rebase that succeeds when ORIG_HEAD is absent or stale.",
-    "Prove the captured head and Invoice are cleared on success, refusal, exception and cancellation. Prove the composed queue uses the configured timeout and the secret-filtered env.",
-    "tests/test_daemon_composition.py was never touched. Wrap the real compose_pipeline behind the __main__ _locked factory and Runner.dispatch, capture the pipeline, and assert isinstance(pipeline.merge_queue, MergeQueue). Keep the dispatch/config and no-serve assertions.",
-    "Pipeline's merge_queue must be required, with no None default. Update every Pipeline(...) call site inside the fence. If a call site outside the fence needs editing, that meets the ticket's reject condition.",
-    "Initialise the pre-rebase head dict in the subclass __init__ and keep it in the same adapter state as the invoices, tickets and slips. Clear all of it in one finally block. Drop the queue_ref forward reference and the private _pre_rebase_heads attribute.",
-    "Read mergequeue.py to learn how an exception from integrate is handled before raising ValueError on an approval change. Test approval changing between regate and integrate: no squash, and the queue unwinds cleanly."
-  ],
-  "reason": "The merge.py wiring mostly follows the ticket, but the required tests and the daemon-composition file were left out. The fixes are clear and fall inside the fence and current capability.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
