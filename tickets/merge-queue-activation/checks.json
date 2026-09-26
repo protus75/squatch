@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e959ccfbd86735088c30fae4fd82fec5785057c4",
+  "produced_at_sha": "ef3ddcc8e2466b8309c7fa2a061c906ce94812a5",
   "stem": "merge-queue-activation",
   "branch": "merge-queue-activation",
-  "base": "3d66d32987e61abf042dae3cca257a6d0d7ee29e",
-  "head": "e959ccfbd86735088c30fae4fd82fec5785057c4",
+  "base": "2c54fa947bbfc3c9ed86b7f5d7a85ab7778ac607",
+  "head": "ef3ddcc8e2466b8309c7fa2a061c906ce94812a5",
   "changed_files": [
     "squatch/merge.py",
     "tests/test_daemon_composition.py",
