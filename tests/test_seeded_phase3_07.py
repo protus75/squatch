@@ -41,8 +41,8 @@ OWNERSHIP = {
 }
 PAUSE_OWNERSHIP = {
     "dispatch-pause-boundary": {"owns": ["tests/test_daemon_pause.py"], "hooks": [
-        "squatch/daemon.py", "squatch/control.py", "tests/test_daemon_tasks.py",
-        "tests/test_control.py"]},
+        "squatch/daemon.py", "squatch/control.py", "squatch/drain.py",
+        "tests/test_drain.py"]},
     "pause-resume-activation": {"owns": ["tests/test_control_cli.py"], "hooks": [
         "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py",
         "squatch/__main__.py", "tests/test_daemon_pause.py", "tests/test_mergequeue.py",
@@ -185,7 +185,7 @@ def test_continuation_pins_pause_closure_and_shrinking_suffix():
             "Derive each pause seed fence as its owns followed by its hooks",
             "exact new-path owners", "successor suffix equality",
             "The pause seeds include their now-existing fenced predecessor paths in Context",
-            "preservation-only suites, outside the activation fence and Context",
+            "preservation-only suites, outside their fences and Context",
             "Sibling-new paths remain outside this continuation Context"):
         assert phrase in scope
     assert SUCCESSOR == FULL[1:]

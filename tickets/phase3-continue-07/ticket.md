@@ -93,8 +93,8 @@ pause_ownership:
     hooks:
       - squatch/daemon.py
       - squatch/control.py
-      - tests/test_daemon_tasks.py
-      - tests/test_control.py
+      - squatch/drain.py
+      - tests/test_drain.py
   pause-resume-activation:
     owns:
       - tests/test_control_cli.py
@@ -112,7 +112,7 @@ pause_ownership:
       - tests/test_seeded_phase3_09.py
     hooks: []
 ```
-The next continuation must pin exact emitted identities and dependency edges (`dispatch-pause-boundary` depends on `phase3-continue-08`; `pause-resume-activation` depends on that boundary; `phase3-continue-09` depends on both), confirmed seed status, medium/medium tiers, 75m/150m budgets, the configured seeding cap, every existing fence path in Context, the exact new-path owners, max-effort render headroom, and successor suffix equality. It must migrate the actual dormancy contracts in `tests/test_daemon_composition.py`, `tests/test_daemon_pause.py`, and `tests/test_mergequeue.py`, while running `tests/test_daemon_tasks.py` and `tests/test_control.py` unchanged in Verification as preservation-only suites outside the activation fence and Context. The activation seed includes the then-existing composition harness and fenced predecessor tests in its own Context. `squatch/__main__.py` is existing Context for the CLI activation. Sibling-new paths remain outside this continuation ticket's own Context, but after their owning dependencies merge they are existing Context for the pause seeds.
+The next continuation must pin exact emitted identities and dependency edges (`dispatch-pause-boundary` depends on `phase3-continue-08`; `pause-resume-activation` depends on that boundary; `phase3-continue-09` depends on both), confirmed seed status, medium/medium tiers, 75m/150m budgets, the configured seeding cap, every existing fence path in Context, the exact new-path owners, max-effort render headroom, and successor suffix equality. The boundary hooks `squatch/drain.py` and `tests/test_drain.py` so pause precedes `_draw_retry`; the activation migrates the actual dormancy contracts in `tests/test_daemon_composition.py`, `tests/test_daemon_pause.py`, and `tests/test_mergequeue.py`. Both pause tickets run `tests/test_daemon_tasks.py` and `tests/test_control.py` unchanged in Verification as preservation-only suites outside their fences and Context. The activation seed includes the then-existing composition harness and fenced predecessor tests in its own Context. `squatch/__main__.py` is existing Context for the CLI activation. Sibling-new paths remain outside this continuation ticket's own Context, but after their owning dependencies merge they are existing Context for the pause seeds.
 
 control-inbox fences `tests/test_daemon_tasks.py` as a hook and runs it in Verification, keeping it out of Context because it is sibling-new. Both deliverable seeds preserve `tests/test_daemon_composition.py` unchanged and run it in Verification. Require tests/test_seeded_phase3_07.py to assert those exact predecessor-test closure requirements, the Context map and ownership records above, and the new-path owners. Their fences must not invalidate any predecessor outside these allowed edits.
 

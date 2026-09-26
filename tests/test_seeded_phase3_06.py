@@ -135,8 +135,8 @@ SUCCESSOR_NEW = {
 PAUSE_OWNERSHIP = {
     "dispatch-pause-boundary": {
         "owns": ["tests/test_daemon_pause.py"],
-        "hooks": ["squatch/daemon.py", "squatch/control.py",
-                  "tests/test_daemon_tasks.py", "tests/test_control.py"],
+        "hooks": ["squatch/daemon.py", "squatch/control.py", "squatch/drain.py",
+                  "tests/test_drain.py"],
     },
     "pause-resume-activation": {
         "owns": ["tests/test_control_cli.py"],
@@ -383,7 +383,7 @@ def test_successor_names_concrete_consumers_and_pause_seed_contract():
         assert phrase in scope
     assert "tests/test_daemon_composition.py" in PAUSE_OWNERSHIP["pause-resume-activation"]["hooks"]
     for path in ("tests/test_daemon_tasks.py", "tests/test_control.py"):
-        assert path in PAUSE_OWNERSHIP["dispatch-pause-boundary"]["hooks"]
+        assert path not in PAUSE_OWNERSHIP["dispatch-pause-boundary"]["hooks"]
         assert path not in PAUSE_OWNERSHIP["pause-resume-activation"]["hooks"]
     assert "squatch/__main__.py" in SUCCESSOR_CONTEXT["phase3-continue-08"]
     criteria = _section("phase3-continue-07", "Acceptance criteria")

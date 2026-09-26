@@ -27,7 +27,7 @@ Author the pause-boundary pair and the next shrinking Phase 3 continuation.
 Control intake and consumer lifetime ownership establish the independent pause activation boundary.
 
 ## Scope in
-Author confirmed `dispatch-pause-boundary`, `pause-resume-activation`, and `phase3-continue-09` seeds plus `tests/test_seeded_phase3_08.py`. `dispatch-pause-boundary` depends on `phase3-continue-08`; `pause-resume-activation` depends on `dispatch-pause-boundary`; and `phase3-continue-09` depends on both. All three use medium/medium, 75m/150m budgets, and configured seeding cap 3. Derive each pause seed fence as its owns followed by its hooks. Pin the authoring-time existing-size map, exact new-path owners, max-effort render headroom, and successor suffix equality. Migrate the actual dormancy contracts in `tests/test_daemon_composition.py`, `tests/test_daemon_pause.py`, and `tests/test_mergequeue.py`; run `tests/test_daemon_tasks.py` and `tests/test_control.py` unchanged in Verification as preservation-only suites, outside the activation fence and Context. Sibling-new paths remain outside this continuation Context. The pause seeds include their now-existing fenced predecessor paths in Context.
+Author confirmed `dispatch-pause-boundary`, `pause-resume-activation`, and `phase3-continue-09` seeds plus `tests/test_seeded_phase3_08.py`. `dispatch-pause-boundary` depends on `phase3-continue-08`; `pause-resume-activation` depends on `dispatch-pause-boundary`; and `phase3-continue-09` depends on both. All three use medium/medium, 75m/150m budgets, and configured seeding cap 3. Derive each pause seed fence as its owns followed by its hooks. Pin the authoring-time existing-size map, exact new-path owners, max-effort render headroom, and successor suffix equality. The boundary hooks `squatch/drain.py` and `tests/test_drain.py` so pause precedes `_draw_retry`; the activation migrates the actual dormancy contracts in `tests/test_daemon_composition.py`, `tests/test_daemon_pause.py`, and `tests/test_mergequeue.py`. Both pause tickets run `tests/test_daemon_tasks.py` and `tests/test_control.py` unchanged in Verification as preservation-only suites, outside their fences and Context. Sibling-new paths remain outside this continuation Context. The pause seeds include their now-existing fenced predecessor paths in Context.
 
 ```yaml
 pause_ownership:
@@ -37,8 +37,8 @@ pause_ownership:
     hooks:
       - squatch/daemon.py
       - squatch/control.py
-      - tests/test_daemon_tasks.py
-      - tests/test_control.py
+      - squatch/drain.py
+      - tests/test_drain.py
   pause-resume-activation:
     owns:
       - tests/test_control_cli.py
