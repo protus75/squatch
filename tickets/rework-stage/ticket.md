@@ -12,6 +12,11 @@ agent_effort: high
 ## Context
 - squatch/mergequeue.py
 - tests/test_mergequeue.py
+- squatch/tickets.py
+- squatch/ladder.py
+- squatch/reject.py
+- squatch/journal.py
+- squatch/llm.py
 
 ## Plan contract
 - section 20
@@ -33,7 +38,7 @@ ownership:
       - specs/rework.md
       - tests/test_rework.py
     hooks:
-      - squatch/mergequeue.py: no edit; consume MergeQueue.next_rework and UnresolvedConflictHandoff unchanged
+      - squatch/mergequeue.py
 ```
 
 ## Scope out
@@ -46,7 +51,11 @@ Do not change merge-queue behavior or make merge-queue test edits. Do not activa
 - tests/test_rework.py
 
 ## Acceptance criteria
-- `tests/test_rework.py` proves update, split, and escalate produce the specified Rework outcomes and records supersedes links without redefining the merge-queue handoff.
+- `tests/test_rework.py` proves `specs/rework.md` loads through squatch.specs.load_spec as surface `rework` with one composite rework-order emits type; the existing LLM_SURFACES already admits `rework`.
+- `tests/test_rework.py` drives squatch.llm.FakeLLM through an update order and observes a lint-valid updated ticket for the handoff stem.
+- `tests/test_rework.py` drives FakeLLM through a split order and observes lint-valid child tickets carrying only the closed FRONTMATTER_KEYS from squatch.tickets, plus a journal `signal` event containing a supersedes map from the old stem to the child stems. Supersedes is journal data, never a new frontmatter key.
+- `tests/test_rework.py` drives FakeLLM through an escalate order and observes a diagnosis-shaped `escalate` verdict represented as DiagnosisRecord. Passing that record to squatch.reject.route with an available next rung returns a ladder route selected by squatch.ladder.next_rung; neither module is edited. The Rework escalation element names no tier or effort, and ticket frontmatter stays unchanged.
+- `tests/test_rework.py` proves every consumed UnresolvedConflictHandoff retains approval_invalidated=True, requiring review again for the resulting work.
 - `tests/test_rework.py` proves Rework consumes `MergeQueue.next_rework()` and `UnresolvedConflictHandoff` only after admission has unwound.
 - `tests/test_mergequeue.py` exits 0 unedited, proving the `squatch/mergequeue.py` hook has no behavior or test edit.
 - `uv run pytest tests/test_rework.py -q` exits 0.
