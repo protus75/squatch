@@ -4,19 +4,17 @@ premise_failed
 
 ## Surprises / judgment calls
 
-The successor is required to name the scheduler activation's new composition
-harness as Context even though the current ticket simultaneously requires both
-emitted seeds to lint. I treated the read-first Context rule as controlling.
+The plan and this ticket agree that the successor must omit the sibling-owned
+composition harness until scheduler activation merges; both drafted seeds linted
+and the focused seed proof passed.
 
 ## Dead ends
 
-I drafted the two seeds and ran the ticket linter. It refused
-`tickets/phase3-continue-06/ticket.md` because
-`tests/test_daemon_composition.py` does not exist; the ticket requires that
-path in the successor's Context, while `squatch.tickets._lint_context` refuses
-nonexistent Context paths. Thus the first acceptance criterion cannot hold at
-this commit. I removed the unlintable draft seeds and did not create a
-committed proof test.
+`uv run pytest -q` fails before this ticket's changes are considered:
+`tests/test_seeded_phase3_04.py` pins phase3-continue-05's old six-file Context,
+while the unchanged HEAD ticket contains its required nine-file Context. The
+failing predecessor test lies outside this ticket's scope fence, so the required
+full-suite verification cannot be made green without a forbidden edit.
 
 ## Second problems filed
 
@@ -27,4 +25,4 @@ OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 8m.
+Expected 75m; actual about 12m.
