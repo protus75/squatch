@@ -142,8 +142,7 @@ PAUSE_OWNERSHIP = {
         "owns": ["tests/test_control_cli.py"],
         "hooks": ["squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py",
                   "squatch/__main__.py", "tests/test_daemon_pause.py",
-                  "tests/test_mergequeue.py", "tests/test_daemon_composition.py",
-                  "tests/test_daemon_tasks.py", "tests/test_control.py"],
+                  "tests/test_mergequeue.py", "tests/test_daemon_composition.py"],
     },
     "phase3-continue-09": {
         "owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": [],
@@ -383,10 +382,9 @@ def test_successor_names_concrete_consumers_and_pause_seed_contract():
     ):
         assert phrase in scope
     assert "tests/test_daemon_composition.py" in PAUSE_OWNERSHIP["pause-resume-activation"]["hooks"]
-    for stem in ("dispatch-pause-boundary", "pause-resume-activation"):
-        hooks = PAUSE_OWNERSHIP[stem]["hooks"]
-        assert "tests/test_daemon_tasks.py" in hooks
-        assert "tests/test_control.py" in hooks
+    for path in ("tests/test_daemon_tasks.py", "tests/test_control.py"):
+        assert path in PAUSE_OWNERSHIP["dispatch-pause-boundary"]["hooks"]
+        assert path not in PAUSE_OWNERSHIP["pause-resume-activation"]["hooks"]
     assert "squatch/__main__.py" in SUCCESSOR_CONTEXT["phase3-continue-08"]
     criteria = _section("phase3-continue-07", "Acceptance criteria")
     for phrase in ("EXISTING_AT_AUTHORING sizes", "exact four-path NEW_AT_AUTHORING set",

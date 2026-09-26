@@ -46,7 +46,7 @@ PAUSE_OWNERSHIP = {
     "pause-resume-activation": {"owns": ["tests/test_control_cli.py"], "hooks": [
         "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py",
         "squatch/__main__.py", "tests/test_daemon_pause.py", "tests/test_mergequeue.py",
-        "tests/test_daemon_composition.py", "tests/test_daemon_tasks.py", "tests/test_control.py"]},
+        "tests/test_daemon_composition.py"]},
     "phase3-continue-09": {"owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": []},
 }
 EXISTING_AT_AUTHORING = {
@@ -184,9 +184,9 @@ def test_continuation_pins_pause_closure_and_shrinking_suffix():
             "Author confirmed `dispatch-pause-boundary`, `pause-resume-activation`, and `phase3-continue-09` seeds",
             "Derive each pause seed fence as its owns followed by its hooks",
             "exact new-path owners", "successor suffix equality",
-            "The pause seeds include their now-existing predecessor paths in Context",
-            "Preserve or migrate predecessor contracts",
-            "sibling-new paths remain outside this continuation Context"):
+            "The pause seeds include their now-existing fenced predecessor paths in Context",
+            "preservation-only suites, outside the activation fence and Context",
+            "Sibling-new paths remain outside this continuation Context"):
         assert phrase in scope
     assert SUCCESSOR == FULL[1:]
     [rendered] = [block for block in _yaml("phase3-continue-08") if isinstance(block, list)]
