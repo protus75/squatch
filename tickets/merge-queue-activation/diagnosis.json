@@ -1,17 +1,16 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "escalate",
   "lessons": [
-    "Production wiring is present in merge.py, and test_daemon_composition.py now drives the real __main__ run path. Keep both. The review failed only because tests/test_mergequeue.py got one assertion swap and no new tests. The same gap happened on the previous attempt.",
-    "Ignore the earlier lesson that merge_queue must be required. The ticket now requires the trailing merge_queue=None default. Add a test showing Pipeline(stages, merge) gives merge_queue None and compose_pipeline gives a MergeQueue.",
-    "In tests/test_mergequeue.py, assert that compose_pipeline(...).merge_queue is the capturing subtype, that its timeout equals drain.max_ticket_minutes*60, and that its env excludes the provider auth variables.",
-    "Add real-git adapter tests that call pipeline.merge_queue.admit(candidate). On the green path, check that the squash trailer carries the reviewed SHA. On the red path, a failing ## Verification command must leave no squash commit.",
-    "Add approval tests: a fresh pin integrates after main moves; a stale pin or missing review.md is refused without squash; an up-to-date rebase with ORIG_HEAD deleted or stale still integrates.",
-    "For each outcome (success, refusal, raised exception, cancelled admit task), assert the admission_state dict passed to compose_merge_queue is empty afterwards.",
-    "Before relying on integrate raising ValueError when approval changes, read how mergequeue.py handles an exception from integrate. Test that it leaves no squash and a clean unwind. Do not report Outcome ok until every acceptance criterion has a test."
+    "merge.py wiring and the composition tests are acceptable, so keep them. Review failed a third time for the same gap: acceptance criteria 3, 4 and 6 have no tests. Do not report Outcome ok until every criterion has a test.",
+    "AC3: in a real git fixture, commit tickets/<stem>/ticket.md with a ## Verification section and an approve review.md. Call compose_pipeline(...).merge_queue.admit(Candidate). Assert the squash trailer carries the reviewed SHA.",
+    "AC3 red path: a failing ## Verification command must leave main unmoved and create no squash commit. Assert the Verification commands ran in candidate.worktree, for example with a command that writes a marker file there.",
+    "AC4, through the concrete adapters: (a) main moved after review and a fresh pin, so it integrates; (b) a stale reviewed_sha and (c) a missing review.md are refused and main is unchanged; (d) main unchanged with ORIG_HEAD deleted or stale still integrates.",
+    "For success, refusal, exception and cancellation, assert admission_state is empty, both through the real adapters and with the existing fake-callback test. Read mergequeue.py to see how an exception raised from integrate unwinds.",
+    "AC6: remove the inspect.getsource string asserts. Drive the real __main__ _locked factory and Runner.dispatch. Use monkeypatch to wrap, not replace, compose_pipeline so it records the pipeline, and stub Pipeline.run. Then assert isinstance(recorded.merge_queue, MergeQueue)."
   ],
-  "reason": "The identical gap (acceptance-criteria tests missing from test_mergequeue.py) came back even though the prior lessons spelled it out, so re-steering at the same capability is not working.",
+  "reason": "Third attempt reported ok in about 12 minutes while the same test criteria were still missing, even though prior lessons named each one. More capability is needed to finish the real-git adapter tests and the Runner-level test.",
   "detail": null
 }
