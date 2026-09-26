@@ -1,9 +1,17 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "escalate",
+  "lessons": [
+    "Production wiring is present in merge.py, and test_daemon_composition.py now drives the real __main__ run path. Keep both. The review failed only because tests/test_mergequeue.py got one assertion swap and no new tests. The same gap happened on the previous attempt.",
+    "Ignore the earlier lesson that merge_queue must be required. The ticket now requires the trailing merge_queue=None default. Add a test showing Pipeline(stages, merge) gives merge_queue None and compose_pipeline gives a MergeQueue.",
+    "In tests/test_mergequeue.py, assert that compose_pipeline(...).merge_queue is the capturing subtype, that its timeout equals drain.max_ticket_minutes*60, and that its env excludes the provider auth variables.",
+    "Add real-git adapter tests that call pipeline.merge_queue.admit(candidate). On the green path, check that the squash trailer carries the reviewed SHA. On the red path, a failing ## Verification command must leave no squash commit.",
+    "Add approval tests: a fresh pin integrates after main moves; a stale pin or missing review.md is refused without squash; an up-to-date rebase with ORIG_HEAD deleted or stale still integrates.",
+    "For each outcome (success, refusal, raised exception, cancelled admit task), assert the admission_state dict passed to compose_merge_queue is empty afterwards.",
+    "Before relying on integrate raising ValueError when approval changes, read how mergequeue.py handles an exception from integrate. Test that it leaves no squash and a clean unwind. Do not report Outcome ok until every acceptance criterion has a test."
+  ],
+  "reason": "The identical gap (acceptance-criteria tests missing from test_mergequeue.py) came back even though the prior lessons spelled it out, so re-steering at the same capability is not working.",
+  "detail": null
 }
