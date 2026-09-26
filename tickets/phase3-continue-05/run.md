@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The emitted continuation keeps the already-merged dispatch paths in pinned Context for both seeds, while leaving the two new owner test paths out of the authoring map.
+The continuation names the merge/rework construction and predecessor tests required by the prior review, but omits inherited Context that would exceed requisition headroom. Prompt-spec files are not valid ticket Context, so `specs/rework.md` remains an activation fence rather than Context.
 
 ## Dead ends
 
-The first seed lint omitted the harness filename from one acceptance criterion; it was revised to name `tests/test_daemon_composition.py` explicitly.
+Initial linting required observable test-path criteria and rejected the prompt-spec Context entry. The first continuation render also exceeded headroom; reducing only nonessential inherited Context brought it within the bound.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 10m.
+Expected 75m; actual about 25m.
