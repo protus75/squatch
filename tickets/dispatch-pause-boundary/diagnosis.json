@@ -1,15 +1,17 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review passed everything except the dormancy test. Keep the DispatchPause/discard_hold design, the drain `_wait_for_offer` loop placed before `_draw_retry` and before dispatch, and the decision-before-mutation, latest-wins, and drain release tests as they are.",
-    "Replace test_pause_construction_is_dormant_in_daemon_control_composition. The `not isinstance(control, DispatchPause)` check is always true because compose_daemon_control returns a ControlInbox, so the test proves nothing.",
-    "Pin production dormancy with a test that can fail. Monkeypatch `squatch.__main__.Drain` to capture its constructor kwargs, run the CLI drain, and assert that `pause` is absent or None. Or build Drain the way the CLI does and assert `_pause is None`.",
-    "Also assert that the inbox from compose_daemon_control has no holds, and that the daemon dispatch composition exposes no DispatchPause. That gives pause-resume-activation a concrete assertion to flip.",
-    "Keep every change inside tests/test_daemon_pause.py. Do not edit test_daemon_tasks.py or test_control.py. Rerun both Verification commands."
+    "Keep the reviewed design: DispatchPause with discard_hold supersession, latest-wins, stale-lifecycle refusal, the decision-before-mutation probe, the drain fresh/retry release test, and the CLI Drain-kwargs dormancy probe. Start from the prior branch; the last retry had to restore it by hand.",
+    "Criterion 1 test is circular: it writes its own `if await pause.allow_offer(): accounting.append`. Add optional `pause: DispatchPause | None = None` to the daemon admission path (DispatchAdmission or the compose_daemon_dispatch `dispatch` closure) and consult it before snapshot() and create_task.",
+    "admit() is sync and returns a task, so await allow_offer() in the async dispatch closure (or an async admission wrapper) before calling admit. Test the real path: while paused, no snapshot is taken and no task is created; an already-admitted task still completes.",
+    "Keep the daemon pause default None so production stays dormant. Extend the dormancy test to assert that the composed daemon dispatch carries no pause, giving pause-resume-activation a concrete assertion to flip.",
+    "Drain: after _wait_for_offer returns, re-check `self._clock() - started >= ceiling` before _draw_retry and before dispatch, and on expiry take the existing timer_fired/_halted path. Add a test: a pause that outlasts the ceiling admits nothing after release.",
+    "Remove the zero-delay `_yield_control` default. When pause is given, require wait_for_control (raise if missing) or default to a real-interval sleep through the injected clock seam. No hot loop that re-folds the journal.",
+    "Stay inside the fence. Do not edit test_daemon_tasks.py or test_control.py. Run both Verification commands."
   ],
-  "reason": "The only review finding is a vacuous dormancy assertion in tests/test_daemon_pause.py, which can be fixed in place inside the fence at the same capability.",
+  "reason": "Review snag with three concrete in-fence defects (ungated daemon admission slot with a circular test, missing ceiling re-check after pause, hot-loop default), each with a paved road; no evidence that more capability or a ticket change is needed.",
   "detail": null
 }
