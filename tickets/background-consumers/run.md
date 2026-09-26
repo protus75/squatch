@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The owner exposes explicit start, shutdown, and run lifetimes so clean shutdown can be observed without inventing a control source.
+Kept the public start/shutdown lifetime and made shutdown re-raise a consumer failure after cancelling and awaiting its siblings. Repeating immediate passes explicitly yields to the event loop.
 
 ## Dead ends
 
@@ -18,4 +18,4 @@ OpenAI / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 25m.
+Expected 75m; actual about 15m.
