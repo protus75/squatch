@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "43965926a0b9c6546775d8c2550c25dbf877d800",
+  "produced_at_sha": "987325786958b03104d01e8003a3c5f6a1d56930",
   "stem": "phase3-continue-06",
   "branch": "phase3-continue-06",
-  "base": "9f674469fe1a7fa16deec8e3a1dd1b5dacda7904",
-  "head": "43965926a0b9c6546775d8c2550c25dbf877d800",
+  "base": "8cac3f5058caaeab0284eea95bd0a0616f92542f",
+  "head": "987325786958b03104d01e8003a3c5f6a1d56930",
   "changed_files": [
     "tests/test_seeded_phase3_06.py"
   ],
@@ -15,22 +15,40 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/merge-queue-activation/ticket.md",
-      "sha": "55beccc11dbd9fe9c230b9fe641e2f0768c46187",
+      "sha": "8e186022fd9e6d97cc22060acd23e6f332260e60",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/merge-queue-activation/ticket.md",
           "line": null,
-          "message": "Scope in and the third criterion require integrate to get `reviewed_sha` through `Merge._approval`'s validation path. That path demands `verdict == approve` and `pinned == head`. Integrate runs after `MergeQueue` has rebased the candidate worktree, which moves `refs/heads/<stem>` and the worktree `HEAD` off the reviewed sha. `Candidate` carries only stem, branch, worktree and run_seq, not the pre-rebase head, and `squatch/mergequeue.py` is out of the fence. So a correctly approved candidate is always refused as stale. The criteria (approval path equivalence, correct integration, stale/missing refusal) cannot all be met as specified.",
-          "paved_road": "Name the head the approval is pinned against without editing mergequeue.py. For example, have integrate resolve the pre-rebase head through existing `Git.rev_parse` (such as the worktree's `ORIG_HEAD` left by the rebase), or have the regate adapter record it, then call `Merge._approval(stem, pre_rebase_head)`. Add a criterion proving that a fresh approve pinned to the pre-rebase head integrates and that a stale pin is refused."
+          "message": "Scope in requires overriding `MergeQueue._rebase(candidate)` in merge.py. It must capture the pre-rebase head inside the serial slot and delegate to `super()._rebase(candidate)`. That private method belongs to squatch/mergequeue.py, which is not in Context. None of the Context tests (test_mergequeue.py tests only `admit`, `next_rework`, `_slot` and `_rework`) shows that `_rebase` exists, what signature it has, or that it runs inside the slot. The merge.py excerpt shows only `Merge._rebase(stem, worktree, run_seq)`, which has a different signature. The ticket also calls `compose_merge_queue`, `Merge._regate` and `Merge._squash`, but those are cut off in the rendered merge.py, so the reference closure of the hooked seam cannot be traced.",
+          "paved_road": "Add squatch/mergequeue.py to Context as read-only evidence; section 20 allows predecessor surfaces and it stays outside the fence. Then state the override against the real `_rebase` signature and serial-slot placement. Also make sure the part of merge.py that defines `compose_merge_queue`, `compose_pipeline`, `_regate` and `_squash` fits in the render (current 104238 chars against a 120000 headroom limit). If `_rebase` is not a stable hook, capture the head in the regate adapter's pre-rebase path instead."
         },
         {
           "code": "requisition_review",
           "path": "tickets/merge-queue-activation/ticket.md",
           "line": null,
-          "message": "Scope in says integrate uses 'the same journal approval lookup ... as `Merge._approval`'. `Merge._approval` does not read the journal. It parses the on-disk ticket-plane record `tickets/<stem>/review.md` with `load_review`. An implementer following the scope text would build a journal lookup, a second approval path that the Definition of rejected forbids.",
-          "paved_road": "Change the wording to 'the same on-disk `tickets/<stem>/review.md` approval check (`Merge._approval`)' so scope in matches merged behavior."
+          "message": "The fourth acceptance criterion says tests/test_daemon_composition.py proves two things that live in tests/test_mergequeue.py: that the literal `not hasattr(pipeline, \"merge_queue\")` assertion was migrated in `test_additive_composition_hook_does_not_change_phase1_composition`, and that `test_mergequeue_has_no_scheduler_or_watcher_dependency` is preserved. A test in one file cannot prove edits to another file, so the criterion names the wrong proof site. The first criterion's claim that tests prove `Merge.admit` and `Pipeline.run` 'remain unchanged' also has no mechanical observable.",
+          "paved_road": "Move the migration and preservation clauses into the tests/test_mergequeue.py criterion. Limit the test_daemon_composition.py criterion to the in-process `__main__` factory/Runner composition exposing `isinstance(pipeline.merge_queue, MergeQueue)` and preserving the existing dispatch/config and no-`serve` contracts. Rewrite 'unchanged' as a scope-out constraint, or as an observable behavior such as the existing admit tests still passing."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-07/ticket.md",
+      "sha": "337491d1def0a5fe69754bd2207d52888383b349",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-07/ticket.md",
+          "line": null,
+          "message": "The ownership record gives background-consumers two boundaries: the watcher/merge/box task lifetimes (tests/test_daemon_tasks.py) and the initial typed control inbox (squatch/control.py, tests/test_control.py). control-inbox is left with `owns: []` and only hooks those files. Section 20 splits the pair differently. background-consumers owns the watcher, merge and box tasks. control-inbox owns the crash-safe, identity-bound, exactly-once, decision-journaled-before-mutation request intake, and it states that one ticket owns one independently provable boundary. As written, background-consumers cannot be proved on its task lifetimes alone. control-inbox also becomes a seed that only hooks files and owns no module, even though the registry names it as the owner of control.py. Your own Definition of rejected covers this: 'either boundary cannot be proved independently'.",
+          "paved_road": "Change the ownership record. background-consumers owns tests/test_daemon_tasks.py and hooks squatch/daemon.py. control-inbox owns squatch/control.py and tests/test_control.py and hooks squatch/daemon.py and tests/test_daemon_tasks.py, which keeps predecessor-test closure. Move the typed-inbox construction wording out of the background-consumers scope and into control-inbox. Update the matching ownership, fence and NEW_AT_AUTHORING owner assertions in tests/test_seeded_phase3_07.py. The Context map, suffix lists and budgets stay the same."
         }
       ],
       "commands": []
@@ -39,18 +57,8 @@
       "code": "requisition_review",
       "verdict": "pass",
       "severity": "hard",
-      "path": "tickets/phase3-continue-07/ticket.md",
-      "sha": "8e06f69dd523b89b4b65b56f8a57fac89bf12229",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
       "path": "tickets/rework-activation/ticket.md",
-      "sha": "b8775289d5ab0553cea9ec2b6bf8342d0794c7dd",
+      "sha": "9ebdcb7722d115e97bcf25a24843e2d8909001d2",
       "bypassed": false,
       "findings": [],
       "commands": []
