@@ -1,16 +1,18 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "97b4d18e093c7721af44bfd053e0e28f7d8347f1",
+  "produced_at_sha": "5718bbcd5d25db18b445a5e21e33d7d6795bc813",
   "stem": "control-inbox",
   "branch": "control-inbox",
-  "base": "d274319a06f652f118e35119f8b1de65ce021f3b",
-  "head": "97b4d18e093c7721af44bfd053e0e28f7d8347f1",
+  "base": "908e5dfefa8a930f56b354f4e50b878236b48d09",
+  "head": "5718bbcd5d25db18b445a5e21e33d7d6795bc813",
   "changed_files": [
     "squatch/control.py",
     "squatch/daemon.py",
+    "squatch/seams.py",
     "tests/test_control.py",
-    "tests/test_daemon_tasks.py"
+    "tests/test_daemon_tasks.py",
+    "tests/test_seams.py"
   ],
   "checks": [
     {
@@ -40,6 +42,7 @@
             "tests/test_control.py",
             "tests/test_daemon_tasks.py",
             "tests/test_daemon_composition.py",
+            "tests/test_seams.py",
             "-q"
           ],
           "attribution": null,
