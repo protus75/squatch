@@ -1,14 +1,17 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Remove the live `is_file()` and `stat().st_size == EXISTING_AT_AUTHORING[entry]` assertions. Context files like squatch/providers.py, config.py and merge.py will be edited by later seeds, and this test would then go red outside their fence.",
-    "Use EXISTING_AT_AUTHORING only for `set(context) <= set(EXISTING_AT_AUTHORING)`, the existing-fence-path-in-Context check, and synthetic render sizing, as tests/test_seeded_phase3_core.py does. Never compare it with the live filesystem.",
-    "Write the rework-stage ownership hooks as the plain string list `- squatch/mergequeue.py`, exactly as Scope in specifies. Keep the 'no edit; consume MergeQueue.next_rework/UnresolvedConflictHandoff unchanged' constraint in prose only.",
-    "Pin `ownership['hooks'] == ['squatch/mergequeue.py']` in tests/test_seeded_phase3_02.py and regenerate the emitted rework-stage ticket to match. Keep everything else that passed: lint, edges, tiers, fences, budgets, suffix, render headroom."
+    "Requisition review failed rework-stage criterion 1: 'the specified Rework outcomes' is defined only by specs/rework.md, which the same ticket creates. Replace it with separate checkable assertions in tests/test_rework.py.",
+    "Criterion (a): specs/rework.md lints through squatch.specs.load_spec as surface `rework`, with a single composite rework-order `emits` type. `rework` is already in squatch/llm.py LLM_SURFACES.",
+    "Criteria (b)-(c): under the fake LLM, an update order yields an updated ticket for the handoff stem. A split order yields child tickets, each with a supersedes link to the parent stem.",
+    "Criterion (d): an escalate order yields an escalation element that the ladder's journal-derived rung consumes. Ticket frontmatter stays unchanged, and the element never names a tier or effort.",
+    "Criterion (e): every consumed UnresolvedConflictHandoff keeps approval_invalidated=True, so the resulting work is re-reviewed.",
+    "Keep rework-stage's fence, Context, Scope out, ownership record (hooks as the plain list `- squatch/mergequeue.py`) and Verification. Verification runs both test_mergequeue.py and test_rework.py.",
+    "Keep everything that already passed in tests/test_seeded_phase3_02.py: lint, edges, tiers, fences, budgets, suffix, and render headroom. EXISTING_AT_AUTHORING stays synthetic, never compared with live files. Re-check the render bound after lengthening criteria."
   ],
-  "reason": "Checks all passed. Review found two small, concrete defects (a brittle live-size assertion and a mis-shaped hooks record), and each comes with an exact paved road, so a same-capability retry fixes them.",
+  "reason": "The check-stage review finding is a fixable authoring gap in the emitted rework-stage criteria, and it comes with a concrete paved road.",
   "detail": null
 }
