@@ -1,15 +1,19 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "The requisition gate rejected pause-resume-activation because its Context names tests/test_daemon_pause.py. That file does not exist at authoring time; its dependency dispatch-pause-boundary creates it. Context may name only paths that already exist when the ticket is authored.",
-    "The ticket allows the fix: pause seeds put only their NOW-EXISTING fenced predecessor paths in Context, and sibling-new paths stay out. Remove tests/test_daemon_pause.py from pause-resume-activation Context and keep it in that ticket's Scope fence hooks.",
-    "Do not work around the lint in tests/test_seeded_phase3_08.py. Lint pause-resume-activation through lint_ticket like the other two seeds, and drop the special-case branch that only compares raw section text.",
-    "Update CONTEXT and the render-size map in the seeded test so tests/test_daemon_pause.py is not activation Context. Keep the assertions that tests/test_mergequeue.py and squatch/__main__.py are Context, as the acceptance criteria require.",
-    "Plan section 20's pause clarification says the activation Context retains test_daemon_pause.py, which conflicts with the rule that a seed never names a sibling-new path. Follow the ticket's now-existing rule and file the plan wording to the Suggestion Box."
+    "Requisition review rejected only tickets/phase3-continue-09/ticket.md. The pause seeds and tests/test_seeded_phase3_08.py were not faulted, and the focused and full suites passed.",
+    "Write phase3-continue-09 in the same form as this ticket. Add a kill_ownership YAML block with exact owns and hooks for kill-signal-journal, kill-executor-abort and phase3-continue-10.",
+    "Each kill seed owns exactly one test, tests/test_kill_signal_journal.py or tests/test_kill_executor_abort.py. Its hooks may come only from squatch/control.py, squatch/daemon.py and squatch/driver.py.",
+    "State that squatch/__main__.py is outside both kill fences, because section 20 allows no kill verb before kill-cli-activation.",
+    "phase3-continue-10 owns tickets and tests/test_seeded_phase3_10.py, and its hooks are empty.",
+    "State the edges in Scope in: kill-signal-journal depends on phase3-continue-09, kill-executor-abort on kill-signal-journal, and phase3-continue-10 on both kill seeds.",
+    "State in Scope in that all three use medium/medium tiers (none is KNOWN-DEEP), 75m/150m budgets and seeding cap 3.",
+    "Require each kill seed's Context to list its existing hooked paths. Require tests/test_seeded_phase3_09.py to pin their authoring-time sizes, the new-path owners, max-effort render headroom and the shrinking suffix.",
+    "Keep the earlier fixes: tests/test_daemon_pause.py stays out of pause-resume-activation Context, and all seeds go through lint_ticket. Refresh the size map if base files changed."
   ],
-  "reason": "The ticket can be satisfied by removing the sibling-created file from activation Context; this failure was an authoring oversight, not proof the ticket is infeasible.",
+  "reason": "The phase3-continue-09 successor was missing ownership, edges, tiers and budgets that the next attempt can fill in from section 20, so this is a fixable authoring oversight.",
   "detail": null
 }
