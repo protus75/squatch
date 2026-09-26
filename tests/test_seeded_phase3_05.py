@@ -122,11 +122,10 @@ def test_tiers_budgets_fences_and_keyed_ownership_are_exact():
     assert _yaml_blocks("scheduler-activation") == [{"ownership": {
         "scheduler-activation": OWNERSHIP["scheduler-activation"]}}]
     assert _yaml_blocks("phase3-continue-06")[0] == {"ownership": {
-        "merge-queue-activation": {
-            "owns": [],
-            "hooks": ["squatch/daemon.py", "squatch/mergequeue.py", "squatch/merge.py",
-                      "squatch/git.py", "tests/test_mergequeue.py",
-                      "tests/test_daemon_composition.py"],
+            "merge-queue-activation": {
+                "owns": [],
+                "hooks": ["squatch/merge.py", "tests/test_mergequeue.py",
+                          "tests/test_daemon_composition.py"],
         },
         "rework-activation": {
             "owns": [],
