@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "d674d9364d7cd7f92421042966684ece68839c73",
+  "produced_at_sha": "a96cc0c76f2c216e0708236d70db647cb53486bd",
   "stem": "phase3-continue-06",
   "branch": "phase3-continue-06",
-  "base": "11b25508f3b24801a587cf182db8b0e64de57b86",
-  "head": "d674d9364d7cd7f92421042966684ece68839c73",
+  "base": "57f88157da380175bb48a3b46d0c46b5b66c9175",
+  "head": "a96cc0c76f2c216e0708236d70db647cb53486bd",
   "changed_files": [
     "tests/test_seeded_phase3_06.py"
   ],
@@ -15,7 +15,17 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/merge-queue-activation/ticket.md",
-      "sha": "8a598b1e91c63a431b2e6306954e0544f6a234b1",
+      "sha": "797ec7151270af80576c7d2a3cbbb5e03305d54c",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-07/ticket.md",
+      "sha": "a531c21c239c80aac8a21837a6f98837e3dff896",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -24,48 +34,23 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/phase3-continue-07/ticket.md",
-      "sha": "6df19ee85ea487a0a5cfbe47e06b315a5bf0dbd8",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-07/ticket.md",
-          "line": null,
-          "message": "Scope in sets control-inbox Context to 'those three paths plus `tests/test_daemon_tasks.py`', but also says `tests/test_daemon_tasks.py` is new at authoring and owned by the sibling seed background-consumers. `squatch/tickets.py` `_lint_context` rejects a Context path that does not exist ('Context is read-first EXISTING material'), so the seed fails the seeding Check's lint. The same entry has no `EXISTING_AT_AUTHORING` size, so the required `set(context) <= EXISTING_AT_AUTHORING` closure and the synthetic max-effort render proof cannot both pass. Section 20 requires that seeds 'name only existing Context paths'.",
-          "paved_road": "Remove `tests/test_daemon_tasks.py` from control-inbox's Context and keep it only in that seed's fence, with a hook in the ownership YAML and a line in Verification. The test for the other seed already covers the path through `depends`. Keep the pinned Context map to `tests/test_seeded_phase3_04.py`, `squatch/daemon.py`, and `tests/test_daemon_composition.py` for both deliverables. Classify `tests/test_daemon_tasks.py` in `NEW_AT_AUTHORING`, and pin that control-inbox fences the path and runs it in Verification without citing it as Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-07/ticket.md",
-          "line": null,
-          "message": "The YAML list introduced as 'The successor continuation carries' starts with `[background-consumers, control-inbox]`, which is the admission this ticket emits. The earlier continuations use two lists: the full list including their own admission, then the successor's list without it (`test_continuation_carries_the_exact_ordered_suffix`: `parent[0] == (own admission, *SUFFIX)`, `parent[1] == SUFFIX`). If phase3-continue-08 carries this list as written, it would author background-consumers and control-inbox again, which violates the shrinking-suffix contract and this ticket's own Definition of rejected ('the activation pair is duplicated').",
-          "paved_road": "State both lists explicitly. This ticket's full list starts with `[background-consumers, control-inbox]`. The list phase3-continue-08 carries starts at `[dispatch-pause-boundary, pause-resume-activation]` and ends with `[phase3-exit]`. Have `tests/test_seeded_phase3_07.py` assert successor list == full list[1:]."
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
       "path": "tickets/rework-activation/ticket.md",
-      "sha": "51c9e83737c908b73791323366e4bb44372278b0",
+      "sha": "a359bef9dbcb75e904d5476d26d3e2d8b65e06b3",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/rework-activation/ticket.md",
           "line": null,
-          "message": "Under the registry, merge-queue-activation builds the production MergeQueue through `compose_merge_queue` inside `compose_pipeline`, which lives in `squatch/merge.py` and leaves daemon.py and mergequeue.py unchanged. For Rework to consume that queue's post-unwind outbox in the real composition, it must bind to that same instance. The module that owns it is neither Context nor named anywhere, so the hook cannot be read before it is written.",
-          "paved_road": "Add `squatch/merge.py` to Context as read-only; it exists on main and is not fenced. Also add whichever module defines `compose_pipeline` if that is a different file. Keep them out of the fence, since merge activation owns them."
+          "message": "Scope in says 'Wire the constructed worker into the real production composition through that function', but the new function can only be called where the composed pipeline, Journal and Driver exist. That is `_locked`'s `factory(journal)` in squatch/__main__.py, called under the Runner session in squatch/runner.py. The ticket marks both files read-only and excludes them from the fence. squatch/daemon.py's only production caller, `compose_daemon_dispatch(config_supplier, work)`, receives neither a pipeline nor a journal. So no fenced file can invoke the new function from the production root, and the instruction contradicts the ticket's own 'do not edit compose_pipeline or runner.py' and 'Do not edit ... main'.",
+          "paved_road": "Replace the wiring sentence with what the fence can prove. The named daemon composition function lives in squatch/daemon.py, so `squatch.rework` becomes reachable from `squatch.__main__` through the existing `squatch.daemon` import. tests/test_daemon_composition.py calls that function over a pipeline really built by `compose_pipeline`. Leave invoking it from `_locked` to the later background-consumers boundary instead of implying a main/runner call site."
         },
         {
           "code": "requisition_review",
           "path": "tickets/rework-activation/ticket.md",
           "line": null,
-          "message": "Scope in says to 'hook every fenced existing path' but never names the composition hook. It does not say which daemon.py composition function builds `Rework` from the queue that `compose_pipeline` produced, or where the Driver, Spec, Journal, and Filesystem come from. The implementer is left to guess, and an edit to the unfenced `compose_pipeline` or `squatch/runner.py` would break the fence, which is the Definition of rejected.",
-          "paved_road": "Say in Scope in and in a criterion that a named function in `squatch/daemon.py` takes the composed pipeline, or its merge queue plus driver, journal, and filesystem. That function builds `Rework(queue=<the pipeline's MergeQueue>, ...)` with `specs/rework.md` loaded, and does not edit `compose_pipeline`. `tests/test_daemon_composition.py` then asserts that a handoff produced by that same queue's `admit` is consumed only after the slot unlocks, and that `squatch.rework` is reachable from `squatch.__main__`."
+          "message": "`Rework.__init__` requires the keyword-only arguments `repo`, `tier` and `effort`. The ticket's function signature names only the pipeline, Driver, Journal and Filesystem, plus the loaded spec. The acceptance criteria therefore leave the source of three required constructor inputs undetermined, and the implementer would have to invent a config knob or a hard-coded default.",
+          "paved_road": "Name the source of each input in Scope in and in the first criterion. For example: `repo` is passed explicitly to the function, and `tier`/`effort` default to the registry's `medium`/`medium`, passed as explicit parameters. Add no new config key."
         }
       ],
       "commands": []
