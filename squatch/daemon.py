@@ -1,7 +1,7 @@
 """Single-flight dispatch admission and its production composition."""
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, TypeVar, cast
@@ -15,12 +15,16 @@ from squatch.rework import Rework
 from squatch.scheduler import Scheduler
 from squatch.seams import Filesystem
 from squatch.specs import Spec
+from squatch.triage import Triage
 from squatch.watcher import Watcher
 
 
 Result = TypeVar("Result")
 Work = Callable[[str, Config], Awaitable[Result]]
 ConfigSupplier = Callable[[], Config]
+ConsumerCallback = Callable[[], Awaitable[None]]
+PrioritySnapshot = Callable[[], Awaitable[Iterable[str]]]
+ShaSupplier = Callable[[], Awaitable[str]]
 
 
 class AdmissionTask(Generic[Result]):
@@ -100,3 +104,70 @@ def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,
     """Compose the dormant post-admission consumer without starting it."""
     return Rework(repo=repo, queue=pipeline.merge_queue, journal=journal, fs=fs,
                   driver=driver, spec=spec, tier=tier, effort=effort)
+
+
+def watcher_consumer(watcher: Watcher, priority_snapshot: PrioritySnapshot) -> ConsumerCallback:
+    """Build one deferred priority observation pass."""
+    async def consume() -> None:
+        watcher.observed(await priority_snapshot())
+
+    return consume
+
+
+def rework_consumer(rework: Rework, sha: ShaSupplier) -> ConsumerCallback:
+    """Build one deferred post-admission Rework pass."""
+    async def consume() -> None:
+        await rework.run(sha=await sha())
+
+    return consume
+
+
+def box_consumer(triage: Triage, spec: Spec) -> ConsumerCallback:
+    """Build one deferred Suggestion Box triage pass."""
+    async def consume() -> None:
+        await triage.run(spec)
+
+    return consume
+
+
+class DaemonTasks:
+    """Own the daemon's repeating background consumer tasks."""
+
+    def __init__(self, *, watcher: ConsumerCallback, merge: ConsumerCallback,
+                 box: ConsumerCallback) -> None:
+        self._callbacks = (watcher, merge, box)
+        self._tasks: tuple[asyncio.Task[None], ...] = ()
+
+    def start(self) -> None:
+        """Start each consumer once; callbacks first run in their own tasks."""
+        if self._tasks:
+            raise RuntimeError("daemon background consumers are already running")
+        self._tasks = tuple(asyncio.create_task(self._repeat(callback))
+                            for callback in self._callbacks)
+
+    async def shutdown(self) -> None:
+        """Cancel, observe, and propagate every consumer's terminal outcome."""
+        tasks, self._tasks = self._tasks, ()
+        for task in tasks:
+            task.cancel()
+        outcomes = await asyncio.gather(*tasks, return_exceptions=True)
+        failure = next((outcome for outcome in outcomes
+                        if isinstance(outcome, BaseException)
+                        and not isinstance(outcome, asyncio.CancelledError)), None)
+        if failure is not None:
+            raise failure
+
+    async def run(self) -> None:
+        """Run until cancelled or a consumer fails, then clean up every sibling."""
+        self.start()
+        try:
+            await asyncio.gather(*self._tasks)
+        except BaseException:
+            await self.shutdown()
+            raise
+
+    @staticmethod
+    async def _repeat(callback: ConsumerCallback) -> None:
+        while True:
+            await callback()
+            await asyncio.sleep(0)
