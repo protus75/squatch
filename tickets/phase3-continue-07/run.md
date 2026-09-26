@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The authored seeds were already present. I tightened the continuation and its proof so the Verification blocks, concrete pause edges, tier/effort, budgets, cap, and derived pause fences are explicit and asserted.
+The authored seeds were already present from the prior attempt. I made the background-consumers acceptance criteria and seeded proof explicitly pin one named test per consumer lifetime and exception re-raising after sibling cancellation and await.
 
 ## Dead ends
 
-None.
+The prior attempt's committed test was no longer reachable from the branch tip, so I recovered its reviewed content from the repository object database before applying the two requested corrections. An initial commit-helper invocation had invalid one-line Python syntax; the corrected invocation succeeded.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI Codex (model identity not provided).
 
 ## Predicted vs actual
 
-Expected 75m; actual about 20m.
+Expected 75m; actual about 12m.
