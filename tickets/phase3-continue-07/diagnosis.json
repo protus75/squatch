@@ -1,15 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "The ticket pins an exact Context map that requisition review rejects. background-consumers needs squatch/watcher.py, squatch/scheduler.py, squatch/triage.py, squatch/box.py and squatch/rework.py. phase3-continue-08 needs squatch/__main__.py. Both are forbidden by 'Use this exact Context map'.",
-    "Scope in says each consumer stays behind 'existing injectable callbacks/composition seams', but none exist. Watcher is only a callback adapter, box is a one-shot Triage.run pass, and merge is a per-handoff Rework.run(sha). The ticket must name each awaitable and its injection shape.",
-    "The background-consumers acceptance criterion needs one observable outcome per behavior (start, shutdown await, cancellation, exception surfacing), each with its own test in tests/test_daemon_tasks.py.",
-    "The phase3-continue-08 seed must fill real section 20 ownership for the pause pair. It must also carry full continuation pins (identities, edges, tier, budget, cap, EXISTING_AT_AUTHORING, predecessor-test closure, suffix) in the style of tests/test_seeded_phase3_04.py.",
-    "The committed test_seeded_phase3_07.py pins the defective Context map. Discard it and regenerate after the plan or ticket is fixed; do not hand-patch the seeds."
-  ],
-  "reason": "Review blocking findings contradict the ticket's mandated exact Context map and nonexistent consumer seams, so no compliant retry can pass requisition review.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
