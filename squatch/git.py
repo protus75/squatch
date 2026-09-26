@@ -25,8 +25,11 @@ class GitError(Exception):
 
 
 class RebaseConflict(GitError):
-    """The rebase did not apply; it was aborted before this was raised, so the
-    worktree sits on its own branch head."""
+    """The rebase stopped on conflicted paths.
+
+    ``rebase`` aborts before raising this exception; ``rebase_stop_at_conflict``
+    deliberately leaves the conflicted rebase in progress for inspection.
+    """
 
 
 @dataclass(frozen=True)
@@ -134,6 +137,34 @@ class Git:
             except GitError:
                 pass
             raise RebaseConflict(e.argv, e.rc, e.stdout, e.stderr) from None
+
+    async def rebase_stop_at_conflict(self, cwd: Path, onto: str) -> None:
+        """Rebase while leaving a conflicted worktree available for inspection."""
+        try:
+            await self._run(cwd, "rebase", onto)
+        except GitError as error:
+            try:
+                conflicted = await self.conflicted_paths(cwd)
+            except GitError:
+                conflicted = []
+            if not conflicted:
+                # Git can fail after entering rebase state without producing
+                # unmerged paths.  Abort opportunistically: when it refused
+                # before starting, the abort fails harmlessly.
+                try:
+                    await self.rebase_abort(cwd)
+                except GitError:
+                    pass
+                raise error from None
+            raise RebaseConflict(
+                error.argv, error.rc, error.stdout, error.stderr) from None
+
+    async def conflicted_paths(self, cwd: Path) -> list[str]:
+        out = await self._run(cwd, "diff", "--name-only", "--diff-filter=U")
+        return [line for line in out.splitlines() if line]
+
+    async def rebase_continue(self, cwd: Path) -> None:
+        await self._run(cwd, "-c", "core.editor=true", "rebase", "--continue")
 
     async def rebase_abort(self, cwd: Path) -> None:
         await self._run(cwd, "rebase", "--abort")

@@ -386,3 +386,16 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
                   log=EngineLog(repo / config.state_dir, clock=clock, redact=redact),
                   redact=redact, clock=clock, env=env)
     return Pipeline(stages, merge)
+
+
+def compose_merge_queue(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
+                        process: ProcessExec, fs: Filesystem, git: Git,
+                        regate, integration_check, integrate):
+    """Build the dormant Phase 3 admission queue without activating it."""
+    from squatch.mergequeue import MergeQueue
+
+    return MergeQueue(
+        repo=repo, config=config, git=git, process=process, fs=fs, journal=journal,
+        env=child_env(env, {p.auth for p in config.providers if p.auth}),
+        regate=regate, integration_check=integration_check, integrate=integrate,
+        timeout=config.drain.max_ticket_minutes * 60)
