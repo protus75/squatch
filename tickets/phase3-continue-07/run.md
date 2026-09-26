@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The current ticket's exact pause ownership already includes the formerly missing predecessor-test hooks, so it is buildable as written.
+The authored seeds were already present. I tightened the continuation and its proof so the Verification blocks, concrete pause edges, tier/effort, budgets, cap, and derived pause fences are explicit and asserted.
 
 ## Dead ends
 
@@ -19,4 +19,4 @@ OpenAI Codex (model identity not provided).
 
 ## Predicted vs actual
 
-Expected 75m; actual about 15m.
+Expected 75m; actual about 20m.
