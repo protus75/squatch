@@ -36,7 +36,16 @@ CALL_TIMEOUT_SECONDS = 4 * 3600
 STDERR_TAIL = 2000
 
 Grant = Literal["write", "read"]
-FailureClass = Literal["auth_error"]
+FailureClass = Literal[
+    "rate_limited", "quota_exhausted", "outage", "auth_error", "model_error", "unclassified"]
+
+
+@dataclass(frozen=True)
+class FailureFact:
+    """The provider identity and closed classification consumed by thresholds."""
+
+    provider: str
+    failure_class: FailureClass
 
 
 class RoutingError(Exception):
@@ -49,9 +58,10 @@ class ProviderError(Exception):
     stream with no result, or no cost to charge."""
 
     def __init__(self, provider: str, reason: str, *, rc: int | None = None, stderr: str = "",
-                 failure_class: FailureClass | None = None, paved_road: str | None = None):
+                 failure_class: FailureClass = "unclassified", paved_road: str | None = None):
         self.provider, self.reason, self.rc, self.stderr = provider, reason, rc, stderr
         self.failure_class, self.paved_road = failure_class, paved_road
+        self.failure = FailureFact(provider, failure_class)
         tail = stderr[-STDERR_TAIL:].strip()
         super().__init__(f"{provider}: {reason}" + (f" (rc={rc})" if rc is not None else "")
                          + (f"\nstderr: {tail}" if tail else "")
@@ -94,14 +104,19 @@ def _events(out: str):
 class _Adapter:
     auth_failure_signature: str
     auth_paved_road: str
+    failure_signatures: tuple[tuple[FailureClass, str], ...]
 
     def error(self, reason: str, *, rc: int | None, stderr: str) -> ProviderError:
-        authenticated = any(
-            self.auth_failure_signature in channel for channel in (reason, stderr))
+        channels = tuple(channel.casefold() for channel in (reason, stderr))
+        failure_class: FailureClass = "unclassified"
+        for classified, signature in self.failure_signatures:
+            if any(signature.casefold() in channel for channel in channels):
+                failure_class = classified
+                break
         return ProviderError(
             self.name, reason, rc=rc, stderr=stderr,
-            failure_class="auth_error" if authenticated else None,
-            paved_road=self.auth_paved_road if authenticated else None)
+            failure_class=failure_class,
+            paved_road=self.auth_paved_road if failure_class == "auth_error" else None)
 
 
 class ClaudeAdapter(_Adapter):
@@ -109,6 +124,13 @@ class ClaudeAdapter(_Adapter):
     reports_cost = True
     auth_failure_signature = "OAuth refresh token is no longer valid"
     auth_paved_road = "run `claude login` in the operator's shell"
+    failure_signatures = (
+        ("auth_error", auth_failure_signature),
+        ("quota_exhausted", "You've hit your limit"),
+        ("rate_limited", "rate limit exceeded"),
+        ("outage", "overloaded_error"),
+        ("model_error", "model is not available"),
+    )
 
     def argv(self, *, model: str, effort: str, grant: Grant) -> list[str]:
         # --verbose: print mode refuses stream-json without it.
@@ -140,6 +162,13 @@ class CodexAdapter(_Adapter):
     auth_failure_signature = ("Your access token could not be refreshed because your refresh "
                               "token has expired.")
     auth_paved_road = "run `codex login` in the operator's shell"
+    failure_signatures = (
+        ("auth_error", auth_failure_signature),
+        ("quota_exhausted", "You've hit your usage limit"),
+        ("rate_limited", "rate limit reached"),
+        ("outage", "upstream connection failed"),
+        ("model_error", "model is not supported"),
+    )
 
     def argv(self, *, model: str, effort: str, grant: Grant) -> list[str]:
         base = ["codex", "exec", "--json", "-m", model, "-c", f"model_reasoning_effort={effort}"]

@@ -20,7 +20,8 @@ from squatch import providers
 from squatch.config import ConfigError, Provider, load, parse
 from squatch.llm import LLM_SURFACES, WRITING_SURFACES, LLMRequest
 from squatch.providers import (
-    ADAPTERS, PLACEHOLDER, CliClient, ProviderError, Registry, RoutingError, child_env)
+    ADAPTERS, PLACEHOLDER, CliClient, FailureFact, ProviderError, Registry, RoutingError,
+    child_env)
 from squatch.redact import Redactor
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -400,6 +401,7 @@ async def test_claude_auth_failure_result_is_classified_with_login_road(tmp_path
     with pytest.raises(ProviderError) as info:
         await client(tmp_path, ex).call(request("review"))
     assert info.value.failure_class == "auth_error"
+    assert info.value.failure == FailureFact("claude", "auth_error")
     assert info.value.paved_road == "run `claude login` in the operator's shell"
     assert "claude login" in str(info.value)
 
@@ -414,7 +416,7 @@ async def test_auth_signature_in_agent_output_does_not_classify_a_different_fail
         extra_lines=(claude_output,)), ""))
     with pytest.raises(ProviderError) as claude_info:
         await client(tmp_path, claude).call(request("review"))
-    assert claude_info.value.failure_class is None
+    assert claude_info.value.failure == FailureFact("claude", "unclassified")
 
     codex_signature = ADAPTERS["codex"].auth_failure_signature
     codex = ScriptedExec((1, codex_stream(codex_signature, failed="ordinary failure",
@@ -422,7 +424,7 @@ async def test_auth_signature_in_agent_output_does_not_classify_a_different_fail
     with pytest.raises(ProviderError) as codex_info:
         await client(tmp_path, codex).call(
             request("implement", worktree=tmp_path / "wt"))
-    assert codex_info.value.failure_class is None
+    assert codex_info.value.failure == FailureFact("codex", "unclassified")
 
 
 async def test_claude_stream_without_a_result_event_is_a_provider_error(tmp_path):
@@ -437,7 +439,8 @@ async def test_non_zero_exit_is_a_provider_error_carrying_the_stderr_tail(tmp_pa
         await client(tmp_path, ex).call(request("review"))
     assert info.value.rc == 1 and info.value.provider == "claude"
     assert "provider crashed" in str(info.value) and "x" * 5000 not in str(info.value)
-    assert info.value.failure_class is None and info.value.paved_road is None
+    assert info.value.failure == FailureFact("claude", "unclassified")
+    assert info.value.paved_road is None
 
 
 # --- the codex adapter's live contract ----------------------------------------
@@ -501,8 +504,25 @@ async def test_codex_auth_failure_stderr_is_classified_with_login_road(tmp_path)
     with pytest.raises(ProviderError) as info:
         await client(tmp_path, ex).call(request("implement", worktree=tmp_path / "wt"))
     assert info.value.failure_class == "auth_error"
+    assert info.value.failure == FailureFact("codex", "auth_error")
     assert info.value.paved_road == "run `codex login` in the operator's shell"
     assert "codex login" in str(info.value)
+
+
+@pytest.mark.parametrize("adapter_name,failure_class,stderr", [
+    ("claude", "quota_exhausted", "You've hit your limit; resets at midnight"),
+    ("claude", "rate_limited", "RATE LIMIT EXCEEDED; retry later"),
+    ("claude", "outage", "API error: overloaded_error"),
+    ("claude", "model_error", "The requested model is not available"),
+    ("codex", "quota_exhausted", "You've hit your usage limit"),
+    ("codex", "rate_limited", "Rate limit reached for this account"),
+    ("codex", "outage", "Upstream connection failed"),
+    ("codex", "model_error", "The requested model is not supported"),
+])
+def test_cli_adapter_exposes_each_classified_failure_fact(
+        adapter_name, failure_class, stderr):
+    error = ADAPTERS[adapter_name].error("non-zero exit", rc=1, stderr=stderr)
+    assert error.failure == FailureFact(adapter_name, failure_class)
 
 
 async def test_codex_stream_without_an_agent_message_is_a_provider_error(tmp_path):
