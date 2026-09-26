@@ -1,22 +1,16 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-The continuation ticket has no Context entries: its `tickets` fence is a directory, while Context is limited to existing files.
+The successor continuation needs file-only Context: `tickets/thresh-runtime/ticket.md`, this ticket, and the committed seed proof. I kept the directory fence out of Context and made its acceptance criteria require the next proof to enforce the dispatch pair's Context, ownership, tier/budget, and predecessor-test closure.
 
 ## Dead ends
-
-The first focused run exposed an over-escaped test regex; it was corrected before verification.
+The first wrapper-based commit invocation used an invalid one-line async function definition and did not change the index; the corrected invocation committed only the fenced test path.
 
 ## Second problems filed
 
-
 ## Resolved engine/model
-
-codex / gpt-5.6-terra
+codex / GPT-5
 
 ## Predicted vs actual
-
 Expected 75m; actual about 15m.
