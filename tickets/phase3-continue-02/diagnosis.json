@@ -1,16 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "rework-stage Verification must also run `uv run pytest tests/test_rework.py -q`, with an acceptance criterion that it exits 0. Keep the test_mergequeue.py command.",
-    "rework-stage Scope in must say exactly what the squatch/mergequeue.py hook allows, e.g. no edit: consume MergeQueue.next_rework() and import UnresolvedConflictHandoff unchanged. Add a criterion that tests/test_mergequeue.py passes unedited.",
-    "phase3-continue-03 criteria must pin exact values for thresh-runtime (high/high, depends rework-stage) and phase3-continue-04 (medium/medium, depends thresh-runtime): Depends tuples, tier/effort, expected/stuck minutes, stuck <= drain.max_ticket_minutes.",
-    "phase3-continue-03 must require the thresh-runtime fence to equal the section 20 registry tuple: squatch/thresh.py, squatch/providers.py, squatch/config.py, tests/test_thresh.py, tests/test_providers.py. It must also name thresh-runtime as owner of thresh.py and test_thresh.py.",
-    "phase3-continue-03 must require EXISTING_AT_AUTHORING pins, an existing-fence-path-in-Context check, and predecessor-test closure (tests/test_providers.py inside the thresh-runtime fence), following the pattern in tests/test_seeded_phase3_core.py.",
-    "Before finishing, check each authored ticket against every section 20 continuation duty: exact identities/edges/tier/budget, registry owners, fence-in-Context, predecessor closure, and a Verification that covers every criterion. Update test_seeded_phase3_02.py to match."
+    "Remove the live `is_file()` and `stat().st_size == EXISTING_AT_AUTHORING[entry]` assertions. Context files like squatch/providers.py, config.py and merge.py will be edited by later seeds, and this test would then go red outside their fence.",
+    "Use EXISTING_AT_AUTHORING only for `set(context) <= set(EXISTING_AT_AUTHORING)`, the existing-fence-path-in-Context check, and synthetic render sizing, as tests/test_seeded_phase3_core.py does. Never compare it with the live filesystem.",
+    "Write the rework-stage ownership hooks as the plain string list `- squatch/mergequeue.py`, exactly as Scope in specifies. Keep the 'no edit; consume MergeQueue.next_rework/UnresolvedConflictHandoff unchanged' constraint in prose only.",
+    "Pin `ownership['hooks'] == ['squatch/mergequeue.py']` in tests/test_seeded_phase3_02.py and regenerate the emitted rework-stage ticket to match. Keep everything else that passed: lint, edges, tiers, fences, budgets, suffix, render headroom."
   ],
-  "reason": "Requisition review found fixable gaps in the authored ticket text, and its paved-road findings say exactly what to add; no capability limit or unsatisfiable premise was shown.",
+  "reason": "Checks all passed. Review found two small, concrete defects (a brittle live-size assertion and a mis-shaped hooks record), and each comes with an exact paved road, so a same-capability retry fixes them.",
   "detail": null
 }
