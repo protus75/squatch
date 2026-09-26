@@ -84,7 +84,37 @@ Only `squatch/control.py`, `tests/test_daemon_tasks.py`, `tests/test_control.py`
 
 Pin an EXISTING_AT_AUTHORING map of actual sizes when this continuation is authored, including the then-merged daemon, watcher/scheduler, triage/box, Rework, CLI and composition/predecessor-test evidence named in the Context map. Require set(context) <= EXISTING_AT_AUTHORING and every existing fenced file in Context; classify the new files by their registry owners even after later merges. The configured limits are pinned observably as seeding cap 3 and `drain.max_ticket_minutes` 180, while the generated test still loads config to prove the live values. Synthetic renders use only pinned authoring-time sizes, never later live bytes or existence checks. Exclude all delimiter-carrying prompt-spec sources, including squatch/specs.py.
 
-For the pause pair that `phase3-continue-08` will author, pin these exact ownership records and derive each seed fence as owns followed by hooks. `dispatch-pause-boundary` owns `tests/test_daemon_pause.py` and hooks `squatch/daemon.py` and `squatch/control.py`. `pause-resume-activation` owns `tests/test_control_cli.py` and hooks `squatch/daemon.py`, `squatch/control.py`, `squatch/mergequeue.py`, `squatch/__main__.py`, `tests/test_daemon_pause.py`, and `tests/test_mergequeue.py`. `phase3-continue-09` owns `tickets` and `tests/test_seeded_phase3_09.py` and has no hooks. The next continuation must pin exact emitted identities and dependency edges (`dispatch-pause-boundary` depends on `phase3-continue-08`; `pause-resume-activation` depends on that boundary; `phase3-continue-09` depends on both), confirmed seed status, medium/medium tiers, 75m/150m budgets, the configured seeding cap, every existing fence path in Context, the exact new-path owners, max-effort render headroom, and successor suffix equality. It must name and preserve or migrate the predecessor contracts in `tests/test_daemon_composition.py`, `tests/test_daemon_tasks.py`, `tests/test_control.py`, and `tests/test_mergequeue.py`. `squatch/__main__.py` is existing Context for the CLI activation. Sibling-new paths remain outside Context.
+For the pause pair that `phase3-continue-08` will author, pin this exact ownership record and derive each seed fence as owns followed by hooks. The boundary owns its new test and hooks every existing daemon/control predecessor test it can affect. The activation additionally hooks the production composition harness and all merge/CLI predecessor surfaces it migrates.
+```yaml
+pause_ownership:
+  dispatch-pause-boundary:
+    owns:
+      - tests/test_daemon_pause.py
+    hooks:
+      - squatch/daemon.py
+      - squatch/control.py
+      - tests/test_daemon_tasks.py
+      - tests/test_control.py
+  pause-resume-activation:
+    owns:
+      - tests/test_control_cli.py
+    hooks:
+      - squatch/daemon.py
+      - squatch/control.py
+      - squatch/mergequeue.py
+      - squatch/__main__.py
+      - tests/test_daemon_pause.py
+      - tests/test_mergequeue.py
+      - tests/test_daemon_composition.py
+      - tests/test_daemon_tasks.py
+      - tests/test_control.py
+  phase3-continue-09:
+    owns:
+      - tickets
+      - tests/test_seeded_phase3_09.py
+    hooks: []
+```
+The next continuation must pin exact emitted identities and dependency edges (`dispatch-pause-boundary` depends on `phase3-continue-08`; `pause-resume-activation` depends on that boundary; `phase3-continue-09` depends on both), confirmed seed status, medium/medium tiers, 75m/150m budgets, the configured seeding cap, every existing fence path in Context, the exact new-path owners, max-effort render headroom, and successor suffix equality. It must name and preserve or migrate the predecessor contracts in `tests/test_daemon_composition.py`, `tests/test_daemon_tasks.py`, `tests/test_control.py`, and `tests/test_mergequeue.py`. The activation seed includes the then-existing composition harness and predecessor tests in its own Context. `squatch/__main__.py` is existing Context for the CLI activation. Sibling-new paths remain outside this continuation ticket's own Context, but after their owning dependencies merge they are existing Context for the pause seeds.
 
 control-inbox fences `tests/test_daemon_tasks.py` as a hook and runs it in Verification, keeping it out of Context because it is sibling-new. Both deliverable seeds preserve `tests/test_daemon_composition.py` unchanged and run it in Verification. Require tests/test_seeded_phase3_07.py to assert those exact predecessor-test closure requirements, the Context map and ownership records above, and the new-path owners. Their fences must not invalidate any predecessor outside these allowed edits.
 

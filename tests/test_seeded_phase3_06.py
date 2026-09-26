@@ -132,6 +132,23 @@ SUCCESSOR_NEW = {
     "squatch/control.py", "tests/test_daemon_tasks.py", "tests/test_control.py",
     "tests/test_seeded_phase3_08.py",
 }
+PAUSE_OWNERSHIP = {
+    "dispatch-pause-boundary": {
+        "owns": ["tests/test_daemon_pause.py"],
+        "hooks": ["squatch/daemon.py", "squatch/control.py",
+                  "tests/test_daemon_tasks.py", "tests/test_control.py"],
+    },
+    "pause-resume-activation": {
+        "owns": ["tests/test_control_cli.py"],
+        "hooks": ["squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py",
+                  "squatch/__main__.py", "tests/test_daemon_pause.py",
+                  "tests/test_mergequeue.py", "tests/test_daemon_composition.py",
+                  "tests/test_daemon_tasks.py", "tests/test_control.py"],
+    },
+    "phase3-continue-09": {
+        "owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": [],
+    },
+}
 
 
 def _path(stem):
@@ -348,6 +365,8 @@ def test_successor_pins_context_ownership_and_predecessor_test_closure():
 
 def test_successor_names_concrete_consumers_and_pause_seed_contract():
     scope = _section("phase3-continue-07", "Scope in")
+    blocks = _yaml_blocks("phase3-continue-07")
+    assert blocks[2] == {"pause_ownership": PAUSE_OWNERSHIP}
     for path in ("squatch/watcher.py", "squatch/scheduler.py", "squatch/triage.py",
                  "squatch/box.py", "squatch/rework.py"):
         assert path in SUCCESSOR_CONTEXT["background-consumers"]
@@ -356,9 +375,6 @@ def test_successor_names_concrete_consumers_and_pause_seed_contract():
         "merge callback consumes one post-admission handoff",
         "box callback performs one existing `Triage.run` pass",
         "shutdown await re-raises that exception after cancelling and awaiting the remaining tasks",
-        "`dispatch-pause-boundary` owns `tests/test_daemon_pause.py`",
-        "`pause-resume-activation` owns `tests/test_control_cli.py`",
-        "`phase3-continue-09` owns `tickets` and `tests/test_seeded_phase3_09.py`",
         "`dispatch-pause-boundary` depends on `phase3-continue-08`",
         "`pause-resume-activation` depends on that boundary",
         "`phase3-continue-09` depends on both",
@@ -366,6 +382,11 @@ def test_successor_names_concrete_consumers_and_pause_seed_contract():
         "`drain.max_ticket_minutes` 180",
     ):
         assert phrase in scope
+    assert "tests/test_daemon_composition.py" in PAUSE_OWNERSHIP["pause-resume-activation"]["hooks"]
+    for stem in ("dispatch-pause-boundary", "pause-resume-activation"):
+        hooks = PAUSE_OWNERSHIP[stem]["hooks"]
+        assert "tests/test_daemon_tasks.py" in hooks
+        assert "tests/test_control.py" in hooks
     assert "squatch/__main__.py" in SUCCESSOR_CONTEXT["phase3-continue-08"]
     criteria = _section("phase3-continue-07", "Acceptance criteria")
     for phrase in ("EXISTING_AT_AUTHORING sizes", "exact four-path NEW_AT_AUTHORING set",
@@ -383,8 +404,8 @@ def test_continuation_carries_two_exact_shrinking_suffixes():
     assert tuple(tuple(group) for group in parent[1]) == SUFFIX
     assert tuple(tuple(group) for group in parent[2]) == SUFFIX[1:]
     successor = _yaml_blocks("phase3-continue-07")
-    assert tuple(tuple(group) for group in successor[2]) == SUFFIX[1:]
-    assert tuple(tuple(group) for group in successor[3]) == SUFFIX[2:]
+    assert tuple(tuple(group) for group in successor[3]) == SUFFIX[1:]
+    assert tuple(tuple(group) for group in successor[4]) == SUFFIX[2:]
     assert "merge-queue-activation" not in {stem for group in successor[2] for stem in group}
     assert "rework-activation" not in {stem for group in successor[2] for stem in group}
 
