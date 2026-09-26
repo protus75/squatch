@@ -1,16 +1,15 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "rework-activation: drop 'wire the worker into the real production composition'. Say instead that the named function lives in squatch/daemon.py, so squatch.rework becomes reachable from squatch.__main__ through the existing squatch.daemon import.",
-    "rework-activation: tests/test_daemon_composition.py calls the named daemon.py function over a pipeline that compose_pipeline really builds. Calling it from __main__._locked is deferred to background-consumers; say so, and imply no main/runner call site.",
-    "rework-activation: remove squatch/__main__.py and squatch/runner.py from its Context unless a criterion needs them. Its fence cannot edit them, and this wording caused the contradiction the reviewer flagged.",
-    "rework-activation: name the source of every required Rework.__init__ keyword argument. repo is an explicit parameter of the daemon function. tier and effort are explicit parameters defaulting to the registry's medium/medium. Add no config key. Put this in both Scope in and the first criterion.",
-    "Before finishing, check that every constructor or signature the seed text names matches the real code (Rework.__init__, compose_merge_queue, compose_daemon_dispatch), and that every call site the seed text implies sits inside that seed's fence.",
-    "Update test_seeded_phase3_06.py to pin the rewritten rework text: the import-reachability claim, the deferral of the _locked call site, and the repo/tier/effort sources. Remove pins on the dropped 'production composition' wording and keep every earlier fix."
+    "merge-queue-activation Scope in: replace 'same journal approval lookup' with 'the same on-disk tickets/<stem>/review.md approval check (Merge._approval via load_review)'. Merge._approval reads no journal, and a journal lookup would be a second approval path.",
+    "Merge._approval requires verdict==approve and pinned==head. After MergeQueue rebases, the worktree HEAD no longer equals reviewed_sha. The integrate adapter must pass the pre-rebase head (e.g. Git.rev_parse of the worktree's ORIG_HEAD, or a head the regate adapter records) to Merge._approval.",
+    "Add a merge-queue-activation criterion: an approve pinned to the pre-rebase head integrates, and a stale or missing pin is refused. Keep mergequeue.py, daemon.py and git.py unfenced and unchanged, because Candidate carries only stem/branch/worktree/run_seq.",
+    "Update test_seeded_phase3_06.py: drop the 'same journal approval lookup' phrase pin. Pin the review.md approval wording, the pre-rebase-head source and the new criterion. Keep every earlier pinned fix.",
+    "Before finishing, open merge.py, mergequeue.py and git.py and check each operation, data source and signature the seed text names against the real code. Six attempts have failed on seed claims that did not match merged code."
   ],
-  "reason": "The review findings are specific, fixable wording and consistency defects in the rework-activation seed, and each comes with a concrete fix; nothing shows the ticket itself cannot be satisfied.",
+  "reason": "Both findings have concrete fixes, but after six attempts the implementer is still writing seed claims that contradict merged code (journal vs review.md, head moved by the rebase), even though earlier lessons said to check them. More capability should help.",
   "detail": null
 }
