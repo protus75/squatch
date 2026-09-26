@@ -1,14 +1,16 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Do not list the `tickets` directory in phase3-continue-04's Context. requisition_review reads each Context path as a file, so a directory there crashes it with IsADirectoryError. Leave `tickets` out of EXISTING_AT_AUTHORING, as tests/test_seeded_phase3_core.py does.",
-    "Only existing FILE fence paths need to be in Context. Keep the fence-in-Context loop limited to the files listed in EXISTING_AT_AUTHORING: squatch/providers.py, squatch/config.py and tests/test_providers.py for thresh-runtime; phase3-continue-04 has none.",
-    "run.md `## Outcome` must be exactly one Outcome value, for example `ok`, not `implemented`. Keep the six required section headings exactly as named.",
-    "The committed test and the seed content were otherwise sound: exact edges, tiers, budgets, fences, ownership and suffix. Keep them and change only the Context entry and the run-record outcome."
+    "Keep the thresh-runtime seed, its edges, tiers, budgets, fences, ownership and suffix as they are. Every finding is about phase3-continue-04's ticket text, so fix only that ticket and the matching assertions in tests/test_seeded_phase3_03.py.",
+    "Give phase3-continue-04 a Context of existing FILES only, never the `tickets` directory: tickets/thresh-runtime/ticket.md, tickets/phase3-continue-03/ticket.md and tests/test_seeded_phase3_03.py. Add their byte sizes to EXISTING_AT_AUTHORING so the render-headroom check covers them.",
+    "Add a phase3-continue-04 criterion: tests/test_seeded_phase3_04.py pins each emitted ticket (dispatch-admission-boundary, dispatch-config-snapshot, phase3-continue-05) at medium/medium, source seed, state confirmed, with budgets within drain.max_ticket_minutes.",
+    "Add a phase3-continue-04 criterion: the 04 test asserts every fence path that exists on main is in that seed's Context. Map each new path in the dispatch pair's fence to its registry owner: squatch/daemon.py, squatch/config.py, tests/test_daemon_admission.py, tests/test_daemon_config.py.",
+    "Add a phase3-continue-04 criterion for predecessor-test closure: no fence in the dispatch pair may invalidate an existing test's assertions unless that test is also fenced. The run record's claim that Context had to be empty was wrong; only the directory entry must be left out.",
+    "Keep the run.md `## Outcome` to one exact Outcome value, e.g. `ok`, and re-run both pytest commands."
   ],
-  "reason": "Two fixable implementer mistakes: `tickets` was listed as a Context file, which crashed the requisition gate, and the run-record outcome value was invalid.",
+  "reason": "The only failures are requisition_review findings on missing phase3-continue-04 criteria and its empty Context, and each finding gives a concrete fix within the fence.",
   "detail": null
 }
