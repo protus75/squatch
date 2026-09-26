@@ -1,22 +1,16 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-The registry names the dispatch pair's aggregate fence but not an ownership split. I assigned the new daemon admission seam and its focused test to `dispatch-admission-boundary`; the dependent snapshot owns its new test and hooks the daemon and existing config module.
+Only `squatch/config.py` exists on main among the dispatch-pair fences, so it is the sole dispatch Context path. The successor Context uses the already-existing continuation ticket and excludes this ticket's newly created proof.
 
 ## Dead ends
-
-The first focused-test run exposed a doubled regex escape and acceptance criteria without observable fenced artifacts; both were corrected before verification.
+The first focused run exposed an over-escaped emitted-ticket regex and successor criteria without lint-visible artifacts; both were corrected before rerunning.
 
 ## Second problems filed
 
-
 ## Resolved engine/model
-
-codex / GPT-5
+codex / model not reported by the serving environment
 
 ## Predicted vs actual
-
-Expected 75m; actual about 15m.
+Expected 75m; actual approximately 15m.
