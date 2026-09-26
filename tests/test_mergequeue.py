@@ -3,6 +3,11 @@
 import asyncio
 import inspect
 import os
+import sys
+
+import squatch.merge as merge_module
+from test_stages import PLAN, TICKET, run_record
+from squatch.stages import Verification
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -576,10 +581,197 @@ def test_additive_composition_hook_does_not_change_phase1_composition(tmp_path):
             integration_check=green, integrate=lambda candidate: _nothing())
     assert isinstance(pipeline, Pipeline) and isinstance(pipeline.merge, Merge)
     assert isinstance(dormant, MergeQueue)
-    assert not hasattr(pipeline, "merge_queue")
+    assert isinstance(pipeline.merge_queue, MergeQueue)
+    assert Pipeline(pipeline.stages, pipeline.merge).merge_queue is None
 
 
 def test_mergequeue_has_no_scheduler_or_watcher_dependency():
     source = Path(mergequeue_module.__file__).read_text()
     assert "squatch.scheduler" not in source and "squatch.watcher" not in source
     assert inspect.getsource(git_module.Git.rebase).count("rebase_abort") == 1
+
+
+async def adapter_repo(tmp_path, *, fail_on=0):
+    repo, env, git = await fixture_repo(tmp_path, path="squatch/existing.py")
+    command = (f'{sys.executable} -c "from pathlib import Path; import os; '
+               "assert 'PROVIDER_KEY' not in os.environ; "
+               "p=Path('verification-count'); n=int(p.read_text())+1 if p.exists() else 1; "
+               f"p.write_text(str(n)); raise SystemExit(int(n == {fail_on} "
+               "and Path('squatch/widget.py').exists()))\"")
+    ticket_dir = repo / "tickets/candidate"
+    ticket_dir.mkdir(parents=True)
+    (ticket_dir / "ticket.md").write_text(TICKET.format(
+        verify=command, frontmatter="state: confirmed").replace(
+            "- none", "- prerequisite"))
+    dependency = repo / "tickets/prerequisite/ticket.md"
+    dependency.parent.mkdir()
+    dependency.write_text(TICKET.format(verify=command, frontmatter="state: confirmed"))
+    (repo / "SQUATCH_PLAN.md").write_text(PLAN)
+    await git.add(repo, ["tickets/candidate/ticket.md", "tickets/prerequisite/ticket.md",
+                         "SQUATCH_PLAN.md"])
+    await git.commit(repo, "ticket plane")
+    worktree = tmp_path / "candidate"
+    await git.worktree_add(repo, worktree, "candidate", "main")
+    (worktree / "squatch/widget.py").write_text("WIDGET = 1\n")
+    await git.add(worktree, ["squatch/widget.py"])
+    reviewed = await git.commit(worktree, "widget")
+    (worktree / "tickets/candidate/run.md").write_text(run_record())
+    (ticket_dir / "review.md").write_text(
+        f"---\nverdict: approve\nreviewed_sha: {reviewed}\n---\n")
+    return repo, env, git, Candidate(stem="candidate", branch="candidate",
+                                    worktree=worktree, run_seq=7), reviewed
+
+
+def adapter_config():
+    return parse({
+        "schema_version": 1, "state_dir": ".state", "routing": [],
+        "drain": {"max_ticket_minutes": 13},
+        "providers": [{"name": "claude", "kind": "cli", "auth": "PROVIDER_KEY",
+                       "models_by_tier": dict.fromkeys(("low", "medium", "high", "max"), "m"),
+                       "limits": {"concurrency": 1}}],
+    }, source="test")
+
+
+@pytest.mark.parametrize("case", ["moved", "orig_absent", "orig_stale", "stale", "missing",
+                                  "regate_red", "integration_red"])
+async def test_concrete_adapters_approval_verification_and_squash(tmp_path, monkeypatch, case):
+    repo, env, git, candidate, reviewed = await adapter_repo(
+        tmp_path, fail_on={"regate_red": 1, "integration_red": 2}.get(case, 0))
+    review_path = repo / "tickets/candidate/review.md"
+    if case == "missing":
+        review_path.unlink()
+    elif case == "stale":
+        review_path.write_text("---\nverdict: approve\nreviewed_sha: stale\n---\n")
+    if case == "moved":
+        (repo / "squatch/existing.py").write_text("main moved\n")
+        await git.add(repo, ["squatch/existing.py"])
+        await git.commit(repo, "advance main after review")
+    if case.startswith("orig_"):
+        original_rebase = git.rebase_stop_at_conflict
+
+        async def rebase(worktree, onto):
+            await original_rebase(worktree, onto)
+            assert await git.rev_parse(worktree, "HEAD") == reviewed
+            # Model Git versions leaving ORIG_HEAD absent or stale on a no-op rebase.
+            await git._run(worktree, "update-ref", "-d", "ORIG_HEAD")
+            if case == "orig_stale":
+                await git._run(worktree, "update-ref", "ORIG_HEAD",
+                               await git.rev_parse(repo, "main"))
+            else:
+                with pytest.raises(GitError):
+                    await git.rev_parse(worktree, "ORIG_HEAD")
+
+        monkeypatch.setattr(git, "rebase_stop_at_conflict", rebase)
+    before = await git.rev_parse(repo, "main")
+    invoices, checks, squashes, constructions = [], [], [], []
+    original_regate, original_squash = Merge._regate, Merge._squash
+    original_check, original_compose = Verification.check, merge_module.compose_merge_queue
+
+    async def regate(self, ticket, slip, worktree, run_seq):
+        assert ticket.stem == candidate.stem and ticket.depends == ("prerequisite",)
+        assert slip.base == before and slip.head == await git.rev_parse(worktree, "HEAD")
+        assert slip.branch == candidate.branch and slip.stem == candidate.stem
+        assert slip.verdict == "implemented" and slip.summary == ticket.goal
+        assert slip.produced_at_sha == slip.head
+        assert slip.produced_by_spec_version == merge_module.MERGE_VERSION
+        assert run_seq == candidate.run_seq
+        invoice = await original_regate(self, ticket, slip, worktree, run_seq)
+        invoices.append((ticket, slip, invoice))
+        return invoice
+
+    async def check(self, slip, worktree):
+        checks.append((self, slip, worktree))
+        return await original_check(self, slip, worktree)
+
+    async def squash(self, ticket, invoice, reviewed_sha, run_seq):
+        assert ticket is invoices[0][0] and invoice is invoices[0][2]
+        assert reviewed_sha == reviewed and run_seq == candidate.run_seq
+        squashes.append(invoice)
+        return await original_squash(self, ticket, invoice, reviewed_sha, run_seq)
+
+    def construct(**kwargs):
+        q = original_compose(**kwargs)
+        constructions.append(q)
+        return q
+
+    monkeypatch.setattr(Merge, "_regate", regate)
+    monkeypatch.setattr(Merge, "_squash", squash)
+    monkeypatch.setattr(Verification, "check", check)
+    monkeypatch.setattr(merge_module, "compose_merge_queue", construct)
+    env = {**env, "PROVIDER_KEY": "secret-value", "KEEP_ME": "yes"}
+    with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
+        process = SubprocessExec()
+        pipeline = compose_pipeline(repo=repo, config=adapter_config(), env=env, journal=journal,
+                                    clock=lambda: datetime.now(timezone.utc), process=process,
+                                    fs=LocalFilesystem(), git=git)
+        q = pipeline.merge_queue
+        assert constructions == [q] and isinstance(q, MergeQueue)
+        assert type(q) is not MergeQueue
+        assert q._timeout == 13 * 60
+        assert q._env == {k: v for k, v in env.items() if k != "PROVIDER_KEY"}
+        result = await q.admit(candidate)
+        assert q.admission_state == {} and not q._slot.locked()
+
+    refused = case in {"stale", "missing", "regate_red", "integration_red"}
+    assert result.outcome == ("gate_failed" if refused else "integrated"), result.findings
+    if refused:
+        assert not squashes and await git.rev_parse(repo, "main") == before
+        assert result.findings[0].code == (
+            "correctness_review" if case in {"stale", "missing"} else "verification")
+    else:
+        assert len(squashes) == 1
+        trailer = await git._run(repo, "log", "-1",
+                                "--format=%(trailers:key=squatch-reviewed-sha,valueonly)")
+        assert trailer.strip() == reviewed
+        assert result.checked_tree == await git.rev_parse(repo, "main^{tree}")
+    if case == "moved":
+        assert await git.rev_parse(candidate.worktree, "HEAD") != reviewed
+    expected_checks = 0 if case in {"stale", "missing"} else 1 if case == "regate_red" else 2
+    assert len(checks) == expected_checks
+    if checks:
+        assert (candidate.worktree / "verification-count").read_text() == str(expected_checks)
+        for gate, slip, worktree in checks:
+            assert gate._ticket is invoices[0][0] and slip is invoices[0][1]
+            assert gate._process is process and gate._env == q._env
+            assert gate._redact is pipeline.merge._redact and worktree == candidate.worktree
+
+
+@pytest.mark.parametrize("failure", ["exception", "cancel", "approval_changed"])
+async def test_concrete_adapter_state_unwinds_after_invoice(tmp_path, monkeypatch, failure):
+    repo, env, git, candidate, _ = await adapter_repo(tmp_path)
+    before = await git.rev_parse(repo, "main")
+    reached = asyncio.Event()
+    original = Verification.check
+    calls = 0
+
+    async def check(self, slip, workspace):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            state = q.admission_state[candidate.stem, candidate.run_seq]
+            assert state.invoice is not None and state.slip is slip
+            assert state.ticket is self._ticket and state.reviewed_head
+            reached.set()
+            if failure == "exception":
+                raise RuntimeError("integration failed")
+            if failure == "cancel":
+                await asyncio.Event().wait()
+            (repo / "tickets/candidate/review.md").unlink()
+        return await original(self, slip, workspace)
+
+    monkeypatch.setattr(Verification, "check", check)
+    with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
+        pipeline = compose_pipeline(repo=repo, config=config(), env=env, journal=journal,
+                                    clock=lambda: datetime.now(timezone.utc),
+                                    process=SubprocessExec(), fs=LocalFilesystem(), git=git)
+        q = pipeline.merge_queue
+        task = asyncio.create_task(q.admit(candidate))
+        if failure == "cancel":
+            await asyncio.wait_for(reached.wait(), 10)
+            task.cancel()
+        error = {"exception": RuntimeError, "cancel": asyncio.CancelledError,
+                 "approval_changed": ValueError}[failure]
+        with pytest.raises(error):
+            await task
+        assert reached.is_set() and q.admission_state == {} and not q._slot.locked()
+    assert await git.rev_parse(repo, "main") == before

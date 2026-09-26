@@ -30,6 +30,7 @@ from squatch.enginelog import EngineLog
 from squatch.gates import GateReport, run_gates
 from squatch.git import Git, GitError, RebaseConflict
 from squatch.journal import Journal
+from squatch.mergequeue import Candidate, MergeQueue
 from squatch.providers import child_env
 from squatch.redact import Redactor
 from squatch.runner import SETTLED
@@ -37,7 +38,7 @@ from squatch.seeds import SEED_LIFT_SIGNAL, blob_sha
 from squatch.seams import Clock, Filesystem, ProcessExec
 from squatch.stages import (REVIEW, Delivery, DiffBudget, Invoice, PackingSlip, RunRecord,
                             ScopeFence, Stages, Verification, build_invoice, compose, load_review)
-from squatch.tickets import TICKETS_DIR, Ticket
+from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, Ticket, lint_ticket
 
 MERGE_VERSION = "1.0"
 REGATE = "post_rebase_regate"
@@ -355,9 +356,10 @@ class Pipeline:
     seam: a settled delivery is admitted; any other stage terminal is the
     run's outcome, the admission never reached."""
 
-    def __init__(self, stages: Stages, merge: Merge):
+    def __init__(self, stages: Stages, merge: Merge, merge_queue: MergeQueue | None = None):
         self.stages = stages
         self.merge = merge
+        self.merge_queue = merge_queue
         self.diagnoser = Diagnoser(stages)
 
     async def run(self, ticket: Ticket, *, run_seq: int) -> Delivery:
@@ -385,16 +387,75 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
                   effects=Effects(journal), journal=journal,
                   log=EngineLog(repo / config.state_dir, clock=clock, redact=redact),
                   redact=redact, clock=clock, env=env)
-    return Pipeline(stages, merge)
+    async def regate(candidate: Candidate):
+        state = queue.admission_state[candidate.stem, candidate.run_seq]
+        findings = merge._approval(candidate.stem, state.reviewed_head)
+        if findings:
+            return findings
+        path = repo / TICKETS_DIR / candidate.stem / TICKET_FILE
+        plan = repo / PLAN_FILE
+        state.ticket = lint_ticket(
+            path.read_text(), stem=candidate.stem, repo=repo,
+            plan=plan.read_text() if plan.is_file() else None,
+            resolve_stem=lambda stem: (repo / TICKETS_DIR / stem / TICKET_FILE).is_file())
+        head = await git.rev_parse(candidate.worktree, "HEAD")
+        state.slip = PackingSlip(
+            stem=candidate.stem, branch=candidate.branch, verdict="implemented",
+            summary=state.ticket.goal, base=await git.rev_parse(repo, "main"), head=head,
+            produced_by_spec_version=MERGE_VERSION, produced_at_sha=head)
+        state.invoice = await merge._regate(
+            state.ticket, state.slip, candidate.worktree, candidate.run_seq)
+        return state.invoice.hard_findings
+
+    async def integration_check(candidate: Candidate):
+        state = queue.admission_state[candidate.stem, candidate.run_seq]
+        verification = Verification(git, repo, process, state.ticket, merge._child_env, redact)
+        return (await verification.check(state.slip, candidate.worktree)).findings
+
+    async def integrate(candidate: Candidate):
+        state = queue.admission_state[candidate.stem, candidate.run_seq]
+        findings = merge._approval(candidate.stem, state.reviewed_head)
+        if findings:
+            raise ValueError(findings[0].message)
+        review = load_review((repo / TICKETS_DIR / candidate.stem / REVIEW).read_text())
+        await merge._squash(state.ticket, state.invoice, review["reviewed_sha"],
+                            candidate.run_seq)
+
+    queue = compose_merge_queue(
+        repo=repo, config=config, env=env, journal=journal, process=process, fs=fs, git=git,
+        regate=regate, integration_check=integration_check, integrate=integrate)
+    return Pipeline(stages, merge, queue)
+
+
+@dataclass
+class _AdmissionState:
+    reviewed_head: str
+    ticket: Ticket | None = None
+    slip: PackingSlip | None = None
+    invoice: Invoice | None = None
+
+
+class _ReviewedMergeQueue(MergeQueue):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.admission_state: dict[tuple[str, int], _AdmissionState] = {}
+
+    async def admit(self, candidate: Candidate):
+        key = candidate.stem, candidate.run_seq
+        try:
+            # Capture before waiting: only this admission moves its worktree.
+            self.admission_state[key] = _AdmissionState(
+                await self._git.rev_parse(candidate.worktree, "HEAD"))
+            return await super().admit(candidate)
+        finally:
+            self.admission_state.pop(key, None)
 
 
 def compose_merge_queue(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
                         process: ProcessExec, fs: Filesystem, git: Git,
                         regate, integration_check, integrate):
     """Build the dormant Phase 3 admission queue without activating it."""
-    from squatch.mergequeue import MergeQueue
-
-    return MergeQueue(
+    return _ReviewedMergeQueue(
         repo=repo, config=config, git=git, process=process, fs=fs, journal=journal,
         env=child_env(env, {p.auth for p in config.providers if p.auth}),
         regate=regate, integration_check=integration_check, integrate=integrate,

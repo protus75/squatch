@@ -2,15 +2,24 @@
 
 import argparse
 import asyncio
+from datetime import datetime, timezone
+from io import StringIO
 
 import pytest
 
 from squatch.__main__ import _parser
+import squatch.__main__ as main_module
+from squatch.artifacts import Cost
 from squatch.config import Config, parse
 from squatch.daemon import (DaemonDispatch, DispatchAdmission,
                             compose_daemon_dispatch)
 from squatch.scheduler import Scheduler
+from squatch.merge import Pipeline
+from squatch.mergequeue import MergeQueue
+from squatch.stages import Delivery
 from squatch.watcher import Watcher
+from test_mergequeue import fixture_repo
+from test_stages import PLAN, TICKET
 
 
 def config(*, max_unmerged: int = 2) -> Config:
@@ -83,3 +92,44 @@ async def test_composition_dispatches_through_admission_with_latest_priority_and
     assert calls == [("running", 2), ("priority", 7), ("next", 7)]
     assert supplier_calls == 3
     assert maximum_active == 1
+
+
+def test_main_factory_and_runner_dispatch_receive_production_queue(tmp_path, monkeypatch):
+    async def setup():
+        repo, env, git = await fixture_repo(tmp_path, path="squatch/existing.py")
+        (repo / "SQUATCH_PLAN.md").write_text(PLAN)
+        (repo / "config.yaml").write_text(
+            "schema_version: 1\nstate_dir: .state\nproviders: []\nrouting: []\n")
+        path = repo / "tickets/candidate/ticket.md"
+        path.parent.mkdir(parents=True)
+        path.write_text(TICKET.format(verify="python -V", frontmatter="state: confirmed"))
+        await git.add(repo, ["SQUATCH_PLAN.md", "config.yaml"])
+        await git.commit(repo, "host configuration")
+        return repo, env
+
+    repo, env = asyncio.run(setup())
+    constructed, dispatched = [], []
+    original = main_module.compose_pipeline
+
+    def compose(**kwargs):
+        pipeline = original(**kwargs)
+        constructed.append(pipeline)
+        assert any(e.ticket == "candidate" and e.body.get("to") == "running"
+                   for e in kwargs["journal"].read())
+        return pipeline
+
+    async def run(self, ticket, *, run_seq):
+        dispatched.append(self)
+        assert ticket.stem == "candidate" and isinstance(self.merge_queue, MergeQueue)
+        return Delivery(outcome="already_satisfied", findings=[], slip=None, invoice=None,
+                        review=None, worktree=repo, base="", stage="check", reason=None,
+                        cost=Cost(tokens=0, seconds=0, attempts=0))
+
+    monkeypatch.setattr(main_module, "compose_pipeline", compose)
+    monkeypatch.setattr(Pipeline, "run", run)
+    out = StringIO()
+    result = main_module.main(["run", "candidate"], cwd=repo, env=env, out=out,
+                              clock=lambda: datetime.now(timezone.utc))
+    assert result == 0, out.getvalue()
+    assert len(constructed) == 1 and dispatched == constructed
+    assert isinstance(constructed[0].merge_queue, MergeQueue)
