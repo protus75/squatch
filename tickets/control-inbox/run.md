@@ -2,16 +2,14 @@
 ok
 
 ## Surprises / judgment calls
-The clarified fence authorizes the filesystem seam. Publication is a module-level operation that never opens or reads a Journal; the lock holder alone constructs ControlInbox. Applied markers make replay after a crash following mutation exactly once.
+The journal and governed mutation cannot share an atomic transaction, so the accepted decision is the sole commit point and mutation replay is explicitly idempotent by request ID. Terminal stale, conflict, and invalid outcomes are also replay-safe.
 
 ## Dead ends
-None.
 
 ## Second problems filed
-None.
 
 ## Resolved engine/model
-OpenAI / GPT-5 (Codex).
+OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected: 75 minutes. Actual: approximately 20 minutes.
+Expected 75m; actual approximately 30m.
