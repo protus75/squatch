@@ -1,0 +1,133 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "cc80c99dbdc386dc2402a4f6fdea0f4583f672b9",
+  "stem": "phase3-continue-02",
+  "branch": "phase3-continue-02",
+  "base": "fb6287872712972487ced2259cb10a064a7e9150",
+  "head": "cc80c99dbdc386dc2402a4f6fdea0f4583f672b9",
+  "changed_files": [
+    "tests/test_seeded_phase3_02.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-03/ticket.md",
+      "sha": "f8890312c3b5a21e9692413c4198cce9ce37832a",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-03/ticket.md",
+          "line": null,
+          "message": "The criteria say 'correct dependency edge' and 'bounded budgets' but never pin the exact values. Section 20 requires each continuation to pin its exact emitted identities, edges, tier, and budget. Under this wording the test could pass with a wrong edge, for example thresh-runtime not depending on rework-stage, or phase3-continue-04 not depending on thresh-runtime. It could also pass with a wrong tier: thresh-runtime must be high/high and phase3-continue-04 must be medium/medium.",
+          "paved_road": "State the exact Depends on tuple for each emitted seed, its (agent_tier, agent_effort) pair, and its expected/stuck minutes. Require the test to assert each of them for thresh-runtime and phase3-continue-04, with stuck_minutes <= config.drain.max_ticket_minutes."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-03/ticket.md",
+          "line": null,
+          "message": "Section 20 requires each continuation to name each new module's registry owner. No criterion does this for thresh-runtime's new files (squatch/thresh.py and tests/test_thresh.py). No criterion pins the thresh-runtime fence to the registry entry: squatch/thresh.py, squatch/providers.py, squatch/config.py, tests/test_thresh.py, tests/test_providers.py.",
+          "paved_road": "Add a criterion requiring the test to assert that the thresh-runtime scope_fence equals the exact section 20 registry tuple, and that thresh-runtime is recorded as the owner of squatch/thresh.py and tests/test_thresh.py."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-03/ticket.md",
+          "line": null,
+          "message": "No criterion requires the test to check that every existing fence path of an emitted seed appears in its Context. For thresh-runtime these paths are squatch/providers.py, squatch/config.py, and tests/test_providers.py. No criterion requires the predecessor-test closure check either. Section 20 requires both for every continuation, and tests/test_seeded_phase3_core.py shows the pattern (EXISTING_AT_AUTHORING plus the fence-in-Context loop).",
+          "paved_road": "Add criteria requiring tests/test_seeded_phase3_03.py to pin the existing-at-authoring paths and assert that each existing fence entry of each emitted seed is in its Context. It must also assert that existing predecessor tests whose behavior thresh-runtime would contradict, such as tests/test_providers.py, are inside the thresh-runtime fence."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/rework-stage/ticket.md",
+      "sha": "ec654c365a8b1a2546be8d268549a4d6bb48eb2b",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/rework-stage/ticket.md",
+          "line": null,
+          "message": "The first two acceptance criteria are proven only by `tests/test_rework.py`, but the `## Verification` block runs only `uv run pytest tests/test_mergequeue.py -q`. The Check stage would therefore pass without ever running the tests for update/split/escalate, supersedes, or consuming the handoff after unwind.",
+          "paved_road": "Add `uv run pytest tests/test_rework.py -q` to `## Verification`, and add an acceptance criterion saying it exits 0, next to the existing merge-queue command."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/rework-stage/ticket.md",
+          "line": null,
+          "message": "The ownership block and fence declare `squatch/mergequeue.py` as a hook, but Scope out forbids any merge-queue behavior change, and no criterion says what edit, if any, the hook allows. The existing `UnresolvedConflictHandoff` and `MergeQueue.next_rework()` already provide the post-unwind consumption seam. Leaving the permitted edit unstated makes the scope-escape boundary ambiguous for Implement.",
+          "paved_road": "State in Scope in exactly what the hook allows: either no edit, with Rework consuming `MergeQueue.next_rework()` and importing `UnresolvedConflictHandoff` unchanged, or the specific non-behavioral wiring allowed. Add a criterion that the existing `tests/test_mergequeue.py` passes unedited."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase3_02.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
