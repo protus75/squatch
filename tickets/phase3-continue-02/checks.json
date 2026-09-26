@@ -1,33 +1,31 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "bbdb6ce879ffa09fd89a5be889f75f7a93d8f88a",
+  "produced_at_sha": "2f904491c930207acaccafb79fee5101dd620f47",
   "stem": "phase3-continue-02",
   "branch": "phase3-continue-02",
-  "base": "54bbb535488c773b18107cd7b9a74717efe14d41",
-  "head": "bbdb6ce879ffa09fd89a5be889f75f7a93d8f88a",
+  "base": "bd1ab905d75ac55fceda61266fda5d407b2573fd",
+  "head": "2f904491c930207acaccafb79fee5101dd620f47",
   "changed_files": [
     "tests/test_seeded_phase3_02.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase3-continue-03/ticket.md",
-      "sha": "c44bff9e6fa975c9209ce47241dcda0e5f75691a",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": "tickets/rework-stage/ticket.md",
-      "sha": "18d5cbce5f6382157f1cc9a9bb33faf390551a47",
+      "sha": "e5a5021198774add0480422aeb10602f24e0c211",
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/rework-stage/ticket.md",
+          "line": null,
+          "message": "Acceptance criterion 1 requires 'the specified Rework outcomes' for update, split, and escalate, but the ticket never defines them. The only text that would define them is `specs/rework.md`, which this same ticket creates, so the criterion defines itself. The plan-fixed properties of the stage are missing: Rework is an LLM stage (`rework` is already in `squatch/llm.py` LLM_SURFACES) that emits ONE composite rework-order artifact (updated ticket, split tickets, and/or an escalation element). The escalation element is consumed by the ladder's journal-derived rung and is never written into ticket frontmatter. The consumed handoff carries `approval_invalidated=True`, which forces re-review. Split children record a supersedes link to the stem they replace. Without these, a known-deep implementation can pass with any outcome shape.",
+          "paved_road": "Restate criterion 1 as separate checkable assertions in `tests/test_rework.py`. (a) `specs/rework.md` lints through `squatch.specs.load_spec` as surface `rework` with a single composite rework-order `emits` type. (b) Under the fake LLM, an update order yields an updated ticket for the handoff stem. (c) A split order yields child tickets, each with a supersedes link to the parent stem. (d) An escalate order yields an escalation element with ticket frontmatter left unchanged. (e) Every consumed `UnresolvedConflictHandoff` keeps its approval invalidated, so the resulting work is re-reviewed. Keep the rest of the fence, Context, and scope-out exactly as authored."
+        }
+      ],
       "commands": []
     },
     {
