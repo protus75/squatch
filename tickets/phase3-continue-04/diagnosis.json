@@ -1,16 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep the passing parts: the batch identity, the dependency chain, medium/medium 75/150 budgets, main-only Context and the YAML suffix. Requisition review failed only on the content of the authored seed tickets.",
-    "dispatch-config-snapshot: replace 'read through the configured seam' with a concrete, checkable seam. Preferred: build the snapshot from the Config returned by the unchanged config.load/parse, and have the test call the snapshot constructor directly.",
-    "dispatch-config-snapshot's fence leaves out tests/test_daemon_admission.py but edits squatch/daemon.py. Either fence that predecessor test and name which admission assertions may migrate, or add a criterion that the daemon hook is purely additive and admission signatures and behavior stay unchanged.",
-    "The registry lists one shared path set for the dispatch pair. Decide whether each fence carries both daemon tests, then update FENCES and the ownership pins in tests/test_seeded_phase3_04.py to match the tickets exactly.",
-    "phase3-continue-05's review reply was truncated. It still flagged thin criteria and Scope in for a continuation emitting the KNOWN-DEEP scheduler-activation seed, and a Context that leaves out the scheduler test (tests/test_scheduler.py) the activation will invalidate.",
-    "Give phase3-continue-05 the full section 20 continuation criteria: pin tier/budget, check existing fence paths against Context, name registry owners, check predecessor-test closure, carry the suffix, and add main-existing scheduler paths to Context. Verify every path with git ls-tree main."
+    "dispatch-admission-boundary: remove squatch/config.py from Scope in, the ownership hooks, the Scope fence and Context. No plan text names a config field the boundary uses. All config work belongs to dispatch-config-snapshot.",
+    "dispatch-admission-boundary: drop acceptance criterion 4, the vague config-hook and unchanged-config claim. tests/test_config.py already covers config behavior, and the hook it limits is never defined.",
+    "phase3-continue-05: add an explicit predecessor-test closure criterion. tests/test_seeded_phase3_05.py must prove no scheduler-activation fence path invalidates an unfenced existing test, including tests/test_daemon_admission.py and tests/test_daemon_config.py.",
+    "Update tests/test_seeded_phase3_04.py to match: change FENCES and the ownership pin for dispatch-admission-boundary (owns daemon.py and its test, no hooks), and change the Context pin for dispatch-admission-boundary, which becomes empty or other main-existing paths.",
+    "Keep the parts that passed: the batch identity, the dependency chain, medium/medium 75/150 budgets, the config-snapshot fencing of tests/test_daemon_admission.py, the YAML suffix, and main-only Context checked with git ls-tree main."
   ],
-  "reason": "Requisition review found fixable authoring gaps in two of the emitted seed tickets: a vague seam criterion, a missing predecessor test in a fence, and thin successor criteria/Context. The findings name each fix.",
+  "reason": "Check failed only on fixable requisition-review content findings with explicit paved roads; the approach is otherwise sound.",
   "detail": null
 }
