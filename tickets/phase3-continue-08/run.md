@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The repaired section 20 compact registry includes `squatch/drain.py` and `tests/test_drain.py`, so the boundary can close over the retry-draw accounting path. `tests/test_daemon_pause.py` is an owned new path, so the activation ticket fences and names its migrated contract without placing a non-existent sibling-new file in Context.
+`pause-resume-activation` names `tests/test_daemon_pause.py` as Context because its dependency creates that predecessor; it is therefore intentionally not linted at this pre-dependency base, while its exact Context and fence are pinned structurally.
 
 ## Dead ends
 
@@ -16,8 +16,8 @@ None.
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity not exposed).
+OpenAI Codex (GPT-5).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 15m.
+Expected 75m; actual about 10m.
