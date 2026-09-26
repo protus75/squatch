@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Generic, TypeVar, cast
 
 from squatch.config import Config, Tier, snapshot
+from squatch.control import ControlInbox, Mutation
 from squatch.driver import Driver
 from squatch.journal import Journal
 from squatch.llm import Effort
@@ -106,6 +107,12 @@ def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,
                   driver=driver, spec=spec, tier=tier, effort=effort)
 
 
+def compose_daemon_control(*, state_dir: Path, journal: Journal,
+                           fs: Filesystem) -> ControlInbox:
+    """Compose control intake with the daemon's already lock-held Journal."""
+    return ControlInbox(state_dir, journal=journal, fs=fs)
+
+
 def watcher_consumer(watcher: Watcher, priority_snapshot: PrioritySnapshot) -> ConsumerCallback:
     """Build one deferred priority observation pass."""
     async def consume() -> None:
@@ -130,12 +137,20 @@ def box_consumer(triage: Triage, spec: Spec) -> ConsumerCallback:
     return consume
 
 
+def control_consumer(inbox: ControlInbox, mutate: Mutation) -> ConsumerCallback:
+    """Build one deferred pass through the lock holder's control inbox."""
+    async def consume() -> None:
+        await inbox.consume(mutate)
+
+    return consume
+
+
 class DaemonTasks:
     """Own the daemon's repeating background consumer tasks."""
 
     def __init__(self, *, watcher: ConsumerCallback, merge: ConsumerCallback,
-                 box: ConsumerCallback) -> None:
-        self._callbacks = (watcher, merge, box)
+                 box: ConsumerCallback, control: ConsumerCallback) -> None:
+        self._callbacks = (watcher, merge, box, control)
         self._tasks: tuple[asyncio.Task[None], ...] = ()
 
     def start(self) -> None:

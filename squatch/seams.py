@@ -8,6 +8,7 @@ minimal shape its consumers need and grows only with a consumer.
 import asyncio
 import os
 import signal
+import uuid
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
@@ -42,6 +43,22 @@ class Filesystem(Protocol):
 
     def unlink(self, path: Path) -> None:
         """Remove one file."""
+        ...
+
+    def publish(self, path: Path, data: bytes) -> None:
+        """Durably publish a whole file without replacing an existing path."""
+        ...
+
+    def read(self, path: Path) -> bytes:
+        """Read one whole file."""
+        ...
+
+    def list(self, directory: Path, pattern: str) -> tuple[Path, ...]:
+        """Return matching paths in stable name order."""
+        ...
+
+    def remove(self, path: Path) -> None:
+        """Durably remove one file."""
         ...
 
 
@@ -122,3 +139,65 @@ class LocalFilesystem:
 
     def unlink(self, path: Path) -> None:
         os.unlink(path)
+
+    def publish(self, path: Path, data: bytes) -> None:
+        """Link a synced temporary file into place, then sync the directory."""
+        path = Path(path)
+        directory = path.parent
+        existed = directory.exists()
+        directory.mkdir(parents=True, exist_ok=True)
+        if not existed:
+            _fsync_directory(directory.parent)
+        tmp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        linked = False
+        tmp_exists = False
+        try:
+            with tmp.open("xb") as fh:
+                tmp_exists = True
+                fh.write(data)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.link(tmp, path)
+            linked = True
+            _fsync_directory(directory)
+            os.unlink(tmp)
+            tmp_exists = False
+            _fsync_directory(directory)
+        except BaseException:
+            if linked:
+                try:
+                    os.unlink(path)
+                except FileNotFoundError:
+                    pass
+            if tmp_exists:
+                try:
+                    os.unlink(tmp)
+                except FileNotFoundError:
+                    pass
+            try:
+                _fsync_directory(directory)
+            except OSError:
+                pass
+            raise
+
+    def read(self, path: Path) -> bytes:
+        return Path(path).read_bytes()
+
+    def list(self, directory: Path, pattern: str) -> tuple[Path, ...]:
+        directory = Path(directory)
+        if not directory.is_dir():
+            return ()
+        return tuple(sorted(directory.glob(pattern)))
+
+    def remove(self, path: Path) -> None:
+        path = Path(path)
+        os.unlink(path)
+        _fsync_directory(path.parent)
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)

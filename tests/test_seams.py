@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import stat
 import sys
 from pathlib import Path
 
@@ -107,6 +108,82 @@ def test_local_filesystem_write_is_whole_file_and_creates_parents(tmp_path):
     assert sorted(p.name for p in target.parent.iterdir()) == ["prompt.md"]
     fs.replace(target, tmp_path / "moved.md")
     assert (tmp_path / "moved.md").read_bytes() == b"second" and not target.exists()
+
+
+def test_local_filesystem_publish_is_durable_and_never_overwrites(tmp_path):
+    from squatch.seams import LocalFilesystem
+
+    fs = LocalFilesystem()
+    target = tmp_path / "control" / "request.json"
+    fs.publish(target, b"first")
+    with pytest.raises(FileExistsError):
+        fs.publish(target, b"second")
+
+    assert fs.read(target) == b"first"
+    assert fs.list(target.parent, "*.json") == (target,)
+    assert sorted(path.name for path in target.parent.iterdir()) == [target.name]
+    fs.remove(target)
+    assert not target.exists()
+
+
+@pytest.mark.parametrize("failure", ["link", "file_fsync", "directory_fsync"])
+def test_local_filesystem_publish_cleans_every_failure_path(tmp_path, monkeypatch, failure):
+    from squatch.seams import LocalFilesystem
+
+    fs = LocalFilesystem()
+    target = tmp_path / "control" / "request.json"
+    if failure == "link":
+        monkeypatch.setattr(os, "link", lambda *args: (_ for _ in ()).throw(
+            OSError("link interrupted")))
+    else:
+        real_fsync = os.fsync
+        calls = 0
+
+        def interrupt_directory_sync(fd):
+            nonlocal calls
+            calls += 1
+            if calls == (2 if failure == "file_fsync" else 3):
+                raise OSError("directory fsync interrupted")
+            return real_fsync(fd)
+
+        monkeypatch.setattr(os, "fsync", interrupt_directory_sync)
+
+    with pytest.raises(OSError):
+        fs.publish(target, b"whole request")
+
+    assert list(target.parent.iterdir()) == []
+
+
+def test_publication_syncs_content_before_visibility_and_directory_before_return(
+        tmp_path, monkeypatch):
+    from squatch.seams import LocalFilesystem
+
+    fs = LocalFilesystem()
+    target = tmp_path / "control" / "request.json"
+    events = []
+    real_fsync, real_link = os.fsync, os.link
+
+    def sync(fd):
+        kind = "directory" if stat.S_ISDIR(os.fstat(fd).st_mode) else "file"
+        events.append((kind, target.exists()))
+        return real_fsync(fd)
+
+    def link(src, dst):
+        assert Path(src).read_bytes() == b"complete"
+        assert events[-1] == ("file", False)
+        result = real_link(src, dst)
+        events.append(("link", target.exists()))
+        return result
+
+    monkeypatch.setattr(os, "fsync", sync)
+    monkeypatch.setattr(os, "link", link)
+    fs.publish(target, b"complete")
+    assert events == [
+        ("directory", False), ("file", False), ("link", True),
+        ("directory", True), ("directory", True)]
+    events.clear()
+    fs.remove(target)
+    assert events == [("directory", False)]
 
 
 async def test_on_spawn_publishes_the_childs_process_group_at_spawn(tmp_path):
