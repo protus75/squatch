@@ -1,15 +1,14 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "dispatch-admission-boundary: remove squatch/config.py from Scope in, the ownership hooks, the Scope fence and Context. No plan text names a config field the boundary uses. All config work belongs to dispatch-config-snapshot.",
-    "dispatch-admission-boundary: drop acceptance criterion 4, the vague config-hook and unchanged-config claim. tests/test_config.py already covers config behavior, and the hook it limits is never defined.",
-    "phase3-continue-05: add an explicit predecessor-test closure criterion. tests/test_seeded_phase3_05.py must prove no scheduler-activation fence path invalidates an unfenced existing test, including tests/test_daemon_admission.py and tests/test_daemon_config.py.",
-    "Update tests/test_seeded_phase3_04.py to match: change FENCES and the ownership pin for dispatch-admission-boundary (owns daemon.py and its test, no hooks), and change the Context pin for dispatch-admission-boundary, which becomes empty or other main-existing paths.",
-    "Keep the parts that passed: the batch identity, the dependency chain, medium/medium 75/150 budgets, the config-snapshot fencing of tests/test_daemon_admission.py, the YAML suffix, and main-only Context checked with git ls-tree main."
+    "phase3-continue-05 AC4 must not check live existence on main. Rewrite it so fence/Context closure is checked against a pinned authoring-time EXISTING_AT_AUTHORING map, as test_seeded_phase3_02/03/core do. Otherwise it goes red once scheduler-activation merges tests/test_daemon_composition.py.",
+    "In the successor's criteria, require set(context) <= EXISTING_AT_AUTHORING and require every fence entry in that map to appear in Context. The map must include the then-merged squatch/daemon.py and the dispatch tests. Use the same map as the source of synthetic render sizes.",
+    "Scan every emitted seed's criteria for any 'exists on main' or live-filesystem check. A seed test that is green at authoring time must stay green after later tickets merge. Pin authoring-time facts; never re-read live state.",
+    "Keep what passed: batch identity, dependency chain, medium/medium 75/150 budgets, fences and ownership pins, empty admission Context, main-only Context, the YAML suffix, and render headroom. Only the successor's AC4 wording failed."
   ],
-  "reason": "Check failed only on fixable requisition-review content findings with explicit paved roads; the approach is otherwise sound.",
+  "reason": "A single fixable criterion-wording defect in phase3-continue-05, with a concrete paved road; everything else passed requisition review.",
   "detail": null
 }
