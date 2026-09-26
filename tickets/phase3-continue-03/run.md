@@ -2,10 +2,9 @@
 ok
 
 ## Surprises / judgment calls
-The successor continuation needs file-only Context: `tickets/thresh-runtime/ticket.md`, this ticket, and the committed seed proof. I kept the directory fence out of Context and made its acceptance criteria require the next proof to enforce the dispatch pair's Context, ownership, tier/budget, and predecessor-test closure.
+The prior-attempt findings established that files created by this attempt are not valid successor Context even though they exist by verification time. I limited phase3-continue-04 Context to the base-existing `tickets/phase3-continue-03/ticket.md` and `tests/test_seeded_phase3_core.py`, and pinned only those bytes for its synthetic render.
 
 ## Dead ends
-The first wrapper-based commit invocation used an invalid one-line async function definition and did not change the index; the corrected invocation committed only the fenced test path.
 
 ## Second problems filed
 
@@ -13,4 +12,4 @@ The first wrapper-based commit invocation used an invalid one-line async functio
 codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual about 15m.
+Expected 75m; actual about 10m.
