@@ -23,7 +23,9 @@ CONTEXT = {
         "squatch/daemon.py", "squatch/watcher.py", "squatch/scheduler.py",
         "squatch/triage.py", "squatch/box.py", "squatch/rework.py",
         "tests/test_daemon_composition.py"),
-    "control-inbox": ("squatch/daemon.py", "tests/test_daemon_composition.py"),
+    "control-inbox": (
+        "squatch/daemon.py", "squatch/seams.py", "tests/test_daemon_composition.py",
+        "tests/test_seams.py"),
     "phase3-continue-08": (
         "tests/test_seeded_phase3_core.py", "squatch/daemon.py", "squatch/__main__.py",
         "tests/test_daemon_composition.py", "tests/test_mergequeue.py"),
@@ -32,7 +34,8 @@ OWNERSHIP = {
     "background-consumers": {"owns": ["tests/test_daemon_tasks.py"],
                              "hooks": ["squatch/daemon.py"]},
     "control-inbox": {"owns": ["squatch/control.py", "tests/test_control.py"],
-                      "hooks": ["squatch/daemon.py", "tests/test_daemon_tasks.py"]},
+                      "hooks": ["squatch/daemon.py", "squatch/seams.py",
+                                "tests/test_daemon_tasks.py", "tests/test_seams.py"]},
     "phase3-continue-08": {"owns": ["tickets", "tests/test_seeded_phase3_08.py"],
                             "hooks": []},
 }
@@ -52,6 +55,7 @@ EXISTING_AT_AUTHORING = {
     "squatch/triage.py": 14609, "squatch/box.py": 12324,
     "squatch/rework.py": 8651, "squatch/__main__.py": 10674,
     "tests/test_daemon_composition.py": 7625, "tests/test_mergequeue.py": 34441,
+    "squatch/seams.py": 4575, "tests/test_seams.py": 4442,
 }
 NEW_AT_AUTHORING = {"squatch/control.py", "tests/test_daemon_tasks.py", "tests/test_control.py",
                     "tests/test_seeded_phase3_08.py"}
