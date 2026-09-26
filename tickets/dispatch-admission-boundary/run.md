@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The admission handle is the task returned to its caller; a done observer clears the slot without consuming that task's result, exception, or cancellation.
+The active reservation is released by awaiting the admission handle, rather than by the work task's done callback, so a completed but unobserved outcome still refuses another offer. The local AST closure scan from `squatch/__main__.py` found `squatch.daemon` unreachable; its fixture covers all three absolute import forms and an injected `import squatch.daemon` makes the fixture-only assertion fail.
 
 ## Dead ends
 
-The synthetic dormancy fixture initially omitted a local `daemon.py`, so the closure scanner correctly did not consider the injected edge reachable. The fixture now supplies that local module.
+The prior done-callback release design was discarded because it relinquished the slot before the observer awaited the outcome.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 10m.
+Expected 75m; actual about 25m.
