@@ -54,9 +54,10 @@ CONTEXT = {
         "tests/test_rework.py", "tests/test_daemon_composition.py", "squatch/merge.py",
     ),
     "phase3-continue-07": (
-        "tests/test_seeded_phase3_04.py", "squatch/config.py", "squatch/daemon.py",
-        "squatch/mergequeue.py", "tests/test_daemon_composition.py",
-        "tests/test_mergequeue.py",
+        "tests/test_seeded_phase3_core.py", "squatch/daemon.py",
+        "squatch/watcher.py", "squatch/scheduler.py",
+        "squatch/triage.py", "squatch/box.py", "squatch/rework.py",
+        "squatch/__main__.py", "tests/test_daemon_composition.py", "tests/test_mergequeue.py",
     ),
 }
 
@@ -65,6 +66,7 @@ CONTEXT = {
 # later changes to these paths are not invariants of the seed proof.
 EXISTING_AT_AUTHORING = {
     "tests/test_seeded_phase3_04.py": 11063,
+    "tests/test_seeded_phase3_core.py": 5877,
     "squatch/config.py": 10260,
     "squatch/daemon.py": 2946,
     "squatch/mergequeue.py": 12798,
@@ -75,6 +77,10 @@ EXISTING_AT_AUTHORING = {
     "squatch/runner.py": 23428,
     "squatch/rework.py": 8417,
     "tests/test_rework.py": 10353,
+    "squatch/watcher.py": 529,
+    "squatch/scheduler.py": 1751,
+    "squatch/triage.py": 14609,
+    "squatch/box.py": 12324,
 }
 NEW_AT_AUTHORING = {"tests/test_seeded_phase3_07.py"}
 FORBIDDEN_CONTEXT = {"squatch/specs.py", "specs/implement.md", "specs/rework.md"}
@@ -98,12 +104,14 @@ SUFFIX = (
 )
 SUCCESSOR_CONTEXT = {
     "background-consumers": [
-        "squatch/daemon.py", "squatch/mergequeue.py", "tests/test_daemon_composition.py",
+        "squatch/daemon.py", "squatch/watcher.py",
+        "squatch/scheduler.py", "squatch/triage.py", "squatch/box.py",
+        "squatch/rework.py", "tests/test_daemon_composition.py",
     ],
     "control-inbox": ["squatch/daemon.py", "tests/test_daemon_composition.py"],
     "phase3-continue-08": [
-        "tests/test_seeded_phase3_04.py", "squatch/config.py", "squatch/daemon.py",
-        "squatch/mergequeue.py", "tests/test_daemon_composition.py",
+        "tests/test_seeded_phase3_core.py", "squatch/daemon.py", "squatch/__main__.py",
+        "tests/test_daemon_composition.py",
         "tests/test_mergequeue.py",
     ],
 }
@@ -336,6 +344,29 @@ def test_successor_pins_context_ownership_and_predecessor_test_closure():
                     if "are new at authoring" in line)
     assert all(f"`{path}`" in new_line for path in SUCCESSOR_NEW)
     assert set(re.findall(r"`([^`]+)`", new_line)) == SUCCESSOR_NEW | {"NEW_AT_AUTHORING"}
+
+
+def test_successor_names_concrete_consumers_and_pause_seed_contract():
+    scope = _section("phase3-continue-07", "Scope in")
+    for path in ("squatch/watcher.py", "squatch/scheduler.py", "squatch/triage.py",
+                 "squatch/box.py", "squatch/rework.py"):
+        assert path in SUCCESSOR_CONTEXT["background-consumers"]
+    for phrase in (
+        "watcher callback supplies one priority snapshot",
+        "merge callback consumes one post-admission handoff",
+        "box callback performs one existing `Triage.run` pass",
+        "shutdown await re-raises that exception after cancelling and awaiting the remaining tasks",
+        "`dispatch-pause-boundary` owns `tests/test_daemon_pause.py`",
+        "`pause-resume-activation` owns `tests/test_control_cli.py`",
+        "`phase3-continue-09` owns `tickets` and `tests/test_seeded_phase3_09.py`",
+        "`dispatch-pause-boundary` depends on `phase3-continue-08`",
+        "`pause-resume-activation` depends on that boundary",
+        "`phase3-continue-09` depends on both",
+        "seeding cap 3",
+        "`drain.max_ticket_minutes` 180",
+    ):
+        assert phrase in scope
+    assert "squatch/__main__.py" in SUCCESSOR_CONTEXT["phase3-continue-08"]
     criteria = _section("phase3-continue-07", "Acceptance criteria")
     for phrase in ("EXISTING_AT_AUTHORING sizes", "exact four-path NEW_AT_AUTHORING set",
                    "every existing fence entry is Context", "max-effort synthetic renders",
