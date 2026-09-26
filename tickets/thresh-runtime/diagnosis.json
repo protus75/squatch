@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Flat-subscription must drive a real decision: on a quota_exhausted FailureFact, arm a per-provider cooldown until clock() + limits.quota_window_minutes (Limits already has this field). Add a HoldReason such as quota_cooldown, and make decide() return hold with retry_at set.",
+    "Test the quota cooldown in tests/test_thresh.py: it holds 1 microsecond before the deadline and allows exactly at it. It must not change the breaker's consecutive_failures count. Replace the flag-only flat_subscription test, which proved nothing.",
+    "Assert each FailureClass member's effect on runtime state. Include explicit no-op assertions for classes deferred to later tickets (rate_limited, model_error), so classified vs unclassified handling is proven beyond auth_error.",
+    "providers.py only ever produces auth_error or unclassified. Either add per-adapter quota/rate-limit signatures (like auth_failure_signature) with tests in tests/test_providers.py, or state that deferral as spec in the thresh.py docstring. Don't widen the vocabulary silently.",
+    "Keep the parts that passed review: concurrency acquire/release, the outage/unclassified breaker boundaries, the success reset, and the FailureFact on ProviderError. The checks, the fence and the full suite were green, so this is rework, not a rewrite."
+  ],
+  "reason": "The review snagged a fixable gap: flat-subscription quota cooldown was never implemented or tested, and the findings give the concrete fix inside the fence.",
+  "detail": null
+}
