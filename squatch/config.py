@@ -211,6 +211,11 @@ class Config(_Strict):
         return self
 
 
+def snapshot(config: Config) -> Config:
+    """Return a detached config value for one admitted dispatch."""
+    return config.model_copy(deep=True)
+
+
 # A validator raising for a key OTHER than the one pydantic is validating
 # carries the true path in the message; `_finding` splits it back out.
 _AT = "\x00"

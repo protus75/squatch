@@ -6,7 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from squatch.config import Config, parse
 from squatch.daemon import DispatchAdmission
+
+
+def config() -> Config:
+    return parse({"schema_version": 1, "state_dir": "state", "providers": [],
+                  "routing": []}, source="test")
 
 
 @pytest.mark.asyncio
@@ -17,7 +23,7 @@ async def test_admission_reserves_before_work_can_yield_and_refuses_busy_offer()
     active = 0
     maximum_active = 0
 
-    async def work(stem: str) -> str:
+    async def work(stem: str, captured: Config) -> str:
         nonlocal active, maximum_active
         calls.append(stem)
         active += 1
@@ -27,7 +33,7 @@ async def test_admission_reserves_before_work_can_yield_and_refuses_busy_offer()
         active -= 1
         return stem
 
-    admission = DispatchAdmission()
+    admission = DispatchAdmission(config)
     first = admission.admit("first", work)
     assert first is not None
     assert admission.admit("second", work) is None
@@ -45,13 +51,13 @@ async def test_slot_lasts_until_a_completed_outcome_is_observed():
     completed = asyncio.Event()
     rejected_calls: list[str] = []
 
-    async def work(stem: str) -> str:
+    async def work(stem: str, captured: Config) -> str:
         return stem
 
-    async def rejected_work(stem: str) -> None:
+    async def rejected_work(stem: str, captured: Config) -> None:
         rejected_calls.append(stem)
 
-    admission = DispatchAdmission()
+    admission = DispatchAdmission(config)
     first = admission.admit("first", work)
     assert first is not None
     first.add_done_callback(lambda task: completed.set())
@@ -68,9 +74,9 @@ async def test_slot_lasts_until_a_completed_outcome_is_observed():
 
 @pytest.mark.asyncio
 async def test_failure_and_cancellation_release_after_their_outcomes_are_observed():
-    admission = DispatchAdmission()
+    admission = DispatchAdmission(config)
 
-    async def failed_work(stem: str) -> None:
+    async def failed_work(stem: str, captured: Config) -> None:
         raise ValueError(stem)
 
     failed = admission.admit("failed", failed_work)
@@ -79,7 +85,7 @@ async def test_failure_and_cancellation_release_after_their_outcomes_are_observe
         await failed
 
     started = asyncio.Event()
-    async def blocked_work(stem: str) -> None:
+    async def blocked_work(stem: str, captured: Config) -> None:
         started.set()
         await asyncio.Event().wait()
 
@@ -90,7 +96,7 @@ async def test_failure_and_cancellation_release_after_their_outcomes_are_observe
     with pytest.raises(asyncio.CancelledError):
         await cancelled
 
-    async def success(stem: str) -> str:
+    async def success(stem: str, captured: Config) -> str:
         return stem
 
     next_task = admission.admit("next", success)
@@ -100,10 +106,10 @@ async def test_failure_and_cancellation_release_after_their_outcomes_are_observe
 
 @pytest.mark.asyncio
 async def test_cancellation_before_work_starts_releases_without_calling_work():
-    admission = DispatchAdmission()
+    admission = DispatchAdmission(config)
     calls: list[str] = []
 
-    async def work(stem: str) -> None:
+    async def work(stem: str, captured: Config) -> None:
         calls.append(stem)
 
     cancelled = admission.admit("never-started", work)

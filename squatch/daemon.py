@@ -4,9 +4,12 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Generic, TypeVar, cast
 
+from squatch.config import Config, snapshot
+
 
 Result = TypeVar("Result")
-Work = Callable[[str], Awaitable[Result]]
+Work = Callable[[str, Config], Awaitable[Result]]
+ConfigSupplier = Callable[[], Config]
 
 
 class AdmissionTask(Generic[Result]):
@@ -37,15 +40,17 @@ class AdmissionTask(Generic[Result]):
 class DispatchAdmission:
     """Admit one work task and retain its slot until its outcome is observed."""
 
-    def __init__(self) -> None:
+    def __init__(self, config_supplier: ConfigSupplier) -> None:
         self._active: asyncio.Task[object] | None = None
+        self._config_supplier = config_supplier
 
     def admit(self, stem: str, work: Work[Result]) -> AdmissionTask[Result] | None:
         """Reserve the slot and return an observation handle, or refuse the offer."""
         if self._active is not None:
             return None
 
-        task = asyncio.create_task(work(stem))
+        config = snapshot(self._config_supplier())
+        task = asyncio.create_task(work(stem, config))
         self._active = cast(asyncio.Task[object], task)
         return AdmissionTask(self, task)
 
