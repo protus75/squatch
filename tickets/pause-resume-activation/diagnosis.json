@@ -1,0 +1,16 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Exit 143 means `uv run pytest -q` was killed by SIGTERM, most likely a timeout or hang. The implementer never saw the full suite finish. Run it to completion in the background with a per-test timeout, and find any hang before claiming success.",
+    "Likely hang: in `_active_drain`, `wait_for_control` only calls `asyncio.sleep(0)`. When paused, the drain busy-spins and never waits on real inbox input. Wait on the control inbox, or a bounded clock-seam sleep, and prove resume unblocks the drain.",
+    "MergeQueue now builds a default AdmissionHold/ControlInbox at `journal.dir.parent`, so every existing queue consumes control requests from the state dir. Check that this doesn't steal or block requests in other suites. Prefer injecting the hold at `compose_merge_queue`.",
+    "Don't set private Drain attributes (`drain._pause`, `drain._wait_for_control`) or call `_drain`/`_exec` from `__main__`. Wire pause through `compose_daemon_dispatch` and a proper Drain constructor argument, within the fence.",
+    "Acceptance criteria not covered: `tests/test_daemon_composition.py` is untouched (it needs real routing, non-preemption and decision-before-mutation). `test_control_cli.py` is missing stale-lifecycle, pre-hold release and resume tests. No test resets the red streak on green.",
+    "Mergequeue: the tree-hash test now needs a manual release before the next admit. Confirm this matches the spec's 'hold immediately'. Fix the misindented `conflict_facts=facts)` line and the duplicate `squatch.journal` import."
+  ],
+  "reason": "Full-suite verification was killed by SIGTERM (probably a hang or timeout from the new pause/hold wiring), and the implementer never ran it to completion. Several acceptance criteria are still unmet, but all of it is fixable inside the fence.",
+  "detail": null
+}
