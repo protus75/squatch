@@ -1,16 +1,16 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Requisition review snagged rework-stage because criteria (d) and split came from earlier lessons. Rewrite these two criteria. Keep everything else that passed: lint, edges, tiers, fences, budgets, suffix, ownership hooks, Verification and headroom.",
-    "Escalation criterion: name the consumer. Rework's escalate order becomes a diagnosis-shaped `escalate` verdict. squatch.reject routing turns it into a ladder rung via squatch.ladder.next_rung, with neither module edited. The element never names a tier or effort.",
-    "Split criterion: drop 'child ticket records a supersedes link'. Frontmatter is closed by FRONTMATTER_KEYS. Rework journals a supersedes map (old stem -> child stems) as a `signal` event, which journal.EVENT_TYPES already allows. Children carry only the closed frontmatter keys.",
-    "Add to rework-stage Context: squatch/ladder.py, squatch/reject.py, squatch/journal.py, squatch/specs.py, squatch/llm.py, and the module that hosts the fake LLM used by existing stage tests. Keep squatch/tickets.py. Read each file first to confirm its path and interface.",
-    "Add each new Context path to EXISTING_AT_AUTHORING in test_seeded_phase3_02.py with its current byte size (synthetic only, never compared to live files). Rerun the render-headroom test. If the render goes over 120000 chars, trim non-essential Context before anything else.",
-    "If rework-stage cannot fit headroom even with only the contracts its criteria bind to, stop. That is this ticket's Definition of rejected; report it instead of weakening the criteria."
+    "Requisition review refused the rework-stage Implement render: a Context file contains the engine delimiter '[squatch-data:'. squatch/diagnose.py has this literal, so remove it from rework-stage Context.",
+    "Do not add squatch/stages.py, author.py or triage.py to any emitted Context either. Each of them also contains '[squatch-data:'.",
+    "Name DiagnosisRecord and its escalate verdict in rework-stage prose and point to squatch/reject.py and squatch/ladder.py. Do not put diagnose.py in Context.",
+    "The render-headroom test fills Context with 'x' bytes, so it cannot see the delimiter. Before finishing, grep each emitted Context path for '[squatch-data:' as an authoring check, not a live-file test.",
+    "Remove diagnose.py from EXISTING_AT_AUTHORING and from the rework-stage Context assertion set in tests/test_seeded_phase3_02.py.",
+    "Keep everything that passed: lint, edges, tiers, fences, budgets, ownership hooks, suffix, Verification with test_rework.py and test_mergequeue.py, and render headroom."
   ],
-  "reason": "The failure is at requisition review of the emitted rework-stage seed. It has three concrete paved-road findings (escalate consumer, supersedes placement, missing Context), all fixable inside the tickets fence at the same capability.",
+  "reason": "Fixable oversight: squatch/diagnose.py in rework-stage Context contains the data-block delimiter, and the paved road is to remove it from Context.",
   "detail": null
 }
