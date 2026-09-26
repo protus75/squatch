@@ -1,4 +1,4 @@
-"""The dormant adapter from ticket-plane observations to scheduler offers."""
+"""The adapter from ticket-plane observations to scheduler offers."""
 
 from collections.abc import Iterable
 

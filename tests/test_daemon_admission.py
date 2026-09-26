@@ -1,4 +1,4 @@
-"""Direct proofs for dormant daemon dispatch admission."""
+"""Direct proofs for daemon dispatch admission."""
 
 import ast
 import asyncio
@@ -159,6 +159,11 @@ def _local_import_closure(root: Path, package: str = "squatch") -> set[str]:
 
 def _assert_daemon_unreachable(root: Path) -> None:
     assert "squatch.daemon" not in _local_import_closure(root)
+
+
+def test_daemon_is_reachable_from_the_production_root():
+    root = Path(__file__).resolve().parents[1]
+    assert "squatch.daemon" in _local_import_closure(root)
 
 
 def test_dormancy_scan_recognizes_import_forms_and_fixture_daemon_edge(tmp_path: Path):

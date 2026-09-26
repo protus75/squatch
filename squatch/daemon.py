@@ -1,10 +1,13 @@
-"""Dormant single-flight dispatch admission."""
+"""Single-flight dispatch admission and its production composition."""
 
 import asyncio
 from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Generic, TypeVar, cast
 
 from squatch.config import Config, snapshot
+from squatch.scheduler import Scheduler
+from squatch.watcher import Watcher
 
 
 Result = TypeVar("Result")
@@ -57,3 +60,27 @@ class DispatchAdmission:
     def _release(self, task: asyncio.Task[object]) -> None:
         if self._active is task:
             self._active = None
+
+
+@dataclass(frozen=True)
+class DaemonDispatch:
+    """The in-process dispatch graph, exposed for its observation boundary."""
+
+    admission: DispatchAdmission
+    scheduler: Scheduler
+    watcher: Watcher
+
+
+def compose_daemon_dispatch(config_supplier: ConfigSupplier,
+                            work: Work[Result]) -> DaemonDispatch:
+    """Compose admission, scheduling, and ticket observation without starting a loop."""
+    admission = DispatchAdmission(config_supplier)
+
+    async def dispatch(stem: str) -> None:
+        admitted = admission.admit(stem, work)
+        if admitted is None:
+            raise RuntimeError("scheduler dispatched while admission was occupied")
+        await admitted
+
+    scheduler = Scheduler(dispatch)
+    return DaemonDispatch(admission, scheduler, Watcher(scheduler))

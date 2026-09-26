@@ -1,4 +1,4 @@
-"""Direct proofs for dormant Phase 3 scheduling construction."""
+"""Direct proofs for Phase 3 scheduling construction."""
 
 import ast
 import asyncio
@@ -121,8 +121,8 @@ def test_dormancy_scan_follows_indirect_absolute_import_forms(tmp_path: Path):
     assert "squatch.watcher" in _local_import_closure(tmp_path)
 
 
-def test_scheduler_and_watcher_are_unreachable_from_the_production_root():
+def test_scheduler_and_watcher_are_reachable_from_the_production_root():
     root = Path(__file__).resolve().parents[1]
     reachable = _local_import_closure(root)
-    assert "squatch.scheduler" not in reachable
-    assert "squatch.watcher" not in reachable
+    assert "squatch.scheduler" in reachable
+    assert "squatch.watcher" in reachable

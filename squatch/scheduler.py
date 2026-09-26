@@ -1,8 +1,4 @@
-"""A dormant, single-flight ticket scheduler.
-
-This is deliberately only a direct-testable primitive.  Production composition
-does not import it until the scheduler activation boundary.
-"""
+"""The single-flight ticket scheduler."""
 
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable

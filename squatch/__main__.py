@@ -24,6 +24,7 @@ from typing import TextIO
 import squatch
 from squatch.box import BoxCorruption
 from squatch.config import ConfigError, load
+from squatch.daemon import compose_daemon_dispatch
 from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
@@ -180,7 +181,10 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
             process: ProcessExec, verb) -> int:
     """The two scaffold verbs' shared composition: config, git, engine log,
     the runner over the stage-dispatch factory; `verb` runs under its lock."""
-    config = _config(args, cwd)
+    def config_supplier():
+        return _config(args, cwd)
+
+    config = config_supplier()
     # Inherit-minus-secrets: git never needs a provider key (section 6).
     git = Git(process, env=child_env(env, {p.auth for p in config.providers if p.auth}),
               timeout=GIT_TIMEOUT_SECONDS)
@@ -202,6 +206,10 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         runner = Runner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=clock,
                         instance_id=instance_id, pipeline=factory, log=log,
                         report=lambda line: print(line, file=out))
+        # Construct at the production root; a later daemon boundary owns feeding observations.
+        compose_daemon_dispatch(
+            config_supplier,
+            lambda _stem, captured: verb(runner, captured, git))
         return await verb(runner, config, git)
 
     try:
