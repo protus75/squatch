@@ -1,0 +1,85 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "831c2e4e3b8c54a2b151f091585382ef6ef1e2bd",
+  "stem": "scheduler-activation",
+  "branch": "scheduler-activation",
+  "base": "3f6d66eaa19efef410c605c0055b9b08e8a2dd86",
+  "head": "831c2e4e3b8c54a2b151f091585382ef6ef1e2bd",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/daemon.py",
+    "squatch/scheduler.py",
+    "squatch/watcher.py",
+    "tests/test_daemon_admission.py",
+    "tests/test_daemon_composition.py",
+    "tests/test_scheduler.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_scheduler.py",
+            "tests/test_daemon_admission.py",
+            "tests/test_daemon_config.py",
+            "tests/test_daemon_composition.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
