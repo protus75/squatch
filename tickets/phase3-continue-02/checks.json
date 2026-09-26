@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "76d0b11d1a750b67acfc13b9cd531e0c3a8589d5",
+  "produced_at_sha": "983c833235d4404f50b716ca19e4474829fc0074",
   "stem": "phase3-continue-02",
   "branch": "phase3-continue-02",
-  "base": "0ac3cd0a2755d3f56d47bc2d9183a4fc494fe65f",
-  "head": "76d0b11d1a750b67acfc13b9cd531e0c3a8589d5",
+  "base": "b6939a11ff646bba945b056eded7475304155255",
+  "head": "983c833235d4404f50b716ca19e4474829fc0074",
   "changed_files": [
     "tests/test_seeded_phase3_02.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-03/ticket.md",
-      "sha": "1d5f2adee778a5ba7a9247a8b0f3dd1d25c9322b",
+      "sha": "df13800292e7e4b79f90decfddd00532e28becba",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,29 +25,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/rework-stage/ticket.md",
-      "sha": "fdfb709f74f0812cc9b60bb69195abed018507f9",
+      "sha": "7ca1d3522e68b644466856987f1b007b29dc7c47",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/rework-stage/ticket.md",
           "line": null,
-          "message": "The escalation criterion says the element must be 'consumable by the ladder's journal-derived rung' without saying which consumer. In the shipped code, `ladder.pending_rung` only reads a `state_transition` whose `routed == \"ladder\"`, and it takes the rung from a body that carries `tier`/`effort`. That rung is produced by `reject.py` routing (`record.verdict == \"escalate\"` -> `Routing(\"ladder\", ..., rung)` via `next_rung`). An element that 'never names a tier or effort' therefore has no named path into that consumer, and neither `squatch/ladder.py` nor `squatch/reject.py` is in Context.",
-          "paved_road": "Name the consumer exactly. For example: the escalation element maps to a diagnosis-shaped `escalate` verdict that `squatch.reject` routing turns into a ladder rung through `squatch.ladder.next_rung`. Add `squatch/ladder.py` and `squatch/reject.py` to Context so the test binds to their merged interfaces without editing them."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/rework-stage/ticket.md",
-          "line": 52,
-          "message": "The split criterion says every child ticket 'records a supersedes link'. Ticket frontmatter is closed (`FRONTMATTER_KEYS`, and the `Ticket` dataclass has no supersedes field), so a child ticket that carries the link would fail intake linting unless someone edits `squatch/tickets.py`, which is outside the fence. The plan puts supersedes in a journaled map (old stem -> successor stems), not in ticket frontmatter.",
-          "paved_road": "Restate the criterion so Rework records a supersedes map (old stem -> child stems) as a journal `signal` event, which `squatch.journal.EVENT_TYPES` already allows. Child tickets should carry only the closed frontmatter keys. Add `squatch/tickets.py` and `squatch/journal.py` to Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/rework-stage/ticket.md",
-          "line": null,
-          "message": "Several criteria read modules that are missing from Context: `squatch.specs.load_spec` / `lint_spec` (the spec frontmatter grammar and the `emits` verdict->type map), the fake LLM seam, and the `Ticket` model that the updated or child tickets must satisfy. The implementer cannot write `specs/rework.md` or the tests against contracts they cannot read.",
-          "paved_road": "Add `squatch/specs.py`, `squatch/llm.py` (`LLM_SURFACES` already contains `rework`), the module that hosts the fake LLM used by existing stage tests, and `squatch/tickets.py` to Context. None of these are fence changes."
+          "message": "base Implement render refused (delimiter): /home/djp/source/squatch/specs/implement.md: input 'context' carries the data-block delimiter '<<<squatch:' (paved road: inject content that does not contain the engine delimiter; a prompt-spec or rendered prompt is never an input)",
+          "paved_road": "remove the delimiter-carrying file from Context"
         }
       ],
       "commands": []
