@@ -1,15 +1,15 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Exactly-once is required; mutate idempotency alone does not satisfy it. This supersedes the earlier 'or state that mutate is idempotent' option. After mutate returns, journal an 'applied' control_decision keyed control/<request_id>.",
-    "On consume, if a request_id has an accepted decision plus an applied marker, unlink the file and return without calling mutate or discarding a hold. Call _apply only when the decision is accepted, there is no applied marker, and the lifecycle matches.",
-    "Republishing an already-consumed request (the file is gone, so publish succeeds) must not mutate again. Assert mutation.calls == 1 in test_release_is_bound_to_one_never_reused_hold_instance and in any republish test, not only the applied set.",
-    "The one window the journal cannot close is a crash after mutate returns but before the applied append. Keep calls == 2 only for that test, and name the window in the test. Every other crash-window test must assert calls == 1.",
-    "Keep everything else. Journal-first decisions, stale/conflict/invalid handling, the lifecycle and hold binding, LocalFilesystem.publish, and the DaemonTasks control hook all passed review. Stay inside the six fenced files and leave test_daemon_composition.py unchanged."
+    "In _consume, remove the terminal short-circuit before the read. Read and validate the file first, then compare existing.request != request for every previously decided id, whatever its outcome. Journal a new decision for every file you remove.",
+    "Only an identical republication of a request that already has a terminal non-accepted decision may be removed silently, returning the existing decision. A different request under that id must journal a 'conflict' and never mutate.",
+    "If a stem was earlier decided 'invalid' with request=None, valid new content under that stem is a conflict. Compare against the stored request, and treat None as not equal to any request.",
+    "Add a test to tests/test_control.py: decide request R 'stale', then publish different content under R's request_id. Assert a 'conflict' signal is journaled, mutate is not called, holds are unchanged and the file is gone. Also cover an invalid decision followed by republication.",
+    "Keep everything else as it is. Review found the fence, verification, applied marker, lifecycle and hold binding, publish seam, crash-window tests and DaemonTasks hook sound, and the check report is green. Stay inside the six fenced files. Leave test_daemon_composition.py unchanged."
   ],
-  "reason": "A single, concrete, fixable review finding with a clear paved road; it arose because earlier lessons offered idempotency as an alternative, and these lessons now resolve that conflict.",
+  "reason": "The only defect is a narrow, fixable reuse-conflict gap in _consume with an exact paved road. Everything else passed review and every check.",
   "detail": null
 }
