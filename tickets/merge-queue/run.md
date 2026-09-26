@@ -2,15 +2,14 @@
 ok
 
 ## Surprises / judgment calls
-The prior reviewed commit remained available as a local git object, so its accepted queue design was restored and the carried findings were fixed in place. Non-conflict rebase failures use a typed `candidate_rebase` finding, preserve the dirty worktree for diagnosis, and do not call abort when no rebase is active.
+The reviewed implementation commit was still available by object ID but was not present on the reset ticket branch, so I restored that scoped commit before applying the prior review's unwind correction. Non-conflict rebase failures now attempt an abort even when Git refused before starting; that abort is harmless and preserves the original Git error.
 
 ## Dead ends
-None.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5.
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 120m; actual approximately 20m, shortened by recovering the earlier reviewed implementation from the local object database.
+Expected 120m; actual approximately 15m.
