@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "5935616cccd48ed6ce889ab656230bd218d7b3f1",
+  "produced_at_sha": "d1f7486ba60d778c270d35bb06155bce76e3f92d",
   "stem": "phase3-continue-05",
   "branch": "phase3-continue-05",
-  "base": "6ec27812c29a5c52d4b121565a2eb9756b9b849b",
-  "head": "5935616cccd48ed6ce889ab656230bd218d7b3f1",
+  "base": "e23cdcb40e93ca4b7c79805073ce494d75e85c2a",
+  "head": "d1f7486ba60d778c270d35bb06155bce76e3f92d",
   "changed_files": [
     "tests/test_seeded_phase3_05.py"
   ],
@@ -15,29 +15,29 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase3-continue-06/ticket.md",
-      "sha": "f0f32f820b35b47d11c4d4c2c46565cd040dc1f9",
+      "sha": "d9da96bcded9c1ec30a5e0e6ee4c251b67c97a4e",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-06/ticket.md",
-          "line": null,
-          "message": "Context is missing existing files that the next admission's fences and predecessor-test closure depend on: squatch/mergequeue.py, tests/test_mergequeue.py, squatch/rework.py, specs/rework.md, and tests/test_rework.py all exist on main. The registry says merge-queue-activation and rework-activation fence 'daemon plus their construction modules/tests and the composition harness'. Without reading these files, the implementer cannot name the dormancy or negative assertions that activation invalidates, and cannot build a correct EXISTING_AT_AUTHORING map for the emitted seeds.",
-          "paved_road": "Add squatch/mergequeue.py, tests/test_mergequeue.py, squatch/rework.py, specs/rework.md, tests/test_rework.py, and squatch/merge.py (if any emitted fence names it) to Context, and name each negative assertion the activations must migrate."
+          "line": 561,
+          "message": "Scope in says merge-queue-activation 'migrates its dormant production-root absence assertion'. `tests/test_mergequeue.py` has no import-closure absence assertion. `squatch.merge` already imports `compose_merge_queue`, so `squatch.mergequeue` is already reachable. The actual dormancy assertion is `assert not hasattr(pipeline, \"merge_queue\")` in `test_additive_composition_hook_does_not_change_phase1_composition`, and the module docstring of `squatch/mergequeue.py` also says 'The daemon does not import or run this construction yet'. The criterion 'naming each migrated dormancy assertion' cannot be proved against the named assertion because that assertion does not exist.",
+          "paved_road": "In Scope in, and in the emitted merge-queue-activation seed, name `test_additive_composition_hook_does_not_change_phase1_composition`'s `not hasattr(pipeline, \"merge_queue\")` assertion as the migrated dormancy check. Keep `test_mergequeue_has_no_scheduler_or_watcher_dependency` as a preserved constraint. Pin both in `tests/test_seeded_phase3_06.py`."
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-06/ticket.md",
           "line": null,
-          "message": "The criteria require the test to pin exact emitted identities, dependency edges, tiers, budgets, fences, and registry ownership. Scope in states none of these for merge-queue-activation, rework-activation, or the phase3-continue-07 tail, and its ownership YAML covers only phase3-continue-06 itself. The predecessor continuation (phase3-continue-05) stated every emitted stem's dependency, tier and effort, expected/stuck minutes, exact fence, and ownership record. As written, what counts as 'exact' is left to the implementer.",
-          "paved_road": "In Scope in, name the three emitted stems and their edges: phase3-continue-06 -> merge-queue-activation -> rework-activation, and phase3-continue-06 -> phase3-continue-07, whose depends also includes both activations. For each, give medium/medium (neither activation is KNOWN-DEEP), expected/stuck budgets within drain.max_ticket_minutes, the exact fence, and a keyed ownership/hooks record. Also restate the shrinking suffix phase3-continue-07 carries, starting at [background-consumers, control-inbox]."
+          "message": "The criteria depend on `RENDER_BOUND_CHARS` (`squatch/specs.py`), `REQ_RENDER_HEADROOM` (`squatch/requisition.py`), `seeding.max_seeds_per_admission` (`squatch/config.py`), and the established seeded-test pattern (`tests/test_seeded_phase3_core.py` / `tests/test_seeded_phase3_04.py`). None of these is in Context, although the predecessor continuation listed its pattern test. Read-before-write cannot be met from the rendered Context.",
+          "paved_road": "Add `tests/test_seeded_phase3_04.py` (or `tests/test_seeded_phase3_core.py`), `squatch/specs.py`, `squatch/requisition.py`, and `squatch/config.py` to Context. All of them exist on main."
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-06/ticket.md",
-          "line": null,
-          "message": "The emitted activations hook tests/test_daemon_composition.py, the composition harness that scheduler-activation will create. It does not exist at authoring time, so it cannot be this ticket's Context. The ticket does not say that the implementer must read the then-merged harness, and the then-merged scheduler-activation changes to squatch/daemon.py and tests/test_scheduler.py, before judging closure. It also does not say that the emitted seeds' Context and the pinned EXISTING_AT_AUTHORING map may include these files. Without that, the rule that every existing fence path is Context cannot be satisfied on purpose.",
-          "paved_road": "Add a Scope in sentence like phase3-continue-05's: the author reads the then-merged tests/test_daemon_composition.py, squatch/daemon.py, and tests/test_scheduler.py before authoring. The pinned map and the emitted Context include them because they exist by the time this runs, though they are not this ticket's authoring-time Context."
+          "line": 161,
+          "message": "The criteria require proof that 'local dispatch contracts survive unchanged' through both activations. The files that own those contracts are `tests/test_daemon_admission.py`, which also holds a global `squatch.daemon` absence assertion at line 161, and `tests/test_daemon_config.py`. Neither is in Context, so predecessor-test closure over the daemon hook cannot be judged or pinned.",
+          "paved_road": "Add `tests/test_daemon_admission.py` and `tests/test_daemon_config.py` to Context and to `EXISTING_AT_AUTHORING`. Name the daemon absence assertion's migration owner (scheduler-activation) in the closure proof, and do not treat that assertion as surviving unchanged."
         }
       ],
       "commands": []
@@ -47,7 +47,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/scheduler-activation/ticket.md",
-      "sha": "1ee0bf1b6e72b81bd5ac427d39a5ce3887631a37",
+      "sha": "b6813f4c92903a4ffdf1f98a8288f1bb8ee7e2ba",
       "bypassed": false,
       "findings": [],
       "commands": []
