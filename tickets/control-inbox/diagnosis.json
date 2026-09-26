@@ -1,9 +1,17 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "escalate",
+  "lessons": [
+    "Exactly-once is broken: mutate runs before the 'applied' append, so a crash between the two re-mutates on replay. Pick one commit point: record application atomically with the mutation, or state and test that mutate is idempotent.",
+    "Add crash-injection tests at every window: after the decision append and before mutate, after mutate and before the applied append, and after applied and before unlink. Each must assert the exact mutation count after replay.",
+    "When an accepted decision from an earlier lifecycle is replayed, journal a terminal 'stale' signal keyed by request_id before unlinking. The journal must never be left showing accepted with no applied and no terminal outcome.",
+    "In consume, read the bytes outside the try block. Catch only pydantic.ValidationError/ValueError around model_validate_json. Let OSError propagate so a valid request file survives a transient read failure.",
+    "Prove crash-safe publication against the real LocalFilesystem.publish: monkeypatch os.link or os.fsync to raise, then assert there is no target, no .tmp file, and nothing for consume to find. Do not override publish in a subclass.",
+    "Prove restart identity for real: close the Journal, reopen it on the same tmp_path, and build ControlInbox without lifecycle=. Assert the lifecycle differs, and that a request for the old lifecycle is journaled stale and never mutates.",
+    "Four review rounds of narrow patches each surfaced new gaps. Before coding, write out the full state machine (published, decided, applied, terminal) and its crash windows, then test every transition. Stay inside the six fenced files."
+  ],
+  "reason": "Four attempts of narrow fixes keep leaving new crash-window and proof gaps in an intricate exactly-once design; more capability should help, and nothing shows the ticket is unsatisfiable.",
+  "detail": null
 }
