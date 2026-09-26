@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Seed Context may name only paths that exist on main. tests/test_seeded_phase3_04.py is created by this ticket and is not merged yet, so remove it from phase3-continue-05's Context. Use existing material like tickets/phase3-continue-04/ticket.md instead.",
+    "Remove tests/test_seeded_phase3_04.py from EXISTING_AT_AUTHORING in the test. It is not existing main content, and the subset assertion let the requisition_review failure pass locally.",
+    "Before finishing, check every emitted seed's Context entries against the base commit (git ls-tree on main), not the working tree. Local pytest passing did not catch the missing path.",
+    "Keep the rest of the approach: the dispatch fences, the ownership split, the medium/medium 75/150 budgets and the YAML suffix all passed. Only the Context path in the successor failed the check."
+  ],
+  "reason": "Gate failed on one fixable oversight: the successor seed's Context names a file this ticket creates, which the paved road forbids.",
+  "detail": null
+}
