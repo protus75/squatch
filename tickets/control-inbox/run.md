@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-The journaled decision is the exactly-once consumption record. A crash after that write and before completion replays the supplied idempotent governed mutation without writing a second decision.
+The branch did not contain the prior implementation; rebuilt the fenced control inbox and retained decision-first replay semantics. Invalid and conflicting files are journaled as refusal outcomes and removed without blocking later requests.
 
 ## Dead ends
 
-The first attempt to invoke the repository Git wrapper used an invalid one-line Python function definition; no repository state changed.
+The first crash-publication fixture used the publisher's own temporary filename, so publication correctly replaced it. The fixture was changed to an unrelated interrupted atomic-write temporary file.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI Codex, GPT-5.
+Unknown.
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 20m.
+Expected 75m; actual approximately 25m.
