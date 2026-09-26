@@ -47,8 +47,8 @@ Do not add an observation source, SHA source, Triage composition, typed inbox, r
 - squatch/daemon.py
 
 ## Acceptance criteria
-- `tests/test_daemon_tasks.py` proves the three callback boundaries and independently observable task lifetimes.
-- `tests/test_daemon_tasks.py` proves cancellation, clean shutdown, and exception sibling cleanup.
+- `tests/test_daemon_tasks.py` proves the three callback boundaries with one independently named test for each consumer lifetime.
+- `tests/test_daemon_tasks.py` proves cancellation, clean shutdown, and that a callback exception cancels and awaits siblings before the owner's shutdown await re-raises that exception.
 - `tests/test_daemon_composition.py` remains unchanged and passes.
 
 ## Verification
