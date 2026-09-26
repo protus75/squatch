@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "7f1b1900ae2eaddb0d5b10d963a736494c72b9bb",
+  "produced_at_sha": "cbb70a4b50924260b07753e798102a74f2c08535",
   "stem": "phase3-continue-07",
   "branch": "phase3-continue-07",
-  "base": "960b85f773cf1033bbaf61cb98f07c093b8b7c91",
-  "head": "7f1b1900ae2eaddb0d5b10d963a736494c72b9bb",
+  "base": "ea18d3d1ba139855dbe6bdb133df872b0ca29307",
+  "head": "cbb70a4b50924260b07753e798102a74f2c08535",
   "changed_files": [
     "tests/test_seeded_phase3_07.py"
   ],
@@ -14,8 +14,8 @@
       "code": "requisition_review",
       "verdict": "pass",
       "severity": "hard",
-      "path": "tickets/phase3-continue-08/ticket.md",
-      "sha": "7d6f64f498d50164e3f5ea3728d8cb271f1d1c2e",
+      "path": "tickets/background-consumers/ticket.md",
+      "sha": "d4535e4993ff8d5f8dc7a076ea9b67ae9f906328",
       "bypassed": false,
       "findings": [],
       "commands": []
