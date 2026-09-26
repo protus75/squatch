@@ -2,14 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The predecessor compatibility constructor remains a trailing `merge_queue=None` default as the ticket specifies; production composition always supplies the concrete queue.
+Kept the two-positional-argument Pipeline constructor as required and exposed the queue state only for direct cleanup assertions.
 
 ## Dead ends
+An initial test provider used an unshipped adapter name; it was replaced with the shipped codex adapter before verification.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5
+OpenAI Codex, GPT-5
 
 ## Predicted vs actual
-Expected: 75m. Actual: approximately 45m.
+Expected 75m; actual approximately 12m.
