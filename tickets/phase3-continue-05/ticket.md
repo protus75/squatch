@@ -104,6 +104,7 @@ Do not implement scheduler activation or later Phase 3 work, author another seed
 - tests/test_seeded_phase3_05.py
 
 ## Acceptance criteria
+- `tests/test_seeded_phase3_04.py` pins this repaired continuation Context and keyed scheduler-activation ownership, and its focused suite is green before this ticket authors successors.
 - `tests/test_seeded_phase3_05.py` proves the emitted set is exactly `scheduler-activation` and `phase3-continue-06`, both lint as confirmed source-seed tickets citing section 20 alone, with exact edges `phase3-continue-05 -> scheduler-activation -> phase3-continue-06` and a batch within `seeding.max_seeds_per_admission`.
 - `tests/test_seeded_phase3_05.py` pins scheduler-activation at high/high with expected/stuck minutes 120m/180m and phase3-continue-06 at medium/medium with 75m/150m; each expected value is less than stuck and each stuck value is at or below `drain.max_ticket_minutes`.
 - `tests/test_seeded_phase3_05.py` pins each exact fence and keyed ownership record from Scope in, including the new composition harness and the existing production hooks. The emitted activation requires in-process real production composition and explicitly migrates the predecessor scheduler reachability assertion.
