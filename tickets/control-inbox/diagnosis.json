@@ -1,15 +1,14 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "In _consume, remove the terminal short-circuit before the read. Read and validate the file first, then compare existing.request != request for every previously decided id, whatever its outcome. Journal a new decision for every file you remove.",
-    "Only an identical republication of a request that already has a terminal non-accepted decision may be removed silently, returning the existing decision. A different request under that id must journal a 'conflict' and never mutate.",
-    "If a stem was earlier decided 'invalid' with request=None, valid new content under that stem is a conflict. Compare against the stored request, and treat None as not equal to any request.",
-    "Add a test to tests/test_control.py: decide request R 'stale', then publish different content under R's request_id. Assert a 'conflict' signal is journaled, mutate is not called, holds are unchanged and the file is gone. Also cover an invalid decision followed by republication.",
-    "Keep everything else as it is. Review found the fence, verification, applied marker, lifecycle and hold binding, publish seam, crash-window tests and DaemonTasks hook sound, and the check report is green. Stay inside the six fenced files. Leave test_daemon_composition.py unchanged."
+    "In _consume, the filename/request_id mismatch branch appends 'invalid' on every replay. Build the decision, append only if decisions.get(path.stem) != decision (the guard the unparsable branch uses), then remove the file.",
+    "Add a test to tests/test_control.py: publish a valid request under a different filename, crash in remove, replay, and assert exactly one 'invalid' control signal for that key and zero mutate calls.",
+    "Audit every branch that journals before remove (conflict, stale, invalid) for the same crash window. Each replay after a crash before removal must not append a duplicate terminal decision. Add a remove-crash replay test per branch.",
+    "Keep everything else. Review found the fence, verification, publish seam, lifecycle/hold binding, applied marker and DaemonTasks hook sound. Stay inside the six fenced files. Leave test_daemon_composition.py unchanged."
   ],
-  "reason": "The only defect is a narrow, fixable reuse-conflict gap in _consume with an exact paved road. Everything else passed review and every check.",
+  "reason": "One fixable idempotency gap in a single replay branch, with a precise paved road; checks green.",
   "detail": null
 }
