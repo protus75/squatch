@@ -1,9 +1,14 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "The ticket pins exact pause-pair ownership that fails closure by construction. Neither pause seed fences tests/test_daemon_tasks.py or tests/test_control.py, yet both hook daemon.py and control.py, which those tests exercise. Fix the ownership record in the ticket or plan, not in the seeds.",
+    "pause-resume-activation is an activation seed, but its prescribed fence omits tests/test_daemon_composition.py. Section 20 says later activation seeds include the existing composition harness. Add it to the seed's hooks so it enters Context with a pinned authoring-time size.",
+    "The ticket requires tests/test_seeded_phase3_08.py to pin closure over four predecessor tests. It must either fence each one or state explicitly which contracts are preserved unchanged. The pinned closure list must then match the fences exactly.",
+    "Discard the committed test_seeded_phase3_07.py and the untracked seeds. Its PAUSE_OWNERSHIP pins the defective record. Regenerate after the ticket's ownership YAML is corrected; do not hand-patch."
+  ],
+  "reason": "The ticket's own Definition of rejected is triggered: the exact pause-pair ownership it prescribes needs predecessor-test closure over paths outside the registry fence, and it omits the composition harness from the activation seed.",
+  "detail": null
 }
