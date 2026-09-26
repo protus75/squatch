@@ -1,16 +1,22 @@
 ## Outcome
-implemented
+
+ok
 
 ## Surprises / judgment calls
-The successor continuation's structured suffix includes the dispatch-admission pair, as required by the ticket's explicitly pinned suffix boundary.
+
+The continuation ticket has no Context entries: its `tickets` fence is a directory, while Context is limited to existing files.
 
 ## Dead ends
-The first focused assertion exposed that the successor suffix began one admission too late; the seed was corrected before verification.
+
+The first focused run exposed an over-escaped test regex; it was corrected before verification.
 
 ## Second problems filed
 
+
 ## Resolved engine/model
-codex / GPT-5
+
+codex / gpt-5.6-terra
 
 ## Predicted vs actual
-Expected 75m; actual approximately 20m.
+
+Expected 75m; actual about 15m.
