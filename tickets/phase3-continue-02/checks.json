@@ -1,29 +1,53 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "2f904491c930207acaccafb79fee5101dd620f47",
+  "produced_at_sha": "76d0b11d1a750b67acfc13b9cd531e0c3a8589d5",
   "stem": "phase3-continue-02",
   "branch": "phase3-continue-02",
-  "base": "bd1ab905d75ac55fceda61266fda5d407b2573fd",
-  "head": "2f904491c930207acaccafb79fee5101dd620f47",
+  "base": "0ac3cd0a2755d3f56d47bc2d9183a4fc494fe65f",
+  "head": "76d0b11d1a750b67acfc13b9cd531e0c3a8589d5",
   "changed_files": [
     "tests/test_seeded_phase3_02.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-03/ticket.md",
+      "sha": "1d5f2adee778a5ba7a9247a8b0f3dd1d25c9322b",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/rework-stage/ticket.md",
-      "sha": "e5a5021198774add0480422aeb10602f24e0c211",
+      "sha": "fdfb709f74f0812cc9b60bb69195abed018507f9",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/rework-stage/ticket.md",
           "line": null,
-          "message": "Acceptance criterion 1 requires 'the specified Rework outcomes' for update, split, and escalate, but the ticket never defines them. The only text that would define them is `specs/rework.md`, which this same ticket creates, so the criterion defines itself. The plan-fixed properties of the stage are missing: Rework is an LLM stage (`rework` is already in `squatch/llm.py` LLM_SURFACES) that emits ONE composite rework-order artifact (updated ticket, split tickets, and/or an escalation element). The escalation element is consumed by the ladder's journal-derived rung and is never written into ticket frontmatter. The consumed handoff carries `approval_invalidated=True`, which forces re-review. Split children record a supersedes link to the stem they replace. Without these, a known-deep implementation can pass with any outcome shape.",
-          "paved_road": "Restate criterion 1 as separate checkable assertions in `tests/test_rework.py`. (a) `specs/rework.md` lints through `squatch.specs.load_spec` as surface `rework` with a single composite rework-order `emits` type. (b) Under the fake LLM, an update order yields an updated ticket for the handoff stem. (c) A split order yields child tickets, each with a supersedes link to the parent stem. (d) An escalate order yields an escalation element with ticket frontmatter left unchanged. (e) Every consumed `UnresolvedConflictHandoff` keeps its approval invalidated, so the resulting work is re-reviewed. Keep the rest of the fence, Context, and scope-out exactly as authored."
+          "message": "The escalation criterion says the element must be 'consumable by the ladder's journal-derived rung' without saying which consumer. In the shipped code, `ladder.pending_rung` only reads a `state_transition` whose `routed == \"ladder\"`, and it takes the rung from a body that carries `tier`/`effort`. That rung is produced by `reject.py` routing (`record.verdict == \"escalate\"` -> `Routing(\"ladder\", ..., rung)` via `next_rung`). An element that 'never names a tier or effort' therefore has no named path into that consumer, and neither `squatch/ladder.py` nor `squatch/reject.py` is in Context.",
+          "paved_road": "Name the consumer exactly. For example: the escalation element maps to a diagnosis-shaped `escalate` verdict that `squatch.reject` routing turns into a ladder rung through `squatch.ladder.next_rung`. Add `squatch/ladder.py` and `squatch/reject.py` to Context so the test binds to their merged interfaces without editing them."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/rework-stage/ticket.md",
+          "line": 52,
+          "message": "The split criterion says every child ticket 'records a supersedes link'. Ticket frontmatter is closed (`FRONTMATTER_KEYS`, and the `Ticket` dataclass has no supersedes field), so a child ticket that carries the link would fail intake linting unless someone edits `squatch/tickets.py`, which is outside the fence. The plan puts supersedes in a journaled map (old stem -> successor stems), not in ticket frontmatter.",
+          "paved_road": "Restate the criterion so Rework records a supersedes map (old stem -> child stems) as a journal `signal` event, which `squatch.journal.EVENT_TYPES` already allows. Child tickets should carry only the closed frontmatter keys. Add `squatch/tickets.py` and `squatch/journal.py` to Context."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/rework-stage/ticket.md",
+          "line": null,
+          "message": "Several criteria read modules that are missing from Context: `squatch.specs.load_spec` / `lint_spec` (the spec frontmatter grammar and the `emits` verdict->type map), the fake LLM seam, and the `Ticket` model that the updated or child tickets must satisfy. The implementer cannot write `specs/rework.md` or the tests against contracts they cannot read.",
+          "paved_road": "Add `squatch/specs.py`, `squatch/llm.py` (`LLM_SURFACES` already contains `rework`), the module that hosts the fake LLM used by existing stage tests, and `squatch/tickets.py` to Context. None of these are fence changes."
         }
       ],
       "commands": []
