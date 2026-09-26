@@ -1,0 +1,82 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "3033fa9d2e10c04f071c1b945747e63a2e36d436",
+  "stem": "dispatch-config-snapshot",
+  "branch": "dispatch-config-snapshot",
+  "base": "1fcd73a2dbf96e41f99e260869610303d384a28b",
+  "head": "3033fa9d2e10c04f071c1b945747e63a2e36d436",
+  "changed_files": [
+    "squatch/config.py",
+    "squatch/daemon.py",
+    "tests/test_daemon_admission.py",
+    "tests/test_daemon_config.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_daemon_config.py",
+            "tests/test_daemon_admission.py",
+            "tests/test_config.py",
+            "tests/test_scheduler.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
