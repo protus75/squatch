@@ -1,22 +1,16 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-The authored seeds were already present from the prior attempt. I made the background-consumers acceptance criteria and seeded proof explicitly pin one named test per consumer lifetime and exception re-raising after sibling cancellation and await.
+The three emitted seeds were already present; retained them unchanged. Section 20 supports the ticket without a plan correction. Restored the prior test from its reviewed commit and fixed the missing continuation prose assertions, constant-only fence comparison, and positional YAML selection. Also pinned emitted ownership records, unchanged composition contracts, callback lifetime boundaries, and both explicit suffix lists. Authoring-time Context sizes match the current files. Verification: uv run pytest tests/test_seeded_phase3_07.py -q (5 passed); uv run pytest -q (944 passed).
 
 ## Dead ends
-
-The prior attempt's committed test was no longer reachable from the branch tip, so I recovered its reviewed content from the repository object database before applying the two requested corrections. An initial commit-helper invocation had invalid one-line Python syntax; the corrected invocation succeeded.
+None.
 
 ## Second problems filed
 
-
 ## Resolved engine/model
-
-OpenAI Codex (model identity not provided).
+OpenAI / GPT-6 (Codex); exact serving variant unavailable.
 
 ## Predicted vs actual
-
-Expected 75m; actual about 12m.
+Expected: 75m. Actual: approximately 5m.
