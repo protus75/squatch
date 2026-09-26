@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "ce82e56cdb3fe3c01bc864592b7e97dce73a3724",
+  "produced_at_sha": "49025f94074fcb91b3f6073955d72619e4b116d2",
   "stem": "background-consumers",
   "branch": "background-consumers",
-  "base": "445a2276c0ee3277ae4e9685c3f7f2df298a4ef1",
-  "head": "ce82e56cdb3fe3c01bc864592b7e97dce73a3724",
+  "base": "eee05034718705cc4417b60ae45a9aa10e29d8e8",
+  "head": "49025f94074fcb91b3f6073955d72619e4b116d2",
   "changed_files": [
     "squatch/daemon.py",
     "tests/test_daemon_tasks.py"
