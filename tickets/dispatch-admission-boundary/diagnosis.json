@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Delete test_daemon_is_unreachable_from_the_current_production_import_root. Criterion 3 forbids a committed global negative production-import assertion because scheduler-activation would have to edit it. Test the scan helper only against a tmp_path fixture.",
+    "Run the dormancy scan against the real repo root from squatch/__main__.py and record its result in run.md. The run record must also show that the injected fixture edge makes the same scan fail. The prior run.md had no dormancy evidence.",
+    "Add a barrier-driven test proving the slot lasts through completion observation. While the first task is active and not yet observed, a second admit must return None with zero callback calls. Assert this before the task finishes and at the completion boundary.",
+    "Make 'observed' mean something a test can verify. If release stays in a done callback, assert refusal until task.done() and the callback has run. Otherwise, move release into an explicit observation path and prove refusal between work returning and that observation.",
+    "Keep what already passed: the synchronous admit reservation, the deferred work wrapper, and the completion, exception, and cancellation release tests. Also keep the pre-start cancellation test with calls == 0. Checks, the fence and verification were all green."
+  ],
+  "reason": "Review found two fixable test and evidence oversights: a forbidden production-import assertion and no proof that the slot is held until completion observation. The findings give the fix path, and nothing about the ticket or environment blocks it.",
+  "detail": null
+}
