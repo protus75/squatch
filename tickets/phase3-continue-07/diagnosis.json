@@ -1,15 +1,15 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snag only. The seeds, Context map, sizes, pause_ownership, render bound and suffix all passed requisition, checks and review. Keep them and fix only the two gaps below.",
-    "In test_seed_prose_pins_consumer_and_predecessor_boundaries, assert that the background-consumers Scope in states the re-raise contract: the owner's shutdown await re-raises a callback's exception after cancelling and awaiting its siblings (e.g. 're-raises that exception').",
-    "Assert that the background-consumers seed requires one independently named test per consumer lifetime (watcher, merge/Rework, box) in tests/test_daemon_tasks.py, e.g. the phrase 'each consumer lifetime independently'.",
-    "Add an acceptance criterion to the background-consumers seed naming the exception re-raise after sibling cancel+await, plus per-consumer lifetime tests. Assert that text in its '## Acceptance criteria' section, not only in Scope in.",
-    "Before submitting, map every AC4 clause (watcher snapshot, Rework handoff, Triage pass, independent lifetimes, cancellation, exception propagation, read-only Context) to a concrete assertion."
+    "Review snag only. The seeds, Context map, sizes, pause_ownership, render bound and suffix values passed requisition, checks and review. Keep them and fix only the three test gaps below.",
+    "Remove the PAUSE_FENCES == owns+hooks check, which compares two constants and proves nothing. Instead assert that phase3-continue-08's Scope in states the fence derivation (e.g. 'owns followed by hooks') and carries the parsed pause_ownership block.",
+    "Add phrase assertions on phase3-continue-08's Scope in for: confirmed seed status, every existing fence path in Context, the exact new-path owners, and successor suffix equality. Each AC5 obligation needs its own assertion against the ticket text.",
+    "Pick the successor-suffix yaml block by content, not by position: [1] is brittle. Take the one list-typed block from _yaml('phase3-continue-08') and compare it to SUCCESSOR.",
+    "Before submitting, check each AC5 clause (ownership, fences, edges, tier/effort, budgets, cap, predecessor closure, size map, headroom, suffix, confirmed, new-path owners) against an assertion that reads the ticket, not a constant."
   ],
-  "reason": "Checks are green. The review snag is a fixable test-coverage gap on AC4 (re-raise and per-consumer lifetime pins), and the review's paved road now steers the fix.",
+  "reason": "The review found fixable gaps in the test's assertions against phase3-continue-08's text. The seeds and pins are sound, so retry at the same capability.",
   "detail": null
 }
