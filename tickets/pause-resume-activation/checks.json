@@ -1,19 +1,18 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "c9ceed3081bd0595cd11e23bebbc1720e219b645",
+  "produced_at_sha": "16a57a082084b1859bc2293c5ff6948c9fe08d32",
   "stem": "pause-resume-activation",
   "branch": "pause-resume-activation",
-  "base": "028c396943196957e9a4557f10755c0d023190f7",
-  "head": "c9ceed3081bd0595cd11e23bebbc1720e219b645",
+  "base": "8f2a91d3cb793d65d0d594e98a3cd4cdb07b40a7",
+  "head": "16a57a082084b1859bc2293c5ff6948c9fe08d32",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/control.py",
     "squatch/daemon.py",
     "squatch/drain.py",
-    "squatch/merge.py",
-    "squatch/mergequeue.py",
     "tests/test_control_cli.py",
+    "tests/test_daemon_composition.py",
     "tests/test_daemon_pause.py"
   ],
   "checks": [
@@ -29,20 +28,12 @@
     },
     {
       "code": "verification",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "verification",
-          "path": null,
-          "line": null,
-          "message": "verification command exit 143: `uv run pytest -q`\nwarning: `VIRTUAL_ENV=/home/djp/source/squatch/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead",
-          "paved_road": "make every `## Verification` command exit 0 on the committed branch"
-        }
-      ],
+      "findings": [],
       "commands": [
         {
           "argv": [
@@ -51,7 +42,6 @@
             "pytest",
             "tests/test_control_cli.py",
             "tests/test_daemon_pause.py",
-            "tests/test_mergequeue.py",
             "tests/test_daemon_composition.py",
             "tests/test_daemon_tasks.py",
             "tests/test_control.py",
@@ -68,7 +58,7 @@
             "pytest",
             "-q"
           ],
-          "attribution": "branch",
+          "attribution": null,
           "filed": null
         }
       ]
