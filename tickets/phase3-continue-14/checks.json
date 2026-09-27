@@ -1,0 +1,150 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "c96edf911a0434432c392d8745bff76fba36f076",
+  "stem": "phase3-continue-14",
+  "branch": "phase3-continue-14",
+  "base": "77fb75117aa211eafb62ab25fb6be576bf3ae124",
+  "head": "c96edf911a0434432c392d8745bff76fba36f076",
+  "changed_files": [
+    "tests/test_seeded_phase3_14.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/flake-detection/ticket.md",
+      "sha": "39aeae712792dffa27277c3a82be465b0526b1bb",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/flake-detection/ticket.md",
+          "line": null,
+          "message": "Scope in and Acceptance criteria say to 'detect and record a flake' but never say what a flake is. Nothing names the input that counts as one, such as a gate or verification outcome that goes red then green on the same commit, or a repeat after a retry draw. The only plan section cited is section 20, which lists `flake-detection` by name only. So the implementer would have to make up the detection semantics, and the reviewer has nothing to check them against.",
+          "paved_road": "In Scope in, state the exact flake detection rule and its inputs, quoting the operative plan law that the compact registry incorporates (the section 9/12 gate re-run semantics). If no plan section defines flake detection, stop and raise it as a plan repair rather than inventing semantics."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/flake-detection/ticket.md",
+          "line": null,
+          "message": "'Records a flake' does not name the journal record. It gives no event type, `kind`, key, or body fields, and does not say where the decision is written relative to any state mutation. Criterion 1 therefore has no checkable output, and `flake-release` has no fixed record to read later.",
+          "paved_road": "Name the journal record: event type, `kind` value, key form, and body fields. Require `tests/test_flake.py` to assert it exactly, and to assert that no release record or state change is written."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/flake-detection/ticket.md",
+          "line": null,
+          "message": "The ticket is ambiguous between construction and activation. Section 20 says construction is dormant and directly tested. `flake-detection` is the construction half of the `flake-detection`/`flake-release` pair, and `squatch/__main__.py` is outside the fence. Yet the Goal and criterion 1 say detection happens 'through the journaled daemon path' and in 'the daemon composition', which can be read as wiring it into the live drain. The CLI composition root would then need to be fenced, which contradicts Scope out.",
+          "paved_road": "State that this ticket adds a dormant `compose_daemon_flake`-style hook in `squatch/daemon.py`, like `compose_daemon_heartbeat`/`compose_daemon_timers`. It should be constructed and directly tested in `tests/test_flake.py`, and not reached from `squatch/__main__.py` or the drain. Reword criterion 1 to match."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/flake-detection/ticket.md",
+          "line": null,
+          "message": "Context includes `tests/test_seeded_phase3_11.py`, a seed-batch test with no bearing on flake detection. It leaves out the interfaces the new module must use to record through the journal and the injectable seams (`squatch/journal.py`, and `squatch/timers.py` or `squatch/heartbeat.py` as the established dormant-boundary pattern).",
+          "paved_road": "Replace `tests/test_seeded_phase3_11.py` in Context with the journal and dormant-boundary interface files the implementation reads, keeping the render under `REQ_RENDER_HEADROOM`."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/flake-release/ticket.md",
+      "sha": "707e00a880196cca95db12e1d5598fd9c977dcba",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-15/ticket.md",
+      "sha": "121e2b60c199961d42dd18dd7a758de43e75c705",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-15/ticket.md",
+          "line": null,
+          "message": "Section 20 says each continuation 'checks predecessor-test closure'. The phase3-continue-12 seed test checks that phrase in its criteria, but neither criterion here requires it. journal-roll changes squatch/journal.py, whose existing tests/test_journal.py pins segment behavior the roll can contradict: line 111 says 'no new segment is opened' when the newest-named segment is active, and the file also covers active and rolled segment torn-tail rules. Nothing forces the emitted journal-roll and storm-ledger seeds either to fence that suite or to name it as preservation-only Context.",
+          "paved_road": "Add a criterion: tests/test_seeded_phase3_15.py checks predecessor-test closure for the next admission. It names tests/test_journal.py as a fenced migration or as read-only preservation Context for journal-roll, and for storm-ledger where it hooks squatch/journal.py. It pins that classification the way test_seeded_phase3_11.py pins PRESERVATION."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-15/ticket.md",
+          "line": null,
+          "message": "The Context carries the heartbeat-era set (squatch/daemon.py, squatch/__main__.py, tests/test_control_cli.py, tests/test_daemon_composition.py). None of those files is fenced by the next admission. The files the emitted seeds fence or must preserve are missing: squatch/journal.py (7,110 chars on main) and tests/test_journal.py (9,535 chars). Without them the criteria that pin the next admission's Context, the EXISTING_AT_AUTHORING sizes, and the max-effort render against REQ_RENDER_HEADROOM rest on unread artifacts.",
+          "paved_road": "Keep tests/test_seeded_phase3_11.py as the established seeded-test pattern. Replace the unrelated daemon, CLI, and composition entries with squatch/journal.py and tests/test_journal.py. Keep a daemon or composition file only if the ownership block makes it a fence or hook for a seed in this admission. Keep squatch/storm.py and the other sibling-new paths out of Context."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase3_14.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
