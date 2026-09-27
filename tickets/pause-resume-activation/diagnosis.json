@@ -1,15 +1,16 @@
 {
-  "run_seq": 11,
+  "run_seq": 12,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "All checks passed and the production wiring works. Keep the current design and fix only the one review finding: the live-lock check matches the lifecycle on instance_id, which is the git-describe version that every lock holder shares.",
-    "Tie control_lifecycle to the specific lock acquisition. Have the drain's control factory journal the holder's pid and started_at from the Lockfile Holder with the lifecycle. Have _published_lifecycle match on both from LockHeld.holder, and refuse when nothing matches.",
-    "Pass the Holder identity (pid, started_at) from _locked into _control_factory and compose_daemon_control; don't pass only instance_id. Keep the change inside the fenced __main__.py, daemon.py and drain.py.",
-    "Add a test_control_cli.py case: a drain journals lifecycle L1 and exits, then a non-drain holder (e.g. run) with the same instance_id holds the lock. `squatch pause` must refuse with non-zero exit and publish no request.",
-    "Keep the existing live-publish test passing by writing the matching pid/started_at in its fake lifecycle signal. Run `uv run pytest -q` to completion before claiming success."
+    "All checks passed and the production wiring, durable holds, lifecycle identity and CLI paths are accepted. Keep the current design. Fix only the one review finding in tests/test_daemon_composition.py.",
+    "test_main_drain_routes_control_after_inflight_work_and_before_the_next_offer orders pause, then resume, with asyncio.sleep(0.05). If both requests land in one inbox snapshot, consume() decides the release stale against the pre-pause releasable set, and the test hangs.",
+    "Publish the resume from a deterministic signal that the pause was applied. Inject a sleep into _control_factory (its sleep parameter) through the drain's public control_factory path, and publish the resume on its first call, when the drain is provably paused.",
+    "An alternative is to poll the journal for the pause's control_hold event before publishing the release. Either way, remove all wall-clock ordering from the test.",
+    "Make the test fail instead of hanging. clock=lambda: NOW never advances, so the admission ceiling is never reached. Use an advancing clock or an asyncio.wait_for bound so a stuck pause fails fast.",
+    "Do not change squatch/control.py consume semantics to paper over the race. The snapshot-before-hold rule is the tested pre-hold-release contract. Run `uv run pytest -q` to completion before claiming success."
   ],
-  "reason": "Checks passed; one narrow, fixable review finding on live-holder identity matching that the findings now steer.",
+  "reason": "Only one fixable test-ordering race remains; review steered the fix and all checks passed.",
   "detail": null
 }
