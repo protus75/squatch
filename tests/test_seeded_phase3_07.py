@@ -44,7 +44,7 @@ PAUSE_OWNERSHIP = {
         "squatch/daemon.py", "squatch/control.py", "squatch/drain.py",
         "tests/test_drain.py"]},
     "pause-resume-activation": {"owns": ["tests/test_control_cli.py"], "hooks": [
-        "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py",
+        "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py", "squatch/merge.py",
         "squatch/__main__.py", "tests/test_daemon_pause.py", "tests/test_mergequeue.py",
         "tests/test_daemon_composition.py"]},
     "phase3-continue-09": {"owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": []},
@@ -185,6 +185,7 @@ def test_continuation_pins_pause_closure_and_shrinking_suffix():
             "Derive each pause seed fence as its owns followed by its hooks",
             "exact new-path owners", "successor suffix equality",
             "The pause seeds include their now-existing fenced predecessor paths in Context",
+            "explicit on-demand inspection exception required by render headroom",
             "preservation-only suites, outside their fences and Context",
             "Sibling-new paths remain outside this continuation Context"):
         assert phrase in scope

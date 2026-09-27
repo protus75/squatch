@@ -22,7 +22,7 @@ OWNERSHIP = {
     "dispatch-pause-boundary": {"owns": ["tests/test_daemon_pause.py"], "hooks": [
         "squatch/daemon.py", "squatch/control.py", "squatch/drain.py", "tests/test_drain.py"]},
     "pause-resume-activation": {"owns": ["tests/test_control_cli.py"], "hooks": [
-        "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py",
+        "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py", "squatch/merge.py",
         "squatch/__main__.py", "tests/test_daemon_pause.py", "tests/test_mergequeue.py",
         "tests/test_daemon_composition.py"]},
     "phase3-continue-09": {"owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": []},
@@ -41,7 +41,8 @@ EXISTING_AT_AUTHORING = {
     "squatch/driver.py": 9738,
     "tests/test_seeded_phase3_core.py": 5877, "squatch/daemon.py": 6828,
     "squatch/control.py": 7283, "squatch/drain.py": 22833, "tests/test_drain.py": 35720,
-    "squatch/mergequeue.py": 12921, "squatch/__main__.py": 10674,
+    "squatch/mergequeue.py": 12921, "squatch/merge.py": 23414,
+    "squatch/__main__.py": 10674,
     "tests/test_mergequeue.py": 34441, "tests/test_daemon_composition.py": 7625,
 }
 NEW_PATH_OWNERS = {
@@ -113,9 +114,9 @@ def test_ownership_existing_closure_and_exact_new_path_owners():
         assert set(ticket.context) <= set(EXISTING_AT_AUTHORING)
         assert set(ticket.context).isdisjoint({"squatch/specs.py", "specs/implement.md"})
         for path in ticket.scope_fence:
-            if path in EXISTING_AT_AUTHORING:
+            if path in EXISTING_AT_AUTHORING and path != "squatch/merge.py":
                 assert path in ticket.context, (stem, path)
-            elif path != "tickets":
+            elif path not in {"tickets", "squatch/merge.py"}:
                 assert NEW_PATH_OWNERS[path] in {stem, "dispatch-pause-boundary"}
         assert _ownership(stem) == {stem: OWNERSHIP[stem]}
     assert "tests/test_daemon_pause.py" not in CONTEXT["pause-resume-activation"]
@@ -128,6 +129,8 @@ def test_predecessor_closure_and_preservation_only_exclusions_are_pinned():
         assert path in activation.scope_fence
         assert any(path in argv for argv in activation.verification)
     assert "tests/test_mergequeue.py" in activation.context
+    assert "squatch/merge.py" in activation.scope_fence
+    assert "squatch/merge.py" not in activation.context
     assert "squatch/__main__.py" in activation.context
     boundary = _ticket("dispatch-pause-boundary")
     assert {"squatch/drain.py", "tests/test_drain.py"} <= set(boundary.scope_fence)
