@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "d4cf982397c8248df86ed7d625d0c72add5f4687",
+  "produced_at_sha": "27f2b17e2bf9808d37540f7e36622194ec5c2763",
   "stem": "phase3-continue-16",
   "branch": "phase3-continue-16",
-  "base": "73bd85867b2285a6fc554eefa93bce6f94940f6f",
-  "head": "d4cf982397c8248df86ed7d625d0c72add5f4687",
+  "base": "7f7d67d1e5f327766e0369b5f061a1ebf73bc76a",
+  "head": "27f2b17e2bf9808d37540f7e36622194ec5c2763",
   "changed_files": [
     "tests/test_seeded_phase3_16.py"
   ],
@@ -14,18 +14,53 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": null,
-      "sha": null,
+      "path": "tickets/phase3-continue-17/ticket.md",
+      "sha": "790f926fd7b5f391dde405f7c350667a273a4f77",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-17/ticket.md",
-          "line": 5,
-          "message": "Context path 'tests/test_seeded_phase3_16.py' does not exist",
-          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
+          "line": null,
+          "message": "Scope in says 'Both use medium/medium tiers', and the acceptance criteria require tests/test_seeded_phase3_17.py to pin those tiers. Section 20's registry lists `storm-dispatch-hold` ALONE KNOWN-DEEP, and KNOWN-DEEP seeds are `high`/`high`. Scope in also calls the hold 'a separate KNOWN-DEEP admission', so the ticket contradicts itself and the plan. The same pattern exists in tests/test_seeded_phase3_11.py, which pins high/high for the KNOWN-DEEP kill-cli-activation and medium/medium for its continuation.",
+          "paved_road": "Specify `storm-dispatch-hold` as high/high and `phase3-continue-18` as medium/medium, following the tiers split in test_seeded_phase3_11.py. Have the seeded test pin that split, and have its max-effort headroom render cover the high-tier seed."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-17/ticket.md",
+          "line": null,
+          "message": "The hold's pinned ownership hooks only squatch/storm.py, squatch/control.py and squatch/daemon.py. Section 20 says storm-notification-activation keeps 'Dispatch suppression ... OUT until the separate KNOWN-DEEP storm-dispatch-hold admission'. It also requires every seed to 'close their fence over each owner, composition hook, and predecessor negative test they invalidate'. The storm predecessor tests will exist when this ticket runs: tests/test_storm_producer.py and tests/test_storm_notification_activation.py, plus tests/test_storm.py. The hold therefore invalidates a dispatch-suppression-absence assertion that its exact fence cannot migrate. The Scope in also never asks for the predecessor-test closure the registry requires: preservation Context for the then-existing storm tests and the composition harness tests/test_daemon_composition.py.",
+          "paved_road": "Have Scope in require the hold seed to take the then-existing storm predecessor tests and tests/test_daemon_composition.py as Context. Add to the hold's hooks (after owns) any predecessor test whose dispatch-hold-absence assertion the hold must migrate. Have tests/test_seeded_phase3_17.py pin that preservation/fence partition, as test_seeded_phase3_11.py does with PRESERVATION."
         }
       ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/storm-notification-activation/ticket.md",
+      "sha": "ad76b4a9e696ca923cf98b9523e8a3f186f56484",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/storm-notification-activation/ticket.md",
+          "line": null,
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"snag\",\\n \"summary\": \"The ticket fences and migrates a test file that its sibling seed creates, which the plan forbids. It also leaves open how \\'P0\\' is stored, where the trip hooks into the real box arrival path, and how its exclusivity criterion could ever be tested.\",\\n \"findings\": [\\n  {\"code\": \"requisition_review\",\\n   \"path\": \"tests/test_storm_producer.py\",\\n   \"line\": null,\\n   \"message\": \"The fence lists tests/test_storm_producer.py and the Scope in / criteria require migrat'",
+          "paved_road": "fix the plan, then re-author the ticket"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/storm-producer-wiring/ticket.md",
+      "sha": "9a98ac83932f13ec6fb6b56fab6605c8aeee992e",
+      "bypassed": false,
+      "findings": [],
       "commands": []
     },
     {
