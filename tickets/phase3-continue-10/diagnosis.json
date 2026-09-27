@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "phase3-continue-11's Scope in must author only `kill-cli-activation` and `phase3-continue-12` (2 seeds). Section 20 marks `kill-cli-activation` 'alone', so `heartbeat` belongs to the next admission.",
+    "Edges for continue-11's batch: `kill-cli-activation` depends on `phase3-continue-11`, and `phase3-continue-12` depends on `kill-cli-activation`. Remove `heartbeat` from continue-11's identities, edges, budgets, and new-path owners.",
+    "continue-11's carried admission list must start with `[kill-cli-activation]`. Its successor suffix is that list minus its head, starting at `[heartbeat]`. Check that no seed repeats a previous admission and no admission is merged into another.",
+    "The focused and full test suites passed while the requisition review still failed. Before committing, read the emitted continuation's Scope in against section 20's 'alone' markers, not just against the pinned test."
+  ],
+  "reason": "The check gate's requisition review found a fixable authoring mistake: continue-11's seed list merges two admissions. The finding gives an exact fix within the ticket's fence.",
+  "detail": null
+}
