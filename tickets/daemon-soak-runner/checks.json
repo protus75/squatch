@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "258ed22c363446cdf9c9dd67621553156b120111",
+  "produced_at_sha": "a3999d35aacfe430d62e69f82302b2879a066208",
   "stem": "daemon-soak-runner",
   "branch": "daemon-soak-runner",
-  "base": "ec1125c3db39d07cfc5505b590f31b4b2b112dc3",
-  "head": "258ed22c363446cdf9c9dd67621553156b120111",
+  "base": "748361b27a21ec7ae85e5b7eb5ea80172b9d1756",
+  "head": "a3999d35aacfe430d62e69f82302b2879a066208",
   "changed_files": [
     "eval/daemon_soak.py",
     "tests/test_daemon_soak.py",
