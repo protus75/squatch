@@ -1,14 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Worktree guard in output_lift_allows_empty checks only the rename destination (`split(' -> ')[-1]`). Require every side of each porcelain entry to sit under `tickets/<stem>/`, so a staged rename from code into the OUTBOX is not exempted.",
-    "Add a tests/test_stages.py case: stage a rename from a code path into tickets/<stem>/ next to a registered report, and assert gate_failed with 'no committed diff'.",
-    "integration_check in merge.py newly ORs `_seed_lift(...)` into allow_empty. That is out-of-scope seed-lift behavior with no test. Use allow_empty=lifted_output only, and file the seed-lift/integration_check mismatch in the Suggestion Box.",
-    "Everything else passed: fence, verification, run_record, diff_budget, and the reviewer said all acceptance criteria were met. Keep the rest of the diff as it is; the fix is small and targeted."
+    "Prior lessons are fixed: every rename side is checked, and integration_check uses allow_empty=lifted_output only. Keep that diff and fix only the new review finding.",
+    "Cross-run hole: lift_ticket_files rglobs the whole outbox and returns tracked files even with commit None. A report committed by an earlier run qualifies a no-op rerun. Count only artifacts this run produced.",
+    "In output_lift_allows_empty, require at least one worktree git.status entry (untracked/modified) for a registered, non-run.md artifact under tickets/<stem>/. The completed lift result must also name that same path.",
+    "Add a tests/test_stages.py case: commit a valid registered report under tickets/<STEM>/ on main, run an implementer that writes nothing, and assert gate_failed with 'no committed diff'.",
+    "Check that merge regate still passes after the status requirement. The worktree must still show the lifted report as uncommitted at admit time; if it does not, carry the evidence from the initial Check instead of re-reading status."
   ],
-  "reason": "Review snag named two concrete fixes: close the rename-source hole in the OUTBOX guard and drop the unrequested seed-lift change in integration_check. All checks passed, so re-run at the same capability.",
+  "reason": "Review snag is a narrow, fixable cross-run evidence gap with a concrete paved road; all mechanical gates passed.",
   "detail": null
 }
