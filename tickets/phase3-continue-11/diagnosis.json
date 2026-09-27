@@ -1,9 +1,15 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The phase3-continue-12 seed's Context named tests/test_seeded_phase3_11.py. That file is created in this same change, so requisition review rejected it. Context may list only files that already exist when the ticket is authored.",
+    "For the continuation's seeded-test pattern, use an existing file such as tests/test_seeded_phase3_core.py or the latest merged tests/test_seeded_phase3_<nn>.py. Update test_seeded_phase3_11.py to match; it currently asserts ticket.context == ('tests/test_seeded_phase3_11.py',).",
+    "Before finishing, lint both authored tickets with each Context path checked against the base tree. Passing pytest does not mean the requisition_review gate will pass.",
+    "The diff_stat shows tickets/kill-cli-activation/ticket.md and tickets/phase3-continue-12/ticket.md as untracked. Commit both ticket files with the seed test.",
+    "Keep what already works: the on-demand partition for stages/drain/__main__, the preservation Context, the heartbeat ownership repair, the successor suffix, and the run.md Outcome 'ok'."
+  ],
+  "reason": "The only gate finding is a fixable Context mistake: a same-change file was listed as existing Context, and the rest of the contract passed.",
+  "detail": null
 }
