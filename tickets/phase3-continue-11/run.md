@@ -2,10 +2,10 @@
 premise_failed
 
 ## Surprises / judgment calls
-The governing section 20 still requires a kill activation through the real production composition while restricting its fence to control, daemon, driver, and CLI paths. The production Driver is constructed in `squatch/stages.py`, and the current production composition has no owner for `DaemonTasks`; treating a test-only composition as production would contradict the ticket.
+The repaired plan now grants the production bootstrap-drain path, but the ticket simultaneously requires every existing activation fence path and four read-only preservation paths in the activation Context while requiring its max-effort render to fit `REQ_RENDER_HEADROOM`.
 
 ## Dead ends
-The activation cannot prove executor abort, worker stop, failure suppression, and post-kill admission blocking as written without a plan repair that grants and defines the production composition path. `SQUATCH_PLAN.md` is outside this ticket's scope fence, so it cannot be repaired here.
+The nine mandatory activation Context files total 143,484 characters before Context headings, the authored ticket, the required section-20 plan contract, workspace data, or prompt framing. `REQ_RENDER_HEADROOM` caps the max-effort synthetic render at 120,000 characters, so no authored seed can satisfy the required headroom assertion. Repairing either the Context mandate or the headroom rule is outside this ticket's scope fence.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The activation cannot prove executor abort, worker stop, failure suppression, an
 OpenAI Codex (GPT-5)
 
 ## Predicted vs actual
-Expected 75m; stopped during contract validation before implementation.
+Expected 75m; stopped during contract validation after measuring the required Context.
