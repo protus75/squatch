@@ -1,15 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "Do not write the Box record yourself (_land_in_box). Let production triage/harvest route the fault, then derive disposition by reading the member's state dir (Box.by_origin or the alert record).",
-    "Never journal state_transition events or hard-code run_seq from the harness. Let production allocate the run seq and write the terminal, for example via the kill/reconcile path in tests/test_restart_timers.py. Derive observed and producing_run only from events production wrote.",
-    "The 24h must elapse while the serve graph runs. Advance the clock through the graph's sleep seam, compute injected_hours from the first and last journal event timestamps, and assert that the serve loop saw 24h or more of ticks.",
-    "Do not overwrite private attributes (queue._regate, _integration_check, _integrate, stages.abort_active) or stub out Git. Inject faults through public seams: a temp git repo with a planted conflict, and a failing integration command via process exec.",
-    "Before coding, check that compose_pipeline and compose_serve_graph expose enough public seams to inject all three faults. If they do not, stop and report that the ticket cannot be satisfied, rather than patching private state."
+    "Never call pipeline.merge_queue.admit from the harness. Let serve's own Pipeline.run reach Merge.admit (squatch/merge.py:370) after implement, review, and check. Plant the conflict by advancing main through the git seam while implement runs.",
+    "Never write tickets/<stem>/review.md yourself. The production review stage must produce the approval, driven by the scripted review-surface response through the provider process seam.",
+    "Build Box and every other report-derivation object with the run's injected clock and fs. Store them on _Evidence. Never use LocalFilesystem() or datetime.now in the runner.",
+    "Fail the integration-red member only by returning a nonzero result for the post-rebase integration verification argv at the process seam. Derive the terminal from events that production writes on the ordinary merge path.",
+    "Before coding, trace one settled delivery through serve -> Pipeline.run -> Merge.admit -> merge queue. If the conflict rung and integration-red cannot be reached without harness admission or a production change, return the ticket for re-authoring instead of simulating it."
   ],
-  "reason": "Review found fixable self-attestation and private-patching shortcuts, each with a concrete paved road; the attempt did not prove the ticket unsatisfiable.",
+  "reason": "Earlier lessons already banned self-attestation, yet this attempt found new shortcuts: harness-triggered queue admission, a forged review approval, and a raw wall clock. Scripting production faults honestly needs more capability; a same-level retry is unlikely to fix it.",
   "detail": null
 }
