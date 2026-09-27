@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Add Serve-level tests in tests/test_serve.py with a recording fake Notifications: notify happens before first dispatch; a signal journaled after startup is sent on the next watch() pass; unset config.notify gives one warning and zero sends; omitting the keyword works status-only.",
+    "Catch transport failures (ExecutableNotFound, non-zero exit) per signal inside the reconciler. Report them via the daemon report, leave the intent without a completion so the next poll retries, and continue so dispatch and heartbeat are never blocked.",
+    "The push must carry the rendered escalation, e.g. notify([*argv, rendered]). For storm trips, render a concrete pull-side resume action instead of 'when its hold is known'. Add a test asserting the transport received the rendered text.",
+    "Replace test_transport_failure_leaves_only_the_durable_intent (which expects a raise) with a test that the failure is reported, the intent stays unmatched, and later signals in the same pass still send."
+  ],
+  "reason": "Mechanical checks passed and the core wiring is sound; the review snags are concrete, fixable gaps (missing Serve tests, fatal transport errors, static push payload) with clear paved roads.",
+  "detail": null
+}
