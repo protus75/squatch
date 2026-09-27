@@ -1,9 +1,19 @@
 {
-  "run_seq": 7,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 8,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "All checks passed and the production wiring largely works. The review snag is fixable: missing test coverage, a hot poll loop, and no way for the operator to find the hold id. Fix only these points and keep the current design.",
+    "test_control_cli.py: add a resume published under a live lock that writes no journal event. Add a stale-lifecycle case through the CLI: the request targets an earlier or ended lifecycle, is decided stale, and the hold stays. The current test only mismatches hold_id.",
+    "test_control_cli.py: add a release published before the pause that mints the hold, in the same or an earlier snapshot. Assert the later hold stays active. Drive these cases through main(), not a throwaway ControlInbox.",
+    "test_daemon_composition.py: drive main(['drain']) or a Drain built with the production _control_factory over a real journal. Assert that in-flight dispatch completes when a pause lands, and that control_decision accepted precedes control_hold in the journal.",
+    "test_daemon_composition.py: also assert dispatch stays blocked until the matching release and that a restart reuses the hold. Calling compose_daemon_control and DispatchPause directly does not prove routing.",
+    "_control_factory wait_for_control: replace the raw asyncio.sleep(0.01) with an injected clock or sleep seam at an operator-latency cadence of seconds. Each consume re-reads the whole journal, so 10 ms polling rescans it about 100 times a second.",
+    "Make the hold id reachable. Print the minted hold_id on a direct pause. For the live path, have _control read the journal and print the latest unreleased control_hold id. A resume that needs an id nobody shows is fail-stuck.",
+    "Live-lock publish: the latest control_lifecycle may belong to a dead process, or the lock may be held by run, triage or new. Journal the drain lifecycle together with its lock instance_id and publish only when LockHeld.holder matches. Otherwise refuse with a paved road.",
+    "Run `uv run pytest -q` to completion before claiming success. Prior attempts were killed with exit 143."
+  ],
+  "reason": "Checks passed and the scope now fits one attempt; the review findings are concrete test-coverage and wiring fixes the findings steer, at the same capability.",
+  "detail": null
 }
