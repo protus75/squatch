@@ -1,35 +1,16 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "1fe294e8e21bcfef5e0a803237121f14dee3eb3b",
+  "produced_at_sha": "c457616ab2af147ae81c36b5d16e353c4e6c8cb9",
   "stem": "phase3-continue-17",
   "branch": "phase3-continue-17",
-  "base": "74d73b92a5a1e1b9f424167dc75405125cd64b50",
-  "head": "1fe294e8e21bcfef5e0a803237121f14dee3eb3b",
+  "base": "ffddf237080a0c6bf428a978c2bc8fc55e93aee6",
+  "head": "c457616ab2af147ae81c36b5d16e353c4e6c8cb9",
   "changed_files": [
-    "tests/test_seeded_phase3_17.py"
+    "tests/test_seeded_phase3_17.py",
+    "tickets/storm-dispatch-hold/ticket.md"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase3-continue-18/ticket.md",
-      "sha": "0a79bcbb1d2a520daf520da9488c86552e3d248e",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/storm-dispatch-hold/ticket.md",
-      "sha": "c465137fc6f1b26238b8312909f892108d7b602e",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
