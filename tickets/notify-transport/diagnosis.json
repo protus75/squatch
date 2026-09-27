@@ -1,15 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Report a rendered escalation only when deliver() actually ran. Set a flag inside deliver() and do not report cached completed keys. Add a test showing that a second reconcile over completed keys produces zero report lines and zero sends.",
-    "Make a notifier timeout the wrapper's declared failure: catch TimeoutError in SubprocessNotifications.notify and raise RuntimeError. Add a test where a hanging notifier leaves the intent unmatched, is reported, and neither aborts startup nor breaks the watcher poll.",
-    "Never render a placeholder resume command. Drive storm-trip notices from the control_hold signal with trigger storm_trip, keyed on trip_id, and render its real hold_id in `squatch resume --hold-id <uuid>`. Test the exact rendered resume line.",
-    "In test_serve, the unset config.notify test must monkeypatch main_module.SubprocessNotifications and squatch.serve.NotificationReconciler with recorders. Seed a storm_trip or red-streak signal, run a watcher poll callback, and assert zero transport calls and one warning.",
-    "Keep the parts that passed review: seam isolation, the config validator, Effect keys, _serve wiring, and startup-then-poll ordering. Change only notify.py, test_notify.py, test_seams.py, and the unset test in test_serve.py."
+    "Keep everything else unchanged: review passed seam isolation, config validator, Effect keys, _serve wiring, startup-then-poll ordering, unset warning, timeout/failure handling, and replay suppression. Only add the missing new-signal test.",
+    "Add a tests/test_notify.py case: one NotificationReconciler instance, reconcile() on a journal with one escalation, then append a new integration_red_streak control_hold and a new storm_trip signal plus its paired storm_trip control_hold.",
+    "Call reconcile() again on the same instance. Assert exactly one new send per new escalation, the correct `squatch resume --hold-id <id>` text for each, no resend of the earlier one, and exactly one effect_completion per key.",
+    "Optionally strengthen the test_serve every-poll case: use a recording fake Notifications with the real NotificationReconciler, journal a signal after startup, and assert the next watch() pass delivers it. Stay inside the fence.",
+    "Re-run all three Verification commands before committing. The soak suites must stay unchanged and green."
   ],
-  "reason": "Review found four bounded, fixable reconciler and test defects with concrete paved roads; the core design was approved and all checks passed.",
+  "reason": "The implementation passed every check, and review raised one test-coverage gap: signals created after startup and delivered on a later poll are never tested. That is a fixable oversight at the same capability.",
   "detail": null
 }
