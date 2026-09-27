@@ -1,0 +1,91 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "cba8ba060a4a2d4bca5baa52b372e09b9953ce19",
+  "stem": "serve-activation",
+  "branch": "serve-activation",
+  "base": "6f3a35969f049cac7a1935eb09c0d471f03dbc99",
+  "head": "cba8ba060a4a2d4bca5baa52b372e09b9953ce19",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/daemon.py",
+    "squatch/serve.py",
+    "tests/test_daemon_composition.py",
+    "tests/test_daemon_tasks.py",
+    "tests/test_heartbeat.py",
+    "tests/test_kill_failure_suppression.py",
+    "tests/test_kill_worker_stop.py",
+    "tests/test_serve.py",
+    "tests/test_storm.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_serve.py",
+            "tests/test_daemon_composition.py",
+            "tests/test_daemon_tasks.py",
+            "tests/test_kill_worker_stop.py",
+            "tests/test_kill_failure_suppression.py",
+            "tests/test_heartbeat.py",
+            "tests/test_storm.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
