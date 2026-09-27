@@ -1,9 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
-  "call": "invalid_artifact",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "retry cap spent"
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Heartbeat: take the composition proof out of tests/test_daemon_composition.py. Put it in the fenced new tests/test_heartbeat.py, built through the squatch/daemon.py hook. Keep daemon_tasks, control_cli and daemon_composition as unchanged preservation suites listed in Verification.",
+    "Heartbeat: remove the 'refuses unfenced migration' acceptance criterion. Keep that stop condition only in Definition of rejected. Every criterion must be something a test can check.",
+    "Heartbeat: define the boundary as testable criteria. The heartbeat file is in state_dir. It is touched only through the fs/clock seams. The touch is skipped when any watched DaemonTasks core task (watcher, merge, box) is done or failed. Construction is dormant: no loop and no serve verb.",
+    "phase3-continue-13: do not make squatch/__main__.py and squatch/drain.py fenced on-demand inspection exceptions for restart-timers. Section 20 grants no such clarification. Follow the registry and say that an ungranted exception is a Definition-of-rejected stop pending a plan fix.",
+    "Update tests/test_seeded_phase3_12.py to match. Drop the pinned phrases 'on-demand inspection exceptions', 'high/high' and the __main__/drain successor-scope asserts unless the plan grants them. Keep the edges, budgets, fences, owners, headroom and suffix pins, which passed."
+  ],
+  "reason": "Every finding is a ticket-authoring defect inside the fence. The restart-timers exception was invented by the author, and removing it needs no plan change for this ticket.",
+  "detail": null
 }
