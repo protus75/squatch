@@ -1556,6 +1556,8 @@ Phase 4 boundary registry (DECIDED): `phase3-exit` authors exactly CORE `watchdo
 
 Its finite ordered suffix is `watchdog-detector`, `watchdog-activation`; `provider-cooldown-failover` (KNOWN-DEEP, alone); `reliability-battery`; `reliability-run`; `phase4-exit` (KNOWN-HARD high/high, alone and last). Numbered `phase4-continue-02` onward carry each payload batch plus the next tail under cap 3; the terminal admission carries only the exit. Detector precedes activation and activation migrates predecessor dormancy tests. Provider/failover owns providers, timers, direct tests, and required drain/serve entry wiring. Battery owns fault injection and the closed report schema/writer; run is its no-code OUTBOX producer. Exit depends transitively on both and reads only the committed report before authoring Phase 5 core. This is section 20's sole Phase 4 naming/order/core-fence authority; later tails may refine then-existing Context, never rename, reorder, add, or omit payloads.
 
+`phase3-continue-23` fences and embeds `tests/test_seeded_phase3_22.py`; that predecessor test may migrate every assertion pinned to this continuation's changed fence, Context, and authoring-time size, plus the added `squatch/artifacts.py` exit Context, while preserving all unrelated assertions.
+
 ## 21. Appendix: embedded bootstrap sources (extraction blocks)
 
 Both bootstrap sources live here, at the end of the document. The section-0 cold-start extractor materializes each by pulling the lines between its `# BEGIN_<NAME>` / `# END_<NAME>` sentinel pair -- one minimal pattern, reused for both -- and writing them to disk, so the operator never hand-pastes either file. Keep the sentinel lines intact and exactly as written; the extractor keys on them.
