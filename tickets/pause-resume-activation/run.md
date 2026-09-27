@@ -8,7 +8,7 @@ The lock-held drain constructs the shared control graph before its first offer, 
 
 ## Dead ends
 
-None.
+The environment's per-command window ended the full-suite observation after it progressed past 64%; the ticket's exact verification command completed green (140 passed).
 
 ## Second problems filed
 
