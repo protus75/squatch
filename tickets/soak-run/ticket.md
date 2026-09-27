@@ -7,7 +7,7 @@ agent_tier: medium
 agent_effort: medium
 ---
 ## Depends on
-- daemon-soak-runner
+- outbox-only-admission
 
 ## Context
 - eval/daemon_soak.py
@@ -29,6 +29,8 @@ the canonical ordinary-lane writer to produce
 `tickets/soak-run/daemon-soak-report.json` in this worktree's OUTBOX. The
 returned `DaemonSoakReport` is the writer input; the report is not self-attested.
 This ticket has sole new-path ownership of that report.
+The merged OUTBOX-only admission correction permits the empty committed code
+diff only because this run's ordinary lift names the schema-validated report.
 
 ## Scope out
 Do not implement or alter the runner, run any scenario outside its merged

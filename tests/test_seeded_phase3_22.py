@@ -14,9 +14,20 @@ from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
 REPO = Path(__file__).resolve().parent.parent
 BATCH = {
-    "soak-run": ("daemon-soak-runner",),
+    "soak-run": ("outbox-only-admission",),
     "phase3-continue-23": ("soak-run",),
 }
+CORRECTION = "outbox-only-admission"
+CORRECTION_DEPENDS = ("phase3-continue-22",)
+CORRECTION_OWNERSHIP = {
+    "owns": ["squatch/stages.py", "squatch/merge.py",
+             "tests/test_stages.py", "tests/test_merge.py"],
+    "hooks": [],
+}
+CORRECTION_CONTEXT = ("squatch/stages.py",)
+CORRECTION_ON_DEMAND = (
+    "squatch/merge.py", "tests/test_stages.py", "tests/test_merge.py",
+)
 OWNERSHIP = {
     "soak-run": {
         "owns": ["tickets/soak-run/daemon-soak-report.json"], "hooks": [],
@@ -35,6 +46,7 @@ EXISTING_AT_AUTHORING = {
     "tests/test_daemon_soak_runner.py": 12245,
     "tests/test_seeded_phase3_11.py": 9238,
     "tests/test_serve.py": 9235,
+    "squatch/stages.py": 52958,
 }
 NEW_PATH_OWNERS = {
     "tickets/soak-run/daemon-soak-report.json": "soak-run",
@@ -92,6 +104,16 @@ def test_exact_seeds_edges_tiers_budgets_cap_and_fences():
         assert ticket.scope_fence == tuple(OWNERSHIP[stem]["owns"] + OWNERSHIP[stem]["hooks"])
         assert ticket.context == CONTEXT[stem]
 
+    correction = _ticket(CORRECTION)
+    assert (correction.source, correction.state, correction.priority) == (
+        "seed", "confirmed", "P1")
+    assert correction.depends == CORRECTION_DEPENDS
+    assert correction.plan_sections == ("20",)
+    assert (correction.agent_tier, correction.agent_effort) == ("high", "high")
+    assert (correction.expected_minutes, correction.stuck_minutes) == (90, 180)
+    assert correction.scope_fence == tuple(CORRECTION_OWNERSHIP["owns"])
+    assert correction.context == CORRECTION_CONTEXT
+
 
 def test_context_partitions_predecessor_closure_and_new_path_owners():
     observed_owners = {}
@@ -132,8 +154,16 @@ def test_context_partitions_predecessor_closure_and_new_path_owners():
     soak_scope = _section("soak-run", "Scope in")
     for phrase in ("Make no code changes", "merged public deterministic runner",
                    "canonical ordinary-lane writer", "not self-attested",
-                   "sole new-path ownership"):
+                   "sole new-path ownership", "schema-validated report"):
         assert phrase in soak_scope
+
+    correction_scope = _section(CORRECTION, "Scope in")
+    for path in CORRECTION_ON_DEMAND:
+        assert path not in _ticket(CORRECTION).context
+        assert f"`{path}`" in correction_scope
+    for phrase in ("completed run-scoped lift", "registered in `KNOWN_ARTIFACTS`",
+                   "excluding `run.md`", "commit: null", "journal one `merged`"):
+        assert phrase in correction_scope
     continuation_scope = _section("phase3-continue-23", "Scope in")
     for phrase in ("predecessor-test closure", "committed report", "evidence custody",
                    "daemon-soak-runner` as machinery", "soak-run` as producer",
@@ -157,6 +187,19 @@ def test_authoring_sizes_and_max_effort_render_headroom():
             plan=plan, plan_sections=ticket.plan_sections, effort="max",
         )
         assert len(rendered) <= limit, (stem, len(rendered), limit)
+
+    correction = _ticket(CORRECTION)
+    context = "".join(f"### {path}\n{'x' * EXISTING_AT_AUTHORING[path]}\n"
+                      for path in correction.context)
+    workspace = (f"stem: {CORRECTION}\nbranch: {CORRECTION}\n"
+                 f"run record: tickets/{CORRECTION}/{RUN_RECORD}\n")
+    rendered = spec.render(
+        {"workspace": DataBlock("engine", workspace),
+         "ticket": DataBlock("host", _path(CORRECTION).read_text()),
+         "context": DataBlock("host", context)},
+        plan=plan, plan_sections=correction.plan_sections, effort="max",
+    )
+    assert len(rendered) <= limit, (CORRECTION, len(rendered), limit)
 
     scope = _section("phase3-continue-23", "Scope in")
     for phrase in ("authoring-time Context sizes", "REQ_RENDER_HEADROOM",
