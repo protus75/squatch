@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The report content was correct, but it was committed on the branch. Anything under tickets/** never rides the code lane, so the post-rebase regate refused the merge.",
+    "Generate tickets/soak-run/daemon-soak-report.json with eval.daemon_soak.run() and write_report() exactly as before, but leave it uncommitted in the worktree OUTBOX. The driver lifts outbox files onto the ticket plane.",
+    "Do not git add or commit anything. This is a no-code ticket, so the expected committed diff is empty. Leave tickets/soak-run/run.md uncommitted too.",
+    "Run `uv run pytest tests/test_daemon_soak_runner.py -q` before finishing. It passed on this attempt and must stay green."
+  ],
+  "reason": "A fixable process mistake: the outbox report was committed instead of left for the driver to lift. The paved road names the fix, and the same capability can apply it.",
+  "detail": null
+}
