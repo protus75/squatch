@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable
+from contextlib import AbstractAsyncContextManager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Generic, TypeVar, cast
@@ -16,10 +17,13 @@ from squatch.llm import Effort
 from squatch.lockfile import Holder
 from squatch.merge import Pipeline
 from squatch.rework import Rework
+from squatch.restart import restart_session
+from squatch.runner import Session
 from squatch.scheduler import Scheduler
-from squatch.seams import Clock, Filesystem
+from squatch.seams import Clock, Filesystem, Sleep
 from squatch.specs import Spec
 from squatch.triage import Triage
+from squatch.timers import Timers
 from squatch.watcher import Watcher
 
 
@@ -230,6 +234,21 @@ def compose_daemon_heartbeat(*, state_dir: Path, tasks: "DaemonTasks",
                              clock: Clock, fs: Filesystem) -> Heartbeat:
     """Compose the dormant core-worker liveness boundary without scheduling it."""
     return Heartbeat(state_dir=state_dir, tasks=tasks, clock=clock, fs=fs)
+
+
+def compose_daemon_timers(*, journal: Journal, clock: Clock,
+                          sleep: Sleep = asyncio.sleep) -> Timers:
+    """Re-arm the lock holder's deadlines from its journal exactly once."""
+    timers = Timers(journal=journal, clock=clock, sleep=sleep)
+    timers.rearm()
+    return timers
+
+
+def compose_daemon_restart(*, session: AbstractAsyncContextManager[Session],
+                           clock: Clock) -> AbstractAsyncContextManager[Session]:
+    """Delegate recovery to Runner.session and bind timers to that lifetime."""
+    return restart_session(session, timers=lambda journal: compose_daemon_timers(
+        journal=journal, clock=clock))
 
 
 def watcher_consumer(watcher: Watcher, priority_snapshot: PrioritySnapshot) -> ConsumerCallback:

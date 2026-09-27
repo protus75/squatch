@@ -28,7 +28,8 @@ import squatch
 from squatch.box import BoxCorruption
 from squatch.config import ConfigError, load
 from squatch.control import ControlRequest, publish_control
-from squatch.daemon import DrainControl, compose_daemon_control, compose_daemon_dispatch
+from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
+                            compose_daemon_restart)
 from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
@@ -317,6 +318,11 @@ async def _triage_pass(runner: Runner, config, git: Git, cwd: Path, env,
     return EXIT_OK
 
 
+class _RestartRunner(Runner):
+    def session(self):
+        return compose_daemon_restart(session=super().session(), clock=self._clock)
+
+
 def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None, clock: Clock,
             process: ProcessExec, verb) -> int:
     """The two scaffold verbs' shared composition: config, git, engine log,
@@ -351,7 +357,7 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
                           "subprocess through git.py") from None
         log = EngineLog(cwd / config.state_dir, clock=clock,
                         redact=Redactor.from_config(config, env))
-        runner = Runner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=clock,
+        runner = _RestartRunner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=clock,
                         instance_id=instance_id, pipeline=factory, log=log,
                         report=lambda line: print(line, file=out))
         return await verb(runner, config, git, control)
