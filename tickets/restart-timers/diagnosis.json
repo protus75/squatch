@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Criterion 1 needs proof that the real reconciler is the delegate. Assert that compose_daemon_restart(...) without reaper binds squatch.reconcile.reconcile, or monkeypatch the name restart.py imports and assert it runs before the first dispatch. Keep the stub ordering test too.",
+    "The per-journal Timers made in the __main__ factory are never shut down, so re-armed tasks can outlive their journal and append to a closed journal. Tie timer lifetime to the session that owns the journal and await shutdown() before that session closes.",
+    "If the session teardown is only reachable from an unfenced file such as the runner, create and shut down timers inside __main__ or daemon.py where the lifetime is visible. Do not edit an unfenced path; that would meet the ticket's Definition of rejected.",
+    "Add a test showing that a pending timer task does not outlive its journal after shutdown. Check first whether Journal.append on a closed journal raises, then state the result in the run record.",
+    "Restart is composed but __main__ never passes it to dispatch, and the runner still reconciles. Keep one reap path in production. If Restart stays unwired, say why in the run record so review does not flag a double reap or a dead hook."
+  ],
+  "reason": "Checks, fence and verification all passed. Review raised two fixable problems: a test that never names reconcile as the delegate, and timer tasks that are never shut down. Clear fixes exist for both, so the ticket is not proven unsatisfiable.",
+  "detail": null
+}
