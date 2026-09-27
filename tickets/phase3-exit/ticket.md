@@ -31,6 +31,8 @@ The regenerated seed runs after the section-20 registry compaction and the
 merged predecessor-fixture migration; main is green at this ticket SHA.
 It also consumes the repaired Phase 4 composition fences: the ProcessExec
 event callback owner and the distinct production notification seam/root.
+The section-20 registry keeps its stable predecessor-test delimiter, so the
+full inherited suite can verify this regenerated seed.
 
 ## Scope in
 Implement in order. First, add `tests/test_phase3_exit.py`, a
