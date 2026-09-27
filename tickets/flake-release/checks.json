@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "58c7b459a0628fc7aa3501e0521a51983227309c",
+  "produced_at_sha": "dd501912b293378574d9c85b2a1fcb5f4f99ebe2",
   "stem": "flake-release",
   "branch": "flake-release",
-  "base": "2d648391623daacba242276a72cdf80df4034cb3",
-  "head": "58c7b459a0628fc7aa3501e0521a51983227309c",
+  "base": "bd7c172d862b16df7186dbd9ec21956c3606016b",
+  "head": "dd501912b293378574d9c85b2a1fcb5f4f99ebe2",
   "changed_files": [
     "squatch/flake.py",
     "tests/test_flake.py"
