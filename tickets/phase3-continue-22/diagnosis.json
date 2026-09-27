@@ -1,15 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Review rejected the authored soak-run ticket, not the seeded test. Its criteria and Verification cite tests/test_daemon_soak.py, which is not in its pinned Context (eval/daemon_soak.py, tests/test_daemon_soak_runner.py) and has no on-demand exception.",
-    "Do not add tests/test_daemon_soak.py to soak-run's Context. This ticket pins that Context exactly, with no on-demand exceptions. Rewrite soak-run's criteria and Verification so they cite only suites already in its Context.",
-    "Write soak-run's criteria as observable requirements. The runner's returned DaemonSoakReport, written by the canonical writer, sits at tickets/soak-run/daemon-soak-report.json, and tests/test_daemon_soak_runner.py passes unchanged. Do not claim that unchanged suites 'prove' custody.",
-    "Leave the producer-custody claim (soak-run as producer, daemon-soak-runner as machinery) to phase3-exit's read of the committed report. Do not assert it in soak-run's criteria, because no existing test in its Context proves it.",
-    "The committed tests/test_seeded_phase3_22.py and both pytest runs passed. Keep them. Update any phrase assertions if the soak-run Scope in text changes, then re-run the ticket linter and both Verification commands."
+    "The check failed because the ticket's Scope in requires phase3-exit to be 'KNOWN-HARD high/high'. Section 20's registry makes every Phase 3 seed medium/medium unless marked KNOWN-DEEP. phase3-exit has no such mark, and 'KNOWN-HARD' is not a registry term.",
+    "Satisfying the ticket gets the tier flagged by requisition review. Using medium/medium breaks the ticket's own Scope in. The fix belongs in the plan or ticket first: mark phase3-exit KNOWN-DEEP in section 20, or change the ticket to medium/medium.",
+    "The rest of the work passed both pytest commands and the ticket linter: soak-run, the phase3-continue-23 fences, Context partitions, render headroom and terminal suffix. Keep tests/test_seeded_phase3_22.py once the tier conflict is settled.",
+    "When re-authoring, pin phase3-exit's tier to whatever section 20 grants in the tests/test_seeded_phase3_23.py requirements and the continuation's acceptance criteria. Never use an unregistered label such as KNOWN-HARD."
   ],
-  "reason": "Requisition review flagged a fixable criteria/Context mismatch in the authored soak-run ticket; the paved road (restate criteria against in-Context suites) stays within this ticket's fence and pinned Context.",
+  "reason": "The ticket requires a high/high KNOWN-HARD tier for phase3-exit that its cited section 20 registry does not grant, so the ticket or plan must be fixed before any attempt can pass requisition review.",
   "detail": null
 }
