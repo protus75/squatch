@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-Section 20 deliberately fixes names and ordering rather than the detector API. I kept mutation observation separate from the normalized provider event shape, embedded the provider seam for activation closure, and left only the large production composition roots on demand.
+Used the prior reviewed attempt as a baseline and corrected its documented continuation contradiction, unsupported activation tier, Context size, and delimiter-closure findings.
 
 ## Dead ends
-Ticket lint requires each acceptance criterion to name its observable test file; corrected the initially prose-only criteria before verification.
+The first delimiter assertion made this seeded test itself delimiter-bearing; it was rewritten to construct the end delimiter without placing it literally in source.
 
 ## Second problems filed
 
