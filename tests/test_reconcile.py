@@ -25,10 +25,11 @@ from test_cli import (
 
 from squatch.config import load
 from squatch.effects import Effects
+from squatch.git import Git
 from squatch.journal import Journal, read_events
 from squatch.lockfile import Lockfile
 from squatch.reconcile import Orphan, orphans
-from squatch.runner import EXIT_OK, EXIT_REFUSED
+from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET
 from squatch.stages import Stages
 
 
@@ -46,6 +47,12 @@ def registered_worktrees(repo: Path) -> list[str]:
     return [line.removeprefix("worktree ")
             for line in git(repo, "worktree", "list", "--porcelain").splitlines()
             if line.startswith("worktree ")]
+
+
+def recovery_alerts(repo: Path, stem: str):
+    return [event for event in read_events(repo / STATE)
+            if event.type == "signal" and event.body.get("kind") == "recovery_alert"
+            and event.ticket == stem]
 
 
 def plant_orphan(repo: Path, stem: str, run_seq: int = 0, *, worktree: bool = True) -> Path:
@@ -101,10 +108,21 @@ def test_orphans_of_an_empty_journal_is_empty(checkout):
 
 # --- reconcile on entry --------------------------------------------------------------
 
-def test_an_orphaned_running_is_reaped_abandoned_and_its_worktree_removed_on_the_next_run(checkout):
+def test_an_orphaned_running_is_reaped_abandoned_and_its_worktree_removed_on_the_next_run(
+        checkout, monkeypatch):
     author(checkout, "base")
     path = plant_orphan(checkout, "base")
     assert path.is_dir() and str(path) in registered_worktrees(checkout)
+
+    removal_events = []
+    worktree_remove = Git.worktree_remove
+
+    async def observed_remove(self, repo, removed):
+        assert removed == path and path.is_dir()
+        removal_events.extend(read_events(checkout / STATE))
+        await worktree_remove(self, repo, removed)
+
+    monkeypatch.setattr(Git, "worktree_remove", observed_remove)
 
     fake = FakePipeline("ok")
     rc, out = cli(checkout, "run", "base", pipeline=fake)
@@ -115,6 +133,21 @@ def test_an_orphaned_running_is_reaped_abandoned_and_its_worktree_removed_on_the
                                              {"to": "abandoned", "run_seq": 0,
                                               "harvest": "tickets/base/attempts/0"},
                                              {"to": "running", "run_seq": 1}]
+    alert = recovery_alerts(checkout, "base")
+    assert [(event.ticket, event.body) for event in alert] == [("base", {
+        "kind": "recovery_alert",
+        "run_seq": 0,
+        "disposition": "alert",
+        "outcome": "abandoned",
+        "reason": "orphan reaped during entry reconciliation",
+    })]
+    terminal_index = next(i for i, event in enumerate(removal_events)
+                          if event.type == "state_transition"
+                          and event.body.get("to") == "abandoned")
+    alert_index = next(i for i, event in enumerate(removal_events)
+                       if event.type == "signal"
+                       and event.body.get("kind") == "recovery_alert")
+    assert alert_index == terminal_index + 1
     assert fake.calls == [("base", 1)]
     assert not path.exists()
     assert registered_worktrees(checkout) == [str(checkout)], "removed AND pruned"
@@ -146,6 +179,8 @@ def test_reconcile_reaps_every_orphan_not_just_the_stem_being_run(checkout):
     assert transitions(checkout, "other") == [{"to": "running", "run_seq": 2},
                                               {"to": "abandoned", "run_seq": 2,
                                                "harvest": "tickets/other/attempts/2"}]
+    assert [(event.ticket, event.body["run_seq"]) for event in
+            recovery_alerts(checkout, "other")] == [("other", 2)]
     assert transitions(checkout, "base") == [{"to": "running", "run_seq": 0}]
     assert not other.exists()
     assert fake.calls == [("base", 0)]
@@ -154,17 +189,48 @@ def test_reconcile_reaps_every_orphan_not_just_the_stem_being_run(checkout):
     assert "other: abandoned" in status and "other, run" not in status
 
 
-def test_an_orphan_with_no_worktree_is_reaped_and_the_registry_pruned(checkout):
+def test_an_orphan_with_no_worktree_is_reaped_and_the_registry_pruned(checkout, monkeypatch):
     author(checkout, "base")
     path = plant_orphan(checkout, "base")
     # A worktree removed out from under git leaves a dangling registry entry.
     subprocess.run(["rm", "-rf", str(path)], check=True)
     assert str(path) in registered_worktrees(checkout)
-    rc, out = cli(checkout, "run", "base", pipeline=FakePipeline("ok"))
-    assert rc == EXIT_OK, out
+
+    prune_snapshots = []
+    worktree_prune = Git.worktree_prune
+
+    async def observed_prune(self, repo):
+        assert not path.exists()
+        prune_snapshots.append(list(read_events(checkout / STATE)))
+        await worktree_prune(self, repo)
+
+    monkeypatch.setattr(Git, "worktree_prune", observed_prune)
+    rc, out = cli(checkout, "run", "base", pipeline=FakePipeline("gate_failed"))
+    assert rc == EXIT_TICKET, out
     assert transitions(checkout, "base")[1] == {"to": "abandoned", "run_seq": 0,
                                                 "harvest": None}
+    assert [(event.ticket, event.body) for event in recovery_alerts(checkout, "base")] == [
+        ("base", {
+            "kind": "recovery_alert",
+            "run_seq": 0,
+            "disposition": "alert",
+            "outcome": "abandoned",
+            "reason": "orphan reaped during entry reconciliation",
+        })]
+    assert [(event.type, event.body.get("to") or event.body.get("kind"))
+            for event in prune_snapshots[0][-2:]] == [
+                ("state_transition", "abandoned"),
+                ("signal", "recovery_alert"),
+            ]
     assert registered_worktrees(checkout) == [str(checkout)]
+
+    rc, out = cli(checkout, "run", "base", pipeline=FakePipeline("gate_failed"))
+    assert rc == EXIT_TICKET, out
+    assert "reconciled" not in out
+    assert [transition for transition in transitions(checkout, "base")
+            if transition["to"] == "abandoned"] == [
+                {"to": "abandoned", "run_seq": 0, "harvest": None}]
+    assert len(recovery_alerts(checkout, "base")) == 1
 
 
 def test_a_clean_journal_is_a_no_op(checkout):

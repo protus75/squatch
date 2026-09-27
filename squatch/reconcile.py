@@ -100,6 +100,13 @@ async def reconcile(*, repo: Path, config: Config, git: Git, journal: Journal,
         if harvest_error is not None:
             body["harvest_error"] = harvest_error
         journal.append("state_transition", body, ticket=o.stem)
+        journal.append("signal", {
+            "kind": "recovery_alert",
+            "run_seq": o.run_seq,
+            "disposition": "alert",
+            "outcome": "abandoned",
+            "reason": "orphan reaped during entry reconciliation",
+        }, ticket=o.stem)
         if present:
             await git.worktree_remove(repo, path)
         else:
