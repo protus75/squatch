@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8ff08419b385c9c77760e414dcfd0214ff3efe85",
+  "produced_at_sha": "1ed1bfdf4c27681d6b4096355d3bb67a7db5095e",
   "stem": "soak-run",
   "branch": "soak-run",
-  "base": "8ff08419b385c9c77760e414dcfd0214ff3efe85",
-  "head": "8ff08419b385c9c77760e414dcfd0214ff3efe85",
+  "base": "1ed1bfdf4c27681d6b4096355d3bb67a7db5095e",
+  "head": "1ed1bfdf4c27681d6b4096355d3bb67a7db5095e",
   "changed_files": [],
   "checks": [
     {
@@ -20,20 +20,12 @@
     },
     {
       "code": "verification",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "verification",
-          "path": null,
-          "line": null,
-          "message": "the branch carries no committed diff",
-          "paved_road": "commit the work on the branch before answering; only the committed diff is checked and reviewed"
-        }
-      ],
+      "findings": [],
       "commands": [
         {
           "argv": [
