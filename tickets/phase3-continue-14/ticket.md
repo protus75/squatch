@@ -51,6 +51,10 @@ ownership:
 
 The full new-path owner map carries `squatch/restart.py`, `squatch/timers.py`, and `tests/test_restart_timers.py` as restart-timers paths; assigns flake paths to flake-detection; and assigns each seeded test to its continuation. Name each seed's exact Context. Sibling-new paths remain outside a sibling's Context and delimiter-bearing prompt-spec sources remain outside Context.
 
+Author the flake pair from section 20's flake-boundary clarification, never from a SHA-held substitute. Detection folds `test_id`, `signature`, and the signature-deduped report `box_id` from `signal` key `flake/<box_id>` and body kind `flake_detected`; it writes no release record or release state. Release resolves that same entry through the box status's exact `fix_stem`, its merge, and the named test's green rerun; it appends `signal` key `flake-release/<box_id>/<fix_stem>` with kind `flake_released` and all four identity fields before folding the entry out. A second identical release is a no-event/no-state-change idempotent pass.
+
+Both boundaries are dormant direct hooks composed in `squatch/daemon.py` and proven in fenced `tests/test_flake.py`. No production composition in `squatch/__main__.py` or `squatch/drain.py` calls or constructs them; import reachability through `squatch/daemon.py` is allowed. Existing daemon composition tests remain read-only preservation evidence, not a requested migration.
+
 The finite ordered admissions are:
 ```yaml
 [[flake-detection, flake-release], [journal-roll, storm-ledger],
@@ -69,6 +73,7 @@ Do not implement flakes, author beyond phase3-continue-15, include sibling-new p
 - `tests/test_seeded_phase3_14.py` pins flake-detection, flake-release, and phase3-continue-15 identities, edges, medium/medium tiers, 75m/150m budgets, cap 3, owns-then-hooks fences, exact Context, and the full new-path owner map.
 - `tests/test_seeded_phase3_14.py` pins flake-release depending on flake-detection and phase3-continue-15 depending on both flake seeds, while excluding sibling-new paths and on-demand Context exceptions.
 - `tests/test_seeded_phase3_14.py` pins authoring-time Context sizes and keeps every max-effort render within `REQ_RENDER_HEADROOM`.
+- `tests/test_seeded_phase3_14.py` pins the test/report/fix-ticket identities, exact detection and release signal keys and bodies, append-before-removal ordering, second-release idempotence, and call-path dormancy; it rejects any SHA-held-set substitute.
 - `tests/test_seeded_phase3_14.py` pins the exact ordered successor suffix after removing only `[flake-detection, flake-release]`, with no duplicated or combined admission.
 
 ## Verification
