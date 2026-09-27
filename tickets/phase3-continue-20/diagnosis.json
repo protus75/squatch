@@ -1,16 +1,16 @@
 {
-  "run_seq": 2,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "reject",
+  "verdict": "retry",
   "lessons": [
-    "The plan's exact serve-activation fence leaves out the test holding test_heartbeat_composition_is_dormant_and_adds_no_serve_verb. That test asserts 'serve' is absent, so adding the serve verb breaks a file outside the fence. Fix the plan in section 20 first.",
-    "test_production_import_closure_activates_the_storm_producer_only_at_the_root sits outside the fence. It breaks if squatch/serve.py builds the storm producer. The plan must fence that test or require the storm hook to stay bound in squatch/__main__.py.",
-    "The on-demand exception for squatch/daemon.py and squatch/__main__.py is not granted in the plan and is not justified: embedding both renders about 116,400 chars, under the 120,000 headroom. Embed them, or have the plan grant the exception explicitly.",
-    "phase3-continue-21 must state daemon-soak-runner's Context: tests/test_serve.py, eval/daemon_soak.py, tests/test_daemon_soak.py, and the minimal fault tests. Exclude sibling-new paths and squatch/specs.py.",
-    "phase3-continue-21 needs a criterion that tests/test_seeded_phase3_21.py pins each seed's exact Context, authoring sizes, predecessor-test closure, and max-effort render within headroom. Model it on tests/test_seeded_phase3_11.py.",
-    "Reuse the structure of the authored tests/test_seeded_phase3_20.py once the plan is fixed. Re-derive the fences, Context, and on-demand partitions from the corrected section 20."
+    "Review snag only: all checks passed (requisition, fence, full suite, budget). Keep both ticket drafts and the test structure unchanged; fix only the two findings below.",
+    "In test_successor_pins_runner_and_terminal_suffix_after_removing_only_serve, pin downstream edges/tiers: daemon-soak-runner depends on serve-activation, KNOWN-DEEP high/high; phase3-continue-22 depends on daemon-soak-runner, medium/medium.",
+    "Also pin: medium/medium no-code soak-run producing only tickets/soak-run/daemon-soak-report.json; phase3-exit high/high, depends on soak-run, owns tickets, tests/test_phase3_exit.py, tests/test_seeded_phase4_core.py.",
+    "Copy exact phrases from the authored phase3-continue-21 Scope in before asserting them. Where the ticket wording differs, assert its actual text so the test does not fail on a paraphrase.",
+    "Remove the vacuous `assert set(CONTEXT[...]) - {...}` at line 123. Assert against activation.context: squatch/ paths == {daemon.py, __main__.py} and tests/ paths == the four predecessor tests.",
+    "Check NEW_PATH_OWNERS against ticket content (fence/ownership YAML), not only against itself, so every owner claim is tied to an authored ticket."
   ],
-  "reason": "Section 20's serve-activation fence leaves out unfenced tests that serve activation must break, and it gives no basis for the on-demand exception, so a plan fix must come before re-authoring.",
+  "reason": "Review found two fixable test-coverage gaps with concrete paved roads; checks, fences, and ticket drafts all passed.",
   "detail": null
 }
