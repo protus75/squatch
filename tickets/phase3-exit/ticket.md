@@ -27,6 +27,8 @@ core batch.
 `soak-run` is the report producer and `daemon-soak-runner` is its machinery.
 The exit reads that committed custody rather than rerunning or self-attesting
 the soak, then makes the plan-defined Phase 4 boundary available.
+The regenerated seed runs after the section-20 registry compaction and the
+merged predecessor-fixture migration; main is green at this ticket SHA.
 
 ## Scope in
 Implement in order. First, add `tests/test_phase3_exit.py`, a
