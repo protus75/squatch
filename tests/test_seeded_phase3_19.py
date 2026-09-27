@@ -53,7 +53,8 @@ FUTURE_OWNERSHIP = {
             "squatch/serve.py", "squatch/daemon.py", "squatch/__main__.py",
             "tests/test_serve.py", "tests/test_daemon_composition.py",
             "tests/test_daemon_tasks.py", "tests/test_kill_worker_stop.py",
-            "tests/test_kill_failure_suppression.py",
+            "tests/test_kill_failure_suppression.py", "tests/test_heartbeat.py",
+            "tests/test_storm.py",
         ],
         "hooks": [],
     },
@@ -63,8 +64,9 @@ FUTURE_OWNERSHIP = {
 }
 FUTURE_CONTEXT = {
     "serve-activation": (
+        "squatch/daemon.py", "squatch/__main__.py",
         "tests/test_daemon_composition.py", "tests/test_daemon_tasks.py",
-        "tests/test_kill_worker_stop.py", "tests/test_kill_failure_suppression.py",
+        "tests/test_heartbeat.py", "tests/test_storm.py",
     ),
     "phase3-continue-21": (
         "tests/test_seeded_phase3_11.py", "tests/test_daemon_composition.py",
@@ -183,9 +185,11 @@ def test_corrective_continuation_pins_serve_and_soak_runner_contract():
     assert "cap 3" in scope
     assert "adds the `serve` verb and production continuous loop" in scope
     assert "activates worker-stop and kill-failure-suppression" in scope
-    assert "`squatch/daemon.py` and `squatch/__main__.py` are fenced on-demand inspection exceptions" in scope
+    assert "The embedded Context is exactly `squatch/daemon.py`, `squatch/__main__.py`" in scope
+    assert "two kill-test on-demand exceptions" in _section("phase3-continue-20", "Acceptance criteria")
     assert "authors `daemon-soak-runner` alone plus `phase3-continue-22`" in scope
     assert "drives the merged production serve composition through injected seams" in scope
+    assert "`tests/test_restart_timers.py` and `tests/test_mergequeue.py` are on-demand fault-reference exceptions" in scope
     assert "`phase3-continue-23` authors KNOWN-HARD high/high `phase3-exit` alone and no successor" in scope
     [future_context] = [block["context"] for block in _yaml("phase3-continue-20")
                         if isinstance(block, dict) and "context" in block]
