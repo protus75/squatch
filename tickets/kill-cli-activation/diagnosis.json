@@ -1,9 +1,14 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "infra_error",
+  "call": "ok",
+  "verdict": "abandon-human",
+  "lessons": [
+    "This attempt ended as infra_error at implement after 10.6s with 0 tokens, no provider or model, and an empty diff. The agent never ran. Check the implement environment (provider credential and launch) before re-dispatching.",
+    "The run record's premise_failed matches the earlier attempt. There, tests/test_seeded_phase3_11.py pinned exact live byte sizes. Commit 04cf421 changed that fixture invariant before this ticket commit. Confirm the test only checks the 120000 headroom bound before editing.",
+    "Keep compact kill additions. Do not delete unrelated docstrings, why-comments, the _active annotation/cast, or the __main__ docstring. If the pinned sizes still can't be met without deleting prose, reject under the render-headroom condition.",
+    "Carry forward: on control-consumer failure, cancel and await the active dispatch before re-raising, and test that path. Filter in-flight polling to typed kill requests so pause keeps next-boundary ordering. Refuse 'nothing running to kill' before creating any journal or lifecycle."
+  ],
+  "reason": "The implement stage failed on infrastructure (0 tokens, 10s, no model) before any work; no retry or capability increase can fix that.",
+  "detail": null
 }
