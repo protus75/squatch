@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-Ticket criteria were tied explicitly to their observable test artifacts so the emitted seeds pass ticket lint.
+The prior seed-contract test was absent from this checkout but recoverable from branch history. The emitted runner ticket wraps its on-demand-reference descriptions across lines, so the positive role assertions accept whitespace while requiring each exact path and role.
 
 ## Dead ends
 
-The first full-suite invocation used a non-interactive command window that ended before pytest completed; the same command completed successfully in a persistent session.
+The first focused check used literal single-line role text and failed because the emitted ticket wraps the phrases across lines.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-codex / GPT-5
+OpenAI Codex / GPT-5.
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 15m.
+Expected 75m; actual approximately 10m.
