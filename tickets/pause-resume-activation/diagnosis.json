@@ -1,17 +1,18 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "split",
   "lessons": [
-    "Fourth attempt, and tests/test_mergequeue.py and tests/test_daemon_composition.py are still untouched. The ticket covers two features across 10 files. Split it: (1) CLI and daemon pause/resume activation; (2) red-streak and tree-hash merge admission holds, depending on (1).",
-    "AdmissionHold.allow loops on wait_for_control, which never yields, so a held admission hot-spins and starves the event loop. Block on a real wake signal or the injected clock sleep seam, and add a test showing another task makes progress while the hold is pending.",
-    "Red streak: call red(stem) when integration_check returns findings, which is the integration-red outcome, not only on re-gate failure. Clear the streak when a hold fires or is released so the next hold needs three new distinct reds. Reset on green. Test the sequence A,B,A,C.",
-    "Journal a hold event (hold_id, trigger red_streak or tree_hash, lifecycle) before setting hold_id, through the shared inbox's journal, so the operator can find the id to pass to `squatch resume --hold-id`. That event is the hold's paved-road release.",
-    "daemon.py rehydration clears the dispatch pause on any control_hold release in the lifecycle. Record which hold actually changed (dispatch or merge, and whether it matched), and clear the dispatch pause only when the release's hold_id equals the current dispatch hold_id.",
-    "The CLI probes the lock, releases it, then _locked reacquires it, which races with a starting daemon. Hold the probed lock through the direct apply, or fall back to publish_control on LockHeld.",
-    "The _drain lambda calls runtime(journal) twice and __main__ special-cases args.verb == 'drain'. Build the control once and pass it through a single path. Remove the unused Awaitable imports and the unused `graph` binding."
+    "Split into (1) CLI and daemon pause/resume activation with test_control_cli.py and test_daemon_composition.py, and (2) red-streak and tree-hash merge admission holds with test_mergequeue.py, depending on (1).",
+    "A pause applied with no engine must survive engine start. The engine's control composition must rebuild the active dispatch pause and admission holds from unreleased control_hold events in the journal. A fresh uuid4 lifecycle drops the pause.",
+    "Pass lifecycle into the ControlInbox constructor. Never assign inbox.lifecycle after construction, and never call _rehydrate_holds or pause._apply from __main__. Expose public methods instead.",
+    "Call hold.red(stem) only on the integration_check red branch, never on rebase or regate failure. Test that rebase and regate failures do not count toward K=3, and test the sequence A,B,A,C.",
+    "AdmissionHold.allow must not busy-poll with a raw asyncio.sleep. Block on an event set by apply or on the injected control waiter, and prove another task makes progress while the hold is pending.",
+    "test_mergequeue.py: build a MergeQueue with hold= and call admit. Prove that 3 integration-reds and a tree-hash mismatch block the next admit and a matching resume releases it. Replace the stale hasattr(q, 'hold') assertion.",
+    "test_control_cli.py: fake a live engine lock and assert the CLI publishes a request and writes no journal event. With no engine, pause, read the journaled hold_id, then resume with it. Prove stale-lifecycle and older-hold releases leave the current hold in place.",
+    "Delete the unused _noop and the unused `graph` binding in _locked."
   ],
-  "reason": "Four attempts at the same capability keep leaving two acceptance-criteria test suites unwritten and ship new hold bugs; the ticket bundles two separable features and is too large for one attempt.",
+  "reason": "Fifth attempt with the same misses (test_daemon_composition.py untouched, weak mergequeue and CLI tests); the ticket bundles two features across 10 files, which is too much for one attempt.",
   "detail": null
 }
