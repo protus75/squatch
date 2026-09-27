@@ -2,10 +2,9 @@
 ok
 
 ## Surprises / judgment calls
-Recovered the prior authored seed test from the local object database, then replaced its tautological registry assertion with ticket-derived ownership and authoring-time new-path checks.
+Recovered the prior authored seed test from the local object database. Registry ownership remains derived from the authored tickets, while historical path absence is not compared with the later live tree.
 
 ## Dead ends
-The first focused run exposed that phase3-continue-18 owns its own seeded test outside its future ownership YAML; the check now derives that path from the continuation ticket fence.
 
 ## Second problems filed
 
@@ -13,4 +12,4 @@ The first focused run exposed that phase3-continue-18 owns its own seeded test o
 OpenAI Codex (GPT-5)
 
 ## Predicted vs actual
-Expected 75m; actual approximately 8m.
+Expected 75m; actual approximately 12m.
