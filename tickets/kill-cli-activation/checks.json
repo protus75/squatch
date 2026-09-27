@@ -1,0 +1,88 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "7410aedbbc22e219abfa87e80194addb9f155b69",
+  "stem": "kill-cli-activation",
+  "branch": "kill-cli-activation",
+  "base": "024b4f2cdd201cb479890285d164c48411907254",
+  "head": "7410aedbbc22e219abfa87e80194addb9f155b69",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/daemon.py",
+    "squatch/drain.py",
+    "squatch/stages.py",
+    "tests/test_kill_cli_activation.py",
+    "tests/test_kill_signal_journal.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_kill_cli_activation.py",
+            "tests/test_kill_signal_journal.py",
+            "tests/test_kill_executor_abort.py",
+            "tests/test_kill_worker_stop.py",
+            "tests/test_kill_failure_suppression.py",
+            "tests/test_daemon_tasks.py",
+            "tests/test_control_cli.py",
+            "tests/test_daemon_composition.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
