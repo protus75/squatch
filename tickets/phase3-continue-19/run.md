@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-Used the repaired section 20 daemon-soak fence, including `squatch/stages.py` as the ordinary-lane report registry hook. The continuation uses an already-existing seeded-test pattern rather than the sibling-new test created by this ticket.
+The authored seed tickets were already present from the lifted authoring work. Made the terminal continuation's future Context partitions explicit so the new contract test pins them; kept the sibling-new seeded test and delimiter-bearing prompt sources outside Context.
 
 ## Dead ends
 
@@ -12,4 +12,4 @@ Used the repaired section 20 daemon-soak fence, including `squatch/stages.py` as
 codex; model not reported.
 
 ## Predicted vs actual
-Expected 75m; actual approximately 14m.
+Expected 75m; actual approximately 12m.
