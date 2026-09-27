@@ -4,7 +4,7 @@ from pathlib import Path
 
 from squatch.box import Box
 from squatch.daemon import compose_daemon_flake
-from squatch.flake import Flake, fold_quarantine
+from squatch.flake import Flake, FlakeRerun, fold_quarantine
 from squatch.journal import Journal, read_events
 from squatch.seams import LocalFilesystem
 
@@ -17,6 +17,17 @@ def _report(box: Box):
     result = box.enqueue(message_class="failure_report", summary="intermittent check",
                          detail="named check failed on its first run", origin="verification")
     return box.get(result.id)
+
+
+def _merged(journal: Journal, stem: str) -> None:
+    journal.append("state_transition", {
+        "to": "merged", "run_seq": 4, "commit": "a" * 40,
+        "reviewed_sha": "b" * 40,
+    }, ticket=stem)
+
+
+def _release_rerun(test_id: str, fix_stem: str, *, green: bool = True) -> FlakeRerun:
+    return FlakeRerun(test_id=test_id, fix_stem=fix_stem, green=green)
 
 
 def test_detects_a_named_fail_then_same_workspace_no_change_pass_and_folds_ledger(tmp_path):
@@ -68,6 +79,89 @@ def test_flake_ledger_reconstructs_and_deduplicates_the_same_report(tmp_path):
 
     reconstructed = fold_quarantine(read_events(tmp_path))
     assert reconstructed == {report.id: "tests/test_widget.py::test_named_check"}
+
+
+def test_release_binds_the_authored_fix_merged_transition_and_green_rerun(tmp_path):
+    test_id, fix_stem = "tests/test_widget.py::test_named_check", "fix-widget-flake"
+    box = Box(tmp_path, fs=LocalFilesystem(), clock=lambda: NOW)
+    report = _report(box)
+    other = box.enqueue(message_class="failure_report", summary="other intermittent check",
+                        detail="a different test flakes", origin="verification")
+    box.resolve(report.id, status="authored", link=fix_stem, note="authored a fix")
+    with Journal(tmp_path, clock=lambda: NOW) as journal:
+        flake = compose_daemon_flake(journal=journal, box=box)
+        assert flake.detect(test_id=test_id, signature=report.signature, box_id=report.id)
+        assert flake.detect(test_id="tests/test_other.py::test_other", signature=box.get(other.id).signature,
+                            box_id=other.id)
+        _merged(journal, fix_stem)
+        assert flake.release(box_id=report.id, rerun=_release_rerun(test_id, fix_stem))
+        events = tuple(journal.read())
+        release = next(event for event in events
+                       if isinstance(event.key, str) and event.key.startswith("flake-release/"))
+        assert (release.key, release.body) == (
+            f"flake-release/{report.id}/{fix_stem}",
+            {"kind": "flake_released", "test_id": test_id, "signature": report.signature,
+             "box_id": report.id, "fix_stem": fix_stem})
+        assert events.index(release) > next(i for i, event in enumerate(events)
+                                            if event.key == f"flake/{report.id}")
+        assert flake.quarantine() == {other.id: "tests/test_other.py::test_other"}
+
+    assert fold_quarantine(read_events(tmp_path)) == {other.id: "tests/test_other.py::test_other"}
+
+
+def test_release_refusals_preserve_the_ledger_and_events(tmp_path):
+    test_id, fix_stem = "tests/test_widget.py::test_named_check", "fix-widget-flake"
+    cases = (
+        ("wrong status", "pending", fix_stem, True, fix_stem),
+        ("link mismatch", "authored", "other-fix", True, fix_stem),
+        ("unmerged stem", "authored", fix_stem, False, fix_stem),
+        ("red rerun", "authored", fix_stem, True, fix_stem, False),
+        ("other test rerun", "authored", fix_stem, True, fix_stem, True,
+         "tests/test_other.py::test_named_check"),
+        ("other fix rerun", "authored", fix_stem, True, "other-fix"),
+    )
+    for case in cases:
+        _, status, link, merged, rerun_stem, *extra = case
+        green = extra[0] if extra and isinstance(extra[0], bool) else True
+        rerun_test = extra[-1] if extra and isinstance(extra[-1], str) else test_id
+        state = tmp_path / case[0].replace(" ", "-")
+        box = Box(state, fs=LocalFilesystem(), clock=lambda: NOW)
+        report = _report(box)
+        if status == "authored":
+            box.resolve(report.id, status=status, link=link, note="authored a fix")
+        with Journal(state, clock=lambda: NOW) as journal:
+            flake = Flake(journal=journal, box=box)
+            assert flake.detect(test_id=test_id, signature=report.signature, box_id=report.id)
+            if merged:
+                _merged(journal, fix_stem)
+            before_events, before_quarantine = tuple(journal.read()), flake.quarantine()
+            assert not flake.release(box_id=report.id,
+                                     rerun=_release_rerun(rerun_test, rerun_stem, green=green))
+            assert tuple(journal.read()) == before_events
+            assert flake.quarantine() == before_quarantine
+
+
+def test_release_identity_is_terminal_after_redetection_and_reconstruction(tmp_path):
+    test_id, fix_stem = "tests/test_widget.py::test_named_check", "fix-widget-flake"
+    box = Box(tmp_path, fs=LocalFilesystem(), clock=lambda: NOW)
+    report = _report(box)
+    box.resolve(report.id, status="authored", link=fix_stem, note="authored a fix")
+    with Journal(tmp_path, clock=lambda: NOW) as journal:
+        flake = Flake(journal=journal, box=box)
+        assert flake.detect(test_id=test_id, signature=report.signature, box_id=report.id)
+        _merged(journal, fix_stem)
+        rerun = _release_rerun(test_id, fix_stem)
+        assert flake.release(box_id=report.id, rerun=rerun)
+        assert flake.detect(test_id=test_id, signature=report.signature, box_id=report.id)
+        before_events, before_quarantine = tuple(journal.read()), flake.quarantine()
+        assert not flake.release(box_id=report.id, rerun=rerun)
+        assert tuple(journal.read()) == before_events
+        assert flake.quarantine() == before_quarantine == {report.id: test_id}
+
+    with Journal(tmp_path, clock=lambda: NOW) as journal:
+        reconstructed = Flake(journal=journal, box=box)
+        assert not reconstructed.release(box_id=report.id, rerun=_release_rerun(test_id, fix_stem))
+        assert reconstructed.quarantine() == {report.id: test_id}
 
 
 def test_production_roots_do_not_construct_or_call_the_dormant_hook():
