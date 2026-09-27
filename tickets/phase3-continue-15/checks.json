@@ -1,0 +1,128 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "08c4dc0d093b2cb6eab667b8dfd7bc23befeb91d",
+  "stem": "phase3-continue-15",
+  "branch": "phase3-continue-15",
+  "base": "32c5a365d05c9a5e0f131890aa3be18c5a106a6a",
+  "head": "08c4dc0d093b2cb6eab667b8dfd7bc23befeb91d",
+  "changed_files": [
+    "tests/test_seeded_phase3_15.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/journal-roll/ticket.md",
+      "sha": "979fd43e5a1295aaf6ab8d0a2d33a9e4bc0ec16b",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-16/ticket.md",
+      "sha": "11d884a37e5d8c86cc4cb79a66c05d82134f148b",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-16/ticket.md",
+          "line": null,
+          "message": "Scope in says 'Derive each fence as owns followed by hooks' but, unlike its predecessor phase3-continue-15, it has no `ownership` YAML block. The section 20 registry only gives shorthand for this pair ('storm, box, daemon, storm tests'). That does not say which new test file each boundary owns, which seed hooks `squatch/box.py` versus `squatch/daemon.py`, or which composition surfaces the activation must fence. The rule is that 'activation ... proves the real in-process production composition' and fences 'each owner, composition hook, and predecessor negative test' it invalidates. Criterion 1 pins 'owns-then-hooks fences' and 'new-path owners' with no given values, so the test's expected values are left for the implementer to make up.",
+          "paved_road": "Add an `ownership:` YAML block to Scope in, as phase3-continue-15 did, giving exact owns/hooks per seed. For example: storm-producer-wiring owns a new producer test and hooks `squatch/storm.py`, `squatch/daemon.py`, `tests/test_storm.py`; storm-notification-activation owns its own activation test and hooks `squatch/storm.py`, `squatch/box.py`, `squatch/daemon.py`, plus the production composition surfaces it activates (e.g. `tests/test_daemon_composition.py`); phase3-continue-17 owns `tickets` and `tests/test_seeded_phase3_17.py`. Then name every new path's registry owner."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-16/ticket.md",
+          "line": null,
+          "message": "The Context `squatch/journal.py` and `tests/test_journal.py` is journal-roll's surface, copied from phase3-continue-15. Neither is fenced or hooked by the storm seeds. The existing surfaces the storm seeds hook, and whose sizes and preservation this ticket must pin, are not in Context: `squatch/box.py` (12,324 chars), `squatch/daemon.py` (15,521), `tests/test_box.py` (8,419), and `tests/test_daemon_composition.py` (21,280). All exist on main. Together with the seeded pattern test they fit well within the 120,000-char headroom.",
+          "paved_road": "Replace the journal Context with the established seeded-test pattern (`tests/test_seeded_phase3_11.py`) plus the existing hooked and preservation surfaces: `squatch/daemon.py`, `squatch/box.py`, `tests/test_box.py`, `tests/test_daemon_composition.py`. Leave out sibling-new paths and not-yet-merged paths such as `squatch/storm.py` and `tests/test_storm.py`."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-16/ticket.md",
+          "line": null,
+          "message": "Predecessor-test closure is only named ('preservation' in criterion 1). Nothing says which existing tests each storm seed must migrate and which it must keep unchanged. Two classifications are missing: the dormancy assertions that storm-ledger lands in `tests/test_storm.py`, which storm-notification-activation must migrate, and `tests/test_box.py` / `tests/test_daemon_composition.py`, which are read-only preservation or fenced migration targets. phase3-continue-15 pinned a `PRESERVATION` set explicitly; this ticket leaves it undetermined.",
+          "paved_road": "Say per seed which predecessor tests are fenced migration targets (for example, the storm-ledger dormancy assertion in `tests/test_storm.py` for the activation seed) and which are read-only preservation. Require `tests/test_seeded_phase3_16.py` to pin that `PRESERVATION` set, and require each seed to verify those tests unchanged."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/storm-ledger/ticket.md",
+      "sha": "b27b61c68074e22452270e2b22fb847a54cc8712",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase3_15.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
