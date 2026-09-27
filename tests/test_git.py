@@ -275,6 +275,16 @@ async def test_merge_squash():
     assert argv(px) == ["git", "-C", "/repo", "merge", "--squash", "stem-1"]
 
 
+async def test_push_uses_the_dir_pinned_argv_process_seam():
+    px, git = make()
+    await git.push(REPO)
+    assert argv(px) == ["git", "-C", "/repo", "push"]
+    call = px.calls[0]
+    assert call["cwd"] == REPO
+    assert call["env"] == ENV
+    assert call["timeout"] == 30.0
+
+
 async def test_describe_for_lockfile_identity():
     px, git = make([(0, "v0.1.0-3-gabc123-dirty\n", "")])
     assert await git.describe(REPO) == "v0.1.0-3-gabc123-dirty"

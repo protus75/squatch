@@ -176,5 +176,9 @@ class Git:
     async def merge_squash(self, cwd: Path, branch: str) -> None:
         await self._run(cwd, "merge", "--squash", branch)
 
+    async def push(self, cwd: Path) -> None:
+        """Push the checkout's configured upstream through the Git seam."""
+        await self._run(cwd, "push")
+
     async def describe(self, cwd: Path) -> str:
         return (await self._run(cwd, "describe", "--tags", "--always", "--dirty")).strip()

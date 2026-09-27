@@ -677,7 +677,7 @@ async def test_git_conflict_seams_are_only_additions_and_old_rebase_still_aborts
         "init", "status", "rev_parse", "git_common_dir", "diff_names", "diff",
         "untracked_names", "ls_files", "diff_stat", "add", "commit", "branch",
         "branch_delete", "worktree_add", "worktree_add_detached", "worktree_remove",
-        "worktree_prune", "rebase", "rebase_abort", "restore", "merge_squash", "describe",
+        "worktree_prune", "rebase", "rebase_abort", "restore", "merge_squash", "push", "describe",
     } == {"rebase_stop_at_conflict", "conflicted_paths", "rebase_continue"}
 
 

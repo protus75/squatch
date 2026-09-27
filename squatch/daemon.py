@@ -10,9 +10,11 @@ from uuid import UUID, uuid4
 
 from squatch.config import Config, Tier, snapshot
 from squatch.box import Box, STORM_BREAKER_ORIGIN, scoped_occurrence_recorder
+from squatch.checkpoint import Checkpoint
 from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
 from squatch.flake import Flake
+from squatch.git import Git
 from squatch.heartbeat import Heartbeat
 from squatch.journal import Journal
 from squatch.llm import Effort
@@ -276,6 +278,11 @@ def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,
 def compose_daemon_flake(*, journal: Journal, box: Box) -> Flake:
     """Compose the dormant, report-keyed flake quarantine boundary."""
     return Flake(journal=journal, box=box)
+
+
+def compose_daemon_checkpoint(*, repo: Path, git: Git, journal: Journal) -> Checkpoint:
+    """Compose the dormant checkpoint publication boundary."""
+    return Checkpoint(repo=repo, git=git, journal=journal)
 
 
 @contextmanager
