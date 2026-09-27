@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The flake rule is made explicit as a same-SHA red outcome followed by green on a re-run; release consumes the resulting keyed journal record. `squatch/timers.py` is a prior-admission path, not a sibling-new path, so it remains valid dormant-boundary Context for detection.
+Defined release state as an in-memory flake-held set folded from the durable detection and release signals. The release signal is appended before the SHA leaves that set, making ordering and idempotence directly observable without adding another durable state path.
 
 ## Dead ends
 
-The first focused run found that the flake-detection preservation criterion did not name its verification artifact; it now names `tests/test_restart_timers.py`.
+The prior flake-release wording left its mutated state and direct-test location ambiguous; both are now explicit and pinned by the seed test.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI Codex, GPT-5.
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 15m.
+Expected 75m; actual approximately 25m.
