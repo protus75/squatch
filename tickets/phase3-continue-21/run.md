@@ -4,19 +4,18 @@ ok
 
 ## Surprises / judgment calls
 
-The prior seed-contract test was absent from this checkout but recoverable from branch history. I replaced its tautological new-path-owner assertion with one observed mapping derived from the two emitted scope fences, the successor ownership YAML, and a whitespace-tolerant parse of the downstream phase3-exit ownership prose.
+The emitted seeds were already present; the seed-contract test was absent and restored from prior commit a7493f0095a917d9be8c6a8d912e3105179c90e3. Section 20 already specifies the required contract, so no plan repair was needed. Replaced ambiguous downstream phrase checks with whitespace-tolerant expressions tying each dependency and tier to its seed, including the explicit phase3-exit clause. Preserved the prior owner derivation and positive on-demand fault-reference assertions.
+
+Verification: uv run pytest tests/test_seeded_phase3_21.py -q passed (4 tests); uv run pytest -q passed (1171 tests). Six in-memory dependency/tier mutations were individually rejected by the downstream contract test.
 
 ## Dead ends
 
-An initial one-line Python invocation for the Git seam used an invalid inline async function definition; I reran the same scoped add and commit as separate awaited operations.
-
 ## Second problems filed
-
 
 ## Resolved engine/model
 
-OpenAI Codex / GPT-5.
+OpenAI Codex / GPT-6 (exact serving variant unavailable).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 9m.
+Expected 75m; actual approximately 4m.
