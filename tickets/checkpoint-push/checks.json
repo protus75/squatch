@@ -1,0 +1,94 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "560d7c3ed8733b51d1a2866189860f7188c7a82f",
+  "stem": "checkpoint-push",
+  "branch": "checkpoint-push",
+  "base": "e8651723d6006cee852d0f4c342648141185d552",
+  "head": "560d7c3ed8733b51d1a2866189860f7188c7a82f",
+  "changed_files": [
+    "squatch/checkpoint.py",
+    "squatch/daemon.py",
+    "squatch/git.py",
+    "tests/test_checkpoint.py",
+    "tests/test_git.py",
+    "tests/test_mergequeue.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_checkpoint.py",
+            "tests/test_git.py",
+            "tests/test_daemon_composition.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_mergequeue.py::test_git_conflict_seams_are_only_additions_and_old_rebase_still_aborts",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
