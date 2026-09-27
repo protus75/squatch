@@ -1,23 +1,15 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-Recovered the previously reviewed seed set from the preserved attempt commit and changed only the three historical-fixture assertions identified by review. Seed tickets remain uncommitted for engine lift.
+Used the delimiter-free established pattern `tests/test_seeded_phase3_11.py` for the successor Context. Kept Context and plan lengths as historical render fixtures, and separately rendered all three seeds with real Context content to verify the delimiter and headroom boundaries.
 
 ## Dead ends
 
-
-
 ## Second problems filed
 
-
-
 ## Resolved engine/model
-
-OpenAI Codex / GPT-5 family
+OpenAI GPT-5
 
 ## Predicted vs actual
-
-Expected 75m; actual about 10m.
+Expected 75m; actual about 10m because the prior-attempt artifacts provided a narrow paved road.
