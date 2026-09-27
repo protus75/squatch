@@ -61,6 +61,8 @@ Storm producer wiring uses the then-existing `squatch/storm.py` and `tests/test_
 
 Storm notification activation migrates the storm dormancy assertion and activates the section 12 trip signal plus its one P0 `failure_report`. Its real production fence includes `squatch/__main__.py`; daemon-only construction is not activation. The trip identity is deterministic over `(signature, first_live_occurrence_id, crossing_occurrence_id)` and replay cannot mint a second trip. `tests/test_storm.py` and `tests/test_storm_producer.py` are fenced migration targets; `tests/test_box.py` and `tests/test_daemon_composition.py` remain read-only preservation. Dispatch suppression stays exclusively in `storm-dispatch-hold`.
 
+Regenerate `phase3-continue-17` from section 20's storm-dispatch-hold ownership clarification. It must author the hold as high/high with the exact production fence, predecessor migration/preservation classification, and the explicit `squatch/drain.py`/`squatch/__main__.py` on-demand Context partition; its continuation remains medium/medium. Pin the real dispatch-selection activation and identity-bound resume rather than deferring the hold to an unowned later admission.
+
 Every existing fence path is existing Context; there are no on-demand exceptions. The only sibling-new paths are `tests/test_storm_producer.py`, `tests/test_storm_notification_activation.py`, and `tests/test_seeded_phase3_17.py`; none may enter sibling Context. Keep delimiter-bearing prompt-spec sources outside Context. Pin authoring-time Context sizes, section 20's historical length, the `PRESERVATION` set, every max-effort render under `REQ_RENDER_HEADROOM`, exact Context, and each new path's registry owner.
 
 The finite ordered admissions are:
@@ -80,6 +82,7 @@ Do not implement storm behavior, combine producer and notification activation, a
 - `tests/test_seeded_phase3_16.py` pins identities, dependencies, tiers, budgets, cap, owns-then-hooks fences, Context, new-path owners, preservation/migration classification, and authoring-time render headroom.
 - It treats `squatch/storm.py` and `tests/test_storm.py` as existing Context for the authored storm seeds, fences `squatch/__main__.py` for notification activation, and limits sibling-new paths to the clarification's exact set.
 - `tests/test_seeded_phase3_16.py` pins the producer's stable occurrence identity and dormant composition, notification's deterministic replay-safe trip and P0 report, and keeps dispatch hold separate.
+- `tests/test_seeded_phase3_16.py` pins the successor's high/high storm-hold tier, exact production ownership fence, predecessor-test partition, and production-root on-demand Context exceptions from section 20.
 - `tests/test_seeded_phase3_16.py` pins exact successor suffix equality after removing only the producer/notification pair.
 
 ## Verification
