@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-The prior attempt's corrected post-soak suffix is now represented as the serve activation followed by the deterministic runner. The runner continuation records member-local evidence and canonical-writer custody so the no-code soak-run cannot self-attest its report.
+The authored serve-activation and successor tickets were already present on the branch. I added the missing seed contract test and made its production-root and downstream checks inspect authored ticket data rather than only local constants.
 
 ## Dead ends
 
-The ticket-plane Context for the future runner necessarily names `tests/test_serve.py`, which does not exist until its predecessor merges; the continuation's own existing Context remains lintable at this admission.
+None.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-codex / GPT-5
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 15m.
+Expected 75m; actual approximately 10m.
