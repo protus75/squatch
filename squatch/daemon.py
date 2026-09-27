@@ -204,6 +204,9 @@ class DaemonTasks:
                  box: ConsumerCallback, control: ConsumerCallback) -> None:
         self._callbacks = (watcher, merge, box, control)
         self._tasks: tuple[asyncio.Task[None], ...] = ()
+        self._workers: tuple[asyncio.Task[None], ...] = ()
+        self._control: asyncio.Task[None] | None = None
+        self._workers_stopped = False
 
     def start(self) -> None:
         """Start each consumer once; callbacks first run in their own tasks."""
@@ -211,10 +214,28 @@ class DaemonTasks:
             raise RuntimeError("daemon background consumers are already running")
         self._tasks = tuple(asyncio.create_task(self._repeat(callback))
                             for callback in self._callbacks)
+        self._workers, self._control = self._tasks[:3], self._tasks[3]
+        self._workers_stopped = False
+
+    async def stop_workers(self) -> None:
+        """Stop the worker siblings without interrupting their control caller."""
+        if self._workers_stopped:
+            return
+        self._workers_stopped = True
+        for task in self._workers:
+            task.cancel()
+        outcomes = await asyncio.gather(*self._workers, return_exceptions=True)
+        failure = next((outcome for outcome in outcomes
+                        if isinstance(outcome, BaseException)
+                        and not isinstance(outcome, asyncio.CancelledError)), None)
+        if failure is not None:
+            raise failure
 
     async def shutdown(self) -> None:
         """Cancel, observe, and propagate every consumer's terminal outcome."""
         tasks, self._tasks = self._tasks, ()
+        self._workers, self._control = (), None
+        self._workers_stopped = False
         for task in tasks:
             task.cancel()
         outcomes = await asyncio.gather(*tasks, return_exceptions=True)
@@ -228,7 +249,13 @@ class DaemonTasks:
         """Run until cancelled or a consumer fails, then clean up every sibling."""
         self.start()
         try:
-            await asyncio.gather(*self._tasks)
+            try:
+                await asyncio.gather(*self._tasks)
+            except asyncio.CancelledError:
+                if not self._workers_stopped or asyncio.current_task().cancelling():
+                    raise
+                assert self._control is not None
+                await self._control
         except BaseException:
             await self.shutdown()
             raise
@@ -238,3 +265,14 @@ class DaemonTasks:
         while True:
             await callback()
             await asyncio.sleep(0)
+
+
+def kill_worker_stop_consumer(inbox: ControlInbox, driver: Driver,
+                              tasks: DaemonTasks) -> ConsumerCallback:
+    """Build the dormant kill boundary for the driver's worker siblings."""
+    async def stop(request: ControlRequest) -> None:
+        if request.action == "kill":
+            await driver.abort_active()
+            await tasks.stop_workers()
+
+    return control_consumer(inbox, stop)
