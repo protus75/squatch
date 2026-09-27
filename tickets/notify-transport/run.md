@@ -2,13 +2,21 @@
 ok
 
 ## Surprises / judgment calls
-The plan already specifies this boundary; no plan change was needed. The clean base contained none of the prior attempt implementation, so all nine fenced files were implemented or extended.
-Storm notifications read durable trip signals directly, including trips without dispatch holds and non-ticket/null origins. An existing active hold supplies its exact resume command. A pending trip explains how to find the future trip-bound hold in the journal and use its identity with resume; it never invents a hold ID. Origin components are escaped for the Effect key, with a sentinel for absent origins; ordinary ticket keys retain notify/ticket/event/identity.
-Production constructs a private notification executor and excludes configured provider credentials from its environment. Launch errors, nonzero exits, and timeouts are reported per signal without completing its Effect; later signals and watcher work continue. Captured command streams are not emitted.
-Verification exited 0: uv run pytest tests/test_notify.py tests/test_config.py tests/test_seams.py tests/test_serve.py -q (91 passed); uv run pytest tests/test_daemon_soak.py tests/test_daemon_soak_runner.py -q (7 passed); uv run pytest -q (1264 passed). Both soak suites remain unchanged.
+Section 20 already specifies this boundary; the released-hold defect was in the implementation, so no plan change was needed. The clean base lacked the earlier implementation. After inspecting commit c895bab50c75614b98f734161423c2deb6d23522 and confirming its fenced base files matched this branch, restored its nine fenced files. The only changes relative to that implementation are in squatch/notify.py and tests/test_notify.py.
+
+The reconciler now suppresses integration-red-streak holds that have been released and remembers released storm trip identities from their original hold records. Release events carry no trigger or trip identity. Trips that never had a hold still notify at startup; active holds retain their concrete resume action. Released escalations stay suppressed even if an earlier notification intent is incomplete.
+
+Eight regression cases reproduced the prior defect before the fix: both escalation kinds, release before startup or before the next reconciliation, with and without an unmatched intent. They now prove no transport calls, reports, or journal changes for resolved escalations. Existing tests retain coverage of private executor isolation, argv validation, startup/poll delivery, stable keys, replay, transport failures, and status-only defaults.
+
+All verification commands exited 0:
+- `uv run pytest tests/test_notify.py tests/test_config.py tests/test_seams.py tests/test_serve.py -q`: 99 passed.
+- `uv run pytest tests/test_daemon_soak.py tests/test_daemon_soak_runner.py -q`: 7 passed.
+- `uv run pytest -q`: 1272 passed.
+
+The soak suites and eval/daemon_soak.py remain unchanged. Commit: 69b87a0530542b90cade5beb3f9a4ebc2ad7ea2d. Only the nine fenced code/test paths were committed; this run record remains uncommitted.
 
 ## Dead ends
-The first Serve tests incorrectly expected a heartbeat file when manually invoking the watcher without live worker tasks. After reading the heartbeat liveness contract, the timeout regression records the heartbeat call instead; the existing live-daemon test still proves heartbeat publication.
+None.
 
 ## Second problems filed
 None.
@@ -17,4 +25,4 @@ None.
 OpenAI / Codex, GPT-6 family; exact serving model identifier is not exposed. Implement prompt spec_version=1.1.
 
 ## Predicted vs actual
-Expected: 75 minutes. Actual: approximately 9 minutes, including implementation, regression tests, all three verification commands, and commit.
+Expected: 75 minutes. Actual: approximately 6 minutes, including inspection, regression reproduction, implementation, all three verification commands, and commit.
