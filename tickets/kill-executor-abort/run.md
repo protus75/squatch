@@ -4,19 +4,20 @@ ok
 
 ## Surprises / judgment calls
 
-The existing control seam already journals an accepted request before its mutation. The new daemon adapter therefore limits itself to `kill`, while `Driver.abort_active()` observes the cancelled invocation so the control decision can complete without changing the invocation's `CancelledError` result.
+`asyncio.wait` observes the cancelled Driver task's unwind without consuming either its result or cancellation, so the control consumer's own cancellation remains visible to its caller.
 
 ## Dead ends
 
-The first one-line helper used to invoke the repository Git wrapper declared an async function after a semicolon and was invalid Python; it made no tree change. The corrected helper used separate `asyncio.run()` calls.
+None.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI GPT-5
+OpenAI Codex; exact serving model unknown.
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 20m.
+Expected: 75m. Actual: approximately 15m.
