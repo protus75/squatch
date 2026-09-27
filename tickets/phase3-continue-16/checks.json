@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "74f4829a3aac701b08cb8c09c0c4ac46f4724d42",
+  "produced_at_sha": "71a3466726877ef4987690752c9d6d2e3edc23d2",
   "stem": "phase3-continue-16",
   "branch": "phase3-continue-16",
-  "base": "efa023319988939ed2d6486e7104623441735138",
-  "head": "74f4829a3aac701b08cb8c09c0c4ac46f4724d42",
+  "base": "009a9795e8bca86983e3cfb379bb1dff785d4c76",
+  "head": "71a3466726877ef4987690752c9d6d2e3edc23d2",
   "changed_files": [
     "tests/test_seeded_phase3_16.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-17/ticket.md",
-      "sha": "ad3e7aeda6102b1f14509f87f6460a4a98875db0",
+      "sha": "7028756b6fc58aa652282ca4b95fb4abbb2faee7",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,27 +25,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/storm-notification-activation/ticket.md",
-      "sha": "fc6b6a26f5ece5f44174d1434afff551d8d8e0aa",
+      "sha": "a0e0ca4d6e6dd1dac55e2232807c35beead46bad",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/storm-producer-wiring/ticket.md",
-      "sha": "0ec4a51a7169c28b55b257979a83b8d8725d0256",
+      "sha": "e94228f61c09488344f0040c4a04effc9274aab9",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/storm-producer-wiring/ticket.md",
-          "line": null,
-          "message": "Scope in requires `compose_daemon_storm_producer(*, state_dir, journal, fs, clock)` to 'join all tasks using the binding before exit', and the criteria require the binding to be inactive after normal and exceptional exit. Two things are missing. First, the ticket does not say whether this is a sync or an async context manager. Second, it gives the manager no way to spawn or register tasks. Because of how `contextvars` works, a task created inside the scope keeps its own copy of the binding after the parent resets its token. So a manager that knows nothing about those tasks cannot join them and cannot make the binding inactive for them. That leaves the implementer guessing at hidden ambient state, which the Definition of rejected names as a reason to reject.",
-          "paved_road": "Pick one contract and state it in both Scope in and the acceptance criteria. Option 1: the manager is an async context manager that exposes a spawn method, and on exit it awaits every task spawned that way, including when exit is exceptional. Option 2: the manager spawns no tasks, callers must await any task that inherited the binding before leaving the scope, and `tests/test_storm_producer.py` pins the inactive-after-exit check to the current context only. Keep the fence unchanged either way."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
