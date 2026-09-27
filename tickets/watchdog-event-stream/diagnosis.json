@@ -1,15 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Don't use StreamReader.readline() for stdout: the default 64 KiB limit raises ValueError on long stream-json lines. Read in chunks (e.g. read(65536)), capture every byte, split lines from a carried partial buffer, and flush the tail at EOF.",
-    "Add a test_seams case with a stdout line over 64 KiB, run with and without a callback, and assert the returned capture is byte-identical.",
-    "Send every exception that escapes the capture block (callback raise, reader error) through _kill_and_wait before re-raising, e.g. `except BaseException: await _kill_and_wait(proc); raise`. Test that a raising callback leaves no live child group.",
-    "Strengthen the dormancy test in test_watchdog.py: scan the squatch/ package and assert no production module except providers.py references on_event, on_stdout_line or EventCollector. Or drive the production call path and assert no callback keyword reaches the process.",
-    "The provider-side normalization, the flat-estimate start event and the no-consumer kwargs pin passed review. Keep them and change only the seam read loop, the exception path and the tests."
+    "Keep the seam chunked-read loop, the BaseException kill-and-wait path, the provider normalization, the flat-estimate start and the no-consumer kwargs pin. Review passed all of them. Only the tests in tests/test_providers.py need work.",
+    "Parametrize the Codex watchdog test over command_execution, file_change and mcp_tool_call item.started lines, each yielding one tool_call event. Add a rejected item type such as agent_message and a non-item.started event such as turn.started, each yielding no event.",
+    "Add a provider test with an EventCollector over a stream that has a non-JSON chatter line and a configured secret. Assert the chatter emits no event, and that returned and spooled capture keep it with the secret redacted.",
+    "In that same test, run the identical call without a consumer. Assert LLMResult (text, usd, tokens) and spool contents are equal, proving the consumer changes neither terminal parse, cost nor redaction.",
+    "Also test Claude negatives: a non-assistant event, and an assistant message with only text blocks, both yield no event. Several tool_use blocks yield one event each, in order."
   ],
-  "reason": "Checks passed. Review found fixable oversights (64 KiB readline limit, kill path skipped on non-timeout exceptions, weak dormancy test), and each finding comes with a concrete fix.",
+  "reason": "Mechanical checks passed and review found only missing test coverage for acceptance criterion 2, a fixable oversight that the findings now steer.",
   "detail": null
 }
