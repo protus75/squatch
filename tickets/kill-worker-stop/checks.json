@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "4f2c6bcd7f26be630f07697cb457d719fdde65af",
+  "produced_at_sha": "8022fc86fceee0500a11ce86ec5ab4ffb36da7f1",
   "stem": "kill-worker-stop",
   "branch": "kill-worker-stop",
-  "base": "4fe624ea303eb03b4012274e0d9a12b8674cd5d5",
-  "head": "4f2c6bcd7f26be630f07697cb457d719fdde65af",
+  "base": "a314ab8246bd380095edb68d80babf834167b1cd",
+  "head": "8022fc86fceee0500a11ce86ec5ab4ffb36da7f1",
   "changed_files": [
     "squatch/daemon.py",
     "tests/test_kill_worker_stop.py"
