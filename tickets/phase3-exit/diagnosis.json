@@ -1,15 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Requisition review failed on plan-mandated content, not on implementer error. The ticket requires the exact section-20 fences, and review says those fences can't be built as specified. Fix plan section 20 first, then regenerate this ticket.",
-    "notify-transport: the section-20 fence has no production caller (serve.py, daemon.py or __main__.py), so its escalation-dispatch flip would stay dormant. The plan must add a composition-root owner or drop the flip claim.",
-    "notify-transport: the plan doesn't say whether the transport adds section 15's distinct notify(argv) seam or reuses a separate ProcessExec instance. The plan must decide before re-seeding.",
-    "watchdog-event-stream: in-flight event delivery reportedly needs changes to the ProcessExec seam in squatch/seams.py, which is outside its fence. That finding's reply was malformed, so confirm it when repairing the plan.",
-    "The implementer's own work was sound: the exit read uses only the committed report at HEAD, the seeded test pins the core batch and the suffix, and the full suite is green. Keep that approach when regenerating."
-  ],
-  "reason": "The ticket's required Phase 4 seeds copy plan section 20, and requisition review showed those fences can't be built, so no retry within the ticket fixes it; the plan must change first.",
-  "detail": null
+  "run_seq": 3,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
