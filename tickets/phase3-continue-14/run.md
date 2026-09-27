@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-Used the established five-path seeded Context for all three seeds; flake-release keeps the sibling-owned flake paths as on-demand inspection rather than embedded Context.
+The flake rule is made explicit as a same-SHA red outcome followed by green on a re-run; release consumes the resulting keyed journal record. `squatch/timers.py` is a prior-admission path, not a sibling-new path, so it remains valid dormant-boundary Context for detection.
 
 ## Dead ends
 
-Initial seed wording had two acceptance criteria without named observable artifacts, so ticket lint rejected them. Updated those criteria to name their verification tests.
+The first focused run found that the flake-detection preservation criterion did not name its verification artifact; it now names `tests/test_restart_timers.py`.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI GPT-5
+OpenAI Codex, GPT-5.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 15m.
+Expected 75m; actual approximately 15m.
