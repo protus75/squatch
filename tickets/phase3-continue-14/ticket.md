@@ -73,6 +73,7 @@ Do not implement flakes, author beyond phase3-continue-15, include sibling-new p
 - `tests/test_seeded_phase3_14.py` pins flake-detection, flake-release, and phase3-continue-15 identities, edges, medium/medium tiers, 75m/150m budgets, cap 3, owns-then-hooks fences, exact Context, and the full new-path owner map.
 - `tests/test_seeded_phase3_14.py` pins flake-release depending on flake-detection and phase3-continue-15 depending on both flake seeds, while excluding sibling-new paths and on-demand Context exceptions.
 - `tests/test_seeded_phase3_14.py` pins authoring-time Context sizes and keeps every max-effort render within `REQ_RENDER_HEADROOM`.
+- `tests/test_seeded_phase3_14.py` pins the authoring-time section 20 length so later plan growth is not charged to this historical seed fixture.
 - `tests/test_seeded_phase3_14.py` pins the test/report/fix-ticket identities, exact detection and release signal keys and bodies, append-before-removal ordering, second-release idempotence, and call-path dormancy; it rejects any SHA-held-set substitute.
 - `tests/test_seeded_phase3_14.py` pins the exact ordered successor suffix after removing only `[flake-detection, flake-release]`, with no duplicated or combined admission.
 
