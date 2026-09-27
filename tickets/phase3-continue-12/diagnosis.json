@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The phase3-continue-13 Context named tests/test_seeded_phase3_12.py. This ticket creates that file, so it does not exist on main and requisition review refuses it. Only already-existing files may appear in Context.",
+    "For phase3-continue-13's established seeded-test pattern, use an existing test such as tests/test_seeded_phase3_11.py, which already exists on main. Then update CONTEXT and EXISTING_AT_AUTHORING in tests/test_seeded_phase3_12.py to match, with the measured authoring-time size.",
+    "Add an assertion to tests/test_seeded_phase3_12.py that every Context path of each seed exists in the repo at authoring time. Check against the files on main, not the files this branch creates, so this failure is caught locally before check.",
+    "The rest of the attempt passed verification and should be kept: heartbeat ownership, fences, edges, budgets and the admission suffix. Change only the successor Context and its pinned sizes, then rerun the headroom render test."
+  ],
+  "reason": "The only failure is a Context entry naming a file this same ticket creates. The finding's paved road fixes it directly.",
+  "detail": null
+}
