@@ -1,51 +1,66 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "1f897c04675e45c64d4aad9e86036e75126c7727",
+  "produced_at_sha": "cfcdc1e33b62914fb02f79637ab9e822f9c3e5fb",
   "stem": "phase3-continue-14",
   "branch": "phase3-continue-14",
-  "base": "a210203c699806ac6c4a89a4b2af9ae0dd3e219d",
-  "head": "1f897c04675e45c64d4aad9e86036e75126c7727",
+  "base": "6560641c1657b32b2b89a274b0ecaa1b0639ea49",
+  "head": "cfcdc1e33b62914fb02f79637ab9e822f9c3e5fb",
   "changed_files": [
     "tests/test_seeded_phase3_14.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/flake-detection/ticket.md",
-      "sha": "5d7df43d4273e98f2e217933fe00739b1a008b67",
+      "sha": "67101543551672134524aeb8b204fd8b43c36da8",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/flake-release/ticket.md",
+      "sha": "8371efdf335a9f4af263297f0e71d9c3af3b83fb",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
-          "path": "tickets/flake-detection/ticket.md",
+          "path": "tickets/flake-release/ticket.md",
           "line": null,
-          "message": "Acceptance criterion 2 says '`caps.quarantine` folds only the named test'. In the shipped engine, `caps.quarantine` is `Config.caps.quarantine` (squatch/config.py), an integer bound on how many tests can be quarantined at once, and `QUARANTINE_CAP` is a cap name in squatch/caps.py. Neither one folds tests, so the criterion cannot be tested as written. It also leaves unclear whether this ticket owns the section 11.5 cap-crossing behavior (halting further auto-quarantine and escalating). The section 20 flake-boundary clarification this seed cites does not grant that behavior, and it would need an escalation path this fence does not cover.",
-          "paved_road": "Change the criterion to say that the quarantine-ledger fold adds exactly the named `test_id` entry, keyed by `box_id`, and changes no other entry. Leave the `caps.quarantine` bound and its escalation out of scope, or name them in Scope out, because section 20 does not grant them to flake-detection."
+          "message": "The Scope in and the first acceptance criterion require the named test's green rerun to be \"observed through `resolution.link`\". In Context, `Resolution` is `{link, note, resolved_at}`, and the Author path sets `link` to the authored fix stem. A stem link cannot hold a test-rerun observation, so no implementation can meet this criterion faithfully. The ticket also says the box resolution \"status\" must name `fix_stem`, but `Message.status` is the closed Literal `pending|authored|tombstoned|decided` and cannot name a stem.",
+          "paved_road": "Split the two prerequisites. (1) Fix identity: `Box.get(box_id)` has `status == \"authored\"` and `resolution.link == fix_stem` exactly, never inferred from a stem name. (2) Green rerun: a separate observation of the named `test_id` that the release call receives as an explicit input. Rewrite the Scope in and the first criterion to match, and keep one no-release case per prerequisite: wrong status, link mismatch, unmerged stem, and missing or red rerun."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/flake-release/ticket.md",
+          "line": null,
+          "message": "Two release reads have no named source. The \"that exact stem must have merged\" check reads a merge fact without naming the journal event that proves it or the module that emits it. The green-rerun read names no producer at all, and no merged or seeded ticket in the plane emits a per-test rerun result. An implementer would have to invent both formats, which breaks the rule that every read names a merged or seeded source.",
+          "paved_road": "Name the merge evidence as the existing journal `state_transition` to `merged` for `fix_stem`, read through `squatch.journal` (already Context). Make the green-rerun observation a typed argument the dormant hook's caller supplies, and state that production supply belongs to the later activation. The fenced `tests/test_flake.py` then fabricates both inputs directly."
         }
       ],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/flake-release/ticket.md",
-      "sha": "cc21a75e2f34fcdc6470911bf99ddb9f030f9658",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase3-continue-15/ticket.md",
-      "sha": "ad74477479c2da5f9760edf1bab662ff12e0961e",
+      "sha": "6fe5b0f9e4c6a403bb48056c6da8df0262f8a15d",
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-15/ticket.md",
+          "line": 28,
+          "message": "Scope in makes `journal-roll` and `storm-ledger` both depend only on `phase3-continue-15`, which lets `storm-ledger` run in parallel with `journal-roll`. Section 20's registry lists the pair as `journal-roll`, then `storm-ledger`. Every committed seed from an earlier pair written that way depends on its predecessor: `dispatch-config-snapshot` on `dispatch-admission-boundary`, `control-inbox` on `background-consumers`, `rework-activation` on `merge-queue-activation`, and `kill-failure-suppression` on `kill-worker-stop`. Making `tests/test_journal.py` read-only preservation for `storm-ledger` also assumes the journal module `journal-roll` changes. So the pinned edges contradict the registry order, and the seeded test would lock in a wrong edge.",
+          "paved_road": "Make `journal-roll` depend on `phase3-continue-15` and `storm-ledger` depend on `journal-roll`. Keep `phase3-continue-16` depending on both. Pin these edges in the BATCH mapping of `tests/test_seeded_phase3_15.py`, and state them the same way in Scope in and in the acceptance criteria."
+        }
+      ],
       "commands": []
     },
     {
