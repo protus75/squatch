@@ -38,7 +38,8 @@ from squatch.runner import SETTLED
 from squatch.seeds import SEED_LIFT_SIGNAL, blob_sha
 from squatch.seams import Clock, Filesystem, ProcessExec
 from squatch.stages import (REVIEW, Delivery, DiffBudget, Invoice, PackingSlip, RunRecord,
-                            ScopeFence, Stages, Verification, build_invoice, compose, load_review)
+                            ScopeFence, Stages, Verification, build_invoice, compose,
+                            completed_output_lift, load_review, qualifying_output_paths)
 from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, Ticket, lint_ticket
 
 MERGE_VERSION = "1.0"
@@ -261,6 +262,16 @@ class Merge:
                              run_seq=run_seq))
         findings += (await run_gates(safety, slip, worktree,
                                      severity=self._severity(ticket))).hard_failures
+        # Check before ticket-plane cleanup can erase a foreign uncommitted edit.
+        if (slip.verdict == "implemented"
+                and completed_output_lift(self._journal, stem, run_seq, checked=True)
+                and not await self._git.diff_names(self._repo, slip.base, slip.branch)
+                and not await qualifying_output_paths(
+                    self._git, self._repo, self._journal, slip, worktree, run_seq, replay=True)):
+            findings.append(Finding(
+                code="verification", message="the branch carries no committed diff",
+                paved_road="produce and lift a registered artifact in this run, leaving "
+                           "only this ticket's OUTBOX uncommitted"))
         return reviewed, findings
 
     # -- the pinned approval --
@@ -328,12 +339,15 @@ class Merge:
         bypassed = {code for code, _ in ticket.gate_bypass}
 
         async def action() -> dict:
+            output_paths = await qualifying_output_paths(
+                self._git, self._repo, self._journal, candidate, worktree, run_seq, replay=True)
             verification = Verification(
                 self._git, self._repo, self._process, ticket, self._child_env, self._redact,
                 box=self._box,
                 base_worktree=(self._repo / self._config.worktree_root
                                / f"{stem}-base-{run_seq}"),
-                run_seq=run_seq, allow_empty=self._seed_lift(stem, run_seq) is not None)
+                run_seq=run_seq,
+                allow_empty=bool(output_paths) or self._seed_lift(stem, run_seq) is not None)
             gates = (ScopeFence(self._git, self._repo, ticket), RunRecord(),
                      DiffBudget(self._git, self._repo), verification)
             run = await run_gates(gates, candidate, worktree, severity=self._severity(ticket))
@@ -471,7 +485,10 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
 
     async def integration_check(candidate: Candidate):
         state = queue.admission_state[candidate.stem, candidate.run_seq]
-        verification = Verification(git, repo, process, state.ticket, merge._child_env, redact)
+        output_paths = await qualifying_output_paths(
+            git, repo, journal, state.slip, candidate.worktree, candidate.run_seq, replay=True)
+        verification = Verification(git, repo, process, state.ticket, merge._child_env, redact,
+                                    allow_empty=bool(output_paths))
         return (await verification.check(state.slip, candidate.worktree)).findings
 
     async def integrate(candidate: Candidate):

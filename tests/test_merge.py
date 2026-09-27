@@ -16,6 +16,8 @@ import pytest
 
 from test_stages import (
     EXISTS,
+    GREEN,
+    OUTPUT,
     PLAN,
     PYTHON,
     STEM,
@@ -219,6 +221,125 @@ async def test_already_satisfied_settles_merged_without_a_code_commit(repo, env)
     assert not branch_exists(h) and not h.worktree().exists()
 
 
+@pytest.mark.parametrize("daemon", [False, True])
+@pytest.mark.parametrize("tracked", [False, True])
+async def test_output_only_admission_replays_check_evidence_and_retires_once(
+        repo, env, daemon, tracked):
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"),
+                                actions=[writes(OUTPUT)]))
+    await h.intake(TICKET.format(verify=GREEN, frontmatter=""))
+    if tracked:
+        (repo / OUTPUT[0]).parent.mkdir(parents=True)
+        commit_on_main(h, OUTPUT[0], OUTPUT[1].replace("fixture", "earlier"), "earlier report")
+    delivery = await deliver(h, verify=GREEN)
+    before = git(repo, env, "rev-parse", "main").strip()
+    pipeline = composed_pipeline_of(h)
+    pipeline.stages = SettledStages(delivery)
+    if daemon:
+        pipeline.select_daemon_admission()
+
+    result = await pipeline.run(ticket_of(h), run_seq=0)
+
+    assert result.outcome == "ok", result.findings
+    assert git(repo, env, "rev-parse", "main").strip() == before
+    assert (repo / OUTPUT[0]).read_text() == OUTPUT[1]
+    assert transitions(h) == [{"to": "merged", "run_seq": 0, "commit": None,
+                               "reviewed_sha": delivery.slip.head}]
+    assert h.completions().count(f"retire/{STEM}/0") == 1
+    assert f"merge/{STEM}/0" not in h.completions()
+    assert not branch_exists(h) and not h.worktree().exists()
+    regate = next(e.body["result"] for e in h.journal.read()
+                  if e.type == "effect_completion" and e.key == f"regate/{STEM}/0")
+    assert regate["changed_files"] == []
+    assert all(c["verdict"] == "pass" for c in regate["checks"])
+    # Effect replay must neither rerun verification in a retired tree nor retire twice.
+    await merge_of(h)._retire(STEM, h.worktree(), 0)
+    invoice = await merge_of(h)._regate(ticket_of(h), delivery.slip, h.worktree(), 0)
+    assert invoice.passed
+    assert h.completions().count(f"retire/{STEM}/0") == 1
+    assert len(transitions(h)) == 1
+
+
+@pytest.mark.parametrize("evidence", ["missing", "stale", "foreign", "run-record", "unknown",
+                                     "no-check", "stale-check"])
+async def test_merge_regate_requires_current_completed_output_and_check_evidence(
+        repo, env, evidence):
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"),
+                                actions=[writes(OUTPUT)]))
+    delivery = await deliver(h, verify=GREEN)
+    merge = merge_of(h)
+    rebased = await merge._rebase(STEM, h.worktree(), 0)
+    candidate = delivery.slip.model_copy(update={"base": rebased["base"], "head": rebased["head"]})
+    isolated = Journal(h.state / "regate-evidence", clock=h.clock)
+    events = [e for e in h.journal.read() if e.type == "effect_completion"
+              and e.key in (f"lift/{STEM}/0/run-record", f"check/{STEM}/0")]
+    for event in events:
+        key, ticket, body = event.key, event.ticket, event.body
+        if key.startswith("lift/"):
+            if evidence == "missing":
+                continue
+            if evidence == "stale":
+                key = f"lift/{STEM}/1/run-record"
+            if evidence == "foreign":
+                ticket = "other"
+            if evidence in ("run-record", "unknown"):
+                name = "run.md" if evidence == "run-record" else "unknown.json"
+                body = {"result": {"paths": [f"tickets/{STEM}/{name}"], "commit": None}}
+        else:
+            if evidence == "no-check":
+                continue
+            if evidence == "stale-check":
+                key = f"check/{STEM}/1"
+        isolated.append("effect_completion", body, ticket=ticket, key=key)
+    merge._journal = isolated
+    merge._effects = Effects(isolated)
+
+    invoice = await merge._regate(ticket_of(h), candidate, h.worktree(), 0)
+
+    assert not invoice.passed
+    assert any("no committed diff" in f.message for f in invoice.hard_findings)
+
+
+@pytest.mark.parametrize("daemon", [False, True])
+@pytest.mark.parametrize("rel", ["squatch/widget.py", "tickets/other/note.txt"])
+async def test_output_merge_refuses_foreign_edits_before_ticket_plane_cleanup(
+        repo, env, daemon, rel):
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"),
+                                actions=[writes(OUTPUT)]))
+    delivery = await deliver(h, verify=GREEN)
+    path = h.worktree() / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("uncommitted")
+    pipeline = composed_pipeline_of(h)
+    pipeline.stages = SettledStages(delivery)
+    if daemon:
+        pipeline.select_daemon_admission()
+    result = await pipeline.run(ticket_of(h), run_seq=0)
+    assert result.outcome == "gate_failed"
+    assert any("no committed diff" in f.message for f in result.findings)
+    assert path.read_text() == "uncommitted"
+    assert transitions(h) == [] and branch_exists(h)
+
+
+@pytest.mark.parametrize("daemon", [False, True])
+async def test_committed_registered_output_is_still_refused_by_code_lane(repo, env, daemon):
+    def act(req):
+        writes(OUTPUT)(req)
+        git(req.worktree, env, "add", "--", OUTPUT[0])
+        git(req.worktree, env, "commit", "-q", "-m", "committed report", "--", OUTPUT[0])
+
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"), actions=[act]))
+    delivery = await deliver(h, verify=GREEN)
+    pipeline = composed_pipeline_of(h)
+    pipeline.stages = SettledStages(delivery)
+    if daemon:
+        pipeline.select_daemon_admission()
+    result = await pipeline.run(ticket_of(h), run_seq=0)
+    assert result.outcome == "gate_failed"
+    assert any(f.path == OUTPUT[0] and f.paved_road == CODE_LANE_ROAD for f in result.findings)
+    assert transitions(h) == [] and branch_exists(h)
+
+
 async def test_retire_tolerates_a_failed_delete_when_the_branch_is_already_gone(repo, env):
     agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
     h = Harness(repo, env, agent)
@@ -378,12 +499,17 @@ async def test_a_branch_carrying_a_ticket_plane_commit_fails_merge_safety(repo, 
 
 
 @pytest.mark.parametrize("tamper", [False, True])
-async def test_seed_merge_safety_matches_approved_lifted_bytes(repo, env, tamper):
+@pytest.mark.parametrize("old_report", [False, True])
+async def test_seed_merge_safety_matches_approved_lifted_bytes(repo, env, tamper, old_report):
     text = seed_ticket()
     agent = Agent(answer("implemented"), requisition_approve(), review("approve"),
                   actions=[writes(("tickets/next-seed/ticket.md", text),
                                   record=run_record())])
     h = Harness(repo, env, agent)
+    if old_report:
+        await h.intake(TICKET.format(verify=GREEN, frontmatter=""))
+        (repo / OUTPUT[0]).parent.mkdir(parents=True)
+        commit_on_main(h, OUTPUT[0], OUTPUT[1], "earlier report")
     d = await deliver(
         h, verify=f'{PYTHON} -c "import sys; sys.exit(0)"')
     if tamper:

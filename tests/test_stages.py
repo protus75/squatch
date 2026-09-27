@@ -33,6 +33,7 @@ from squatch.llm import FakeLLM
 from squatch.llmeffect import LLMEffect
 from squatch.redact import Redactor
 from squatch.seams import LocalFilesystem, SubprocessExec
+from squatch.shakeout import REPORT_NAME, ShakeoutReport
 from squatch.specs import RenderRefused, load_spec
 from squatch.stages import (
     CHECK_CODES,
@@ -296,6 +297,132 @@ def implementer(env: dict, *files: tuple[str, str], record=run_record()):
 
 
 WIDGET = ("squatch/widget.py", "WIDGET = 1\n")
+OUTPUT = (f"tickets/{STEM}/evidence/{REPORT_NAME}", ShakeoutReport(
+    schema_version=1, produced_at_sha="fixture", groups=(), entries=()).model_dump_json())
+GREEN = f'{PYTHON} -c "pass"'
+
+
+@pytest.mark.parametrize("tracked", [False, True])
+async def test_empty_code_delivery_requires_a_report_produced_in_this_run(repo, env, tracked):
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"),
+                                actions=[writes(OUTPUT)]))
+    await h.intake(TICKET.format(verify=GREEN, frontmatter=""))
+    if tracked:
+        path = repo / OUTPUT[0]
+        path.parent.mkdir(parents=True)
+        path.write_text(OUTPUT[1].replace("fixture", "earlier"))
+        await h.git.add(repo, [OUTPUT[0]])
+        await h.git.commit(repo, "earlier report", [OUTPUT[0]])
+    d = await h.run(verify=GREEN)
+    assert d.outcome == "ok", d.findings
+    assert d.invoice.changed_files == () and h.branch_diff_names() == []
+    assert (repo / OUTPUT[0]).read_text() == OUTPUT[1]
+    assert len(h.llm.requests) == 2
+    checked = next(e.body["result"] for e in h.journal.read()
+                   if e.key == f"check/{STEM}/0" and e.type == "effect_completion")
+    assert checked["output_paths"] == [OUTPUT[0]]
+    replay = await h.stages.run(await h.intake(TICKET.format(verify=GREEN, frontmatter="")),
+                                run_seq=0)
+    assert replay.outcome == "ok" and len(h.llm.requests) == 2
+
+
+async def test_unchanged_report_from_an_earlier_run_does_not_admit_a_noop(repo, env):
+    h = Harness(repo, env, Agent(answer("implemented")))
+    await h.intake(TICKET.format(verify=GREEN, frontmatter=""))
+    path = repo / OUTPUT[0]
+    path.parent.mkdir(parents=True)
+    path.write_text(OUTPUT[1])
+    record = f"tickets/{STEM}/run.md"
+    (repo / record).write_text(run_record())
+    await h.git.add(repo, [OUTPUT[0], record])
+    await h.git.commit(repo, "earlier report", [OUTPUT[0], record])
+
+    d = await h.run(verify=GREEN)
+
+    lift = next(e.body["result"] for e in h.journal.read()
+                if e.key == f"lift/{STEM}/0/run-record" and e.type == "effect_completion")
+    assert OUTPUT[0] in lift["paths"]
+    assert lift["commit"] is None
+    assert d.outcome == "gate_failed"
+    assert any("no committed diff" in f.message for f in d.findings)
+
+
+@pytest.mark.parametrize("evidence", ["missing", "intent", "signal", "stale", "foreign",
+                                     "foreign-path", "run-record", "unknown"])
+async def test_empty_diff_requires_a_matching_completed_registered_lift(
+        repo, env, monkeypatch, evidence):
+    h = Harness(repo, env, Agent(answer("implemented"), actions=[writes(OUTPUT)]))
+    original = h.stages._lift
+
+    async def lift(stem, run_seq, kind, **kwargs):
+        if kind != "run-record":
+            return await original(stem, run_seq, kind, **kwargs)
+        key = f"lift/{stem}/{run_seq}/run-record"
+        paths = [OUTPUT[0]]
+        if evidence == "missing":
+            return {}
+        if evidence == "intent":
+            h.journal.append("effect_intent", {}, ticket=stem, key=key)
+            return {}
+        if evidence == "signal":
+            h.journal.append("signal", {"kind": "output_lift", "paths": paths,
+                                        "run_seq": run_seq}, ticket=stem)
+            return {}
+        if evidence == "stale":
+            key = f"lift/{stem}/{run_seq + 1}/run-record"
+        if evidence == "foreign":
+            stem = "other"
+        if evidence == "foreign-path":
+            paths = [OUTPUT[0].replace(STEM, "other")]
+        if evidence == "run-record":
+            paths = [f"tickets/{stem}/run.md", f"tickets/{stem}/checks.json"]
+        if evidence == "unknown":
+            paths = [f"tickets/{stem}/unknown.json"]
+        h.journal.append("effect_completion", {"result": {"paths": paths, "commit": None}},
+                         ticket=stem, key=key)
+        return {}
+
+    monkeypatch.setattr(h.stages, "_lift", lift)
+    d = await h.run(verify=GREEN)
+    assert d.outcome == "gate_failed"
+    assert any("no committed diff" in f.message for f in d.findings)
+    assert len(h.llm.requests) == 1
+
+
+@pytest.mark.parametrize("extra", ["code", "foreign-outbox", "rename", "ordinary", "unknown"])
+async def test_output_admission_preserves_empty_diff_and_dirty_code_refusals(repo, env, extra):
+    def act(req):
+        writes(*(() if extra in ("ordinary", "unknown") else (OUTPUT,)))(req)
+        if extra == "code":
+            writes(WIDGET)(req)
+        elif extra == "foreign-outbox":
+            writes(("tickets/other/note.txt", "foreign"))(req)
+        elif extra == "rename":
+            source = req.worktree / "squatch/existing.py"
+            destination = f"tickets/{STEM}/existing.py"
+            source.rename(req.worktree / destination)
+            git(req.worktree, env, "add", "--", "squatch/existing.py", destination)
+            assert " -> " in git(req.worktree, env, "status", "--porcelain")
+        elif extra == "unknown":
+            writes((f"tickets/{STEM}/unknown.json", "{}"))(req)
+
+    h = Harness(repo, env, Agent(answer("implemented"), actions=[act]))
+    d = await h.run(verify=GREEN)
+    assert d.outcome == "gate_failed"
+    assert any("no committed diff" in f.message for f in d.findings)
+
+
+@pytest.mark.parametrize("invalid", [False, True])
+async def test_output_admission_keeps_schema_validation_and_verification(repo, env, invalid):
+    h = Harness(repo, env, Agent(answer("implemented"),
+                                actions=[writes((OUTPUT[0], "{}") if invalid else OUTPUT)]))
+    d = await h.run(verify=f'{PYTHON} -c "exit(7)"')
+    if invalid:
+        assert d.outcome == "invalid_artifact"
+        assert OUTPUT[0] not in h.main_files()
+    else:
+        assert d.outcome == "gate_failed"
+        assert any("exit 7" in f.message for f in d.findings)
 
 
 # --- the happy path: Implement -> Check -> Review, full artifacts + provenance -----

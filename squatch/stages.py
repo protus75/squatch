@@ -87,6 +87,49 @@ KNOWN_ARTIFACTS = {
     DAEMON_SOAK_REPORT: DaemonSoakReport.model_validate_json,
 }
 
+
+def completed_output_lift(journal: Journal, stem: str, run_seq: int, *,
+                          checked: bool = False) -> set[str]:
+    prefix = effect_key("lift", stem, run_seq) + "/"
+    outbox = f"{TICKETS_DIR}/{stem}/"
+    lifted = {
+        path for event in journal.read()
+        if event.type == "effect_completion" and event.ticket == stem
+        and event.key.startswith(prefix)
+        for path in event.body["result"].get("paths", ())
+        if path.startswith(outbox) and ".." not in Path(path).parts
+        and Path(path).name != RUN_RECORD and Path(path).name in KNOWN_ARTIFACTS
+    }
+    if checked:
+        # Rebase clears the outbox. Check preserves which lifted paths were new or
+        # modified in this run, excluding unchanged artifacts inherited from main.
+        result = next((event.body["result"] for event in journal.read()
+                       if event.type == "effect_completion" and event.ticket == stem
+                       and event.key == effect_key("check", stem, run_seq)), {})
+        lifted.intersection_update(result.get("output_paths", ()))
+    return lifted
+
+
+async def qualifying_output_paths(git: Git, repo: Path, journal: Journal,
+                                  slip: "PackingSlip", worktree: Path, run_seq: int, *,
+                                  replay: bool = False) -> tuple[str, ...]:
+    lifted = completed_output_lift(journal, slip.stem, run_seq, checked=replay)
+    if not lifted or await git.diff_names(repo, slip.base, slip.branch):
+        return ()
+    outbox = f"{TICKETS_DIR}/{slip.stem}/"
+    status = await git.status(worktree)
+    # Both sides matter: a staged rename from code into the outbox is still code work.
+    if any(not path.startswith(outbox)
+           for entry in status for path in entry.path.split(" -> ")):
+        return ()
+    if replay:
+        return tuple(sorted(lifted))
+    changed = {entry.path.split(" -> ")[-1] for entry in status
+               if entry.code != "??" and "D" not in entry.code}
+    changed.update(await git.untracked_names(worktree))
+    return tuple(sorted(lifted.intersection(changed)))
+
+
 ImplementVerdict = Literal["implemented", "already_satisfied", "premise_failed"]
 ReviewVerdictName = Literal["approve", "snag", "rma"]
 
@@ -300,7 +343,7 @@ class Verification:
     async def check(self, slip: PackingSlip, workspace: Path) -> GateReport:
         findings = []
         names = await self._git.diff_names(self._repo, slip.base, slip.branch)
-        # The one sanctioned empty-diff settlement is a PROVEN already_satisfied.
+        # already_satisfied is a proof about the base, never a committed change.
         if slip.verdict == "already_satisfied" and names:
             findings.append(Finding(
                 code=self.code, paved_road="an already_satisfied answer commits nothing; "
@@ -781,12 +824,14 @@ class Stages:
         async def action() -> dict:
             seeds = await authored_seeds(worktree, stem, self._git)
             seed_entries = await self._seed_checks(ticket, slip, worktree, run_seq, seeds)
+            output_paths = await qualifying_output_paths(
+                self._git, self._repo, self._effects.journal, slip, worktree, run_seq)
             verification = Verification(
                 self._git, self._repo, self._process, ticket, self._child_env, self._redact,
                 box=self._box,
                 base_worktree=(self._repo / self._config.worktree_root
                                / f"{stem}-base-{run_seq}"),
-                run_seq=run_seq, allow_empty=bool(seeds))
+                run_seq=run_seq, allow_empty=bool(seeds or output_paths))
             gates = (ScopeFence(self._git, self._repo, ticket), verification,
                      RunRecord(), DiffBudget(self._git, self._repo))
             # The one valve (section 7): a bypassed code fails soft, recorded forever.
@@ -809,7 +854,7 @@ class Stages:
                        for entry in seed_entries)
             }
             return {"invoice": invoice.model_dump(mode="json"),
-                    "reviewed_seeds": reviewed}
+                    "reviewed_seeds": reviewed, "output_paths": output_paths}
 
         data = await self._effects.run(action, key=effect_key("check", stem, run_seq), ticket=stem)
         return Invoice.model_validate(data["invoice"]), dict(data["reviewed_seeds"])
