@@ -1,38 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "27f2b17e2bf9808d37540f7e36622194ec5c2763",
+  "produced_at_sha": "7d9e428e5a35ae0818710ec70bf85661d78ff4b3",
   "stem": "phase3-continue-16",
   "branch": "phase3-continue-16",
-  "base": "7f7d67d1e5f327766e0369b5f061a1ebf73bc76a",
-  "head": "27f2b17e2bf9808d37540f7e36622194ec5c2763",
+  "base": "d8a7b14c2006378650d68f1030946fd67e74e255",
+  "head": "7d9e428e5a35ae0818710ec70bf85661d78ff4b3",
   "changed_files": [
     "tests/test_seeded_phase3_16.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-17/ticket.md",
-      "sha": "790f926fd7b5f391dde405f7c350667a273a4f77",
+      "sha": "72d4eff239f22c375aeeb140419c36d5dd61d3aa",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-17/ticket.md",
-          "line": null,
-          "message": "Scope in says 'Both use medium/medium tiers', and the acceptance criteria require tests/test_seeded_phase3_17.py to pin those tiers. Section 20's registry lists `storm-dispatch-hold` ALONE KNOWN-DEEP, and KNOWN-DEEP seeds are `high`/`high`. Scope in also calls the hold 'a separate KNOWN-DEEP admission', so the ticket contradicts itself and the plan. The same pattern exists in tests/test_seeded_phase3_11.py, which pins high/high for the KNOWN-DEEP kill-cli-activation and medium/medium for its continuation.",
-          "paved_road": "Specify `storm-dispatch-hold` as high/high and `phase3-continue-18` as medium/medium, following the tiers split in test_seeded_phase3_11.py. Have the seeded test pin that split, and have its max-effort headroom render cover the high-tier seed."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-17/ticket.md",
-          "line": null,
-          "message": "The hold's pinned ownership hooks only squatch/storm.py, squatch/control.py and squatch/daemon.py. Section 20 says storm-notification-activation keeps 'Dispatch suppression ... OUT until the separate KNOWN-DEEP storm-dispatch-hold admission'. It also requires every seed to 'close their fence over each owner, composition hook, and predecessor negative test they invalidate'. The storm predecessor tests will exist when this ticket runs: tests/test_storm_producer.py and tests/test_storm_notification_activation.py, plus tests/test_storm.py. The hold therefore invalidates a dispatch-suppression-absence assertion that its exact fence cannot migrate. The Scope in also never asks for the predecessor-test closure the registry requires: preservation Context for the then-existing storm tests and the composition harness tests/test_daemon_composition.py.",
-          "paved_road": "Have Scope in require the hold seed to take the then-existing storm predecessor tests and tests/test_daemon_composition.py as Context. Add to the hold's hooks (after owns) any predecessor test whose dispatch-hold-absence assertion the hold must migrate. Have tests/test_seeded_phase3_17.py pin that preservation/fence partition, as test_seeded_phase3_11.py does with PRESERVATION."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -40,15 +25,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/storm-notification-activation/ticket.md",
-      "sha": "ad76b4a9e696ca923cf98b9523e8a3f186f56484",
+      "sha": "45657de685f177506e6c7b11d320cc3e4248d397",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/storm-notification-activation/ticket.md",
+          "line": 288,
+          "message": "The criteria require the journal-backed producer to be bound to the production Box enqueue path so that every new and deduped arrival reports. On main, squatch/__main__.py builds no Box. Production Box instances are built inside squatch/runner.py (lines 288 and 347), squatch/stages.py (line 513), squatch/merge.py (line 172), squatch/triage.py (line 173) and squatch/author.py (line 145). Each takes only state_dir, fs and clock, with no journal or producer. Box cannot open its own Journal because the journal has a single writer that holds the lock. So activating the producer through the __main__.py root forces edits to these construction sites, and none of them is in the fence or in Context.",
+          "paved_road": "Add every production Box construction site that must carry the bound producer to both Scope fence and Context: at least squatch/runner.py, squatch/stages.py and squatch/merge.py, plus squatch/triage.py and squatch/author.py if their enqueues count as arrivals. Add their existing tests as fenced or preservation suites. Alternatively, state the exact Box/daemon seam from the storm-producer-wiring contract that lets __main__.py inject the producer without touching those modules, and cite where it is threaded."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/storm-notification-activation/ticket.md",
           "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"snag\",\\n \"summary\": \"The ticket fences and migrates a test file that its sibling seed creates, which the plan forbids. It also leaves open how \\'P0\\' is stored, where the trip hooks into the real box arrival path, and how its exclusivity criterion could ever be tested.\",\\n \"findings\": [\\n  {\"code\": \"requisition_review\",\\n   \"path\": \"tests/test_storm_producer.py\",\\n   \"line\": null,\\n   \"message\": \"The fence lists tests/test_storm_producer.py and the Scope in / criteria require migrat'",
-          "paved_road": "fix the plan, then re-author the ticket"
+          "message": "Scope in and the criteria say 'the same production Box instance', but production builds several independent Box instances (runner, stages, merge, triage, author). A test can bind one instance while arrivals through the others stay unobserved. That makes 'reports every new and signature-deduped arrival' unprovable as written, and it lets daemon-only or partial activation pass.",
+          "paved_road": "Restate the criterion as: every production Box construction reachable from the squatch/__main__.py drain/run composition (name each one) is bound to the one journal-backed producer. Have tests/test_storm_notification_activation.py prove this for at least the harvest/second-problem path and the verification-attribution failure_report path."
         }
       ],
       "commands": []
