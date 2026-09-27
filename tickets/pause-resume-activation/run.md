@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The lock-held drain session is the production injection point, so it constructs one shared control runtime for dispatch and merge admission. Direct CLI sessions restore a durable pause hold by lifecycle rather than adopting an operator-supplied identity.
+The lock-held drain constructs the shared control graph before its first offer, so direct command operation can remain the sole writer when no engine holds the lock.
 
 ## Dead ends
 
@@ -16,8 +16,8 @@ None.
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity unavailable).
+OpenAI Codex (model identity not exposed).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 58m.
+Expected 75m; actual approximately 60m.
