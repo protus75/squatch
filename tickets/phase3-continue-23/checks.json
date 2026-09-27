@@ -1,45 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "0a14efe7d4ea22ce21a081e59692286bc802d032",
+  "produced_at_sha": "177aff3ca32e5a563e74b9d65cac7a7ba9755ddc",
   "stem": "phase3-continue-23",
   "branch": "phase3-continue-23",
-  "base": "dcf39d771679ef3baf0c3daa05164bd75a0da2b1",
-  "head": "0a14efe7d4ea22ce21a081e59692286bc802d032",
+  "base": "9ea77c0c9f6723f29e33f978c834b72c6cdddda3",
+  "head": "177aff3ca32e5a563e74b9d65cac7a7ba9755ddc",
   "changed_files": [
     "tests/test_seeded_phase3_23.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-exit/ticket.md",
-      "sha": "53bb958f2b311368e8a47427dc5df25c4069bcda",
+      "sha": "6e8aab5e79511a528e82371182d1e04cda89b8c5",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-exit/ticket.md",
-          "line": null,
-          "message": "Scope in tells Implement to seed `watchdog-event-stream`, `notify-transport`, and `phase4-continue` with fixed owned modules (`squatch/watchdog.py`, `squatch/providers.py`, `squatch/notify.py`), each citing section 20 alone. Section 20 grants none of these stems, modules, or boundaries. Its only authoring surface is the Phase 3 compact seed registry, and it says no more than that `phase3-exit` is 'seeding Phase 4'. The ticket therefore invents Phase 4 machinery and ownership its cited plan sections never grant, and the seeded tickets would have no plan authority for their contracts.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-exit/ticket.md",
-          "line": null,
-          "message": "Scope in and the acceptance criteria require `phase4-continue` to carry 'the finite Phase 4 suffix', and `tests/test_seeded_phase4_core.py` to pin 'the successor's finite ordered suffix'. The cited plan contract defines no ordered Phase 4 admission list, so the test cannot be written without making the suffix up. Citing section 19 does not help: the plan measures continuation Context plus full section 19 at 186,586 characters, over the 160,000 bound, and a Phase 3 seed must cite section 20 alone.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-exit/ticket.md",
-          "line": null,
-          "message": "Criterion 1 requires validating the committed report 'as `DaemonSoakReport`' and checking the exact closed members. The report schema, its validation constructor, and `DAEMON_SOAK_MEMBERS` are owned by `squatch/artifacts.py`, which is missing from Context. Context shows only callers of that API, not the API itself.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -79,8 +57,8 @@
             "pytest",
             "-q"
           ],
-          "attribution": null,
-          "filed": null
+          "attribution": "base",
+          "filed": "box-000259-e6a78c4e"
         }
       ]
     },
