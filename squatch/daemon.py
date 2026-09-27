@@ -2,14 +2,14 @@
 
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable
-from contextlib import AbstractAsyncContextManager
+from contextlib import AbstractAsyncContextManager, contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Generic, TypeVar, cast
 from uuid import UUID
 
 from squatch.config import Config, Tier, snapshot
-from squatch.box import Box
+from squatch.box import Box, scoped_occurrence_recorder
 from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
 from squatch.flake import Flake
@@ -24,6 +24,7 @@ from squatch.runner import Session
 from squatch.scheduler import Scheduler
 from squatch.seams import Clock, Filesystem, Sleep
 from squatch.specs import Spec
+from squatch.storm import StormLedger
 from squatch.triage import Triage
 from squatch.timers import Timers
 from squatch.watcher import Watcher
@@ -222,6 +223,21 @@ def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,
 def compose_daemon_flake(*, journal: Journal, box: Box) -> Flake:
     """Compose the dormant, report-keyed flake quarantine boundary."""
     return Flake(journal=journal, box=box)
+
+
+@contextmanager
+def compose_daemon_storm_producer(*, state_dir: Path, journal: Journal,
+                                  fs: Filesystem, clock: Clock):
+    """Temporarily bind the lock holder's occurrence producer to its Box."""
+    ledger = StormLedger(journal=journal)
+    with scoped_occurrence_recorder(state_dir=state_dir, recorder=ledger.record):
+        box = Box(state_dir, fs=fs, clock=clock)
+        for _, message in box._records():
+            for report in range(1, message.reports + 1):
+                ledger.record(signature=message.signature,
+                              occurrence_id=f"{message.id}/{report}",
+                              emitting_stage=message.stage)
+        yield
 
 
 def compose_daemon_control(*, state_dir: Path, journal: Journal,

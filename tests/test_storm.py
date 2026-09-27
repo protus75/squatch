@@ -84,8 +84,8 @@ def test_window_is_strictly_greater_than_threshold_and_expires_lower_boundary(tm
     assert strict["timeout"] == OccurrenceWindow(tuple(f"live-{n}" for n in range(THRESHOLD)), THRESHOLD, False)
 
 
-def test_production_import_closure_does_not_reach_the_dormant_ledger():
-    reachable, pending = set(), ["squatch.__main__"]
+def test_production_import_closure_does_not_activate_the_dormant_producer():
+    reachable, pending = set(), ["squatch.__main__", "squatch.drain"]
     while pending:
         module = pending.pop()
         if module in reachable:
@@ -105,4 +105,25 @@ def test_production_import_closure_does_not_reach_the_dormant_ledger():
             for name in names:
                 if name == "squatch" or name.startswith("squatch."):
                     pending.append(name)
-    assert "squatch.storm" not in reachable
+    hooks = {"compose_daemon_storm_producer", "scoped_occurrence_recorder"}
+    for module in reachable:
+        spec = importlib.util.find_spec(module)
+        assert spec is not None and spec.origin is not None
+        tree = ast.parse(Path(spec.origin).read_text())
+
+        class ProductionCalls(ast.NodeVisitor):
+            def visit_FunctionDef(self, node):
+                if ((module == "squatch.daemon" and node.name == "compose_daemon_storm_producer")
+                        or (module == "squatch.box" and node.name == "scoped_occurrence_recorder")):
+                    return
+                self.generic_visit(node)
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Call(self, node):
+                name = node.func.id if isinstance(node.func, ast.Name) else (
+                    node.func.attr if isinstance(node.func, ast.Attribute) else None)
+                assert name not in hooks, f"{module} activates dormant storm producer"
+                self.generic_visit(node)
+
+        ProductionCalls().visit(tree)

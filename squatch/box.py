@@ -2,10 +2,13 @@
 
 import argparse
 import asyncio
+import contextvars
 import hashlib
 import os
 import re
 import sys
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,6 +32,7 @@ MessageClass = Literal[
     "suggestion", "failure_report", "override_report", "retro_finding", "bug_report"]
 Status = Literal["pending", "authored", "tombstoned", "decided"]
 BugOrigin = Literal["self_diagnosed", "player"]
+OccurrenceRecorder = Callable[..., bool]
 
 _SIGNATURE = re.compile(r"\A[0-9a-f]{64}\Z")
 _BOX_ID = re.compile(r"\Abox-(\d{6})-([0-9a-f]{8})\Z")
@@ -108,6 +112,27 @@ class Ingested:
     duplicates: int
 
 
+@dataclass(frozen=True)
+class _OccurrenceBinding:
+    state_dir: Path
+    recorder: OccurrenceRecorder
+
+
+_occurrence_binding: contextvars.ContextVar[_OccurrenceBinding | None] = contextvars.ContextVar(
+    "box_occurrence_binding", default=None)
+
+
+@contextmanager
+def scoped_occurrence_recorder(*, state_dir: Path, recorder: OccurrenceRecorder) -> Iterator[None]:
+    """Bind a recorder only for Boxes over this state directory in this context."""
+    binding = _OccurrenceBinding(Path(state_dir).resolve(), recorder)
+    token = _occurrence_binding.set(binding)
+    try:
+        yield
+    finally:
+        _occurrence_binding.reset(token)
+
+
 def _normalized(reason: str) -> str:
     tokens = (_DIGITS.sub("", token) for token in reason.split() if "/" not in token)
     return " ".join(token for token in tokens if token).strip()
@@ -120,10 +145,13 @@ def signature(message_class: str, origin: str, stage: str | None, outcome: str |
 
 
 class Box:
-    def __init__(self, state_dir: Path, *, fs: Filesystem, clock: Clock):
-        self.dir = Path(state_dir) / "box"
+    def __init__(self, state_dir: Path, *, fs: Filesystem, clock: Clock,
+                 occurrence_recorder: OccurrenceRecorder | None = None):
+        self._state_dir = Path(state_dir).resolve()
+        self.dir = self._state_dir / "box"
         self._fs = fs
         self._clock = clock
+        self._occurrence_recorder = occurrence_recorder
 
     def _records(self) -> list[tuple[Path, Message]]:
         if not self.dir.is_dir():
@@ -154,7 +182,9 @@ class Box:
                           if message.signature == sig), None)
         if duplicate is not None:
             path, message = duplicate
-            self._replace(path, message.model_copy(update={"reports": message.reports + 1}))
+            message = message.model_copy(update={"reports": message.reports + 1})
+            self._replace(path, message)
+            self._record_occurrence(message)
             return Enqueued(message.id, True)
         seq = max((message.seq for _, message in records), default=0) + 1
         sig8 = sig[:8]
@@ -169,7 +199,18 @@ class Box:
             enqueued_at=render_ts(self._clock()), status="pending", resolution=None,
             triage=None, reports=1)
         self._fs.write(path, message.model_dump_json(indent=2).encode())
+        self._record_occurrence(message)
         return Enqueued(message.id, False)
+
+    def _record_occurrence(self, message: Message) -> None:
+        recorder = self._occurrence_recorder
+        if recorder is None:
+            binding = _occurrence_binding.get()
+            if binding is not None and binding.state_dir == self._state_dir:
+                recorder = binding.recorder
+        if recorder is not None:
+            recorder(occurrence_id=f"{message.id}/{message.reports}",
+                     signature=message.signature, emitting_stage=message.stage)
 
     def pending(self) -> list[Message]:
         return [message for _, message in self._records() if message.status == "pending"]
