@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "d5669216c8c931f4dd5a564e06ec4b3702f9fe5b",
+  "produced_at_sha": "5d47f70e5bef21c4d88a35810339fd761aa287ac",
   "stem": "phase3-continue-19",
   "branch": "phase3-continue-19",
-  "base": "5b378f855e31f9d38b1e4428f96fc493bc55fd98",
-  "head": "d5669216c8c931f4dd5a564e06ec4b3702f9fe5b",
+  "base": "1ac70986fa6953a21645bc4f29bb52431ab5ac4e",
+  "head": "5d47f70e5bef21c4d88a35810339fd761aa287ac",
   "changed_files": [
     "tests/test_seeded_phase3_19.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-20/ticket.md",
-      "sha": "3488d7e203c1a3b4a48f41169cb24f097063839f",
+      "sha": "80007361d108027c5d8887441b9dde900144562d",
       "bypassed": false,
       "findings": [],
       "commands": []
