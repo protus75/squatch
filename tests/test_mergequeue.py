@@ -5,23 +5,27 @@ import inspect
 import os
 import sys
 
+from squatch.artifacts import Finding
 import squatch.merge as merge_module
 from test_stages import PLAN, TICKET, run_record
 from squatch.stages import Verification
 from datetime import datetime, timezone
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
 import squatch.git as git_module
 import squatch.mergequeue as mergequeue_module
 from squatch.config import parse
+from squatch.control import ControlInbox, ControlRequest, publish_control
 from squatch.git import Git, GitError, RebaseConflict
 from squatch.journal import Journal
 from squatch.merge import Merge, Pipeline, compose_merge_queue, compose_pipeline
 from squatch.mergequeue import (
     CONFLICT_FACTS_SIGNAL,
     REBASE_FAILURE_ROAD,
+    AdmissionHold,
     Candidate,
     CandidateRebaseFinding,
     CandidateTreeHashFinding,
@@ -80,14 +84,142 @@ async def divergent_candidate(tmp_path: Path, *, stem: str = "candidate",
 
 
 def queue(repo, env, git, journal, cfg, *, regate, integration, integrate):
-    return MergeQueue(
+    return compose_merge_queue(
+        **shared_control(repo, journal),
         repo=repo, config=cfg, git=git, process=SubprocessExec(),
         fs=LocalFilesystem(), journal=journal, env=env,
         regate=regate, integration_check=integration, integrate=integrate)
 
 
+def shared_control(repo, journal):
+    inbox = ControlInbox(repo / ".state", journal=journal, fs=LocalFilesystem())
+    return {"control_inbox": inbox, "admission_hold": AdmissionHold(inbox, journal)}
+
+
+async def release_hold(repo, q):
+    hold = q.admission_hold
+    request = ControlRequest(action="release", lifecycle=hold.inbox.lifecycle,
+                             hold_id=hold.hold_id)
+    publish_control(repo / ".state", request, LocalFilesystem())
+    await hold.inbox.consume(hold.apply)
+
+
 async def green(_candidate):
     return ()
+
+
+@pytest.mark.parametrize("prefix", [(), ("c", "b", "green")])
+async def test_distinct_integration_streak_resets_on_green_and_each_release(tmp_path, prefix):
+    repo, env, git = await fixture_repo(tmp_path)
+    candidates = {}
+    for stem in ("a", "b", "c", "green", "regate", "rebase"):
+        worktree = tmp_path / stem
+        await git.worktree_add(repo, worktree, stem, "main")
+        candidates[stem] = Candidate(stem=stem, branch=stem, worktree=worktree, run_seq=1)
+    (candidates["rebase"].worktree / "shared.txt").write_text("dirty\n")
+    failure = Finding(code="verification", message="red", paved_road="fix the check")
+    integration_calls = []
+
+    async def regate(candidate):
+        return (failure,) if candidate.stem == "regate" else ()
+
+    async def integration(candidate):
+        integration_calls.append(candidate.stem)
+        return () if candidate.stem == "green" else (failure,)
+
+    with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
+        q = queue(repo, env, git, journal, config(), regate=regate,
+                  integration=integration, integrate=lambda candidate: _nothing())
+        for stem in prefix:
+            await q.admit(candidates[stem])
+            assert q.admission_hold.hold_id is None
+        previous_hold = None
+        for _ in range(2):
+            for stem in ("a", "b", "a", "regate", "rebase"):
+                result = await q.admit(candidates[stem])
+                assert result.outcome == "gate_failed"
+                assert q.admission_hold.hold_id is None
+            await q.admit(candidates["c"])
+            hold = q.admission_hold.hold_id
+            assert hold is not None and hold != previous_hold
+            assert "regate" not in integration_calls and "rebase" not in integration_calls
+            calls = list(integration_calls)
+            waiting = asyncio.create_task(q.admit(candidates["a"]))
+            await asyncio.sleep(0)
+            assert not waiting.done() and integration_calls == calls
+            await release_hold(repo, q)
+            assert (await asyncio.wait_for(waiting, 2)).outcome == "gate_failed"
+            assert q.admission_hold.hold_id is None
+            previous_hold = hold
+        holds = [e for e in journal.read() if e.body.get("trigger") == "integration_red_streak"]
+        assert len(holds) == 2
+        assert all(e.body["trigger"] == "integration_red_streak"
+                   and e.body["stems"] == ["a", "b", "c"] for e in holds)
+
+
+async def test_tree_hold_waits_cooperatively_and_releases_only_its_identity(tmp_path, monkeypatch):
+    repo, env, git = await fixture_repo(tmp_path)
+    worktree = tmp_path / "candidate"
+    await git.worktree_add(repo, worktree, "candidate", "main")
+    candidate = Candidate(stem="candidate", branch="candidate", worktree=worktree, run_seq=4)
+    next_id = uuid4()
+    monkeypatch.setattr(mergequeue_module, "uuid4", lambda: next_id)
+    calls = []
+
+    async def integration(candidate):
+        calls.append(candidate.stem)
+        if len(calls) == 1:
+            (worktree / "late.txt").write_text("unchecked\n")
+            await git.add(worktree, ["late.txt"])
+            await git.commit(worktree, "late mutation")
+        return ()
+
+    with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
+        q = queue(repo, env, git, journal, config(), regate=green,
+                  integration=integration, integrate=lambda candidate: _nothing())
+        hold = q.admission_hold
+        async def consume(request):
+            publish_control(repo / ".state", request, LocalFilesystem())
+            return (await hold.inbox.consume(hold.apply))[0]
+
+        pre_hold = ControlRequest(action="release", lifecycle=hold.inbox.lifecycle,
+                                  hold_id=next_id)
+        assert (await consume(pre_hold)).outcome == "stale"
+        append = journal.append
+
+        def before_mutation(event_type, body, **kwargs):
+            if body.get("trigger") == "tree_hash_mismatch":
+                assert hold.hold_id is None and next_id not in hold.inbox.holds
+            return append(event_type, body, **kwargs)
+
+        monkeypatch.setattr(journal, "append", before_mutation)
+        result = await q.admit(candidate)
+        assert isinstance(result.findings[0], CandidateTreeHashFinding)
+        assert hold.hold_id == next_id
+        events = tuple(journal.read())
+        [registered] = [e for e in events if e.body.get("kind") == "control_hold"]
+        assert registered.body["trigger"] == "tree_hash_mismatch"
+        assert registered.body["hold_id"] == str(next_id)
+        assert registered.body["lifecycle"] == str(hold.inbox.lifecycle)
+        waiting = asyncio.create_task(q.admit(candidate))
+        progressed = asyncio.Event()
+
+        async def other_work():
+            progressed.set()
+
+        await asyncio.create_task(other_work())
+        assert progressed.is_set() and not waiting.done() and calls == ["candidate"]
+        other_hold = hold.inbox.hold()
+        for request in (pre_hold, ControlRequest(action="release", lifecycle=uuid4(),
+                                                hold_id=next_id)):
+            assert (await consume(request)).outcome == "stale"
+            assert hold.hold_id == next_id and not waiting.done()
+        assert (await consume(ControlRequest(action="release", lifecycle=hold.inbox.lifecycle,
+                                             hold_id=other_hold))).outcome == "accepted"
+        assert hold.hold_id == next_id and not waiting.done()
+        await release_hold(repo, q)
+        assert (await asyncio.wait_for(waiting, 2)).outcome == "integrated"
+        assert hold.hold_id is None
 
 
 async def test_post_rebase_regate_and_integration_check_precede_tree_assert_and_integration(
@@ -356,6 +488,8 @@ async def test_tree_mismatch_refuses_only_candidate_leaves_main_and_releases_slo
                   integration=integration, integrate=integrate)
         refused = await q.admit(Candidate(
             stem="first", branch="first", worktree=first, run_seq=1))
+        assert q.admission_hold.hold_id is not None
+        await release_hold(repo, q)
         accepted = await q.admit(Candidate(
             stem="second", branch="second", worktree=second, run_seq=1))
 
@@ -572,10 +706,12 @@ def test_additive_composition_hook_does_not_change_phase1_composition(tmp_path):
     git = Git(process, env=env, timeout=60)
     with Journal(repo / cfg.state_dir, clock=lambda: datetime.now(timezone.utc)) as journal:
         pipeline = compose_pipeline(
+            **shared_control(repo, journal),
             repo=repo, config=cfg, env=env, journal=journal,
             clock=lambda: datetime.now(timezone.utc), process=process,
             fs=LocalFilesystem(), git=git)
         dormant = compose_merge_queue(
+            **shared_control(repo, journal),
             repo=repo, config=cfg, env=env, journal=journal, process=process,
             fs=LocalFilesystem(), git=git, regate=green,
             integration_check=green, integrate=lambda candidate: _nothing())
@@ -701,7 +837,8 @@ async def test_concrete_adapters_approval_verification_and_squash(tmp_path, monk
     env = {**env, "PROVIDER_KEY": "secret-value", "KEEP_ME": "yes"}
     with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
         process = SubprocessExec()
-        pipeline = compose_pipeline(repo=repo, config=adapter_config(), env=env, journal=journal,
+        pipeline = compose_pipeline(**shared_control(repo, journal), repo=repo,
+                                    config=adapter_config(), env=env, journal=journal,
                                     clock=lambda: datetime.now(timezone.utc), process=process,
                                     fs=LocalFilesystem(), git=git)
         q = pipeline.merge_queue
@@ -761,7 +898,8 @@ async def test_concrete_adapter_state_unwinds_after_invoice(tmp_path, monkeypatc
 
     monkeypatch.setattr(Verification, "check", check)
     with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
-        pipeline = compose_pipeline(repo=repo, config=config(), env=env, journal=journal,
+        pipeline = compose_pipeline(**shared_control(repo, journal), repo=repo,
+                                    config=config(), env=env, journal=journal,
                                     clock=lambda: datetime.now(timezone.utc),
                                     process=SubprocessExec(), fs=LocalFilesystem(), git=git)
         q = pipeline.merge_queue

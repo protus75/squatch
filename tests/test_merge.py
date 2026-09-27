@@ -35,6 +35,8 @@ from test_stages import (
 )
 
 from squatch.config import load
+from squatch.control import ControlInbox
+from squatch.mergequeue import AdmissionHold
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
@@ -493,9 +495,14 @@ def test_compose_pipeline_builds_the_production_composition_from_config(repo, en
     config = load(None, cwd=repo)
     clock = TickingClock()
     with Journal(repo / config.state_dir, clock=clock) as journal:
-        pipeline = compose_pipeline(repo=repo, config=config, env=env, journal=journal,
+        inbox = ControlInbox(repo / config.state_dir, journal=journal, fs=LocalFilesystem())
+        hold = AdmissionHold(inbox, journal)
+        pipeline = compose_pipeline(control_inbox=inbox, admission_hold=hold,
+                                    repo=repo, config=config, env=env, journal=journal,
                                     clock=clock, process=SubprocessExec(), fs=LocalFilesystem(),
                                     git=Git(SubprocessExec(), env=env, timeout=60.0))
+    assert pipeline.merge_queue.admission_hold is hold
+    assert hold.inbox is inbox
     assert isinstance(pipeline, Pipeline)
     assert isinstance(pipeline.merge, Merge)
     assert pipeline.stages.review_spec.surface == "review"

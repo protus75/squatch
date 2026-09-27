@@ -11,9 +11,11 @@ import asyncio
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Literal
+from uuid import UUID, uuid4
 
 from squatch.artifacts import ClosedModel, Finding
 from squatch.config import Config, Strategy
+from squatch.control import ControlInbox, ControlRequest
 from squatch.git import Git, GitError, RebaseConflict
 from squatch.journal import Journal
 from squatch.seams import Filesystem, ProcessExec
@@ -77,13 +79,69 @@ Check = Callable[[Candidate], Awaitable[Sequence[Finding]]]
 Integrate = Callable[[Candidate], Awaitable[None]]
 
 
+class AdmissionHold:
+    """One session's integration streak and durable, identity-bound hold."""
+
+    def __init__(self, inbox: ControlInbox, journal: Journal):
+        self.inbox = inbox
+        self._journal = journal
+        self._reds: set[str] = set()
+        self.hold_id: UUID | None = None
+        self._released = asyncio.Event()
+        self._released.set()
+        for event in journal.read():
+            body = event.body
+            if (event.type == "signal" and body.get("kind") == "control_hold"
+                    and body.get("trigger") in {"integration_red_streak", "tree_hash_mismatch"}
+                    and body.get("lifecycle") == str(inbox.lifecycle)):
+                hold_id = UUID(body["hold_id"])
+                if hold_id in inbox.holds:
+                    self.hold_id = hold_id
+                    self._released.clear()
+
+    async def wait(self) -> None:
+        await self._released.wait()
+
+    def integration_result(self, candidate: Candidate, *, red: bool) -> None:
+        if not red:
+            self._reds.clear()
+            return
+        self._reds.add(candidate.stem)
+        if len(self._reds) >= 3:
+            self.trip(candidate, trigger="integration_red_streak")
+
+    def trip(self, candidate: Candidate, *, trigger: Literal[
+            "integration_red_streak", "tree_hash_mismatch"]) -> None:
+        if self.hold_id is not None:
+            return
+        hold_id = uuid4()
+        self._journal.append("signal", {
+            "kind": "control_hold", "hold_id": str(hold_id), "released": False,
+            "lifecycle": str(self.inbox.lifecycle), "trigger": trigger,
+            "stems": sorted(self._reds), "run_seq": candidate.run_seq,
+        }, ticket=candidate.stem)
+        # Identity and trigger commit together before either consumer mutates.
+        # Rehydration also recovers a crash immediately after this append.
+        self.inbox.rehydrate_holds()
+        self.hold_id = hold_id
+        self._reds.clear()
+        self._released.clear()
+
+    async def apply(self, request: ControlRequest) -> None:
+        if (request.action == "release" and request.lifecycle == self.inbox.lifecycle
+                and self.hold_id is not None and request.hold_id == self.hold_id):
+            self.hold_id = None
+            self._reds.clear()
+            self._released.set()
+
+
 class MergeQueue:
     """One non-preemptive admission slot with a post-unwind Rework outbox."""
 
     def __init__(self, *, repo: Path, config: Config, git: Git, process: ProcessExec,
                  fs: Filesystem, journal: Journal, env: Mapping[str, str],
                  regate: Check, integration_check: Check, integrate: Integrate,
-                 timeout: float = 60.0):
+                 timeout: float = 60.0, admission_hold: AdmissionHold | None = None):
         self._repo = Path(repo)
         self._strategies = tuple(config.merge.strategies)
         self._git = git
@@ -97,10 +155,14 @@ class MergeQueue:
         self._timeout = timeout
         self._slot = asyncio.Lock()
         self._rework: asyncio.Queue[UnresolvedConflictHandoff] = asyncio.Queue()
+        self.admission_hold = admission_hold
 
     async def admit(self, candidate: Candidate) -> Admission:
         """Admit one candidate; concurrent callers wait for the same serial slot."""
         async with self._slot:
+            hold = getattr(self, "admission_hold", None)
+            if hold is not None:
+                await hold.wait()
             admission = await self._admit(candidate)
 
         # Rung 2 becomes observable only after rebase abort and after the
@@ -135,6 +197,9 @@ class MergeQueue:
         # This is the exact tree exercised by the full integration check.
         checked_tree = await self._git.rev_parse(candidate.worktree, "HEAD^{tree}")
         findings = tuple(await self._integration_check(candidate))
+        hold = getattr(self, "admission_hold", None)
+        if hold is not None:
+            hold.integration_result(candidate, red=bool(findings))
         if findings:
             facts = facts.model_copy(update={
                 "integration_red_paths": tuple(dict.fromkeys(
@@ -146,6 +211,8 @@ class MergeQueue:
         # No bytes may move to main between this assertion and integration.
         current_tree = await self._git.rev_parse(candidate.worktree, "HEAD^{tree}")
         if current_tree != checked_tree:
+            if hold is not None:
+                hold.trip(candidate, trigger="tree_hash_mismatch")
             finding = CandidateTreeHashFinding(
                 message=(f"{candidate.stem}: checked candidate tree {checked_tree} changed to "
                          f"{current_tree} before integration"),

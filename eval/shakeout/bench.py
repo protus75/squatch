@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from squatch.config import Config, load
+from squatch.daemon import compose_daemon_control
 from squatch.drain import Drain
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
@@ -14,6 +15,7 @@ from squatch.journal import Event, Journal, read_events
 from squatch.llm import FakeLLM
 from squatch.llmeffect import LLMEffect
 from squatch.merge import compose_pipeline
+from squatch.mergequeue import AdmissionHold
 from squatch.providers import child_env
 from squatch.redact import Redactor
 from squatch.runner import Runner
@@ -69,10 +71,18 @@ class Bench:
         redact = Redactor.from_config(self.config, self.env)
         log = EngineLog(self.state_dir, clock=self.clock, redact=redact)
 
+        controls = {}
+
         def factory(journal):
+            if journal not in controls:
+                inbox = compose_daemon_control(
+                    state_dir=self.state_dir, journal=journal, fs=self.fs)
+                controls[journal] = inbox, AdmissionHold(inbox, journal)
+            inbox, hold = controls[journal]
             pipeline = compose_pipeline(
                 repo=self.repo, config=self.config, env=self.env, journal=journal,
-                clock=self.clock, process=self.process, fs=self.fs, git=self.git)
+                clock=self.clock, process=self.process, fs=self.fs, git=self.git,
+                control_inbox=inbox, admission_hold=hold)
             effect = LLMEffect(llm=self.fake, effects=Effects(journal), redact=redact,
                                clock=self.clock, sleep=self.sleep)
             pipeline.stages._llm = effect

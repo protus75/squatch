@@ -37,6 +37,7 @@ from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
 from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
 from squatch.merge import compose_pipeline
+from squatch.mergequeue import AdmissionHold
 from squatch.runner import EXIT_OK, EXIT_REFUSED, PipelineFactory, Refusal, Runner
 from squatch.seams import (Clock, ExecutableNotFound, LocalFilesystem, ProcessExec,
                            SubprocessExec)
@@ -137,40 +138,64 @@ def _new(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
 
 def _run(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     return _locked(args, cwd, env, out, pipeline, clock, process,
-                   lambda runner, config, git: runner.run(args.stem))
+                   lambda runner, config, git, control: runner.run(args.stem))
 
 
 def _confirm(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     return _locked(args, cwd, env, out, pipeline, clock, process,
-                   lambda runner, config, git: runner.confirm(args.stem))
+                   lambda runner, config, git, control: runner.confirm(args.stem))
 
 
 def _reject(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     return _locked(args, cwd, env, out, pipeline, clock, process,
-                   lambda runner, config, git: runner.reject(args.stem))
+                   lambda runner, config, git, control: runner.reject(args.stem))
 
 
 def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     return _locked(args, cwd, env, out, pipeline, clock, process,
-                   lambda runner, config, git: Drain(
+                   lambda runner, config, git, control: Drain(
                        runner=runner, repo=cwd, config=config, git=git, clock=clock,
                        process=process, env=env, config_path=args.config,
                        carried=args.parked,
-                       control_factory=_control_factory(
-                           cwd / config.state_dir, lambda: _config(args, cwd)),
+                       control_factory=control,
                        report=lambda line: print(line, file=out)).run())
+
+
+class _AdmissionDispatchPause(DispatchPause):
+    def __init__(self, inbox, journal):
+        super().__init__(inbox)
+        # Only accepted pause requests own dispatch holds. Admission holds must
+        # remain releasable even when a later pause supersedes a dispatch pause.
+        self.hold_id = None
+        for event in journal.read():
+            body = event.body
+            if (event.type == "signal" and body.get("kind") == "control_decision"
+                    and body.get("outcome") == "accepted"):
+                request = body.get("request") or {}
+                if request.get("action") == "pause":
+                    hold_id = UUID(request["request_id"])
+                    if hold_id in inbox.holds:
+                        self.hold_id = hold_id
+        self.admission_hold = AdmissionHold(inbox, journal)
+
+    async def apply(self, request):
+        await super().apply(request)
+        await self.admission_hold.apply(request)
 
 
 def _control_factory(state_dir: Path, config_supplier,
                      sleep: Callable[[float], Awaitable[None]] = asyncio.sleep):
+    fs = LocalFilesystem()
+    sessions = {}
+
     def factory(journal: Journal):
-        fs = LocalFilesystem()
-        # Runner has acquired the lock before exposing this journal. Read the
-        # actual acquisition record; the engine version is shared by all verbs.
+        if journal in sessions:
+            return sessions[journal]
+        # Runner has acquired the lock before exposing this journal.
         holder = Holder(**json.loads(fs.read(state_dir / LOCK_NAME)))
         inbox = compose_daemon_control(state_dir=state_dir, journal=journal, fs=fs,
                                        holder=holder)
-        pause = DispatchPause(inbox)
+        pause = _AdmissionDispatchPause(inbox, journal)
 
         async def wait_for_control() -> None:
             await inbox.consume(pause.apply)
@@ -181,7 +206,8 @@ def _control_factory(state_dir: Path, config_supplier,
 
         graph = compose_daemon_dispatch(
             config_supplier, work, pause=pause, wait_for_control=wait_for_control)
-        return graph.pause, wait_for_control
+        sessions[journal] = graph.pause, wait_for_control
+        return sessions[journal]
     return factory
 
 
@@ -206,7 +232,7 @@ def _control(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int
         with Journal(state_dir, clock=clock) as journal:
             inbox = compose_daemon_control(state_dir=state_dir, journal=journal,
                                            fs=LocalFilesystem())
-            pause = DispatchPause(inbox)
+            pause = _AdmissionDispatchPause(inbox, journal)
             request = _control_request(args, inbox.lifecycle)
             publish_control(state_dir, request, LocalFilesystem())
             decisions = asyncio.run(inbox.consume(pause.apply))
@@ -243,7 +269,7 @@ def _published_lifecycle(state_dir: Path, holder: Holder | None) -> UUID | None:
 
 def _triage(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     return _locked(args, cwd, env, out, pipeline, clock, process,
-                   lambda runner, config, git: _triage_pass(
+                   lambda runner, config, git, control: _triage_pass(
                        runner, config, git, cwd, env, out, clock, process))
 
 
@@ -280,11 +306,15 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
     git = Git(process, env=child_env(env, {p.auth for p in config.providers if p.auth}),
               timeout=GIT_TIMEOUT_SECONDS)
 
+    control = _control_factory(cwd / config.state_dir, config_supplier)
+
     def factory(journal):
         if pipeline is not None:  # a scripted stand-in (tests)
             return pipeline(journal)
+        pause, _wait = control(journal)
         return compose_pipeline(repo=cwd, config=config, env=env, journal=journal, clock=clock,
-                                process=process, fs=LocalFilesystem(), git=git)
+                                process=process, fs=LocalFilesystem(), git=git,
+                                control_inbox=pause.inbox, admission_hold=pause.admission_hold)
 
     async def go() -> int:
         try:
@@ -297,7 +327,7 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         runner = Runner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=clock,
                         instance_id=instance_id, pipeline=factory, log=log,
                         report=lambda line: print(line, file=out))
-        return await verb(runner, config, git)
+        return await verb(runner, config, git, control)
 
     try:
         return asyncio.run(go())

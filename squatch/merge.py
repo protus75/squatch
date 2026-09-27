@@ -24,13 +24,14 @@ from pathlib import Path
 from squatch.artifacts import Finding
 from squatch.box import Box
 from squatch.config import Config
+from squatch.control import ControlInbox
 from squatch.diagnose import Diagnoser, DiagnosisRecord
 from squatch.effects import Effects, effect_key
 from squatch.enginelog import EngineLog
 from squatch.gates import GateReport, run_gates
 from squatch.git import Git, GitError, RebaseConflict
 from squatch.journal import Journal
-from squatch.mergequeue import Candidate, MergeQueue
+from squatch.mergequeue import AdmissionHold, Candidate, MergeQueue
 from squatch.providers import child_env
 from squatch.redact import Redactor
 from squatch.runner import SETTLED
@@ -376,7 +377,8 @@ class Pipeline:
 
 
 def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
-                     clock: Clock, process: ProcessExec, fs: Filesystem, git: Git) -> Pipeline:
+                     clock: Clock, process: ProcessExec, fs: Filesystem, git: Git,
+                     control_inbox: ControlInbox, admission_hold: AdmissionHold) -> Pipeline:
     """The production composition: the stages over the routed provider, the
     admission over the same journal, git, and redactor."""
     repo = Path(repo)
@@ -423,6 +425,7 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
 
     queue = compose_merge_queue(
         repo=repo, config=config, env=env, journal=journal, process=process, fs=fs, git=git,
+        control_inbox=control_inbox, admission_hold=admission_hold,
         regate=regate, integration_check=integration_check, integrate=integrate)
     return Pipeline(stages, merge, queue)
 
@@ -453,10 +456,14 @@ class _ReviewedMergeQueue(MergeQueue):
 
 def compose_merge_queue(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
                         process: ProcessExec, fs: Filesystem, git: Git,
+                        control_inbox: ControlInbox, admission_hold: AdmissionHold,
                         regate, integration_check, integrate):
-    """Build the dormant Phase 3 admission queue without activating it."""
+    """Build admission over the lock holder's shared control state."""
+    if admission_hold.inbox is not control_inbox:
+        raise ValueError("admission hold must use the shared control inbox")
     return _ReviewedMergeQueue(
         repo=repo, config=config, git=git, process=process, fs=fs, journal=journal,
         env=child_env(env, {p.auth for p in config.providers if p.auth}),
         regate=regate, integration_check=integration_check, integrate=integrate,
+        admission_hold=admission_hold,
         timeout=config.drain.max_ticket_minutes * 60)

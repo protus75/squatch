@@ -6,13 +6,13 @@ import json
 from datetime import datetime, timedelta, timezone
 from io import StringIO
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
 from squatch.__main__ import _parser
 import squatch.__main__ as main_module
-from squatch.artifacts import Cost
+from squatch.artifacts import Cost, Finding
 from squatch.config import Config, parse
 from squatch.daemon import (DaemonDispatch, DispatchAdmission,
                             DispatchPause, compose_daemon_control,
@@ -34,12 +34,125 @@ from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.specs import load_spec
 from squatch.stages import Delivery
 from squatch.watcher import Watcher
-from test_mergequeue import divergent_candidate, fixture_repo
+from test_mergequeue import divergent_candidate, fixture_repo, shared_control
 from test_cli import FakePipeline, STATE, author, checkout, git_env  # noqa: F401
 from test_stages import PLAN, TICKET
 
 ROOT = Path(__file__).resolve().parent.parent
 NOW = datetime(2026, 9, 26, 12, 0, tzinfo=timezone.utc)
+
+
+def test_lock_holder_shares_streak_across_production_pipeline_factories(tmp_path, monkeypatch):
+    async def setup():
+        repo, env, git = await fixture_repo(tmp_path)
+        (repo / "config.yaml").write_text(
+            "schema_version: 1\nstate_dir: .state\nproviders: []\nrouting: []\n")
+        candidates = {}
+        for stem in ("a", "b", "c"):
+            worktree = tmp_path / stem
+            await git.worktree_add(repo, worktree, stem, "main")
+            candidates[stem] = Candidate(stem=stem, branch=stem, worktree=worktree, run_seq=1)
+        return repo, env, candidates
+
+    repo, env, candidates = asyncio.run(setup())
+    original = main_module._control_factory
+
+    async def no_delay(_seconds):
+        pass
+
+    monkeypatch.setattr(main_module, "_control_factory", lambda state_dir, supplier:
+                        original(state_dir, supplier, sleep=no_delay))
+
+    async def exercise(runner, _config, _git, control):
+        async with runner.session() as session:
+            journal = session.journal
+            pause, wait_for_control = control(journal)
+            queues = []
+            async def green(_candidate):
+                return ()
+            async def red(_candidate):
+                return (Finding(code="verification", message="red", paved_road="fix"),)
+
+            for stem in ("a", "b", "a", "c"):
+                pipeline = runner._pipeline(journal)
+                queue = pipeline.merge_queue
+                queues.append(queue)
+                assert queue.admission_hold is pause.admission_hold
+                assert queue.admission_hold.inbox is pause.inbox
+                queue._regate, queue._integration_check = green, red
+                assert (await queue.admit(candidates[stem])).outcome == "gate_failed"
+                assert (pause.admission_hold.hold_id is not None) == (stem == "c")
+            assert len({id(queue) for queue in queues}) == 4
+            assert await pause.allow_offer(), "merge holds must not become dispatch pauses"
+            assert sum(e.body.get("kind") == "control_lifecycle" for e in journal.read()) == 1
+            queue = runner._pipeline(journal).merge_queue
+            queue._regate, queue._integration_check = green, red
+            waiting = asyncio.create_task(queue.admit(candidates["a"]))
+            await asyncio.sleep(0)
+            assert not waiting.done()
+            release = ControlRequest(action="release", lifecycle=pause.inbox.lifecycle,
+                                     hold_id=pause.admission_hold.hold_id)
+            publish_control(repo / ".state", release, LocalFilesystem())
+            await wait_for_control()
+            assert (await asyncio.wait_for(waiting, 2)).outcome == "gate_failed"
+            assert pause.admission_hold.hold_id is None
+            assert pause.admission_hold.inbox.holds == frozenset()
+        return 0
+
+    assert main_module._locked(argparse.Namespace(config=None), repo, env, StringIO(), None,
+                               lambda: NOW, SubprocessExec(), exercise) == 0
+
+
+@pytest.mark.parametrize("dispatch_paused", [False, True])
+@pytest.mark.parametrize("crash_after_append", [False, True])
+async def test_restart_preserves_admission_ownership_and_matching_release(
+        tmp_path, monkeypatch, dispatch_paused, crash_after_append):
+    fs = LocalFilesystem()
+    candidate = Candidate(stem="a", branch="a", worktree=tmp_path, run_seq=1)
+    async def no_delay(_seconds):
+        pass
+
+    with (Lockfile(tmp_path, instance_id="first", clock=lambda: NOW),
+          Journal(tmp_path, clock=lambda: NOW) as journal):
+        pause, wait = main_module._control_factory(tmp_path, config, sleep=no_delay)(journal)
+        if dispatch_paused:
+            request = ControlRequest(action="pause", lifecycle=pause.inbox.lifecycle)
+            publish_control(tmp_path, request, fs)
+            await wait()
+            pause_id = pause.hold_id
+        if crash_after_append:
+            def crash():
+                raise RuntimeError("crash before hold mutation")
+            monkeypatch.setattr(pause.inbox, "rehydrate_holds", crash)
+            with pytest.raises(RuntimeError, match="crash before hold mutation"):
+                pause.admission_hold.trip(candidate, trigger="tree_hash_mismatch")
+            assert pause.admission_hold.hold_id is None
+        else:
+            pause.admission_hold.trip(candidate, trigger="tree_hash_mismatch")
+        admission_id = UUID(next(e.body["hold_id"] for e in journal.read()
+                                 if e.body.get("trigger") == "tree_hash_mismatch"))
+        lifecycle = pause.inbox.lifecycle
+
+    with (Lockfile(tmp_path, instance_id="restarted", clock=lambda: NOW),
+          Journal(tmp_path, clock=lambda: NOW) as journal):
+        pause, wait = main_module._control_factory(tmp_path, config, sleep=no_delay)(journal)
+        assert pause.inbox.lifecycle == lifecycle
+        assert pause.admission_hold.hold_id == admission_id
+        assert await pause.allow_offer() is not dispatch_paused
+        assert pause.hold_id == (pause_id if dispatch_paused else None)
+        newer_pause = ControlRequest(action="pause", lifecycle=lifecycle)
+        publish_control(tmp_path, newer_pause, fs)
+        await wait()
+        assert pause.hold_id == newer_pause.request_id
+        assert admission_id in pause.inbox.holds
+        release = ControlRequest(action="release", lifecycle=lifecycle, hold_id=admission_id)
+        publish_control(tmp_path, release, fs)
+        await wait()
+        assert pause.admission_hold.hold_id is None
+        assert not await pause.allow_offer()
+        release = ControlRequest(action="release", lifecycle=lifecycle, hold_id=pause.hold_id)
+        publish_control(tmp_path, release, fs)
+        assert await pause.allow_offer()
 
 
 def config(*, max_unmerged: int = 2) -> Config:
@@ -227,6 +340,7 @@ async def test_composition_builds_rework_over_the_real_pipeline_queue_after_slot
 
     with Journal(repo / ".state", clock=lambda: NOW) as journal:
         pipeline = compose_pipeline(
+            **shared_control(repo, journal),
             repo=repo, config=config(), env=env, journal=journal, clock=lambda: NOW,
             process=SubprocessExec(), fs=fs, git=git)
         driver = Driver(
