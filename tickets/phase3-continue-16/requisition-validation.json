@@ -1,34 +1,27 @@
 {
-  "storm-producer-wiring": {
-    "artifact_schema_version": 1,
-    "produced_by_spec_version": "1.0",
-    "produced_at_sha": "96dcf3cfdf7b7eccf893b577be5b41ff77a70d66",
-    "verdict": "approve",
-    "summary": "The fence covers the seam owners (box.py for the ContextVar binding, daemon.py for the session wrapper, and storm.py) plus the one predecessor dormancy test that the new daemon-to-storm import breaks. The criteria can all be met together without contradicting merged behavior, and the ticket builds exactly the storm-producer-wiring machinery that section 20 grants.",
-    "findings": []
-  },
-  "storm-notification-activation": {
-    "artifact_schema_version": 1,
-    "produced_by_spec_version": "1.0",
-    "produced_at_sha": "96dcf3cfdf7b7eccf893b577be5b41ff77a70d66",
-    "verdict": "approve",
-    "summary": "The ticket is buildable. The fence covers the storm/box/daemon seams, the production root `squatch/__main__.py` where `_RestartRunner.session` is wrapped, and both test files whose dormancy assertions must change. All five Box construction sites already call `Box.enqueue` inside `runner.session()`, including triage through `_triage_pass`, so the predecessor's call-time binding reaches them without edits.",
-    "findings": []
-  },
-  "phase3-continue-17": {
-    "artifact_schema_version": 1,
-    "produced_by_spec_version": "1.0",
-    "produced_at_sha": "96dcf3cfdf7b7eccf893b577be5b41ff77a70d66",
-    "verdict": "rma",
-    "summary": "The ticket authors storm-dispatch-hold as dormant construction only and defers production activation to 'a later production owner'. Section 20's finite registry names no such owner, and its only storm suppression entry is storm-dispatch-hold itself, so the plan has to decide who activates the hold before this batch can be authored.",
-    "findings": [
-      {
-        "code": "requisition_review",
-        "path": "SQUATCH_PLAN.md",
-        "line": null,
-        "message": "Section 20 says 'Dispatch suppression remains OUT until the separate KNOWN-DEEP storm-dispatch-hold admission', which means storm-dispatch-hold is the admission that turns suppression on. The registry grants it only storm/control/daemon plus tests/test_storm_hold.py. That fence has no production root (squatch/__main__.py) and no composition harness (tests/test_daemon_composition.py). The plan also has no clarification like the one for kill-cli-activation and DaemonTasks, which names the later owner of a dormant boundary. The ticket fills the gap itself: it tells storm-dispatch-hold to stay dormant, forbids activating it in the bootstrap drain/run composition, and says 'No new activation seed is authored here'. The carried suffix [[storm-dispatch-hold], [checkpoint-push], [daemon-soak], [soak-run], [phase3-exit]] has no seed that activates the hold. Trips would then be produced in production, but dispatch would never be suppressed before phase3-exit, and the deferral would point to a phase-3 owner that does not exist. Re-authoring cannot fix this within the caps. Activating inside storm-dispatch-hold would need fence entries the registry does not grant. Adding an activation seed would add an admission the finite registry does not list. Keeping it dormant contradicts the plan.",
-        "paved_road": "Fix section 20 first. Either (a) declare storm-dispatch-hold a construction+activation singleton and grant it squatch/__main__.py and tests/test_daemon_composition.py (and squatch/drain.py if needed) with a render/Context partition, or (b) add a storm-hold-activation admission to the finite registry and the ordered suffix, with its own fence and the negative assertions it migrates. Then rerun phase3-continue-17 so it carries the repaired suffix and ownership."
-      }
-    ]
+  "review_method": "Implementer self-review against specs/requisition_review.md; no independent provider review was invoked.",
+  "plan_status": "No plan edit required. Section 20 already grants the production hold fence and on-demand partition.",
+  "tickets": {
+    "storm-producer-wiring": {
+      "lint": "pass",
+      "context_on_base": true,
+      "max_effort_render_chars": 99246,
+      "headroom_limit": 120000,
+      "self_review": "The allowed scoped ContextVar lives in box.py, daemon owns installation, explicit recorders take precedence, and normal/exceptional exit resets the binding. Full state_dir/journal/fs/clock signature and every missing 1..reports identity with append-time timestamps are specified. Scope and rejection text ban unscoped or permanent recorders, not the named scoped mechanism."
+    },
+    "storm-notification-activation": {
+      "lint": "pass",
+      "context_on_base": true,
+      "max_effort_render_chars": 117591,
+      "headroom_limit": 120000,
+      "self_review": "The fenced __main__.py session wrapper reaches production Box enqueue sites without changing their construction modules. Origin carries the P0 marker and deterministic trip identity without adding a prohibited priority field. Exact-origin lookup, report exclusion and ordered occurrence replay provide crash recovery. The sibling-new producer test is fenced but excluded from Context. Dispatch remains active until the hold seed."
+    },
+    "phase3-continue-17": {
+      "lint": "pass",
+      "context_on_base": true,
+      "max_effort_render_chars": 77107,
+      "headroom_limit": 120000,
+      "self_review": "The high/high hold owns live dispatch selection and resume, with both production roots fenced. Only drain.py and __main__.py are on-demand; all three merged storm predecessor tests enter future hold Context. The composition harness remains preservation-only. The medium/medium continuation carries exactly the remaining suffix."
+    }
   }
 }
