@@ -1,16 +1,9 @@
 {
-  "run_seq": 3,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "Keep the committed diff to tests/test_seeded_phase3_23.py only. Leave tickets/phase3-exit/ticket.md uncommitted in the worktree. Requisition review, scope_fence, verification, run_record and diff_budget all passed this round.",
-    "Delete the self-comparisons `assert PHASE4_CORE == (...)` and `assert PHASE4_SUFFIX == (...)`. A constant compared with its own literal is always true and proves nothing.",
-    "Pin the ordered suffix against real text. Each PHASE4_SUFFIX stem must appear in the phase3-exit Scope in with strictly increasing index. Pin the same order against the SQUATCH_PLAN.md section 20 'Phase 4 boundary registry' paragraph.",
-    "Pin the Phase 4 dependency edges per stem: watchdog-event-stream and notify-transport depend on phase3-exit, and phase4-continue depends on both. Take them from the section 20 registry and the exit ticket, not from test literals.",
-    "Tie each owned path to its owning Phase 4 stem, not just 'appears somewhere in Scope in'. Parse a structured per-stem ownership/depends block or match each stem's own sentence, and compare it with a per-stem map from the section 20 registry.",
-    "The identity, fence, Context partition, admission and render-headroom tests were judged sound. Change only the Phase 4 registry assertions."
-  ],
-  "reason": "Review snagged on two fixable test weaknesses (tautological Phase 4 core/suffix asserts, and no per-stem edges or ownership), and its paved road names exactly what to change; every mechanical gate passed.",
-  "detail": null
+  "run_seq": 5,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
