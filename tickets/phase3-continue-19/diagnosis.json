@@ -1,14 +1,14 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "phase3-continue-20 lists tests/test_seeded_phase3_19.py as Context, but this attempt creates that file, so it is sibling-new. Requisition review rejected it because the path does not exist at authoring time.",
-    "Use an already-merged seeded test as the continuation-pattern Context for phase3-continue-20, as phase3-continue-19 did with tests/test_seeded_phase3_11.py. Keep tests/test_daemon_composition.py. Recompute EXISTING_AT_AUTHORING sizes and the render headroom.",
-    "Add tests/test_seeded_phase3_19.py to the test's sibling-new/excluded set so the Context-disjointness assertion catches this. Currently NEW_PATH_OWNERS omits it, so the test passed while the gate failed.",
-    "The rest of the diff and the ticket structure look sound: the stages.py hook fence, edges, tiers, budgets and admissions. Change only the Context partition and its pins, then rerun both pytest commands."
+    "The review snag was about test strength only. Checks and fence passed, and the tickets and Context partition are sound. Change only tests/test_seeded_phase3_19.py, then rerun both pytest commands.",
+    "Criterion 4: assert that phase3-continue-20 Scope in makes soak-run and phase3-continue-21 medium/medium, sets 75m/150m budgets within `drain.max_ticket_minutes`, and keeps cap 3. Add any missing phrases to the ticket text first.",
+    "Replace the membership checks on the parsed phase3-continue-20 ownership with exact dict equality: soak-run owns [tickets/soak-run/daemon-soak-report.json], hooks []. Mirror the existing `contract == OWNERSHIP` check.",
+    "The exact expected future ownership is phase3-continue-21 owns [tickets, tests/test_seeded_phase3_21.py], hooks []; phase3-exit owns [tickets, tests/test_phase3_exit.py, tests/test_seeded_phase4_core.py], hooks []."
   ],
-  "reason": "The single gate finding is a fixable oversight: sibling-new tests/test_seeded_phase3_19.py was placed in phase3-continue-20's Context, which the ticket explicitly forbids.",
+  "reason": "Fixable test-coverage gap that review findings now steer precisely; same capability suffices.",
   "detail": null
 }
