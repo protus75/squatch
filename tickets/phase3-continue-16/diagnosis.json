@@ -1,14 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "The phase3-continue-17 ticket listed tests/test_seeded_phase3_16.py in Context. That file is new in this attempt, so the requisition check failed. Context may only name files that exist on the base commit.",
-    "Remove tests/test_seeded_phase3_16.py from phase3-continue-17's Context. Also remove it from CONTEXT and EXISTING_AT_AUTHORING in the seed test, and drop the special case that skips it. The seed test should not pin any Context path that does not exist yet.",
-    "Check prior continuation seeds such as phase3-continue-16 for how they cite their predecessor seed test. Follow the same pattern, then recompute the pinned Context sizes and the render-headroom check for phase3-continue-17.",
-    "Before finishing, run the requisition/ticket lint on all three authored tickets, not just pytest. Passing pytest did not catch this check-stage failure."
+    "In phase3-continue-17's Scope in, make storm-dispatch-hold high/high: section 20 marks it KNOWN-DEEP. Make phase3-continue-18 medium/medium. Pin that split and a high-tier max-effort headroom render, following tests/test_seeded_phase3_11.py.",
+    "phase3-continue-17 must make the hold seed take tests/test_storm.py, test_storm_producer.py, test_storm_notification_activation.py and test_daemon_composition.py as Context. It must hook any predecessor test whose dispatch-absence assertion it migrates, pinned via PRESERVATION.",
+    "The storm-notification-activation review reply was malformed, not a verdict. Its partial content: say how the P0 failure_report is stored, which box arrival path the trip hooks into, and how 'dispatch suppression stays in storm-dispatch-hold' is tested.",
+    "tests/test_storm_producer.py is sibling-new. Keep it in notification's fence as a migration target, as ticket 16 requires, but never in its Context. State in Scope in that it is created by the depends-predecessor storm-producer-wiring.",
+    "Before finishing, run the requisition review as well as ticket lint and pytest. The last attempt passed lint and pytest but failed requisition_review on all authored tickets."
   ],
-  "reason": "One fixable requisition finding: a file created by this ticket was listed as successor Context. The fix is mechanical and the check's guidance says exactly what to do.",
+  "reason": "The failures are fixable authoring oversights in the seeded tickets: wrong tier for the KNOWN-DEEP successor, missing predecessor-test closure, and underspecified trip details. The findings now steer all of them.",
   "detail": null
 }
