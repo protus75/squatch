@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "4bca87cc2a7d3685da34e938c7bccd36b86ccf3c",
+  "produced_at_sha": "74f4829a3aac701b08cb8c09c0c4ac46f4724d42",
   "stem": "phase3-continue-16",
   "branch": "phase3-continue-16",
-  "base": "0b78686368aae9acf68e2f755a59012440c8a01f",
-  "head": "4bca87cc2a7d3685da34e938c7bccd36b86ccf3c",
+  "base": "efa023319988939ed2d6486e7104623441735138",
+  "head": "74f4829a3aac701b08cb8c09c0c4ac46f4724d42",
   "changed_files": [
     "tests/test_seeded_phase3_16.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-17/ticket.md",
-      "sha": "4dfd5f8b6c9ffe0d10fd863d9835c11c59880a60",
+      "sha": "ad3e7aeda6102b1f14509f87f6460a4a98875db0",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,7 +25,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/storm-notification-activation/ticket.md",
-      "sha": "9978ede94defa2500a09676da950a46d81aca769",
+      "sha": "fc6b6a26f5ece5f44174d1434afff551d8d8e0aa",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -35,22 +35,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/storm-producer-wiring/ticket.md",
-      "sha": "fbbe4b8bb6d74a10ba6c5b88fbec9c51ea2ed3a0",
+      "sha": "0ec4a51a7169c28b55b257979a83b8d8725d0256",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/storm-producer-wiring/ticket.md",
           "line": null,
-          "message": "Scope in says the `compose_daemon_storm_producer` binding is 'resolved by `Box.enqueue` at call time' so it reaches Box instances built in runner, stages, merge, triage, and author without editing those modules. With no constructor argument, that needs state that is ambient to `Box.enqueue`, such as a ContextVar or a module-level slot. Scope out bans 'ambient mutable recorder state' and Definition of rejected bans an 'ambient recorder global', so the criteria cannot all be met without an implementer guessing which rule wins. The binding also cannot live in `squatch/daemon.py` as stated: `daemon.py` imports `Box`, so `box.py` cannot import daemon to resolve it without a circular import. The resolution slot has to live in `box.py` or `storm.py` while daemon owns only the install.",
-          "paved_road": "Name the allowed mechanism exactly. For example: a `contextvars.ContextVar` in `squatch/box.py`, set only inside a context manager returned by `daemon.compose_daemon_storm_producer(...)` and reset on exit, with an explicit per-Box `occurrence_recorder=` keyword taking precedence. Reword Scope out and Definition of rejected to ban an unscoped module-global or a permanently installed recorder, not all ambient state. Add a criterion that proves the binding is inactive after the scope exits."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/storm-producer-wiring/ticket.md",
-          "line": null,
-          "message": "Install-time reconciliation needs the Box state directory, filesystem, and clock to find existing Box records. Scope in describes `compose_daemon_storm_producer` only as a binding 'over the already lock-held `Journal`', and it does not say which occurrences are reconciled. It could be only the latest `<box_id>/<reports>` or every `<box_id>/1..reports`. These readings produce different ledger contents and storm windows, so the crash-reconciliation criterion cannot be checked as written.",
-          "paved_road": "Give the hook's full keyword signature, for example `compose_daemon_storm_producer(*, state_dir, journal, fs)`. State that reconciliation records every missing `<box_id>/<n>` for n in 1..reports, or only the latest report, and say which ledger timestamp each reconciled occurrence gets. Require `tests/test_storm_producer.py` to pin that choice."
+          "message": "Scope in requires `compose_daemon_storm_producer(*, state_dir, journal, fs, clock)` to 'join all tasks using the binding before exit', and the criteria require the binding to be inactive after normal and exceptional exit. Two things are missing. First, the ticket does not say whether this is a sync or an async context manager. Second, it gives the manager no way to spawn or register tasks. Because of how `contextvars` works, a task created inside the scope keeps its own copy of the binding after the parent resets its token. So a manager that knows nothing about those tasks cannot join them and cannot make the binding inactive for them. That leaves the implementer guessing at hidden ambient state, which the Definition of rejected names as a reason to reject.",
+          "paved_road": "Pick one contract and state it in both Scope in and the acceptance criteria. Option 1: the manager is an async context manager that exposes a spawn method, and on exit it awaits every task spawned that way, including when exit is exceptional. Option 2: the manager spawns no tasks, callers must await any task that inherited the binding before leaving the scope, and `tests/test_storm_producer.py` pins the inactive-after-exit check to the current context only. Keep the fence unchanged either way."
         }
       ],
       "commands": []
