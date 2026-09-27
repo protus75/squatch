@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Reviewer judged box.py and daemon.py wiring correct: write before record, <box_id>/<reports> identity, token reset in finally, state-dir-scoped binding. Keep the implementation and fix the test gaps.",
+    "Add a reconciliation test that compares each reconciled event.ts with the injected Journal clock at append time. Then re-enter the scope and assert earlier ts are unchanged and no new events were written.",
+    "Add a crash test: a record with reports>=3 enqueued unbound, plus a resolved record, with some occurrences already recorded before a journal segment roll. Enter the scope twice and assert the exact ordered ids (box seq, then n) with no duplicates.",
+    "In test_storm_producer.py, push a signature past THRESHOLD and assert no trip or other signal kinds, no new P0 or failure Box report, no notification call, and no dispatch hold. Replace the truthy window assert with an exact OccurrenceWindow comparison.",
+    "Rewrite the dormancy test in test_storm.py: walk the squatch import closure from __main__ and drain as the old test did. Flag Calls whose func is an ast.Name or an ast.Attribute naming compose_daemon_storm_producer or scoped_occurrence_recorder, and exempt only the definitions."
+  ],
+  "reason": "Review snagged only on missing acceptance-criteria test coverage and a weak AST dormancy check; the implementation was judged correct and the findings give concrete paved roads.",
+  "detail": null
+}
