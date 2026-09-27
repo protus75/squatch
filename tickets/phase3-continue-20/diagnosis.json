@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "Requisition review failed soak-run: main's daemon-soak machinery has only write_report() for a prebuilt DaemonSoakReport. Nothing drives a >=24 injected-hour daemon soak, plants the three closed faults, observes their terminals, or computes the auditor verdict.",
+    "The plan fixes soak-run as 'changes no code' and fences it to the report JSON alone. The implementer would have to hand-fill observed/auditor/green values, which is self-attestation that its criteria and Definition of rejected forbid.",
+    "Re-authoring within this ticket's caps cannot close the gap. First fix the plan in section 20: either give daemon-soak a bounded runner entry point or let soak-run own the runner. Then regenerate this ticket.",
+    "The authored test_seeded_phase3_20.py and the ticket drafts otherwise passed the full suite (1162 tests). Reuse their structure after the plan fix, but re-derive the soak-run and exit Context and fences from the corrected plan."
+  ],
+  "reason": "The check gate showed the plan-fixed no-code soak-run cannot produce its report without self-attestation, because no soak runner exists; the plan must change first.",
+  "detail": null
+}
