@@ -1,9 +1,18 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "escalate",
+  "lessons": [
+    "phase3-continue-17: in the storm-dispatch-hold seed, test_storm_producer.py and test_storm_notification_activation.py are NOT sibling-new. They are merged predecessors (the hold depends on them), so the hold must embed them as Context. Only phase3-continue-17's own Context excludes them.",
+    "Update test_seeded_phase3_17 expectations: pin both predecessor storm tests in the hold's Context and migration partition, record their authoring-time sizes, and prove the max-effort render stays under REQ_RENDER_HEADROOM. Only drain.py and __main__.py are on-demand.",
+    "storm-producer-wiring: name an explicit injected seam. Use an optional keyword recorder on Box (default None, so test_box.py stays unchanged) or a compose_daemon_* hook in daemon.py that wraps Box over the lock-held Journal. Drop any 'no constructor change' clause; never use ambient module globals.",
+    "storm-producer-wiring: define occurrence_id (e.g. <box_id>/<reports> after the increment), signature=box signature, and emitting_stage=message stage. State write order vs the box write, and add a criterion that a replayed arrival appends no second event.",
+    "storm-producer-wiring: limit 'every box arrival' to the lock-holding engine's composed Box. Name out-of-process `python -m squatch.box ingest` as out of scope, and pin that boundary. Give a concrete dormancy observable, e.g. an AST check that no __main__/drain call site reaches the producer hook.",
+    "storm-notification-activation: say exactly how P0 is carried, e.g. an optional Message field plus an enqueue param whose default keeps test_box.py green. Specify the unbound-enqueue behavior (record nothing) and CLI ingest under a held lock.",
+    "storm-notification-activation: say whether the trip's own P0 report is excluded from occurrence recording. Add a crash-recovery criterion: a crash between the trip signal and the report enqueue still yields exactly one report and no second trip.",
+    "Before finishing, self-run the requisition review against every authored ticket, not just lint and pytest. Four attempts have passed pytest and failed requisition_review."
+  ],
+  "reason": "Four medium-tier attempts each passed pytest but failed requisition_review with new under-specification findings. The fixes are within fence but need deeper design judgment.",
+  "detail": null
 }
