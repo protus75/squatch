@@ -1,15 +1,14 @@
 ---
-verdict: snag
-reviewed_sha: 7e55a486309aa962c65f1a9856c90c5fc8860c39
+verdict: approve
+reviewed_sha: ffd0cdd61963226652ddcfb43ac0fcc969fbc1d2
 produced_by_spec_version: '1.0'
-produced_at_sha: 7e55a486309aa962c65f1a9856c90c5fc8860c39
+produced_at_sha: ffd0cdd61963226652ddcfb43ac0fcc969fbc1d2
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-The wiring and the tests look right, but the production red-streak hold can never fire: the pipeline factory builds a new AdmissionHold for every dispatch, and the streak is only kept in memory. There is also a second defect: after a restart, a rehydrated admission hold gets mistaken for the dispatch pause hold, which changes dispatch pause behavior and can leave the admission hold with no working release.
+The diff adds one journaled, identity-bound AdmissionHold to the production compose_merge_queue path, with no fallback. The lock holder shares one inbox and one consumer between dispatch pause and the hold, and the bench injects its own state-directory inbox. Every acceptance criterion is covered by tests, all changed paths are inside the fence, and the check report is green.
 
 ## Findings
-- correctness_review at squatch/__main__.py:323: Runner.dispatch calls `self._pipeline(journal)` once per ticket (squatch/runner.py:321). Each call runs compose_pipeline, which runs compose_merge_queue, which builds a new `AdmissionHold(control_inbox, journal)`. `control.bind` then replaces the hold on the shared pause. `AdmissionHold._reds` lives only in memory and is not rebuilt from the journal. In production each stem is its own dispatch, so the set never holds more than one stem and the K=3 integration-red streak can never fire. The green reset and the fresh-streak-after-release rule are also lost between tickets. The tests in tests/test_mergequeue.py push all stems through one queue instance, so they do not catch this. The same per-dispatch rebuild in eval/shakeout/bench.py also calls compose_daemon_control and appends a control_lifecycle signal on every dispatch. (paved road: Keep the streak alive across dispatches for the lock holder's session. Either build one AdmissionHold per journal in `_SharedControl` and pass it into compose_pipeline / compose_merge_queue, or rebuild the red set from journaled integration outcomes when the hold is constructed. Add a test that drives three distinct integration reds through three separate production factory calls in `_locked`, or through three compose_pipeline calls on the same journal, and asserts that the hold fires.)
-- correctness_review at squatch/__main__.py:205: `_AdmissionDispatchPause` subclasses DispatchPause, and DispatchPause's constructor sets `hold_id = next(iter(inbox.holds), None)`. After a restart, `compose_daemon_control` keeps the lifecycle and rehydrates every unreleased control_hold, including an admission hold. The dispatch pause then adopts the admission hold as its own, so dispatch stops offering even though no pause was requested. The scope-out section forbids changing dispatch pause behavior. Worse, a later `pause` request makes DispatchPause.apply call `inbox.discard_hold(self.hold_id)` on the admission hold id. That removes it from the inbox's releasable set while AdmissionHold still reports it as held. From then on, every resume naming it is decided `stale`, and admission waits forever with no reachable release. If a pause hold and an admission hold are both active, which one the pause adopts depends on set iteration order. (paved road: Keep each consumer's hold identities separate. Either seed the dispatch pause only from pause-owned holds (journaled control_decision pause requests), or have `_SharedControl` build the pause and then tell it which hold ids belong to the admission hold. Make sure a pause never discards an admission hold. Add a restart test that sets up an active admission hold, rebuilds the control factory, and asserts `allow_offer()` is true and that a matching resume still releases the admission.)
+- none
