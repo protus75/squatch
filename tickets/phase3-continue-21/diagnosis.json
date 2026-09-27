@@ -1,13 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snag was narrow: the test only checked that ON_DEMAND paths are absent from runner Context. It must also pin them positively. Assert that each path in ON_DEMAND['daemon-soak-runner'] appears in _section('daemon-soak-runner', 'Scope in') as an on-demand fault reference.",
-    "Make sure the emitted daemon-soak-runner ticket's Scope in names tests/test_restart_timers.py and tests/test_mergequeue.py explicitly in an on-demand sentence. Keep the existing disjointness checks against Context and the fence.",
-    "Everything else passed: all mechanical checks, including scope_fence, verification, and requisition_review on both emitted seeds. Keep the existing tickets and test, and make only the minimal additive fix."
+    "Review snag was narrow. At line 123, `assert NEW_PATH_OWNERS == {...}` compares the constant to a literal copy of itself, so it can never fail. Delete it and derive each owner from the authored tickets instead.",
+    "Derive the owners from the tickets: daemon-soak-runner and phase3-continue-22 from their scope fences, and soak-run and phase3-continue-23 from the phase3-continue-22 ownership YAML. Assert that each NEW_PATH_OWNERS entry matches.",
+    "Pin phase3-exit's ownership positively. Use a whitespace-tolerant regex on the phase3-continue-22 Scope in to check that it owns `tickets`, `tests/test_phase3_exit.py`, and `tests/test_seeded_phase4_core.py`. The bare `phase3-exit` token check is not enough.",
+    "Everything else passed: all mechanical checks, plus review of identities, edges, tiers, budgets, cap, fences, Context partition, sizes, on-demand exceptions, suffix equality, and render bound. Keep the existing tickets and test, and make only the minimal additive fix.",
+    "Emitted tickets wrap phrases across lines. Use `\\s+`-tolerant regexes for any multi-word phrase assertions, not literal substrings."
   ],
-  "reason": "A single fixable test-coverage gap that the review finding steers directly; no capability or ticket change is needed.",
+  "reason": "Single narrow review snag: the owner check can never fail and phase3-exit ownership is unpinned, a fixable oversight the finding now steers.",
   "detail": null
 }
