@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8b9556aeefcffd823b81e3742ebd3ab6951b640c",
+  "produced_at_sha": "fe48f3bb0beb2412d0be5117900bc8bcb1c750ec",
   "stem": "phase3-continue-14",
   "branch": "phase3-continue-14",
-  "base": "7ae95f1d483160c2773ea19868979cb2e752b6c3",
-  "head": "8b9556aeefcffd823b81e3742ebd3ab6951b640c",
+  "base": "cf4df1fd72c984c63c31f74689b86daeec06657b",
+  "head": "fe48f3bb0beb2412d0be5117900bc8bcb1c750ec",
   "changed_files": [
     "tests/test_seeded_phase3_14.py"
   ],
@@ -25,22 +25,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/flake-release/ticket.md",
-      "sha": "35ffbbd1fa1d4e5b1be05da8f02cfb7ee4a7f9fb",
+      "sha": "fa31c6b558ac8022ed2cf1efaa97d0b56f2c67ed",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/flake-release/ticket.md",
           "line": null,
-          "message": "Scope in says to 'extend the direct daemon composition test', but the fence holds only squatch/flake.py, tests/test_flake.py, and squatch/daemon.py. The existing composition harness (tests/test_daemon_composition.py) is not fenced, not Context, and not named. An implementer who follows Scope in either escapes the fence or has to guess that tests/test_flake.py is meant.",
-          "paved_road": "Say that the direct composition test of the new daemon hook (for example a `compose_daemon_flake` function in squatch/daemon.py) lives in tests/test_flake.py, as the heartbeat boundary does with tests/test_heartbeat.py. Remove the phrase 'extend the direct daemon composition test'. If the shared harness really must change, fence tests/test_daemon_composition.py and add it to Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/flake-release/ticket.md",
-          "line": null,
-          "message": "The first acceptance criterion requires release to append the `flake_released` signal 'before its state mutation', and Scope in says 'before mutation'. Neither says what state release mutates, so the ordering cannot be tested and the idempotence criterion has no defined observable.",
-          "paved_road": "Name the state release governs, such as a SHA leaving a flake-held set that is folded from the journal, or an in-memory release set on the flake boundary. Then state the ordering and idempotence tests in terms of that state: the append is observed before the mutation, and a second release of the same SHA appends nothing and changes nothing."
+          "message": "The criterion says 'release does not reach `squatch/__main__.py` or the drain'. The registry's dormancy precedent uses AST import-closure reachability, and `tests/test_daemon_admission.py::test_daemon_is_reachable_from_the_production_root` already proves `squatch/daemon.py` can be imported from the production root. Scope in requires `squatch/daemon.py` to host the release hook, so it must import `squatch.flake`, which puts `squatch.flake` in that import closure. Read as an import-reachability check, the criterion cannot be met together with the daemon-hook criterion. `heartbeat` and `timers` already pass the same way: they are imported by daemon.py but never called.",
+          "paved_road": "Restate the criterion as a call-path dormancy check. It should say that no production composition in `squatch/__main__.py` or `squatch/drain.py` calls or constructs the release hook, and that `squatch.flake` may be import-reachable through `squatch/daemon.py`. This matches the `compose_daemon_heartbeat` precedent. Keep the rule that the direct hook test lives in `tests/test_flake.py`."
         }
       ],
       "commands": []
