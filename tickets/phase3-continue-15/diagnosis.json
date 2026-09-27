@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "phase3-continue-16 Scope in needs an explicit ownership YAML block, like phase3-continue-15 has, giving exact owns/hooks for storm-producer-wiring, storm-notification-activation, and phase3-continue-17. It must also name every new path's registry owner.",
+    "Keep the phase3-continue-16 Context as the seeded pattern test plus the existing hooked surfaces: squatch/daemon.py, squatch/box.py, tests/test_box.py, and tests/test_daemon_composition.py. Drop the journal files. Leave out squatch/storm.py and tests/test_storm.py.",
+    "In phase3-continue-16, classify each storm seed's predecessor tests. Say which are fenced migration targets (for example, the storm-ledger dormancy assertions in tests/test_storm.py) and which are read-only preservation. Require that PRESERVATION set to be pinned in tests/test_seeded_phase3_16.py.",
+    "The journal-roll and storm-ledger seeds and tests/test_seeded_phase3_15.py passed. Only the phase3-continue-16 successor ticket failed requisition review. Keep the rest and fix that ticket, then pin its Context sizes and headroom again."
+  ],
+  "reason": "The review failures are fixable gaps in the authored phase3-continue-16 ticket (a missing ownership block, the wrong Context, and no preservation classification), and each finding gives a concrete fix.",
+  "detail": null
+}
