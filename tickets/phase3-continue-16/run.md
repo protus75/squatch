@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The notification activation ticket fences the producer test as a migration target but does not embed that sibling-new path in Context; the continuation contract pins that partition.
+Kept `tests/test_storm_producer.py` out of the notification seed's Context because it is sibling-new at authoring time, while retaining it as that seed's fenced migration target.
 
 ## Dead ends
-Initial ticket acceptance criteria omitted their test artifact names, which ticket lint rejected. Added the explicit test artifacts before verification.
+The first authored acceptance criteria omitted their named verification artifacts; ticket lint rejected them, so each criterion now names its proving test. The initial commit included ticket files, so it was safely reshaped to commit only the seed contract test and leave ticket files for engine lift.
 
 ## Second problems filed
 
 ## Resolved engine/model
-codex / GPT-5
+OpenAI Codex, model unknown.
 
 ## Predicted vs actual
-Expected 75m; actual about 10m.
+Expected 75m; actual about 25m.
