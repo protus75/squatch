@@ -10,13 +10,14 @@ from uuid import UUID
 from squatch.config import Config, Tier, snapshot
 from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
+from squatch.heartbeat import Heartbeat
 from squatch.journal import Journal
 from squatch.llm import Effort
 from squatch.lockfile import Holder
 from squatch.merge import Pipeline
 from squatch.rework import Rework
 from squatch.scheduler import Scheduler
-from squatch.seams import Filesystem
+from squatch.seams import Clock, Filesystem
 from squatch.specs import Spec
 from squatch.triage import Triage
 from squatch.watcher import Watcher
@@ -225,6 +226,12 @@ def compose_daemon_control(*, state_dir: Path, journal: Journal,
     return inbox
 
 
+def compose_daemon_heartbeat(*, state_dir: Path, tasks: "DaemonTasks",
+                             clock: Clock, fs: Filesystem) -> Heartbeat:
+    """Compose the dormant core-worker liveness boundary without scheduling it."""
+    return Heartbeat(state_dir=state_dir, tasks=tasks, clock=clock, fs=fs)
+
+
 def watcher_consumer(watcher: Watcher, priority_snapshot: PrioritySnapshot) -> ConsumerCallback:
     """Build one deferred priority observation pass."""
     async def consume() -> None:
@@ -287,6 +294,12 @@ class DaemonTasks:
         self._workers, self._control = self._tasks[:3], self._tasks[3]
         self._workers_stopped = False
         self._kill_stopping = False
+
+    @property
+    def workers_live(self) -> bool:
+        """Whether every watched worker is still running in this lifecycle."""
+        return (not self._workers_stopped and len(self._workers) == 3
+                and all(not task.done() and not task.cancelling() for task in self._workers))
 
     async def stop_workers(self) -> None:
         """Stop the worker siblings without interrupting their control caller."""
