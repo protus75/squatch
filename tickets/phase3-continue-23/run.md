@@ -2,9 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-Recovered the prior accepted seed from the local object database; ticket-plane output remains uncommitted for ordinary-lane lift.
+Recovered the terminal seed shape from the local object database, then added the plan-required `squatch/artifacts.py` Context and exact Phase 4 registry boundaries.
 
 ## Dead ends
+The full pytest process outlived the command-output window; process monitoring confirmed both required full-suite invocations completed.
 
 ## Second problems filed
 
@@ -12,4 +13,4 @@ Recovered the prior accepted seed from the local object database; ticket-plane o
 codex/GPT-5
 
 ## Predicted vs actual
-75m / approximately 5m
+75m / approximately 15m
