@@ -1,15 +1,14 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Line 128: drop the live st_size equality check. Keep EXISTING_AT_AUTHORING only as the historical fixture for the render. For each Context path, assert is_file() and membership in EXISTING_AT_AUTHORING, as test_seeded_phase3_14.py does.",
-    "Line 179: drop assert len(section) == PLAN_SECTION_AT_AUTHORING. Pin the constant alone. Bound historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING) <= limit, as test_seeded_phase3_14.py does.",
-    "Restore the delimiter check. In the per-Context-path loop, assert \"[squatch-data:\" not in (REPO / path).read_text(), as test_seeded_phase3_14.py does.",
-    "Keep the three seed tickets, dependencies, ownership YAML, Context, PRESERVATION set and successor suffix. They passed the checks and review. Change only these three assertions in tests/test_seeded_phase3_15.py.",
-    "Never compare authoring-time pins to live files or live plan text. Later seeds change squatch/journal.py, box.py, daemon.py, __main__.py and section 20, and this test is outside their fences, so it would go red."
+    "Render refused because tests/test_seeded_phase3_14.py line 140 holds the literal engine delimiter '<<<squatch:' (specs.DATA_MARKER). Drop it from phase3-continue-16 Context. Use a delimiter-free merged seeded test such as tests/test_seeded_phase3_11.py. Only phase3_14 contains the delimiter.",
+    "The delimiter check in test_seeded_phase3_15.py tests for '[squatch-data:', which is the escaped form shown in diagnostics, not the real delimiter. Import DATA_MARKER from squatch.specs and assert DATA_MARKER not in each Context file's text. Never write the raw delimiter literal into a test file.",
+    "Replacing the seeded-pattern Context file changes the pins. Update CONTEXT and EXISTING_AT_AUTHORING in test_seeded_phase3_15.py with the new file's authoring-time size and re-check max-effort headroom. Keep everything else: seeds, deps, ownership YAML, PRESERVATION and suffix.",
+    "Before calling it implemented, render specs/implement.md for all three seeds with their real Context file contents, not 'x' padding. The padded fixture missed this delimiter failure."
   ],
-  "reason": "The review raised three fixable test-assertion defects, and each has an exact fix to copy from test_seeded_phase3_14.py. Everything else passed.",
+  "reason": "Fixable oversight: one phase3-continue-16 Context file contains the engine delimiter, and the seeded test checked for the escaped form instead of DATA_MARKER.",
   "detail": null
 }
