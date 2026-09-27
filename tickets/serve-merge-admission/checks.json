@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "0255a58f6d33ca8301297731ccdd311c0eb93ce3",
+  "produced_at_sha": "d8f74b4d5b21e042f7b9fd0fce0d9992b1bb3c28",
   "stem": "serve-merge-admission",
   "branch": "serve-merge-admission",
-  "base": "ade40ce9cb9a7b976a25f55427a28b6c5eef68c5",
-  "head": "0255a58f6d33ca8301297731ccdd311c0eb93ce3",
+  "base": "eef69d5c34897a156138685bf1732c9b5e251ea0",
+  "head": "d8f74b4d5b21e042f7b9fd0fce0d9992b1bb3c28",
   "changed_files": [
     "squatch/merge.py",
     "squatch/serve.py",
