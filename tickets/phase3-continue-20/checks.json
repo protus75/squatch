@@ -1,45 +1,67 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "3f86c588494a95c21a02d128baf6ce975fe717b3",
+  "produced_at_sha": "77fbf2a8cfe9e27da9292d381f0d46b5168edc01",
   "stem": "phase3-continue-20",
   "branch": "phase3-continue-20",
-  "base": "4c1fc7271c0f654dfd6f28bb61f8f6a85c27ebeb",
-  "head": "3f86c588494a95c21a02d128baf6ce975fe717b3",
+  "base": "0648f15654aec1b9e740ca168ff4e70c0cd54f28",
+  "head": "77fbf2a8cfe9e27da9292d381f0d46b5168edc01",
   "changed_files": [
     "tests/test_seeded_phase3_20.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase3-continue-21/ticket.md",
-      "sha": "9644182e196320f1a2b5b46e244fbbdaf6d7c6cf",
+      "sha": "85312cc0bf30f6aa7fb240812343d6c2461b243d",
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-21/ticket.md",
+          "line": null,
+          "message": "Scope in says to pin 'Context partitions, new-path owners, predecessor-test closure, authoring-time Context sizes, the shrinking suffix, and max-effort render headroom'. Section 20 also requires each new continuation's seeded test to pin the Context partition and render headroom. None of the three acceptance criteria checks the Context partition, the authoring-time sizes, predecessor-test closure or the REQ_RENDER_HEADROOM max-effort render. An implementation could pass every criterion and still emit seeds whose Context breaks the continuation contract.",
+          "paved_road": "Add a criterion that tests/test_seeded_phase3_21.py pins each emitted seed's exact Context tuple, the authoring-time sizes of every Context path, predecessor-test closure, and a max-effort synthetic render of each seed within int(RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM). Model it on test_authoring_sizes_and_max_effort_headroom in tests/test_seeded_phase3_11.py."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-21/ticket.md",
+          "line": null,
+          "message": "The ticket never names daemon-soak-runner's Context. Section 20 requires that seed's Context to include the merged serve proof (tests/test_serve.py, which exists once serve-activation merges), the existing daemon-soak schema/writer test, and the smallest existing component tests needed to script the three faults. The continuation rule also requires every existing fence path to be existing Context. That means eval/daemon_soak.py and tests/test_daemon_soak.py must be embedded, and sibling-new tests/test_daemon_soak_runner.py must be excluded from both seeds' Context. Without these, the implementer has to invent the partition.",
+          "paved_road": "State the Context rules for daemon-soak-runner in Scope in and in a criterion. It must include tests/test_serve.py, eval/daemon_soak.py and tests/test_daemon_soak.py, plus only the component tests needed for worker_killed_mid_run, conflict_resolution_rungs and semantic_conflict_integration_red. Production modules stay on-demand read-only inspection. Every existing fence path is embedded Context. Neither seed's Context names tests/test_daemon_soak_runner.py, tests/test_seeded_phase3_22.py, squatch/specs.py or any other delimiter-bearing prompt-spec source. Also give phase3-continue-22's Context: one established seeded-test pattern plus the production-composition evidence."
+        }
+      ],
       "commands": []
     },
     {
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/soak-run/ticket.md",
-      "sha": "d7429069dd876da0fddc83c4f06aa287815a46dd",
+      "path": "tickets/serve-activation/ticket.md",
+      "sha": "b686f519cd000cba1fc6166a4f1064bc83570b9d",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
-          "path": "tickets/soak-run/ticket.md",
-          "line": 17,
-          "message": "The only daemon-soak machinery on main is `write_report(workspace, stem, report, fs)`, which validates and writes a `DaemonSoakReport` the caller has already built. A repo search shows no bounded soak runner outside tests and seed tests. Nothing runs a daemon for >=24 injected hours on an injected clock, plants the three closed faults (`worker_killed_mid_run`, `conflict_resolution_rungs`, `semantic_conflict_integration_red`), observes each discriminating terminal, records a real `producing_run`, or computes the `auditor` verdict. Under a no-code-change fence, the Implement agent would have to fill in every `observed`/`auditor`/`green` value itself. That is exactly the self-attestation the second acceptance criterion and the Definition of rejected forbid.",
+          "path": "tickets/serve-activation/ticket.md",
+          "line": 115,
+          "message": "`test_heartbeat_composition_is_dormant_and_adds_no_serve_verb` asserts `\"serve\" not in subparsers.choices`. The first acceptance criterion requires the CLI to expose `serve`, so this existing test will fail. The file is outside both the fence and Context. The plan's exact serve-activation fence in section 20 only names `tests/test_daemon_composition.py` as a `serve`-absence migration. A migration to this file would be an edit outside the fence, which the Definition of rejected rejects. The current criteria and the plan's fence cannot both be satisfied.",
           "paved_road": "fix the plan, then re-author the ticket"
         },
         {
           "code": "requisition_review",
-          "path": "tickets/soak-run/ticket.md",
+          "path": "tickets/serve-activation/ticket.md",
+          "line": 89,
+          "message": "`test_production_import_closure_activates_the_storm_producer_only_at_the_root` fails if any production-reachable module other than `squatch.__main__` calls `compose_daemon_storm_producer` or `scoped_occurrence_recorder`. The ticket requires `serve` to compose the storm boundary, and new `squatch/serve.py` will be import-reachable from `__main__`. If serve.py builds the storm producer itself, this unfenced test breaks. The plan neither fences the test nor says the storm hook must stay bound in `__main__.py`.",
+          "paved_road": "fix the plan, then re-author the ticket"
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/serve-activation/ticket.md",
           "line": null,
-          "message": "The acceptance criteria need the report to be 'produced by the daemon-soak machinery', while Scope in/out forbid any code change. The merged machinery has no entry point that produces an entry, so the criteria can't all be met under this fence. The plan's clarification also fixes soak-run as 'changes no code', so re-authoring within the caps can't close the gap.",
+          "message": "The ticket makes `squatch/daemon.py` and `squatch/__main__.py` fenced on-demand inspection exceptions and leaves them out of Context. The plan's serve-activation text grants no such exception, unlike the kill, storm-hold, and checkpoint clarifications. Headroom does not justify one either: the measured render is 77,910 characters and the two files add 38,490 (20,131 + 18,359), for 116,400, which is under the 120,000 `REQ_RENDER_HEADROOM`.",
           "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
