@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-Daemon admission performs an integration Verification after merge regate, so the same run-scoped lift qualification is replayed there to keep the production serve path consistent.
+Recovered the prior passing implementation commit and limited this re-entry to its two review findings. Rename cleanliness checks every source and destination path, while daemon integration admits only completed OUTBOX lifts.
 
 ## Dead ends
-A test that precommitted a registered artifact could not represent stale evidence because the ordinary lift correctly rescans the whole ticket OUTBOX and records that artifact in the current run; the final test instead isolates the completed-lift predicate after the behavioral rejection.
 
 ## Second problems filed
+Seed-only empty deliveries remain unsupported by the daemon integration Verification path; changing that behavior is outside this ticket and needs a separate ticket if required.
 
 ## Resolved engine/model
 OpenAI GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual about 35m.
+Expected 90m; this re-entry took about 10m after recovering the prior implementation.
