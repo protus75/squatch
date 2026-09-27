@@ -1,18 +1,33 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "f865ecac71710244cb7d567b8951896ea2d0e380",
+  "produced_at_sha": "3e95f6077b0db11e7397f2eae9f0b0b53be783cf",
   "stem": "phase4-continue",
   "branch": "phase4-continue",
-  "base": "fe573fc34bade87f37bf87570f632a2da79a17df",
-  "head": "f865ecac71710244cb7d567b8951896ea2d0e380",
+  "base": "1464e82f9b61895e9ec914435fbeb3e89a82121c",
+  "head": "3e95f6077b0db11e7397f2eae9f0b0b53be783cf",
   "changed_files": [
-    "tests/test_seeded_phase4_01.py",
-    "tickets/phase4-continue-02/ticket.md",
-    "tickets/watchdog-activation/ticket.md",
-    "tickets/watchdog-detector/ticket.md"
+    "tests/test_seeded_phase4_01.py"
   ],
   "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase4-continue-02/ticket.md",
+          "line": 4,
+          "message": "Context path 'tests/test_seeded_phase4_01.py' does not exist",
+          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
+        }
+      ],
+      "commands": []
+    },
     {
       "code": "scope_fence",
       "verdict": "pass",
