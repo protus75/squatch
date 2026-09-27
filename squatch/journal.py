@@ -2,9 +2,8 @@
 
 `<state_dir>/journal/` holds ordered segments named `NNNNNN-YYYYMMDD.jsonl`.
 The last name in sort order is the active segment; every earlier one is
-immutable. Phase 0 ships the layout, the writer, and the reader; the roll
-trigger arrives with the Phase 3 daemon, so pre-daemon the active segment
-grows without bound.
+immutable. The Phase 3 writer rolls the active segment at fixed size and age
+bounds.
 """
 
 import json
@@ -12,7 +11,7 @@ import os
 import re
 from collections.abc import Iterator
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from squatch.seams import Clock
@@ -33,6 +32,8 @@ RESERVED_TYPES = frozenset({"checkpoint"})
 
 _SEGMENT_NAME = re.compile(r"\A\d{6}-\d{8}\.jsonl\Z")
 _TS = re.compile(r"\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{6})?\+00:00\Z")
+_MAX_SEGMENT_BYTES = 64 * 1024 * 1024
+_MAX_SEGMENT_AGE = timedelta(hours=24)
 
 
 class JournalCorruption(Exception):
@@ -89,8 +90,10 @@ class Journal:
         if segments:
             self._active = segments[-1]
             _truncate_torn_tail(self._active)
+            self._active_started = _first_event_time(self._active)
         else:
             self._active = self.dir / f"000001-{clock():%Y%m%d}.jsonl"
+            self._active_started = None
         self._fh = self._active.open("ab")
         # A newly created segment is durable only once its directory entry is.
         dir_fd = os.open(self.dir, os.O_RDONLY)
@@ -123,15 +126,35 @@ class Journal:
         """Append one event and fsync it before returning (write-ahead)."""
         if type in RESERVED_TYPES:
             raise ValueError(f"event type {type!r} is reserved, not emitted in v1")
+        now = self._clock()
         event = _parse_event({
-            "v": v, "type": type, "ts": render_ts(self._clock()),
+            "v": v, "type": type, "ts": render_ts(now),
             "ticket": ticket, "key": key, "body": body,
         })
-        line = json.dumps(asdict(event), allow_nan=False) + "\n"
-        self._fh.write(line.encode())
+        line = (json.dumps(asdict(event), allow_nan=False) + "\n").encode()
+        if self._should_roll(now, len(line)):
+            self._roll(now)
+        self._fh.write(line)
         self._fh.flush()
         os.fsync(self._fh.fileno())
+        if self._active_started is None:
+            self._active_started = now
         return event
+
+    def _should_roll(self, now: datetime, line_bytes: int) -> bool:
+        if self._active_started is not None and now - self._active_started >= _MAX_SEGMENT_AGE:
+            return True
+        return self._active.stat().st_size + line_bytes > _MAX_SEGMENT_BYTES
+
+    def _roll(self, now: datetime) -> None:
+        """Seal the current segment and create the next ordered active one."""
+        sequence = int(self._active.name[:6]) + 1
+        next_active = self.dir / f"{sequence:06d}-{now:%Y%m%d}.jsonl"
+        self._fh.close()
+        self._fh = next_active.open("xb")
+        self._active = next_active
+        self._active_started = None
+        _fsync_directory(self.dir)
 
     def read(self) -> Iterator[Event]:
         """Every event across all segments, in order.
@@ -192,6 +215,24 @@ def _read_segment(path: Path, *, active: bool) -> Iterator[Event]:
             raise JournalCorruption(f"{path}:{n}: {e}") from e
 
 
+def _first_event_time(path: Path) -> datetime | None:
+    """Return the active segment's age anchor after torn-tail repair."""
+    lines = path.read_bytes().split(b"\n")
+    lines.pop()
+    if not lines:
+        return None
+    try:
+        obj = json.loads(lines[0])
+    except ValueError as e:
+        raise JournalCorruption(f"{path}:1: {e}") from e
+    if not isinstance(obj, dict) or not isinstance(obj.get("ts"), str):
+        return None
+    try:
+        return datetime.fromisoformat(obj["ts"])
+    except ValueError:
+        return None
+
+
 def _truncate_torn_tail(path: Path) -> None:
     """The writer's startup dual of tail tolerance: drop an unterminated final
     line so a resumed append never leaves a malformed line mid-segment."""
@@ -202,3 +243,11 @@ def _truncate_torn_tail(path: Path) -> None:
             f.truncate(keep)
             f.flush()
             os.fsync(f.fileno())
+
+
+def _fsync_directory(directory: Path) -> None:
+    dir_fd = os.open(directory, os.O_RDONLY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)
