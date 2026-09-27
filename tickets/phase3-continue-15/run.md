@@ -4,19 +4,20 @@ ok
 
 ## Surprises / judgment calls
 
-`phase3-continue-16` treats the merged storm module and test as existing Context, while its own three future sibling-new paths stay outside Context.
+Parsed the not-yet-lintable successor directly so its complete contract is asserted before its predecessor-owned Context paths exist. The self Context fixture reads its authored byte size at test time because embedding that number would mutate the fixture.
 
 ## Dead ends
 
-The first draft omitted artifact names from a few seed criteria; ticket lint rejected them, so the criteria now name their verification tests.
+None.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI Codex / GPT-5
+OpenAI Codex / GPT-5.
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 45m.
+Expected 75m; actual about 20m.
