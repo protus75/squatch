@@ -1,63 +1,33 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "c054bf44d765a87eed3b7cc0fda2f9239282bb4d",
+  "produced_at_sha": "4bca87cc2a7d3685da34e938c7bccd36b86ccf3c",
   "stem": "phase3-continue-16",
   "branch": "phase3-continue-16",
-  "base": "b5695de4b0407ea36e54239aa664502975be07b2",
-  "head": "c054bf44d765a87eed3b7cc0fda2f9239282bb4d",
+  "base": "0b78686368aae9acf68e2f755a59012440c8a01f",
+  "head": "4bca87cc2a7d3685da34e938c7bccd36b86ccf3c",
   "changed_files": [
     "tests/test_seeded_phase3_16.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-17/ticket.md",
-      "sha": "b9ebb6985694b3f40bc4fd53611e78ac875541bd",
+      "sha": "4dfd5f8b6c9ffe0d10fd863d9835c11c59880a60",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-17/ticket.md",
-          "line": null,
-          "message": "Scope in says tests/test_storm_producer.py and tests/test_storm_notification_activation.py 'are sibling-new and stay outside Context' for storm-dispatch-hold, but the ownership block lists both as hold hooks. They are sibling-new only for phase3-continue-16, the continuation that authors their seeds. This ticket depends on storm-producer-wiring and storm-notification-activation, so both tests are merged when it authors the hold seed. Section 20 then requires every existing fence path except squatch/drain.py and squatch/__main__.py to be embedded Context. The ticket's own rules repeat this: 'every other existing fence path is Context' and 'Reject a missing existing fence Context'. The seeded-test pattern in tests/test_seeded_phase3_11.py (every fence path not on-demand and not new must be in ticket.context) would fail. The rules for the hold's Context contradict each other and cannot all be met.",
-          "paved_road": "Only phase3-continue-17's own Context excludes those two tests, because they are sibling-new when this ticket is authored. The storm-dispatch-hold seed must embed every existing predecessor storm test it fences. Rewrite Scope in and the criteria to say this. Have tests/test_seeded_phase3_17.py pin both tests inside the hold's Context and its predecessor migration partition, record their authoring-time sizes in EXISTING_AT_AUTHORING, and keep the max-effort render under REQ_RENDER_HEADROOM. Fence a predecessor test only when its dispatch-absence assertion is present, and pin that choice exactly."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/storm-notification-activation/ticket.md",
-      "sha": "f07c84eb9982bae6a1998cddee327eb32b4f10ec",
+      "sha": "9978ede94defa2500a09676da950a46d81aca769",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/storm-notification-activation/ticket.md",
-          "line": null,
-          "message": "The ticket requires 'one P0 `failure_report`', but the Box `Message` model has no priority field and uses `extra=\"forbid\"`, and `Box.enqueue` takes no priority argument. The criterion names a property the fenced schema cannot represent, and it does not say how 'P0' is recorded or asserted, so an implementer must invent a schema change. That change is not in Scope in, and `tests/test_box.py` must pass unchanged.",
-          "paved_road": "State exactly how P0 is carried. Either add a named optional field to `Message`, with its `enqueue` parameter and a default that keeps `tests/test_box.py` round-trips green, or encode it in an existing field. Then make the activation criterion assert that concrete field or value."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/storm-notification-activation/ticket.md",
-          "line": null,
-          "message": "The binding is resolved inside `Box.enqueue`, but the ticket does not say what `enqueue` does when no daemon lifecycle binding is installed. Two cases hit this. The unchanged direct-construction tests in `tests/test_box.py` must keep passing. The production `python -m squatch.box ingest` entry builds a Box outside any lock-held journal and can run while a drain holds the single-writer lock. 'Every box arrival' and 'unchanged preservation tests' both apply to these callers, and without a stated unbound behavior the two criteria conflict.",
-          "paved_road": "Specify the unbound contract explicitly: record nothing, or refuse. Name the `squatch.box` ingest entry's behavior while a drain holds the lock. Add a criterion proving that behavior, alongside the preservation of `tests/test_box.py`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/storm-notification-activation/ticket.md",
-          "line": null,
-          "message": "The trip enqueues its P0 `failure_report` through the same bound `Box.enqueue` that the producer wiring turns into a storm occurrence. The report therefore feeds the storm window, and repeated crossings can raise a report-signature storm. The ticket also does not say how a replay after a crash between the trip signal and the report enqueue completes the report exactly once, beyond the trip identity.",
-          "paved_road": "State whether the trip's own report is excluded from occurrence recording or counts as an occurrence. Add a criterion covering recovery after a crash between the trip signal and the report: the report is enqueued exactly once, with no second trip."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -65,36 +35,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/storm-producer-wiring/ticket.md",
-      "sha": "a2b0069db9a1acf4fcb7b716a560f2dd45f67856",
+      "sha": "fbbe4b8bb6d74a10ba6c5b88fbec9c51ea2ed3a0",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/storm-producer-wiring/ticket.md",
           "line": null,
-          "message": "Scope-in has `Box.enqueue` look up the producer when called, from \"the daemon's journal-backed lifecycle binding\", and forbids any Box constructor change. The shipped `Box.__init__(state_dir, *, fs, clock)` holds no journal or recorder. The only way to meet this is ambient module-level mutable state that daemon.py sets and box.py reads, which is a raw global outside the injectable seams, and the ticket never names the binding it depends on.",
-          "paved_road": "Inject the producer explicitly. Either add an optional keyword recorder to `Box` (default `None`, so `tests/test_box.py` and existing callers stay unchanged), or have a `compose_daemon_*` hook in `squatch/daemon.py` wrap the daemon's Box with the `StormLedger` over the lock-held Journal. State the chosen seam in Scope in and drop the 'no constructor change' clause."
+          "message": "Scope in says the `compose_daemon_storm_producer` binding is 'resolved by `Box.enqueue` at call time' so it reaches Box instances built in runner, stages, merge, triage, and author without editing those modules. With no constructor argument, that needs state that is ambient to `Box.enqueue`, such as a ContextVar or a module-level slot. Scope out bans 'ambient mutable recorder state' and Definition of rejected bans an 'ambient recorder global', so the criteria cannot all be met without an implementer guessing which rule wins. The binding also cannot live in `squatch/daemon.py` as stated: `daemon.py` imports `Box`, so `box.py` cannot import daemon to resolve it without a circular import. The resolution slot has to live in `box.py` or `storm.py` while daemon owns only the install.",
+          "paved_road": "Name the allowed mechanism exactly. For example: a `contextvars.ContextVar` in `squatch/box.py`, set only inside a context manager returned by `daemon.compose_daemon_storm_producer(...)` and reset on exit, with an explicit per-Box `occurrence_recorder=` keyword taking precedence. Reword Scope out and Definition of rejected to ban an unscoped module-global or a permanently installed recorder, not all ambient state. Add a criterion that proves the binding is inactive after the scope exits."
         },
         {
           "code": "requisition_review",
           "path": "tickets/storm-producer-wiring/ticket.md",
           "line": null,
-          "message": "Criterion 1 requires *every* box arrival to record an occurrence. But `python -m squatch.box ingest` (box.py `main`) constructs its own Box in a separate CLI process, which cannot append to the journal while an engine process holds the single-writer lock. As written, the criterion cannot be met for those arrivals.",
-          "paved_road": "Limit the criterion to arrivals through the lock-holding engine's composed Box, and name out-of-process CLI ingest as out of scope (or as recorded later by the lock holder). Pin that boundary in `tests/test_storm_producer.py`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/storm-producer-wiring/ticket.md",
-          "line": null,
-          "message": "The ticket never says how an `occurrence_id` is derived, or in what order it is persisted relative to the box write. A dedup hit only increments `reports` through `_replace`. If an engine dies between the box write and the ledger append, the arrival is either lost or re-enqueued with a new `reports` value and a different identity. So 'stable on replay' has no testable definition, and 'Reject an unstable replay identity' cannot be judged.",
-          "paved_road": "Name the identity, for example `<box_id>/<reports>` after the increment, with `signature` set to the box signature and `emitting_stage` set to the message stage. Specify the write order and the crash/replay behavior (for example, the ledger append is idempotent by key and re-derived from the persisted box record). Add a criterion that a replayed arrival with the same identity appends no second event."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/storm-producer-wiring/ticket.md",
-          "line": null,
-          "message": "Criterion 2 asks the new test to prove 'production composition remains dormant' but gives no observable. Meanwhile, the same ticket migrates the `tests/test_storm.py` AST assertion that `squatch.storm` is unreachable from `squatch.__main__`. Once that migration lands, the dormancy claim has no concrete check to replace it.",
-          "paved_road": "State the replacement assertion concretely. For example: no function reachable from `squatch/__main__.py` or `squatch/drain.py` calls the storm-producer composition hook (AST call-site check), while `squatch.storm` may be import-reachable through daemon.py. Leave replacing that assertion for real production activation to `storm-notification-activation`."
+          "message": "Install-time reconciliation needs the Box state directory, filesystem, and clock to find existing Box records. Scope in describes `compose_daemon_storm_producer` only as a binding 'over the already lock-held `Journal`', and it does not say which occurrences are reconciled. It could be only the latest `<box_id>/<reports>` or every `<box_id>/1..reports`. These readings produce different ledger contents and storm windows, so the crash-reconciliation criterion cannot be checked as written.",
+          "paved_road": "Give the hook's full keyword signature, for example `compose_daemon_storm_producer(*, state_dir, journal, fs)`. State that reconciliation records every missing `<box_id>/<n>` for n in 1..reports, or only the latest report, and say which ledger timestamp each reconciled occurrence gets. Require `tests/test_storm_producer.py` to pin that choice."
         }
       ],
       "commands": []
