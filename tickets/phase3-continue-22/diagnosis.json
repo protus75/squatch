@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review rejected the authored soak-run ticket, not the seeded test. Its criteria and Verification cite tests/test_daemon_soak.py, which is not in its pinned Context (eval/daemon_soak.py, tests/test_daemon_soak_runner.py) and has no on-demand exception.",
+    "Do not add tests/test_daemon_soak.py to soak-run's Context. This ticket pins that Context exactly, with no on-demand exceptions. Rewrite soak-run's criteria and Verification so they cite only suites already in its Context.",
+    "Write soak-run's criteria as observable requirements. The runner's returned DaemonSoakReport, written by the canonical writer, sits at tickets/soak-run/daemon-soak-report.json, and tests/test_daemon_soak_runner.py passes unchanged. Do not claim that unchanged suites 'prove' custody.",
+    "Leave the producer-custody claim (soak-run as producer, daemon-soak-runner as machinery) to phase3-exit's read of the committed report. Do not assert it in soak-run's criteria, because no existing test in its Context proves it.",
+    "The committed tests/test_seeded_phase3_22.py and both pytest runs passed. Keep them. Update any phrase assertions if the soak-run Scope in text changes, then re-run the ticket linter and both Verification commands."
+  ],
+  "reason": "Requisition review flagged a fixable criteria/Context mismatch in the authored soak-run ticket; the paved road (restate criteria against in-Context suites) stays within this ticket's fence and pinned Context.",
+  "detail": null
+}
