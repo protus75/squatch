@@ -251,8 +251,10 @@ def test_continuation_pins_production_hold_ownership_and_future_context_partitio
         "hold depends on phase3-continue-17", "KNOWN-DEEP high/high",
         "phase3-continue-18 depends on storm-dispatch-hold and remains medium/medium",
         "section 20 alone", "75m/150m", "cap 3",
-        "real dispatch selection before durable dispatch accounting", "retry-cap draws",
-        "unrelated work remains eligible", "emitting_stage=None does not pause",
+        "drain offer is a whole ticket", "emitting_stage stays diagnostic",
+        "emitting_origin", "stem equals the tripped emitting_origin",
+        "before durable dispatch accounting including retry-cap draws",
+        "Other stems remain eligible", "non-ticket origin creates no global hold",
         "identity-bound resume exactly once", "current-lifecycle control inbox",
         "No later admission activates this hold", "production owner before phase3-exit",
         "Only `squatch/drain.py` and `squatch/__main__.py`",
@@ -263,6 +265,8 @@ def test_continuation_pins_production_hold_ownership_and_future_context_partitio
         "PRESERVATION set", "both then and pin their measured authoring-time sizes",
         "every max-effort render under REQ_RENDER_HEADROOM", "high-tier hold render",
         "section 20's historical length", "established seeded-test pattern",
+        "squatch/git.py and tests/test_git.py",
+        "exact Context is squatch/daemon.py, squatch/git.py and tests/test_git.py",
     ])
 
 
