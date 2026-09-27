@@ -1,14 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Add Serve-level tests in tests/test_serve.py with a recording fake Notifications: notify happens before first dispatch; a signal journaled after startup is sent on the next watch() pass; unset config.notify gives one warning and zero sends; omitting the keyword works status-only.",
-    "Catch transport failures (ExecutableNotFound, non-zero exit) per signal inside the reconciler. Report them via the daemon report, leave the intent without a completion so the next poll retries, and continue so dispatch and heartbeat are never blocked.",
-    "The push must carry the rendered escalation, e.g. notify([*argv, rendered]). For storm trips, render a concrete pull-side resume action instead of 'when its hold is known'. Add a test asserting the transport received the rendered text.",
-    "Replace test_transport_failure_leaves_only_the_durable_intent (which expects a raise) with a test that the failure is reported, the intent stays unmatched, and later signals in the same pass still send."
+    "Report a rendered escalation only when deliver() actually ran. Set a flag inside deliver() and do not report cached completed keys. Add a test showing that a second reconcile over completed keys produces zero report lines and zero sends.",
+    "Make a notifier timeout the wrapper's declared failure: catch TimeoutError in SubprocessNotifications.notify and raise RuntimeError. Add a test where a hanging notifier leaves the intent unmatched, is reported, and neither aborts startup nor breaks the watcher poll.",
+    "Never render a placeholder resume command. Drive storm-trip notices from the control_hold signal with trigger storm_trip, keyed on trip_id, and render its real hold_id in `squatch resume --hold-id <uuid>`. Test the exact rendered resume line.",
+    "In test_serve, the unset config.notify test must monkeypatch main_module.SubprocessNotifications and squatch.serve.NotificationReconciler with recorders. Seed a storm_trip or red-streak signal, run a watcher poll callback, and assert zero transport calls and one warning.",
+    "Keep the parts that passed review: seam isolation, the config validator, Effect keys, _serve wiring, and startup-then-poll ordering. Change only notify.py, test_notify.py, test_seams.py, and the unset test in test_serve.py."
   ],
-  "reason": "Mechanical checks passed and the core wiring is sound; the review snags are concrete, fixable gaps (missing Serve tests, fatal transport errors, static push payload) with clear paved roads.",
+  "reason": "Review found four bounded, fixable reconciler and test defects with concrete paved roads; the core design was approved and all checks passed.",
   "detail": null
 }
