@@ -18,6 +18,7 @@ agent_effort: medium
 - tests/test_mergequeue.py
 - tests/test_merge.py
 - tests/test_daemon_composition.py
+- tests/test_rework.py
 
 ## Plan contract
 - section 20
@@ -32,6 +33,8 @@ Merge holds are independently provable only after pause/resume establishes the s
 Inject one `AdmissionHold` into the production `compose_merge_queue` path. In `squatch/__main__.py`, share the lock-held inbox created by the drain control factory with the production pipeline factory for the same journal; never construct or race a second inbox, and remove any `control_inbox=None` fallback. Wire the hold's apply method into that one production control consumer. A held admission waits without busy-polling or failing the candidate, and in-flight work continues. Journal each hold identity, lifecycle, and trigger before mutation so the operator has a reachable matching release.
 
 Count integration-check red outcomes only. Fire after three distinct stems (K=3), keep repeats such as A,B,A,C counted once, reset on green, and require a fresh streak after a hold fires or releases. A tree-hash mismatch holds immediately. Rebase and regate failures do not count. Matching resume releases exactly the owning hold; stale lifecycle and pre-hold releases are ineffective. Preserve serialization, re-gating, integration checks, and post-unwind Rework publication.
+
+The hold is an optional additive `MergeQueue` hook. Preserve minimal and legacy queue construction that omits the optional attribute, including the unchanged Rework outbox fixture built with `MergeQueue.__new__`; admission must treat an absent hook exactly like `None`, enter the serial slot, and publish its post-unwind handoff without hanging.
 
 ```yaml
 ownership:
@@ -63,10 +66,11 @@ Do not change CLI verbs, dispatch pause behavior, kill/serve behavior, or schedu
 - `tests/test_mergequeue.py` preserves existing serialization, re-gate, integration-check, tree-hash, and Rework-unwind contracts through the production `compose_merge_queue` path.
 - `tests/test_merge.py` updates the existing direct `compose_pipeline` construction proof to inject the mandatory shared inbox without restoring a fallback.
 - `tests/test_daemon_composition.py` proves the lock holder shares one inbox between dispatch pause and the production merge admission hold, and a matching resume reaches the hold through the one consumer.
+- Unchanged `tests/test_rework.py` completes its `test_rework_waits_for_the_real_mergequeue_outbox_after_slot_unwinds` proof, so an absent optional hold on a minimal queue does not block slot entry or Rework publication.
 
 ## Verification
 ```
-uv run pytest tests/test_mergequeue.py tests/test_merge.py tests/test_daemon_composition.py tests/test_control.py -q
+uv run pytest tests/test_mergequeue.py tests/test_merge.py tests/test_daemon_composition.py tests/test_control.py tests/test_rework.py -q
 uv run pytest -q
 ```
 
