@@ -1,16 +1,16 @@
 ## Outcome
-implemented
+premise_failed
 
 ## Surprises / judgment calls
-The first synthetic activation render exceeded the requisition headroom. I kept the required fenced paths and the required read-only composition harness in activation Context, while leaving daemon-task and control-CLI suites as verification-only preservation evidence.
+The governing section 20 still requires a kill activation through the real production composition while restricting its fence to control, daemon, driver, and CLI paths. The production Driver is constructed in `squatch/stages.py`, and the current production composition has no owner for `DaemonTasks`; treating a test-only composition as production would contradict the ticket.
 
 ## Dead ends
-The initial Context included daemon-task and control-CLI sources, which made the max-effort render 126185 characters against the 120000-character limit.
+The activation cannot prove executor abort, worker stop, failure suppression, and post-kill admission blocking as written without a plan repair that grants and defines the production composition path. `SQUATCH_PLAN.md` is outside this ticket's scope fence, so it cannot be repaired here.
 
 ## Second problems filed
 
 ## Resolved engine/model
-unknown
+OpenAI Codex (GPT-5)
 
 ## Predicted vs actual
-Expected 75m; actual approximately 15m.
+Expected 75m; stopped during contract validation before implementation.
