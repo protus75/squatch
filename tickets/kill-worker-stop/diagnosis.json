@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Test must assert absence of the applied=True control_decision both while active.unwind is unset and while workers block in cancel handlers, before release_workers.set(); use a non-waiting journal check so a cancel-without-await mutant fails.",
+    "DaemonTasks.run() gathers all tasks without return_exceptions, so stop_workers' cancellations raise CancelledError there and run() then calls shutdown(), cancelling the control task mid-kill. Make run() tolerate a deliberate worker stop and keep awaiting the control task.",
+    "Fix run() in squatch/daemon.py (inside the fence) so ordinary run/shutdown behavior is unchanged: only cancellations from stop_workers are absorbed, and every other worker failure or cancellation still triggers shutdown().",
+    "Add a test to tests/test_kill_worker_stop.py that drives the kill through owner.run(), not just start()+shutdown(). It should assert the applied decision is journaled, the control task is not cancelled, and no worker tasks are left pending.",
+    "Keep the separate _workers tuple from this attempt so a repeated kill cannot pick up the control task. The executor-unwind-then-cancel order in kill_worker_stop_consumer was sound."
+  ],
+  "reason": "Both review findings are fixable in-fence oversights: a missing ordering assertion and run() absorbing a deliberate worker stop, each with a concrete paved road.",
+  "detail": null
+}
