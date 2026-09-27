@@ -1,8 +1,10 @@
 ## Outcome
+
 ok
 
 ## Surprises / judgment calls
-The repaired plan permits the three fenced production inspection paths to remain on-demand, keeping the activation render below headroom while preserving the four predecessor suites as Context-only evidence.
+
+The successor uses the pre-existing core seeded-test contract as Context; the newly authored phase3-11 test cannot be Context at authoring time.
 
 ## Dead ends
 
@@ -11,7 +13,9 @@ The repaired plan permits the three fenced production inspection paths to remain
 
 
 ## Resolved engine/model
-OpenAI Codex (GPT-5.6-terra)
+
+Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; completed in approximately 30m.
+
+Expected 75m; actual approximately 20m.
