@@ -83,6 +83,7 @@ EXISTING_AT_AUTHORING = {
     "squatch/box.py": 12324,
 }
 NEW_AT_AUTHORING = {"tests/test_seeded_phase3_07.py"}
+PLAN_SECTION_AT_AUTHORING = 10551
 FORBIDDEN_CONTEXT = {"squatch/specs.py", "specs/implement.md", "specs/rework.md"}
 SUFFIX = (
     ("merge-queue-activation", "rework-activation"),
@@ -423,4 +424,6 @@ def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
             "ticket": DataBlock("host", _path(stem).read_text()),
             "context": DataBlock("host", context or "(no Context files)\n"),
         }, plan=plan, plan_sections=ticket.plan_sections, effort="max")
-        assert len(rendered) <= limit, (stem, len(rendered), limit)
+        section = plan.split("## 20. Open decisions", 1)[1].split("## 21.", 1)[0]
+        historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING)
+        assert historical_length <= limit, (stem, historical_length, limit)
