@@ -516,6 +516,10 @@ class Stages:
                               clock=clock, retry_cap=config.caps.retry,
                               severity=config.review.gate_severity)
 
+    async def abort_active(self) -> None:
+        """Abort and observe the Driver invocation currently owned by these stages."""
+        await self._driver.abort_active()
+
     async def run(self, ticket: Ticket, *, run_seq: int) -> Delivery:
         stem = ticket.stem
         self._llm.stuck_seconds = ticket.stuck_minutes * 60

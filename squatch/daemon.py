@@ -56,6 +56,75 @@ class DispatchPause:
         self._applied.add(request.request_id)
 
 
+class DrainControl(DispatchPause):
+    """Coordinate bootstrap-drain control with its in-flight dispatch."""
+
+    def __init__(self, inbox: ControlInbox) -> None:
+        super().__init__(inbox)
+        self.stopping = False
+        self._abort: ConsumerCallback | None = None
+        self._dispatch_control: ConsumerCallback | None = None
+        self._dispatch: asyncio.Task[object] | None = None
+
+    def bind_abort(self, abort: ConsumerCallback) -> None:
+        """Bind the Stages-owned Driver abort after pipeline composition."""
+        self._abort = abort
+
+    def bind_dispatch_control(self, consume: ConsumerCallback) -> None:
+        """Bind the kill-filtered control poll used during dispatch."""
+        self._dispatch_control = consume
+
+    async def apply(self, request: ControlRequest) -> None:
+        await super().apply(request)
+        if request.action != "kill":
+            return
+        self.stopping = True
+        if self._abort is not None:
+            await self._abort()
+        active = self._dispatch
+        if active is not None and not active.done():
+            active.cancel()
+            await asyncio.gather(active, return_exceptions=True)
+
+    async def run_dispatch(self, dispatch: Awaitable[Result], wait_for_control: ConsumerCallback
+                           ) -> Result | None:
+        """Consume kill concurrently while owning the dispatch through unwind."""
+        if self.stopping:
+            return None
+        active = asyncio.create_task(dispatch)
+        self._dispatch = cast(asyncio.Task[object], active)
+
+        async def consume_until_stopping() -> None:
+            consume = self._dispatch_control or wait_for_control
+            while not self.stopping:
+                await consume()
+
+        control = asyncio.create_task(consume_until_stopping())
+        try:
+            await asyncio.wait((active, control), return_when=asyncio.FIRST_COMPLETED)
+            if control.done() and not self.stopping:
+                try:
+                    await control
+                except BaseException:
+                    active.cancel()
+                    await asyncio.gather(active, return_exceptions=True)
+                    raise
+            if self.stopping:
+                await control
+                await asyncio.gather(active, return_exceptions=True)
+                return None
+            control.cancel()
+            await asyncio.gather(control, return_exceptions=True)
+            return await active
+        finally:
+            if not active.done():
+                active.cancel()
+            if not control.done():
+                control.cancel()
+            await asyncio.gather(active, control, return_exceptions=True)
+            self._dispatch = None
+
+
 class AdmissionTask(Generic[Result]):
     """The observer's handle for an admitted work task."""
 

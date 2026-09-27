@@ -63,7 +63,7 @@ from squatch.artifacts import OUTCOMES
 from squatch.caps import (PREMISE_BOUNCE_CAP, CapFold, RETRY_CAP, consume,
                           fold as fold_caps, remaining, spent)
 from squatch.config import Config
-from squatch.daemon import ConsumerCallback, DispatchPause
+from squatch.daemon import ConsumerCallback, DispatchPause, DrainControl
 from squatch.effects import run_sequence
 from squatch.git import Git
 from squatch.journal import Event, Journal
@@ -220,12 +220,23 @@ class Drain:
             if not await self._wait_for_offer(started + ceiling):
                 journal.append("timer_fired", {"kind": CEILING_TIMER, "next": ticket.stem})
                 return self._halted(plane, facts, merged_now, ticket)
+            if self._stopping:
+                return self._killed()
             if offer is not None:
                 await self._draw_retry(journal, ticket)
                 if not await self._wait_for_offer(started + ceiling):
                     journal.append("timer_fired", {"kind": CEILING_TIMER, "next": ticket.stem})
                     return self._halted(plane, facts, merged_now, ticket)
-            run = await self._runner.dispatch(ticket, journal)
+                if self._stopping:
+                    return self._killed()
+            if isinstance(self._pause, DrainControl):
+                assert self._wait_for_control is not None
+                run = await self._pause.run_dispatch(
+                    self._runner.dispatch(ticket, journal), self._wait_for_control)
+                if run is None:
+                    return self._killed()
+            else:
+                run = await self._runner.dispatch(ticket, journal)
             if run.settled:
                 merged_now.append(ticket.stem)
                 facts = fold(journal.read())
@@ -235,12 +246,19 @@ class Drain:
 
     async def _wait_for_offer(self, deadline: datetime) -> bool:
         while self._clock() < deadline:
-            if self._pause is None or await self._pause.allow_offer():
+            allowed = self._pause is None or await self._pause.allow_offer()
+            if self._stopping:
+                return True
+            if allowed:
                 # Control consumption or a wait may cross the admission ceiling.
                 return self._clock() < deadline
             assert self._wait_for_control is not None
             await self._wait_for_control()
-        return False
+        return self._stopping
+
+    @property
+    def _stopping(self) -> bool:
+        return isinstance(self._pause, DrainControl) and self._pause.stopping
 
     # --- the scan ----------------------------------------------------------------
 
@@ -403,6 +421,10 @@ class Drain:
                      f"{len(merged_now)} merged this drain"
                      + (f" ({', '.join(merged_now)})" if merged_now else ""))
         self._tail(plane, facts)
+        return EXIT_OK
+
+    def _killed(self) -> int:
+        self._report("stopped: kill accepted; run is restart-reconcilable")
         return EXIT_OK
 
     def _halted(self, plane: Plane, facts: Fold, merged_now: list[str], next_: Ticket) -> int:

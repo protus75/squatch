@@ -28,7 +28,7 @@ import squatch
 from squatch.box import BoxCorruption
 from squatch.config import ConfigError, load
 from squatch.control import ControlRequest, publish_control
-from squatch.daemon import DispatchPause, compose_daemon_control, compose_daemon_dispatch
+from squatch.daemon import DrainControl, compose_daemon_control, compose_daemon_dispatch
 from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
@@ -73,6 +73,7 @@ def _parser() -> argparse.ArgumentParser:
                        help="a stem the handing-off parent drain had parked (repeatable; "
                             "the self-upgrade re-exec sets it, never an operator)")
     sub.add_parser("pause", help="pause dispatch at its next safe boundary")
+    sub.add_parser("kill", help="stop the live drain and its active stage invocation")
     resume = sub.add_parser("resume", help="release one dispatch pause hold")
     resume.add_argument("--hold-id", type=UUID, required=True)
     sub.add_parser("triage", help="triage every pending Suggestion Box message once, then stop")
@@ -98,7 +99,7 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
     try:
         return {"status": _status, "new": _new, "run": _run, "confirm": _confirm,
                 "reject": _reject, "drain": _drain, "triage": _triage,
-                "pause": _control, "resume": _control}[args.verb](
+                "pause": _control, "resume": _control, "kill": _control}[args.verb](
             args, cwd, env, out, pipeline, clock, process)
     except Refusal as e:
         print(f"refused: {e.message}", file=out)
@@ -161,7 +162,7 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
                        report=lambda line: print(line, file=out)).run())
 
 
-class _AdmissionDispatchPause(DispatchPause):
+class _AdmissionDispatchPause(DrainControl):
     def __init__(self, inbox, journal):
         super().__init__(inbox)
         # Only accepted pause requests own dispatch holds. Admission holds must
@@ -184,7 +185,8 @@ class _AdmissionDispatchPause(DispatchPause):
 
 
 def _control_factory(state_dir: Path, config_supplier,
-                     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep):
+                     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+                     poll_sleep: Callable[[float], Awaitable[None]] = asyncio.sleep):
     fs = LocalFilesystem()
     sessions = {}
 
@@ -200,6 +202,19 @@ def _control_factory(state_dir: Path, config_supplier,
         async def wait_for_control() -> None:
             await inbox.consume(pause.apply)
             await sleep(1)
+
+        async def poll_for_control() -> None:
+            requests = []
+            for path in fs.list(state_dir / "control", "*.json"):
+                try:
+                    requests.append(ControlRequest.model_validate_json(fs.read(path)))
+                except ValueError:
+                    continue
+            if any(request.action == "kill" for request in requests):
+                await inbox.consume(pause.apply)
+            await poll_sleep(.05)
+
+        pause.bind_dispatch_control(poll_for_control)
 
         async def work(_stem, _captured) -> None:
             raise RuntimeError("the bootstrap drain owns dispatch observations")
@@ -225,10 +240,16 @@ def _control(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int
                           "wait for its next control boundary, then repeat the command") from None
         request = _control_request(args, lifecycle)
         publish_control(state_dir, request, LocalFilesystem())
-        hold_id = request.request_id if args.verb == "pause" else args.hold_id
-        print(f"published {args.verb}: hold id {hold_id}", file=out)
+        if args.verb == "kill":
+            print("published kill", file=out)
+        else:
+            hold_id = request.request_id if args.verb == "pause" else args.hold_id
+            print(f"published {args.verb}: hold id {hold_id}", file=out)
         return EXIT_OK
     try:
+        if args.verb == "kill":
+            raise Refusal("nothing running to kill",
+                          "start `squatch drain`, then repeat the command")
         with Journal(state_dir, clock=clock) as journal:
             inbox = compose_daemon_control(state_dir=state_dir, journal=journal,
                                            fs=LocalFilesystem())
@@ -250,6 +271,8 @@ def _control(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int
 def _control_request(args, lifecycle: UUID) -> ControlRequest:
     if args.verb == "pause":
         return ControlRequest(action="pause", lifecycle=lifecycle)
+    if args.verb == "kill":
+        return ControlRequest(action="kill", lifecycle=lifecycle)
     return ControlRequest(action="release", lifecycle=lifecycle, hold_id=args.hold_id)
 
 
@@ -312,9 +335,13 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         if pipeline is not None:  # a scripted stand-in (tests)
             return pipeline(journal)
         pause, _wait = control(journal)
-        return compose_pipeline(repo=cwd, config=config, env=env, journal=journal, clock=clock,
-                                process=process, fs=LocalFilesystem(), git=git,
-                                control_inbox=pause.inbox, admission_hold=pause.admission_hold)
+        composed = compose_pipeline(repo=cwd, config=config, env=env, journal=journal,
+                                    clock=clock, process=process, fs=LocalFilesystem(), git=git,
+                                    control_inbox=pause.inbox,
+                                    admission_hold=pause.admission_hold)
+        if getattr(args, "verb", None) == "drain":
+            pause.bind_abort(composed.stages.abort_active)
+        return composed
 
     async def go() -> int:
         try:

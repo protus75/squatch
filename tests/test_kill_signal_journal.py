@@ -1,4 +1,4 @@
-"""The dormant kill request boundary owned by the journal lock holder."""
+"""The activated production kill request boundary owned by the journal lock holder."""
 
 import argparse
 from datetime import datetime, timezone
@@ -68,8 +68,8 @@ async def test_stale_kill_identity_is_journaled_without_mutating(tmp_path):
     assert mutations == []
 
 
-def test_kill_boundary_is_dormant_and_not_a_cli_verb():
+def test_kill_boundary_is_an_active_cli_verb():
     subparsers = next(action for action in _parser()._actions
                       if isinstance(action, argparse._SubParsersAction))
 
-    assert "kill" not in subparsers.choices
+    assert "kill" in subparsers.choices
