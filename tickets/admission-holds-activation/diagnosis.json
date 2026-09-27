@@ -1,9 +1,16 @@
 {
-  "run_seq": 4,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 5,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "escalate",
+  "lessons": [
+    "Never call inbox.consume inside AdmissionHold. Wire hold.apply into the single consumer in __main__._control_factory, e.g. a composite that calls pause.apply and then hold.apply. wait() should block on an asyncio.Event that apply sets, with no sleep and no polling.",
+    "Build the lock-held inbox once per journal in one composition function and pass it explicitly to both the drain control factory and compose_pipeline. Remove the setattr/_inboxes side channel, the id(journal) keying, and the lazy inbox_for construction, which is a forbidden second inbox and fallback.",
+    "Raw asyncio.sleep in engine code bypasses the clock/sleep seam and is also busy-polling. An Event-based wait removes both problems.",
+    "tests/test_daemon_composition.py must drive _control_factory plus the pipeline factory over one journal. Assert the pause and queue.admission_hold share the same inbox object, publish a matching release, consume it through wait_for_control, and assert the hold clears.",
+    "tests/test_mergequeue.py needs queue-level tests through compose_merge_queue/admit: A,B,A,C reds hold the next admit; rebase and regate failures leave the count unchanged; green resets; a real tree mismatch in admit holds; a pre-hold release is stale; an unrelated task progresses while admit waits.",
+    "Prior lessons already required wiring apply to the one production consumer, and this attempt still added a second consumer. Before writing code, read ControlInbox._consume/discard_hold and the drain's wait_for_control."
+  ],
+  "reason": "Five attempts in, the same design lesson (a single consumer and a single shared inbox) went unapplied, and the required cross-module composition calls for more capability, not another same-tier retry.",
+  "detail": null
 }
