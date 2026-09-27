@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "7cdf4b3432612cb71cb6cc69739c08cc2e3dc40a",
+  "produced_at_sha": "d5669216c8c931f4dd5a564e06ec4b3702f9fe5b",
   "stem": "phase3-continue-19",
   "branch": "phase3-continue-19",
-  "base": "cb6333a5cd99d08475f286e190e7d3355b9c2ea6",
-  "head": "7cdf4b3432612cb71cb6cc69739c08cc2e3dc40a",
+  "base": "5b378f855e31f9d38b1e4428f96fc493bc55fd98",
+  "head": "d5669216c8c931f4dd5a564e06ec4b3702f9fe5b",
   "changed_files": [
     "tests/test_seeded_phase3_19.py"
   ],
@@ -14,18 +14,8 @@
       "code": "requisition_review",
       "verdict": "pass",
       "severity": "hard",
-      "path": "tickets/daemon-soak/ticket.md",
-      "sha": "bb7ddb9bef7e3e2f1b52ec99ad928ccec0596a25",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
       "path": "tickets/phase3-continue-20/ticket.md",
-      "sha": "45e67b2fb43c56ef64d7140665a81de10e7f32d4",
+      "sha": "3488d7e203c1a3b4a48f41169cb24f097063839f",
       "bypassed": false,
       "findings": [],
       "commands": []
