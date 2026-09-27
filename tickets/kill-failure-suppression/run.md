@@ -4,19 +4,18 @@ ok
 
 ## Surprises / judgment calls
 
-Separated kill-specific suppression from the existing generic worker-stop state so an accepted kill is the sole path that holds the control consumer open after worker cancellation.
+The stale-kill test exercises `kill_worker_stop_consumer` so the stale decision proves the real kill path left suppression disabled.
 
 ## Dead ends
 
-The initial stale-request test allowed an independent failure before the control pass consumed the request; it was revised to observe the stale decision before releasing that failure.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI / GPT-5
+OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
 
-Expected 75m; actual about 10m.
+Expected: 75m. Actual: about 25m.
