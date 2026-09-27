@@ -4,18 +4,23 @@ ok
 
 ## Surprises / judgment calls
 
-The ordinary producer is deliberately a no-code ticket; its contract delegates report writing to the merged canonical writer and keeps the runner as machinery.
+The prior review finding required `soak-run` to preserve only the runner suite
+already in its exact Context. Its criteria therefore describe the canonical
+writer's returned report rather than claiming an unchanged suite proves
+producer custody; the terminal exit owns that producer/machinery assertion.
 
 ## Dead ends
 
-Initial emitted ticket criteria did not meet the ticket linter's observable-artifact rule; they were tightened to name the existing verification evidence.
+The first focused run found wrapped acceptance-criteria bullets rejected by
+the ticket linter. The terminal continuation also needed each criterion to
+name its seeded verification artifact. Both were corrected before verification.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-codex / GPT-5 (exact serving model not exposed)
+codex / gpt-5.6-terra
 
 ## Predicted vs actual
 
