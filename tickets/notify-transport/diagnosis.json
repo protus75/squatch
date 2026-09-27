@@ -1,15 +1,17 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep everything else unchanged: review passed seam isolation, config validator, Effect keys, _serve wiring, startup-then-poll ordering, unset warning, timeout/failure handling, and replay suppression. Only add the missing new-signal test.",
-    "Add a tests/test_notify.py case: one NotificationReconciler instance, reconcile() on a journal with one escalation, then append a new integration_red_streak control_hold and a new storm_trip signal plus its paired storm_trip control_hold.",
-    "Call reconcile() again on the same instance. Assert exactly one new send per new escalation, the correct `squatch resume --hold-id <id>` text for each, no resend of the earlier one, and exactly one effect_completion per key.",
-    "Optionally strengthen the test_serve every-poll case: use a recording fake Notifications with the real NotificationReconciler, journal a signal after startup, and assert the next watch() pass delivers it. Stay inside the fence.",
+    "Drive storm escalations from the journaled `storm_trip` signal itself, not from its lazily created `control_hold`. Holds exist only after dispatch offers the origin, so startup reconcile misses trips. This overrides the earlier lesson that said to drive storm notices from the control_hold.",
+    "Key storm notifications as effect_key('notify', emitting_origin, 'storm_trip', trip_id), so the key stays the same whether or not a hold exists later. Keep red-streak keys on hold_id unchanged.",
+    "Resume action: if an unreleased storm_trip control_hold matches trip_id, render `squatch resume --hold-id <hold_id>`. If not, read daemon.py StormDispatchHold and the resume verb, then render the real pull-side action for a pending trip. Never render a placeholder.",
+    "Add a test_notify startup case that journals only a storm_trip signal with no hold and asserts it is sent. Add a test_serve case asserting it is sent before the first dispatch.",
+    "In SubprocessNotifications.notify, turn launch OSErrors other than FileNotFoundError (e.g. PermissionError, IsADirectoryError) into RuntimeError. Add a test_seams case with a non-executable file as argv[0], plus a reconciler test that it is reported and no completion is journaled.",
+    "Keep what passed review: seam isolation, config validator, red-streak keys, _serve wiring, startup-then-poll ordering, unset warning, replay suppression, timeout handling. Change only notify.py, seams.py and their tests, and add the serve startup case.",
     "Re-run all three Verification commands before committing. The soak suites must stay unchanged and green."
   ],
-  "reason": "The implementation passed every check, and review raised one test-coverage gap: signals created after startup and delivered on a later poll are never tested. That is a fixable oversight at the same capability.",
+  "reason": "Review found two concrete, fixable defects: storm trips without a hold are missed at startup, and non-FileNotFound OSErrors can crash serve. Both have clear fixes, so a retry at the same capability is enough.",
   "detail": null
 }
