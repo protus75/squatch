@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The continuation ticket needs its own ownership YAML block so the seeded-test pattern can pin every emitted ticket's compact fence consistently.
+The carried registry marks `kill-cli-activation` alone. I therefore authored phase3-continue-11 to seed only that singleton and phase3-continue-12; `heartbeat` begins its successor suffix.
 
 ## Dead ends
-The first focused test run showed the continuation lacked that ownership block and the failure-suppression scope omitted an explicit unrelated-failures guarantee; both were corrected before verification.
+The first focused test assertion expected wording that the worker ticket did not use; I aligned the assertion to the authored contract.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5
+Unknown.
 
 ## Predicted vs actual
-Expected 75m; actual about 12m.
+Expected 75m; actual about 20m.
