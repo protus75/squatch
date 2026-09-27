@@ -1,17 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "escalate",
-  "lessons": [
-    "Second attempt repeated the same misses despite prior lessons: MergeQueue still builds a default ControlInbox, daemon.py is unchanged, production drain/daemon is not wired, and tests/test_daemon_pause.py is not migrated. Treat each of these as required work.",
-    "Use one engine-owned ControlInbox, composed once through compose_daemon_control. Inject it into both DispatchPause and AdmissionHold with one mutate callback that routes each release by hold_id. Make MergeQueue's hold a required, injected dependency, never a default.",
-    "Wire pause/resume in the real production factory in __main__/daemon.py: pass pause and wait_for_control to compose_daemon_dispatch and the hold to the production merge queue. Prove it through main() or the production factory, not a hand-built graph.",
-    "If injecting the hold into the production merge queue needs squatch/merge.py (compose_merge_queue), which is outside the fence, stop and report per Definition of rejected. Don't work around it with a default inbox.",
-    "No-engine CLI path: never set inbox.lifecycle from operator input. Derive lifecycle and current hold from journaled state, reject mismatches as stale, and let direct resume release only the journaled hold. Add a public apply method; don't call pause._apply.",
-    "A held admission must not return gate_failed for the candidate, since that fails or reworks in-flight work. Wait on the hold, or return a non-failure outcome the pipeline re-queues. Check how the pipeline consumes Admission outcomes first.",
-    "Red streak: count three distinct stems and reset only on green. A repeated red stem must not restart the streak. Add a test for A, B, A, C and cover stale-lifecycle and pre-hold release rejection in test_control_cli.py."
-  ],
-  "reason": "Two attempts at the same tier ignored explicit steering on the multi-file production wiring and single-inbox design. Checks pass but the core integration is missing, so more capability is needed.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
