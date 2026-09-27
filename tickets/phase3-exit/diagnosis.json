@@ -1,9 +1,16 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The exit read and seeded-test approach were sound and the full suite was green. Keep both. Only the three authored ticket texts failed requisition review.",
+    "notify-transport: say Serve's notification parameter is a keyword whose default means no transport (status-only, like unset config.notify), so eval/daemon_soak.py and tests/test_daemon_soak_runner.py pass unchanged.",
+    "notify-transport: list tests/test_daemon_soak.py and tests/test_daemon_soak_runner.py as preservation-only suites in Verification. Require a tests/test_serve.py proof that the real _serve passes a non-default wrapper.",
+    "watchdog-event-stream: say CliClient passes the in-flight callback keyword to ProcessExec.run only when a consumer is supplied, so existing fakes and wrappers never receive it. Pin the no-consumer kwargs in tests/test_providers.py.",
+    "watchdog-event-stream: restate the seams criterion so SubprocessExec delivers each complete stdout line, including a final unterminated one, in order and exactly once. Capture, stdin and kill-and-wait stay unchanged. Keep normalization in the providers and watchdog criteria.",
+    "Extend tests/test_seeded_phase4_core.py to pin the new default-keyword, conditional-callback and line-delivery phrases, the same way it already pins other scope phrases."
+  ],
+  "reason": "Section 20 is repaired. The remaining requisition findings are ticket-text gaps with concrete paved roads the implementer can write inside the existing fence.",
+  "detail": null
 }
