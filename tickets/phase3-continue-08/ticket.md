@@ -55,6 +55,7 @@ pause_ownership:
       - squatch/mergequeue.py
       - squatch/merge.py
       - squatch/__main__.py
+      - eval/shakeout/bench.py
       - tests/test_mergequeue.py
       - tests/test_merge.py
       - tests/test_daemon_composition.py

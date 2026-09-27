@@ -27,6 +27,7 @@ OWNERSHIP = {
         "tests/test_daemon_composition.py"]},
     "admission-holds-activation": {"owns": [], "hooks": [
         "squatch/mergequeue.py", "squatch/merge.py", "squatch/__main__.py",
+        "eval/shakeout/bench.py",
         "tests/test_mergequeue.py", "tests/test_merge.py",
         "tests/test_daemon_composition.py"]},
     "phase3-continue-09": {"owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": []},
@@ -143,6 +144,7 @@ def test_predecessor_closure_and_preservation_only_exclusions_are_pinned():
     assert "squatch/__main__.py" in holds.context
     assert "tests/test_daemon_composition.py" in holds.scope_fence
     assert "tests/test_merge.py" in holds.scope_fence
+    assert "eval/shakeout/bench.py" in holds.scope_fence
     assert "squatch/__main__.py" in activation.context
     boundary = _ticket("dispatch-pause-boundary")
     assert {"squatch/drain.py", "tests/test_drain.py"} <= set(boundary.scope_fence)
