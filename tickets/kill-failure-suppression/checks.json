@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "fcad181504e13aea6219659d1bfc5af66f4b4d19",
+  "produced_at_sha": "856aa66dd9b45549f0d8ebaa0bbb931b9ad046de",
   "stem": "kill-failure-suppression",
   "branch": "kill-failure-suppression",
-  "base": "6c3ecbe82025ab8e7bf13b289b746568ab7b39f5",
-  "head": "fcad181504e13aea6219659d1bfc5af66f4b4d19",
+  "base": "9369b499265ece1c4472a7014853778f924c47ce",
+  "head": "856aa66dd9b45549f0d8ebaa0bbb931b9ad046de",
   "changed_files": [
     "squatch/daemon.py",
     "tests/test_kill_failure_suppression.py"
