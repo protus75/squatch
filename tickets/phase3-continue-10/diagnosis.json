@@ -1,14 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "phase3-continue-11's Scope in must author only `kill-cli-activation` and `phase3-continue-12` (2 seeds). Section 20 marks `kill-cli-activation` 'alone', so `heartbeat` belongs to the next admission.",
-    "Edges for continue-11's batch: `kill-cli-activation` depends on `phase3-continue-11`, and `phase3-continue-12` depends on `kill-cli-activation`. Remove `heartbeat` from continue-11's identities, edges, budgets, and new-path owners.",
-    "continue-11's carried admission list must start with `[kill-cli-activation]`. Its successor suffix is that list minus its head, starting at `[heartbeat]`. Check that no seed repeats a previous admission and no admission is merged into another.",
-    "The focused and full test suites passed while the requisition review still failed. Before committing, read the emitted continuation's Scope in against section 20's 'alone' markers, not just against the pinned test."
+    "Add tests/test_kill_executor_abort.py to kill-worker-stop Context and Verification. State that worker-stop is a separate composition in squatch/daemon.py and that `driver_abort_consumer(inbox, driver)` keeps its two-argument signature and behavior unchanged.",
+    "kill-worker-stop must name the exact workers: DaemonTasks' sibling watcher, merge, and box tasks. It must say how the stop avoids cancelling the control consumer that runs the kill. Add tests/test_daemon_tasks.py to Context and Verification as a preservation-only suite.",
+    "The kill-cli-activation seed in continue-11 must fence the predecessor negative test it invalidates: tests/test_kill_signal_journal.py (the kill-boundary dormancy test near line 71). Add the other test_kill_*.py predecessor tests it must migrate or preserve too.",
+    "continue-11's criteria must require predecessor-test closure and a check that every existing fence path is existing Context, as section 20 requires of every continuation. Keep the singleton [kill-cli-activation] batch and the heartbeat-first suffix.",
+    "Extend tests/test_seeded_phase3_10.py to pin the added Context paths and the preservation suites, then rerun the max-effort render headroom check, since the extra Context grows the render. Green tests did not catch the requisition gaps, so read each seed against the review criteria."
   ],
-  "reason": "The check gate's requisition review found a fixable authoring mistake: continue-11's seed list merges two admissions. The finding gives an exact fix within the ticket's fence.",
+  "reason": "Requisition review found fixable Context, fence and worker-identity gaps in the authored seeds; each has a paved road within the ticket's fence.",
   "detail": null
 }
