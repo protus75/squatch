@@ -1,0 +1,179 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "f87bf7ac1b1c24064959dc20bf3d76d2e9253f7d",
+  "stem": "phase4-continue",
+  "branch": "phase4-continue",
+  "base": "ef5a6cc0c2c11cf16b983f22b4c8d46ccebcd886",
+  "head": "f87bf7ac1b1c24064959dc20bf3d76d2e9253f7d",
+  "changed_files": [
+    "tests/test_seeded_phase4_01.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase4-continue-02/ticket.md",
+      "sha": "ae85db8995c1977bbd6cdac305ddc4e31815cf6c",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase4-continue-02/ticket.md",
+          "line": null,
+          "message": "The Scope in ownership contract pins `provider-cooldown-failover: {owns: [], hooks: []}`. Section 20 states that \"Provider/failover owns providers, timers, direct tests, and required drain/serve entry wiring.\" A KNOWN-DEEP payload with an empty fence cannot touch any file, and the first acceptance criterion would make tests/test_seeded_phase4_02.py pin that unbuildable empty fence as correct.",
+          "paved_road": "Pin the section 20 core fence for provider-cooldown-failover. Use the existing `squatch/providers.py`, `squatch/timers.py`, `tests/test_providers.py` and the relevant existing timers test (`tests/test_restart_timers.py`), plus a new direct test path such as `tests/test_provider_failover.py` (listed in new-path owners). Add the required entry wiring hooks: `squatch/drain.py`, `squatch/serve.py`, and `squatch/__main__.py` if the CLI root binds them. Classify each hook as embedded Context or a fenced on-demand headroom exception."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase4-continue-02/ticket.md",
+          "line": null,
+          "message": "The Scope in `context:` block names Context only for phase4-continue-03 and gives none for provider-cooldown-failover. Section 20's seed law requires every seed to close its fence over existing Context. Once the provider fence is non-empty, each existing fenced path needs either an embedded Context entry or an explicit on-demand exception, and a max-effort render that stays within REQ_RENDER_HEADROOM.",
+          "paved_road": "Add a provider-cooldown-failover Context list of existing paths only (for example `squatch/providers.py`, `squatch/timers.py`, `tests/test_providers.py`, and the serve/drain evidence that fits). Name the large production roots as on-demand exceptions. Have tests/test_seeded_phase4_02.py pin that partition, the authoring-time sizes, and max-effort headroom for both seeds, following the tests/test_seeded_phase3_11.py pattern."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase4-continue-02/ticket.md",
+          "line": null,
+          "message": "Scope in says \"Author only confirmed `provider-cooldown-failover`\". Scope out says \"Do not author the provider payload now ... add a payload\", and Definition of rejected says \"Reject an authored payload\". Read literally, these criteria cannot all be satisfied: the required provider seed is itself the authored payload that the rejection rule rejects.",
+          "paved_road": "Say what is actually out of scope, as tickets/phase4-continue/ticket.md does. Scope out: \"Do not implement provider cooldown/failover behavior or reliability machinery; do not add, rename, reorder, omit, or split a registry payload.\" Definition of rejected: reject \"a payload outside the registry\" or implementation code, not \"an authored payload\"."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/watchdog-activation/ticket.md",
+      "sha": "9b76312cead94e97caec820e11b39d3a3accd4e1",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-activation/ticket.md",
+          "line": null,
+          "message": "The Scope in wires the detector through provider and Serve composition only. The plan's watchdog chain (section 19 Phase 4 deliverables, stem 4) makes activation the stem that flips production STAGES to the watched path, with EVERY production driver call watched, the review stage included. Production drain calls are built outside serve.py: `squatch/stages.py:1114` constructs `CliClient` and `squatch/__main__.py:337` builds the drain client. Neither the Scope in nor the criteria cover these, and the stage/driver owners (`squatch/stages.py`, `squatch/driver.py`) are missing from the fence.",
+          "paved_road": "Fence the module that owns the stage/driver call seam (`squatch/stages.py`, plus `squatch/driver.py` if the callback passes through the Driver). Keep `squatch/__main__.py` as the on-demand root. Add a criterion that production driver calls on both the bootstrap `drain` and `serve` paths, review included, are watched by the constructed detector."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-activation/ticket.md",
+          "line": null,
+          "message": "The Plan contract cites only section 20. Its Phase 4 registry fixes names and order but gives no detector semantics and no activation fence. So criterion 1, 'consumes the completed detector only after detector construction', has no observable to check against: it doesn't say which callback, which calls, or what effect. The watchdog signal (spend-without-progress over the in-flight event stream, 3x per-call cost basis, the three time regions) is defined in section 9. The activation stem's custody (production stage flip, re-pointing each predecessor dormancy fixture) is defined in section 19.",
+          "paved_road": "Cite sections 9 and 19 alongside 20, or restate their operative clauses in the ticket. Make criterion 1 concrete: every production `CliClient.call` made through the composed stages receives the detector as `on_event`, and the test proves this through the real composition rather than a harness-built client."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-activation/ticket.md",
+          "line": null,
+          "message": "Criterion 3 asks a production test file to prove that 'the on-demand root and sibling-new predecessor test remain outside Context'. That is a property of the ticket's own authoring partition, not engine behavior. The pinning belongs in the seeding continuation's `tests/test_seeded_phase4_<nn>.py`, which this ticket doesn't own. 'No provider cooldown/failover or reliability payload' is also a Scope-out statement, not a testable criterion.",
+          "paved_road": "Drop criterion 3. Keep the no-failover/no-second-payload rule in Scope out and Definition of rejected. Leave Context-partition pinning to the continuation's seeded test."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-activation/ticket.md",
+          "line": null,
+          "message": "Changing `Serve.compose` so its `CliClient`/Driver wiring is watched changes the production composition that `tests/test_serve.py` and `eval/daemon_soak.py` (via `Serve(...)` at line 403) exercise. Neither is in the fence, Context, or Verification, so a composition regression or a needed migration there goes unchecked.",
+          "paved_road": "Either state that `Serve`'s constructor signature is unchanged and add `tests/test_serve.py` and `tests/test_daemon_soak.py` to Verification as preservation suites, or fence each file whose assertions the wiring invalidates."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/watchdog-detector/ticket.md",
+      "sha": "7dca99bd68109815924b7e85a4fdea564d48115e",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-detector/ticket.md",
+          "line": null,
+          "message": "Plan contract cites only section 20. Section 20 names `watchdog-detector` but gives none of its semantics. The detector is defined in section 9 under 'Watchdogs: liveness and progress are different questions'. That subsection sets the three time regions: healthy below expected x 1.5, soft band from expected x 1.5 up to stuck, then stuck. It also sets the single v1 signal, spend-without-progress: spend since the last mutation to a declared output file (any path under a `## Scope fence` prefix) above 3 x the serving row's per-call cost basis (metered usage, else `limits.est_cost_per_call_usd`), with no model calls. Implement and Review cannot see any of this.",
+          "paved_road": "Add section 9 to `## Plan contract`, or restate the section 9 detector contract in Scope in and the acceptance criteria. Keep section 20 as the naming and order authority."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-detector/ticket.md",
+          "line": null,
+          "message": "The acceptance criteria only check form ('injectable, deterministic, dormant construction', 'names the detector as dormant'). None states a behavior the detector must produce. An empty class or a no-op stub passes all three, which is the stub false-green that the section 9 ownership law refuses. The third criterion only requires the new test to 'name' two tests in prose. That is not a checkable behavior.",
+          "paved_road": "Write criteria that pin the detector's verdict over an injected clock, time budget, fence prefixes, cost basis, and event sequence. At minimum: healthy region gives no signal; soft band plus spend over 3 x cost basis with no declared-output mutation gives exactly one trip per run sequence; a declared-output mutation resets the spend; stuck region belongs to the timeout path, not this detector. Make the dormancy criterion an executable check, such as an AST or source-scan proof that no production module constructs or calls the detector. Drop the prose-naming criterion or turn it into that assertion."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-detector/ticket.md",
+          "line": 12,
+          "message": "`WatchdogEventKind` is `Literal[\"start\", \"tool_call\"]`, and `WatchdogEvent` has no path field. The shipped event stream therefore cannot express a mutation to a declared output file, which spend-without-progress needs. The ticket doesn't say where that input comes from. If the implementer extends the event kinds, the producer normalization in `squatch/providers.py` becomes forced, and that file is outside the fence.",
+          "paved_road": "Say explicitly how the detector receives mutation observations while staying inside the fence. Option 1: a separate injected mutation observation or path-set input to the detector, with provider normalization left unchanged. Option 2: extend the event model, and then add `squatch/providers.py` and `tests/test_providers.py` to the fence and Context with a matching criterion."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase4_01.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
