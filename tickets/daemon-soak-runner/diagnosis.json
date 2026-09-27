@@ -1,15 +1,9 @@
 {
-  "run_seq": 4,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "Remove the planted re-run verification failure in _ScenarioProcess.run (the _implement_calls == 2 branch). The kill fault must not be followed by a second fault the harness injects to produce a disposition.",
-    "After restart and reconcile, let run 1 finish however production finishes it (likely merged). Take observed from the terminal events production wrote for run 0 (abandoned) and run 1.",
-    "Set expected in _FAULTS from the plan section 20 / tests/test_restart_timers.py outcome for a worker kill, never from an outcome the harness forces. Cite the source in a comment.",
-    "Take disposition and producing_run only from a Box or alert/escalation record that production wrote for the abandoned or redispatched run. If there is none, do not invent one: report the member not green, or return the ticket for plan repair.",
-    "Keep what works: Serve->Pipeline.run->MergeQueue admission, 24 one-hour ticks through the serve sleep seam per lifecycle, the restart on the same state dir, provider-seam review, and the conflict and integration-red members. Review raised no finding on those."
-  ],
-  "reason": "Review found one narrow defect: the harness plants a rerun failure so worker_killed_mid_run gets a disposition. Everything else passed checks and review, so a steered fix at the same capability should resolve it.",
-  "detail": null
+  "run_seq": 5,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
