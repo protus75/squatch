@@ -13,4 +13,4 @@ The first heartbeat criterion used prose rather than a quoted observable test pa
 OpenAI Codex (model identity not exposed).
 
 ## Predicted vs actual
-Expected 75m; actual about 25m.
+Expected 75m; actual about 15m.
