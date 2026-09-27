@@ -1,0 +1,13 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Do not commit tickets/phase3-exit/ticket.md. Anything under tickets/** is ticket-plane outbox output: leave it uncommitted in the worktree and the driver lifts it. Commit only tests/test_seeded_phase3_23.py.",
+    "The code content passed scope_fence, verification, run_record, diff_budget and review (approve). Keep the ticket and test as they are and change only what gets committed.",
+    "Before finishing, run git status and check that the branch's committed diff touches no tickets/** path. The untracked ticket file must still exist in the worktree so tests/test_seeded_phase3_23.py can read it."
+  ],
+  "reason": "The only failure was post_rebase_regate: the new ticket file was committed on the code lane, which is a fixable packaging mistake with a stated fix, and every other gate and the review passed.",
+  "detail": null
+}
