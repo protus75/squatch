@@ -29,6 +29,8 @@ The exit reads that committed custody rather than rerunning or self-attesting
 the soak, then makes the plan-defined Phase 4 boundary available.
 The regenerated seed runs after the section-20 registry compaction and the
 merged predecessor-fixture migration; main is green at this ticket SHA.
+It also consumes the repaired Phase 4 composition fences: the ProcessExec
+event callback owner and the distinct production notification seam/root.
 
 ## Scope in
 Implement in order. First, add `tests/test_phase3_exit.py`, a
@@ -49,11 +51,17 @@ Second, author only the confirmed Phase 4 core tickets
 machinery seeds depend on `phase3-exit`, cite section 20 alone, start
 medium/medium, and use budgets within `drain.max_ticket_minutes`.
 `watchdog-event-stream` owns new `squatch/watchdog.py`, existing
-`squatch/providers.py`, new `tests/test_watchdog.py`, and existing
-`tests/test_providers.py`, embedding its two existing paths. `notify-transport`
-owns new `squatch/notify.py`, existing `squatch/config.py`, existing
-`squatch/seams.py`, new `tests/test_notify.py`, existing `tests/test_config.py`,
-and existing `tests/test_seams.py`, embedding every existing fence path.
+`squatch/providers.py`, existing `squatch/seams.py`, new
+`tests/test_watchdog.py`, and existing `tests/test_providers.py` and
+`tests/test_seams.py`, embedding every existing path. `notify-transport` owns
+new `squatch/notify.py`, existing `squatch/config.py`, `squatch/seams.py`,
+`squatch/serve.py`, `squatch/__main__.py`, new `tests/test_notify.py`, and
+existing `tests/test_config.py`, `tests/test_seams.py`, `tests/test_serve.py`.
+It embeds config, seams, serve, and the serve test; the CLI root and other two
+tests are fenced on-demand headroom exceptions. Its ticket pins the distinct
+injectable `Notifications.notify(argv)` seam, private notification
+SubprocessExec, separate `_serve` construction, and Serve watcher reconciliation
+at startup and each poll, including the unset warning/status-only path.
 `phase4-continue` depends on both machinery stems, owns only `tickets` and
 new `tests/test_seeded_phase4_01.py`, embeds `tests/test_seeded_phase3_11.py`,
 cites section 20 alone, and starts medium/medium.
