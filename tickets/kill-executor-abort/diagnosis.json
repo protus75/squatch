@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Driver.abort_active must not swallow the caller's own CancelledError: replace `try: await active / except CancelledError: pass` with `active.cancel(); await asyncio.wait({active})`, which observes the unwind without raising from active and still lets the consumer's cancellation propagate.",
+    "With asyncio.wait, an exception the aborted invocation raises while unwinding stays with the active caller instead of being re-raised into the control consumer.",
+    "Add a test that cancels the task awaiting driver_abort_consumer(inbox, driver)() while the resisting Hang is still unwinding, and assert that task raises CancelledError.",
+    "Keep the rest: the daemon adapter, the Driver.run/_run split, and the existing test met the acceptance criteria, and all checks passed. Stay inside the three fenced paths."
+  ],
+  "reason": "The only blocker is a concrete, fixable swallowed-CancelledError finding in abort_active, and the review gave a paved road for it.",
+  "detail": null
+}
