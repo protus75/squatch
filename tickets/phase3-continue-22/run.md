@@ -4,16 +4,14 @@ ok
 
 ## Surprises / judgment calls
 
-The prior review finding required `soak-run` to preserve only the runner suite
-already in its exact Context. Its criteria therefore describe the canonical
-writer's returned report rather than claiming an unchanged suite proves
-producer custody; the terminal exit owns that producer/machinery assertion.
+The plan's later Phase 3 exit clarification makes `phase3-exit` the
+plan-named KNOWN-HARD high/high exception to the Phase 3 medium default, so
+the terminal continuation and its contract pin that tier.
 
 ## Dead ends
 
-The first focused run found wrapped acceptance-criteria bullets rejected by
-the ticket linter. The terminal continuation also needed each criterion to
-name its seeded verification artifact. Both were corrected before verification.
+The focused contract test initially exposed phrase assertions split over line
+wraps in the authored ticket text; those phrases were kept contiguous.
 
 ## Second problems filed
 
@@ -24,4 +22,4 @@ codex / gpt-5.6-terra
 
 ## Predicted vs actual
 
-Expected 75m; actual about 20m.
+Expected 75m; actual about 15m.
