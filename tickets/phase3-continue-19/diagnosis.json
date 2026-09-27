@@ -1,14 +1,15 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "The review snag was about test strength only. Checks and fence passed, and the tickets and Context partition are sound. Change only tests/test_seeded_phase3_19.py, then rerun both pytest commands.",
-    "Criterion 4: assert that phase3-continue-20 Scope in makes soak-run and phase3-continue-21 medium/medium, sets 75m/150m budgets within `drain.max_ticket_minutes`, and keeps cap 3. Add any missing phrases to the ticket text first.",
-    "Replace the membership checks on the parsed phase3-continue-20 ownership with exact dict equality: soak-run owns [tickets/soak-run/daemon-soak-report.json], hooks []. Mirror the existing `contract == OWNERSHIP` check.",
-    "The exact expected future ownership is phase3-continue-21 owns [tickets, tests/test_seeded_phase3_21.py], hooks []; phase3-exit owns [tickets, tests/test_phase3_exit.py, tests/test_seeded_phase4_core.py], hooks []."
+    "The review snag is about test strength only. Checks, the fence, and verification all passed. Change only tests/test_seeded_phase3_19.py, plus the phase3-continue-20 ticket text if a pinned clause is missing, then rerun both pytest commands.",
+    "Replace the split checks 'KNOWN-HARD high/high' and 'phase3-exit` is' with one contiguous assertion tying phase3-exit's tier to its edge, e.g. \"`phase3-exit` is KNOWN-HARD high/high, depends on `soak-run`\". First confirm the ticket contains that exact wording.",
+    "Pin the single-exit tail with an exact clause such as \"authors `phase3-exit` alone and no successor\", not the bare substring 'no successor'. Add the clause to the phase3-continue-20 Scope in first if the ticket lacks it.",
+    "FUTURE_CONTEXT is only checked as loose per-path substrings, and every path also appears elsewhere in Scope in. Parse the per-stem Context partition sentence into a dict and assert it equals FUTURE_CONTEXT, as the ownership check does with `future == FUTURE_OWNERSHIP`.",
+    "Before asserting any phrase, read the phase3-continue-20 ticket text and copy each clause verbatim. Each assertion must be anchored to its stem so that another seed's text cannot satisfy it."
   ],
-  "reason": "Fixable test-coverage gap that review findings now steer precisely; same capability suffices.",
+  "reason": "Fixable test-strength oversight: the review names the exact missing assertions (phase3-exit edge, single-exit tail) and all mechanical checks passed.",
   "detail": null
 }
