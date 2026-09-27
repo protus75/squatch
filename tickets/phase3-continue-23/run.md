@@ -1,11 +1,13 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The supplied `phase3-continue-23` ticket includes `tests/test_seeded_phase3_22.py` in its own Scope fence and Context, while this ticket requires that predecessor test to change only its pinned Context addition.
+The predecessor fixture now keeps its immutable predecessor-YAML expectation
+separate from the current continuation's changed fence and Context contract.
 
 ## Dead ends
-The focused new test passed. The required full suite failed in three unchanged predecessor assertions because the current continuation ticket has an additional fence path and Context path (`tests/test_seeded_phase3_22.py`) that those assertions are forbidden to update for this ticket. Making the suite green requires changing the predecessor ownership, Context, and size assertions beyond the allowed Context addition.
+The initial Phase 4 assertions compared local constants to literals and did not
+pin the registry. They were replaced with plan-and-exit-ticket comparisons.
 
 ## Second problems filed
 
@@ -13,4 +15,4 @@ The focused new test passed. The required full suite failed in three unchanged p
 codex/GPT-5
 
 ## Predicted vs actual
-75m / approximately 15m
+75m / approximately 25m
