@@ -17,72 +17,68 @@ agent_effort: medium
 - section 20
 
 ## Goal
-Author the soak run and terminal Phase 3 continuation.
+Author production serve activation and the next shrinking continuation.
 
 ## Why
-Daemon soak supplies the report machinery; the final admissions consume its ordinary-lane evidence.
+The first daemon-soak landing supplied schema, writer, and custody but exposed the missing production `serve` composition and deterministic report-producing runner. The corrected suffix must land those boundaries before the no-code run lane.
 
 ## Scope in
-Author only `soak-run` and `phase3-continue-21`, plus `tests/test_seeded_phase3_20.py`. Both are medium/medium, cite section 20 alone, use 75m/150m budgets within `drain.max_ticket_minutes`, cap 3, and derive fences as owns followed by hooks. The exact established Context is `tests/test_seeded_phase3_11.py` and `tests/test_daemon_composition.py`; `tests/test_seeded_phase3_19.py` and `tests/test_seeded_phase3_20.py` are sibling-new and never enter Context.
+Author only confirmed `serve-activation` and `phase3-continue-21`, plus `tests/test_seeded_phase3_20.py`. `serve-activation` depends on `phase3-continue-20` and `daemon-soak`, is KNOWN-DEEP high/high, cites section 20 alone, uses 75m/150m budgets, and rides this admission alone. `phase3-continue-21` depends on `serve-activation`, is medium/medium with 75m/150m budgets, and owns the next ticket-plane admission. The batch stays within cap 3 and derives fences as owns followed by hooks.
 
 ```yaml
 ownership:
-  soak-run:
+  serve-activation:
     owns:
-    - tickets/soak-run/daemon-soak-report.json
+    - squatch/serve.py
+    - squatch/daemon.py
+    - squatch/__main__.py
+    - tests/test_serve.py
+    - tests/test_daemon_composition.py
+    - tests/test_daemon_tasks.py
+    - tests/test_kill_worker_stop.py
+    - tests/test_kill_failure_suppression.py
     hooks: []
   phase3-continue-21:
     owns:
     - tickets
     - tests/test_seeded_phase3_21.py
     hooks: []
-  phase3-exit:
-    owns:
-    - tickets
-    - tests/test_phase3_exit.py
-    - tests/test_seeded_phase4_core.py
-    hooks: []
 ```
 
-The exact authoring-time Context partitions are:
+The exact authoring-time embedded Context partitions are:
 ```yaml
 context:
-  soak-run:
-  - eval/daemon_soak.py
-  - squatch/artifacts.py
-  - squatch/stages.py
-  - tests/test_daemon_soak.py
+  serve-activation:
+  - tests/test_daemon_composition.py
+  - tests/test_daemon_tasks.py
+  - tests/test_kill_worker_stop.py
+  - tests/test_kill_failure_suppression.py
   phase3-continue-21:
   - tests/test_seeded_phase3_11.py
   - tests/test_daemon_composition.py
-  phase3-exit:
-  - tickets/soak-run/daemon-soak-report.json
-  - eval/daemon_soak.py
-  - squatch/artifacts.py
-  - tests/test_daemon_soak.py
 ```
 
-`soak-run` depends on both `phase3-continue-20` and `daemon-soak`, changes no code, is fenced only to `tickets/soak-run/daemon-soak-report.json`, and produces that report through the ordinary lane. `phase3-continue-21` depends on `soak-run`, owns `tickets` plus `tests/test_seeded_phase3_21.py`, and authors `phase3-exit` alone and no successor. `phase3-exit` is KNOWN-HARD high/high, depends on `soak-run`, reads `tickets/soak-run/daemon-soak-report.json` against the schema owned by `squatch/artifacts.py`; `daemon-soak` is its machinery and `soak-run` its producer. It owns `tickets`, `tests/test_phase3_exit.py`, and `tests/test_seeded_phase4_core.py`.
+`serve-activation` adds the `serve` verb and production continuous loop, composes the existing dispatch, watcher, merge, box, control, heartbeat, restart/timer, storm, checkpoint, and worker-task boundaries, activates worker-stop and kill-failure-suppression, reconciles before dispatch, holds the writer lock for its lifetime, and exits only through kill/signal or terminal worker failure. Its test constructs the real production graph in-process, replaces the existing `serve`-absence assertion, and migrates only invalidated predecessor dormancy assertions. `squatch/daemon.py` and `squatch/__main__.py` are fenced on-demand inspection exceptions because embedding them with all four predecessor tests breaches render headroom; every other existing fence path is embedded Context. New `squatch/serve.py` and `tests/test_serve.py` are sibling-new.
 
-The exact future Context partitions are `soak-run`: `eval/daemon_soak.py`, `squatch/artifacts.py`, `squatch/stages.py`, and `tests/test_daemon_soak.py`; `phase3-continue-21`: `tests/test_seeded_phase3_11.py` and `tests/test_daemon_composition.py`; and `phase3-exit`: `tickets/soak-run/daemon-soak-report.json`, `eval/daemon_soak.py`, `squatch/artifacts.py`, and `tests/test_daemon_soak.py`. Every listed path exists when its ticket is authored; each listed predecessor test is closure Context, and sibling-new or delimiter-bearing prompt-spec paths remain excluded.
+`phase3-continue-21` carries the corrected remaining admissions and authors `daemon-soak-runner` alone plus `phase3-continue-22`. The runner is KNOWN-DEEP high/high, depends on `serve-activation`, and owns `eval/daemon_soak.py`, `tests/test_daemon_soak.py`, and new `tests/test_daemon_soak_runner.py`. It drives the merged production serve composition through injected seams for at least 24 injected hours and derives every closed member field from member-local evidence before returning a `DaemonSoakReport` to the existing writer. `phase3-continue-22` later authors medium/medium no-code `soak-run` plus `phase3-continue-23`; `soak-run` depends on `daemon-soak-runner` and produces only `tickets/soak-run/daemon-soak-report.json`. `phase3-continue-23` authors KNOWN-HARD high/high `phase3-exit` alone and no successor; the exit depends on `soak-run`, owns `tickets`, `tests/test_phase3_exit.py`, and `tests/test_seeded_phase4_core.py`, and reads the committed report with `daemon-soak-runner` as machinery and `soak-run` as producer.
 
 The terminal admissions are:
 ```yaml
-[[soak-run], [phase3-exit]]
+[[serve-activation], [daemon-soak-runner], [soak-run], [phase3-exit]]
 ```
-Pin exact identities, edges, tiers, budgets, fences, Context partitions, new-path owners, predecessor-test closure, authoring-time Context sizes, the shrinking suffix, and each max-effort `specs/implement.md` render under `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`.
+Pin exact identities, edges, tiers, budgets, fences, embedded/on-demand Context partitions, new-path owners, predecessor-test closure, authoring-time Context sizes, the shrinking suffix, and each max-effort `specs/implement.md` render under `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`. The successor removes only the serve-activation row.
 
 ## Scope out
-Do not run daemon soak, implement `soak-run`, author Phase 3 exit, or include sibling-new or delimiter-bearing prompt-spec sources in Context.
+Do not implement serve, run daemon soak, author later suffix seeds now, embed the two on-demand production roots, or include sibling-new or delimiter-bearing prompt-spec sources in Context.
 
 ## Scope fence
 - tickets
 - tests/test_seeded_phase3_20.py
 
 ## Acceptance criteria
-- `tests/test_seeded_phase3_20.py` pins exact `soak-run` and terminal Context partitions, identities, edges, tiers, budgets, fences, and new-path owners.
-- `tests/test_seeded_phase3_20.py` pins exit-read closure, report producer/schema/machinery, predecessor-test closure, authoring-time sizes, and the seeding cap.
-- `tests/test_seeded_phase3_20.py` pins the shrinking suffix, each max-effort `specs/implement.md` render, and no successor after `phase3-exit`.
+- `tests/test_seeded_phase3_20.py` pins exact `serve-activation` and `phase3-continue-21` identities, dependency edges, high/high versus medium/medium tiers, 75m/150m budgets, cap 3, and exact owns-then-hooks fences.
+- `tests/test_seeded_phase3_20.py` pins every embedded existing fence path as Context, the two production-root on-demand exceptions, new-path owners, predecessor-test closure, authoring-time Context sizes, and exclusion of sibling-new paths and `squatch/specs.py` from Context.
+- `tests/test_seeded_phase3_20.py` pins the exact corrected suffix `[[serve-activation], [daemon-soak-runner], [soak-run], [phase3-exit]]`, exact successor suffix equality after removing only serve-activation, downstream owners/edges/tiers, and each max-effort render within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`.
 
 ## Verification
 ```
@@ -91,7 +87,7 @@ uv run pytest -q
 ```
 
 ## Definition of rejected
-Reject an unnamed or combined admission, a code change in soak-run, missing exit-read closure, sibling-new Context, or a successor after Phase 3 exit.
+Reject a combined KNOWN-DEEP admission, missing production-serve boundary, missing member-local soak evidence, sibling-new Context, an embedded on-demand production root, or a successor after Phase 3 exit.
 
 ## Time budget
 - expected: 75m

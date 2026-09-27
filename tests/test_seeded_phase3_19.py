@@ -43,35 +43,38 @@ NEW_PATH_OWNERS = {
     "eval/daemon_soak.py": "daemon-soak",
     "tests/test_daemon_soak.py": "daemon-soak",
     "tests/test_seeded_phase3_20.py": "phase3-continue-20",
-    "tickets/soak-run/daemon-soak-report.json": "soak-run",
+    "squatch/serve.py": "serve-activation",
+    "tests/test_serve.py": "serve-activation",
     "tests/test_seeded_phase3_21.py": "phase3-continue-21",
-    "tests/test_phase3_exit.py": "phase3-exit",
-    "tests/test_seeded_phase4_core.py": "phase3-exit",
 }
 FUTURE_OWNERSHIP = {
-    "soak-run": {"owns": ["tickets/soak-run/daemon-soak-report.json"], "hooks": []},
+    "serve-activation": {
+        "owns": [
+            "squatch/serve.py", "squatch/daemon.py", "squatch/__main__.py",
+            "tests/test_serve.py", "tests/test_daemon_composition.py",
+            "tests/test_daemon_tasks.py", "tests/test_kill_worker_stop.py",
+            "tests/test_kill_failure_suppression.py",
+        ],
+        "hooks": [],
+    },
     "phase3-continue-21": {
         "owns": ["tickets", "tests/test_seeded_phase3_21.py"], "hooks": [],
     },
-    "phase3-exit": {
-        "owns": ["tickets", "tests/test_phase3_exit.py", "tests/test_seeded_phase4_core.py"],
-        "hooks": [],
-    },
 }
 FUTURE_CONTEXT = {
-    "soak-run": (
-        "eval/daemon_soak.py", "squatch/artifacts.py", "squatch/stages.py",
-        "tests/test_daemon_soak.py",
+    "serve-activation": (
+        "tests/test_daemon_composition.py", "tests/test_daemon_tasks.py",
+        "tests/test_kill_worker_stop.py", "tests/test_kill_failure_suppression.py",
     ),
     "phase3-continue-21": (
         "tests/test_seeded_phase3_11.py", "tests/test_daemon_composition.py",
     ),
-    "phase3-exit": (
-        "tickets/soak-run/daemon-soak-report.json", "eval/daemon_soak.py",
-        "squatch/artifacts.py", "tests/test_daemon_soak.py",
-    ),
 }
-FULL = (("daemon-soak",), ("soak-run",), ("phase3-exit",))
+ORIGINAL_FULL = (("daemon-soak",), ("soak-run",), ("phase3-exit",))
+CORRECTED_SUFFIX = (
+    ("serve-activation",), ("daemon-soak-runner",),
+    ("soak-run",), ("phase3-exit",),
+)
 
 
 def _path(stem):
@@ -168,34 +171,31 @@ def test_authoring_sizes_section_length_and_max_effort_headroom():
         assert historical_length <= limit, (stem, historical_length, limit)
 
 
-def test_terminal_continuation_pins_soak_run_and_phase3_exit_contract():
+def test_corrective_continuation_pins_serve_and_soak_runner_contract():
     continuation = _ticket("phase3-continue-20")
     assert continuation.depends == ("daemon-soak",)
     scope = _section("phase3-continue-20", "Scope in")
-    assert _admissions("phase3-continue-20") == (("soak-run",), ("phase3-exit",))
-    assert "Both are medium/medium" in scope
-    assert "75m/150m budgets within `drain.max_ticket_minutes`" in scope
+    assert _admissions("phase3-continue-20") == CORRECTED_SUFFIX
+    assert "`serve-activation` depends on `phase3-continue-20` and `daemon-soak`" in scope
+    assert "is KNOWN-DEEP high/high" in scope
+    assert "`phase3-continue-21` depends on `serve-activation`" in scope
+    assert "is medium/medium with 75m/150m budgets" in scope
     assert "cap 3" in scope
-    assert "depends on both `phase3-continue-20` and `daemon-soak`" in scope
-    assert "changes no code" in scope
-    assert "fenced only to `tickets/soak-run/daemon-soak-report.json`" in scope
-    assert "phase3-continue-21` depends on `soak-run`" in scope
-    assert "authors `phase3-exit` alone and no successor" in scope
-    assert "`phase3-exit` is KNOWN-HARD high/high, depends on `soak-run`" in scope
-    assert "reads `tickets/soak-run/daemon-soak-report.json` against the schema owned by `squatch/artifacts.py`" in scope
-    assert "`daemon-soak` is its machinery and `soak-run` its producer" in scope
+    assert "adds the `serve` verb and production continuous loop" in scope
+    assert "activates worker-stop and kill-failure-suppression" in scope
+    assert "`squatch/daemon.py` and `squatch/__main__.py` are fenced on-demand inspection exceptions" in scope
+    assert "authors `daemon-soak-runner` alone plus `phase3-continue-22`" in scope
+    assert "drives the merged production serve composition through injected seams" in scope
+    assert "`phase3-continue-23` authors KNOWN-HARD high/high `phase3-exit` alone and no successor" in scope
     [future_context] = [block["context"] for block in _yaml("phase3-continue-20")
                         if isinstance(block, dict) and "context" in block]
     assert {stem: tuple(paths) for stem, paths in future_context.items()} == FUTURE_CONTEXT
-    assert "Every listed path exists when its ticket is authored" in scope
-    assert "predecessor test is closure Context" in scope
-    assert "sibling-new or delimiter-bearing prompt-spec paths remain excluded" in scope
     assert "squatch/specs.py" not in continuation.context
 
 
-def test_successor_removes_only_daemon_soak_and_has_exact_suffix():
-    assert _admissions("phase3-continue-19") == FULL
+def test_plan_correction_inserts_missing_serve_and_runner_suffix():
+    assert _admissions("phase3-continue-19") == ORIGINAL_FULL
     successor = _admissions("phase3-continue-20")
-    assert successor == FULL[1:] and successor[0] == ("soak-run",)
+    assert successor == CORRECTED_SUFFIX and successor[0] == ("serve-activation",)
     stems = [stem for row in successor for stem in row]
     assert len(stems) == len(set(stems)) and "daemon-soak" not in stems
