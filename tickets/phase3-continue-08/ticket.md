@@ -56,6 +56,7 @@ pause_ownership:
       - squatch/merge.py
       - squatch/__main__.py
       - tests/test_mergequeue.py
+      - tests/test_merge.py
       - tests/test_daemon_composition.py
   phase3-continue-09:
     owns:

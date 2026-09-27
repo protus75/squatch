@@ -49,7 +49,8 @@ PAUSE_OWNERSHIP = {
         "tests/test_daemon_composition.py"]},
     "admission-holds-activation": {"owns": [], "hooks": [
         "squatch/mergequeue.py", "squatch/merge.py", "squatch/__main__.py",
-        "tests/test_mergequeue.py", "tests/test_daemon_composition.py"]},
+        "tests/test_mergequeue.py", "tests/test_merge.py",
+        "tests/test_daemon_composition.py"]},
     "phase3-continue-09": {"owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": []},
 }
 EXISTING_AT_AUTHORING = {

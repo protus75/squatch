@@ -16,6 +16,7 @@ agent_effort: medium
 - squatch/merge.py
 - squatch/__main__.py
 - tests/test_mergequeue.py
+- tests/test_merge.py
 - tests/test_daemon_composition.py
 
 ## Plan contract
@@ -41,6 +42,7 @@ ownership:
     - squatch/merge.py
     - squatch/__main__.py
     - tests/test_mergequeue.py
+    - tests/test_merge.py
     - tests/test_daemon_composition.py
 ```
 
@@ -52,17 +54,19 @@ Do not change CLI verbs, dispatch pause behavior, kill/serve behavior, or schedu
 - squatch/merge.py
 - squatch/__main__.py
 - tests/test_mergequeue.py
+- tests/test_merge.py
 - tests/test_daemon_composition.py
 
 ## Acceptance criteria
 - `tests/test_mergequeue.py` proves three distinct integration reds hold the next admission; A,B,A,C counts correctly; green resets; rebase/regate failures do not count; and every released hold requires a fresh streak.
 - `tests/test_mergequeue.py` proves a tree mismatch holds immediately, matching resume releases exactly that hold, stale/pre-hold releases fail closed, and another task progresses while admission waits.
 - `tests/test_mergequeue.py` preserves existing serialization, re-gate, integration-check, tree-hash, and Rework-unwind contracts through the production `compose_merge_queue` path.
+- `tests/test_merge.py` updates the existing direct `compose_pipeline` construction proof to inject the mandatory shared inbox without restoring a fallback.
 - `tests/test_daemon_composition.py` proves the lock holder shares one inbox between dispatch pause and the production merge admission hold, and a matching resume reaches the hold through the one consumer.
 
 ## Verification
 ```
-uv run pytest tests/test_mergequeue.py tests/test_daemon_composition.py tests/test_control.py -q
+uv run pytest tests/test_mergequeue.py tests/test_merge.py tests/test_daemon_composition.py tests/test_control.py -q
 uv run pytest -q
 ```
 
