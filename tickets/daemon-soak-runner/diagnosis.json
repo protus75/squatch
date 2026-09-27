@@ -1,16 +1,15 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Each member's own Serve must live through at least 24 injected hours. Advance the clock repeatedly via the serve sleep seam, in steps no larger than the shortest cadence. Compute injected_hours per composition, never as a span pooled across journals.",
-    "In tests, assert per member from that member's journal that the daily cadences fired. Do not lock in a single 8h advance per member.",
-    "Derive disposition only from production records: a Box message or an escalation/alert signal for that run_seq. Never infer 'alert' from a kill decision plus abandonment. With neither record, report not green.",
-    "worker_killed_mid_run must kill the active worker, then restart the production serve on the same state dir so reconcile runs and the stem is re-dispatched. Expected/observed must cover the reconciled terminal and the new run's terminal.",
-    "Conflict members must check main health: main green after each rung, and integration-red without main going red. Derive it from production records. If no such record exists, stop and report that the plan needs repair.",
-    "Keep the fixes that now work: admission via Serve->Pipeline.run->MergeQueue, provider-seam review approval, and Box built with the injected fs/clock."
+    "Remove the planted re-run verification failure in _ScenarioProcess.run (the _implement_calls == 2 branch). The kill fault must not be followed by a second fault the harness injects to produce a disposition.",
+    "After restart and reconcile, let run 1 finish however production finishes it (likely merged). Take observed from the terminal events production wrote for run 0 (abandoned) and run 1.",
+    "Set expected in _FAULTS from the plan section 20 / tests/test_restart_timers.py outcome for a worker kill, never from an outcome the harness forces. Cite the source in a comment.",
+    "Take disposition and producing_run only from a Box or alert/escalation record that production wrote for the abandoned or redispatched run. If there is none, do not invent one: report the member not green, or return the ticket for plan repair.",
+    "Keep what works: Serve->Pipeline.run->MergeQueue admission, 24 one-hour ticks through the serve sleep seam per lifecycle, the restart on the same state dir, provider-seam review, and the conflict and integration-red members. Review raised no finding on those."
   ],
-  "reason": "Review found fixable harness defects: per-composition 24h time, invented disposition, missing re-run, missing main-green check. Findings give the paths to fix them.",
+  "reason": "Review found one narrow defect: the harness plants a rerun failure so worker_killed_mid_run gets a disposition. Everything else passed checks and review, so a steered fix at the same capability should resolve it.",
   "detail": null
 }
