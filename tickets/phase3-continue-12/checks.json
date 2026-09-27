@@ -1,63 +1,33 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "426e34026c0fda9d978d1099f767058b91372862",
+  "produced_at_sha": "888cbc74834e25fd1cf9e6be1ebc031f2c6de04e",
   "stem": "phase3-continue-12",
   "branch": "phase3-continue-12",
-  "base": "a39cea696c0d13651be28f490311c8a5b330b620",
-  "head": "426e34026c0fda9d978d1099f767058b91372862",
+  "base": "b6a0cb444e09824a859fda2bc1c3a2d2dff08202",
+  "head": "888cbc74834e25fd1cf9e6be1ebc031f2c6de04e",
   "changed_files": [
     "tests/test_seeded_phase3_12.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/heartbeat/ticket.md",
-      "sha": "e1861fd9cc57ad34d524af3f47cf1a10c94c1013",
+      "sha": "4230814573dfdad174fd8538bc58772d940b019c",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/heartbeat/ticket.md",
-          "line": null,
-          "message": "Acceptance criterion 1 requires `tests/test_daemon_composition.py` to prove that heartbeat composes through the daemon. That file is not in the Scope fence, criterion 2 keeps it as preservation Context, and Scope out forbids changing the selected preservation suites. None of its existing tests mention heartbeat, so the criterion cannot pass without editing a file outside the fence. Criterion 1 and criterion 2 contradict each other.",
-          "paved_road": "Move the composition proof into the fenced new `tests/test_heartbeat.py`: build the heartbeat through the `squatch/daemon.py` composition hook and show that construction starts no loop. Keep `tests/test_daemon_composition.py` as an unchanged preservation suite in Verification. The alternative is to add `tests/test_daemon_composition.py` to the fence and drop it from the no-change list, but that goes beyond the registry fence."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/heartbeat/ticket.md",
-          "line": null,
-          "message": "The criterion that `tests/test_heartbeat.py` 'refuses any migration requiring an unfenced path' does not describe any runtime behavior a test can assert. A test file cannot refuse a migration, so no Check can judge this criterion.",
-          "paved_road": "Replace it with a criterion a test can check. Example: `tests/test_daemon_tasks.py`, `tests/test_control_cli.py`, and `tests/test_daemon_composition.py` pass unchanged. Keep the unfenced-migration stop condition only in Definition of rejected, where it already appears."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/heartbeat/ticket.md",
-          "line": null,
-          "message": "The ticket never defines the 'heartbeat boundary'. Section 20 only names the owner and fence, and the Goal, Scope in, and criteria give no behavior. The plan's watchdog law says what it should be: a heartbeat file under the state dir, touched by the main loop each cycle only while the watched core tasks (watcher, merge, box consumer) are live, so a dead or wedged task stops the touch and an external mtime check catches it. None of that reaches the implementer, and implement renders only section 20, so any implementation would be a guess.",
-          "paved_road": "Put the contract into Scope in and the acceptance criteria as testable statements. The heartbeat file lives in `state_dir`. It is touched only through the filesystem and clock seams. The touch is skipped when any watched `DaemonTasks` core task is done or failed. Construction is dormant, with no loop and no `serve` verb. Each statement gets a direct test in `tests/test_heartbeat.py`."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-13/ticket.md",
-      "sha": "3e5c54c66c9ea4653bbae720f0bdf3484fedd0ca",
+      "sha": "9d46da21d56a54ef3ce3221c105a8a1d2389fce9",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-13/ticket.md",
-          "line": null,
-          "message": "The ticket fences squatch/__main__.py and squatch/drain.py for restart-timers but keeps them out of Context, and tests/test_seeded_phase3_13.py must pin that as an exception partition. Section 20 says every seed names only existing Context paths and every continuation asserts that every existing fence path is existing Context. The plan grants on-demand inspection exceptions only through explicit clarifications, and each one records its measured Context size: kill-cli-activation (stages/drain/__main__) and pause activation (drain). Section 20 has no such clarification for restart-timers. Its registry entry names only 'daemon/CLI composition roots' as hooks and does not name squatch/drain.py, which this ticket adds so that reap precedes every dispatch path. The author cannot fix this alone. If the two files are embedded, the ticket itself says the render breaks REQ_RENDER_HEADROOM. If the exception stays, it is machinery the plan never granted.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
