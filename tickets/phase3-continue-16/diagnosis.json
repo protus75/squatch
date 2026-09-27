@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The phase3-continue-17 ticket listed tests/test_seeded_phase3_16.py in Context. That file is new in this attempt, so the requisition check failed. Context may only name files that exist on the base commit.",
+    "Remove tests/test_seeded_phase3_16.py from phase3-continue-17's Context. Also remove it from CONTEXT and EXISTING_AT_AUTHORING in the seed test, and drop the special case that skips it. The seed test should not pin any Context path that does not exist yet.",
+    "Check prior continuation seeds such as phase3-continue-16 for how they cite their predecessor seed test. Follow the same pattern, then recompute the pinned Context sizes and the render-headroom check for phase3-continue-17.",
+    "Before finishing, run the requisition/ticket lint on all three authored tickets, not just pytest. Passing pytest did not catch this check-stage failure."
+  ],
+  "reason": "One fixable requisition finding: a file created by this ticket was listed as successor Context. The fix is mechanical and the check's guidance says exactly what to do.",
+  "detail": null
+}
