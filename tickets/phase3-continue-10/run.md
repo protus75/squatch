@@ -2,15 +2,14 @@
 ok
 
 ## Surprises / judgment calls
-The carried registry marks `kill-cli-activation` alone. I therefore authored phase3-continue-11 to seed only that singleton and phase3-continue-12; `heartbeat` begins its successor suffix.
+Kept `driver_abort_consumer(inbox, driver)` unchanged and specified worker stopping as separate composition over only the watcher, merge, and box siblings, so the control consumer cannot cancel itself. Kept current-admission sibling-new tests out of Context while requiring the next activation author to fence and verify all four predecessor kill tests.
 
 ## Dead ends
-The first focused test assertion expected wording that the worker ticket did not use; I aligned the assertion to the authored contract.
 
 ## Second problems filed
 
 ## Resolved engine/model
-Unknown.
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual about 20m.
+Expected 75m; actual approximately 12m.
