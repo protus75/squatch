@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag only: scope fence, verification, run_record and diff_budget checks all passed. Keep the existing release, fold, refusal-case and dormancy work; fix just the idempotency gap.",
+    "Make the release identity terminal in `squatch/flake.py`. Before appending, `release` must return False if the journal already holds a `signal` keyed `flake-release/<box_id>/<fix_stem>`. Otherwise a re-detect after release lets the old fix's evidence release the test a second time.",
+    "Do not change detection's event contract (it is scoped out). Put the guard on the release side, not in `detect`. A re-quarantined report must then stay quarantined against the old fix_stem.",
+    "Add a test to `tests/test_flake.py`: release, then re-detect the same report, then release again with the same fix_stem and a green rerun. Assert no second release event and the entry still quarantined, both live and after reconstructing the journal.",
+    "Make sure `_fold_quarantine` still folds cleanly across the sequence detect -> release -> detect for the same box_id, with no JournalCorruption. Assert the final quarantine projection in the new test."
+  ],
+  "reason": "A fixable oversight named by the review: a second release of the same identity after re-detection appends a duplicate event, and the paved road is concrete and within the fence.",
+  "detail": null
+}
