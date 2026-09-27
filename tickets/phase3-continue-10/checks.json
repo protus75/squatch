@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "ec402554f9e590396d2583c34a6069c57db54e76",
+  "produced_at_sha": "ff1966b404e0168a4e7fbae4122093f6449f4d36",
   "stem": "phase3-continue-10",
   "branch": "phase3-continue-10",
-  "base": "1eb65ad6de24c8eeaeb9cd11eae3e1e112e960ee",
-  "head": "ec402554f9e590396d2583c34a6069c57db54e76",
+  "base": "e246058686766cdfd99831fb0a1a6fbd6e25c19a",
+  "head": "ff1966b404e0168a4e7fbae4122093f6449f4d36",
   "changed_files": [
     "tests/test_seeded_phase3_10.py"
   ],
@@ -15,7 +15,17 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/kill-failure-suppression/ticket.md",
-      "sha": "51a637305a3145e763ba12edb7ccd262e466ace9",
+      "sha": "80a6518e538d93c1aff65324417b79a2330d6f72",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/kill-worker-stop/ticket.md",
+      "sha": "c90c38d19b7e77d33c60929db8907de530e24429",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -24,41 +34,16 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/kill-worker-stop/ticket.md",
-      "sha": "0e127a5c59044d0a92a17bd352fc9a65308c6ef0",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/kill-worker-stop/ticket.md",
-          "line": 76,
-          "message": "Scope-in hooks the journaled kill path, which is `driver_abort_consumer(inbox, driver)` in squatch/daemon.py. The existing test calls it with exactly two arguments at lines 76 and 101 and asserts that the kill applies once the Driver unwinds. To stop workers after that unwind, the consumer needs a handle to them, which forces either a signature change that breaks this test or a second optional path, and the no-dual-path rule forbids the second. The ticket runs this test in Verification but leaves it out of both Context and the fence, so the author cannot see or migrate the contract it has to keep.",
-          "paved_road": "Add tests/test_kill_executor_abort.py to Context. Then either fence it and migrate both call sites to the new signature in the same change, or say in Scope in that worker-stop is a separate composition in squatch/daemon.py that leaves `driver_abort_consumer`'s signature and behavior unchanged, with test_kill_executor_abort.py run unchanged to prove it is preserved."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/kill-worker-stop/ticket.md",
-          "line": null,
-          "message": "\"Daemon-owned workers\" is never tied to anything that exists. The only daemon-owned task set in Context is `DaemonTasks`: the watcher, merge, box, and control consumers. The kill mutation runs inside the control consumer, which is one of those tasks. Cancelling and awaiting `DaemonTasks` from inside the kill would cancel the task running it, so the criterion 'stops and awaits daemon-owned workers' either cannot be met as written or means something the ticket doesn't say. The existing `DaemonTasks` behavior tested in tests/test_daemon_tasks.py is also neither in Context nor named as a suite to preserve.",
-          "paved_road": "Name the exact workers, for example `DaemonTasks`' watcher/merge/box tasks. Say how the stop avoids self-cancellation, for example by stopping only the sibling tasks or by signalling the owner to shut down after the consumer returns. Add tests/test_daemon_tasks.py to Context and to Verification as a preservation-only suite."
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
       "path": "tickets/phase3-continue-11/ticket.md",
-      "sha": "84af2e735de69faaaf27d88f49785c11108e0fa7",
+      "sha": "7158961dbef86057b83e4e851bb8f460aa679eeb",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-11/ticket.md",
           "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"snag\", \"summary\": \"The batch shape, edges, budgets, cap and suffix match the compact registry. However, the kill-cli-activation fence misses an existing predecessor negative test that activation must invalidate, and the continuation criteria leave out the registry\\'s required predecessor-test closure and existing-fence-in-Context checks.\", \"findings\": [{\"code\": \"requisition_review\", \"path\": \"tests/test_kill_signal_journal.py\", \"line\": 71, \"message\": \"`test_kill_boundary_is_do'",
-          "paved_road": "fix the plan, then re-author the ticket"
+          "message": "Section 20's compact registry says: 'The later activation seeds authored after that sibling merges include the then-existing composition harness in their own Context.' scheduler-activation, which lands tests/test_daemon_composition.py, is already on the committed plane. Scope in only requires existing activation fence paths to be Context, and the harness is not a fence path. So neither Scope in nor any acceptance criterion requires or pins tests/test_daemon_composition.py in kill-cli-activation's Context. That seed must prove the real in-process production composition, so it would be authored without its harness interface evidence.",
+          "paved_road": "Add a Scope in requirement and an acceptance criterion: kill-cli-activation's Context includes the existing tests/test_daemon_composition.py as read-only Context, not a fence entry, and tests/test_seeded_phase3_11.py asserts this and keeps it within max-effort render headroom."
         }
       ],
       "commands": []
