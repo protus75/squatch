@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "4f59fb67a4363bc9a60e5adb7bab2fff5b719bd4",
+  "produced_at_sha": "b297d5190c4d4c1888ebbc4c2e4c8adf1fe47a79",
   "stem": "kill-executor-abort",
   "branch": "kill-executor-abort",
-  "base": "de46594645bfecc5ab23e658dc747b5418a64490",
-  "head": "4f59fb67a4363bc9a60e5adb7bab2fff5b719bd4",
+  "base": "b437600d95f93d21f4b60b88a8d61032eec485e0",
+  "head": "b297d5190c4d4c1888ebbc4c2e4c8adf1fe47a79",
   "changed_files": [
     "squatch/daemon.py",
     "squatch/driver.py",
