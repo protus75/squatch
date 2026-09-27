@@ -1,9 +1,16 @@
 {
-  "run_seq": 4,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 5,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Requisition review rejected only flake-detection/ticket.md, and only its criterion 2. Keep flake-release and phase3-continue-15 unless a wording change is needed for consistency.",
+    "Remove '`caps.quarantine` folds only the named test'. caps.quarantine is an integer bound in Config.caps and QUARANTINE_CAP is a cap name in squatch/caps.py. Neither one folds tests.",
+    "Change the criterion to: the quarantine-ledger fold adds exactly the named test_id entry, keyed by box_id, and changes no other entry. Require tests/test_flake.py to assert this.",
+    "Name the section 11.5 caps.quarantine bound, its cap crossing that halts auto-quarantine, and its escalation in flake-detection Scope out. The section 20 flake-boundary clarification does not grant them, and the fence has no escalation path.",
+    "Ignore the earlier lessons about a SHA 'flake-held set'. Section 20 now forbids any SHA-held substitute. Release state is the quarantine-ledger entry keyed by box_id and test_id.",
+    "Re-pin every changed flake-detection phrase in tests/test_seeded_phase3_14.py, re-measure the max-effort render, and rerun both verification commands."
+  ],
+  "reason": "A fixable wording oversight in one flake-detection criterion (a caps.quarantine misattribution); the review's paved road gives the exact fix.",
+  "detail": null
 }
