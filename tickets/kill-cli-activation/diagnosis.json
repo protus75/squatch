@@ -1,14 +1,15 @@
 {
-  "run_seq": 2,
-  "outcome": "infra_error",
+  "run_seq": 3,
+  "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "abandon-human",
+  "verdict": "retry",
   "lessons": [
-    "This attempt ended as infra_error at implement after 10.6s with 0 tokens, no provider or model, and an empty diff. The agent never ran. Check the implement environment (provider credential and launch) before re-dispatching.",
-    "The run record's premise_failed matches the earlier attempt. There, tests/test_seeded_phase3_11.py pinned exact live byte sizes. Commit 04cf421 changed that fixture invariant before this ticket commit. Confirm the test only checks the 120000 headroom bound before editing.",
-    "Keep compact kill additions. Do not delete unrelated docstrings, why-comments, the _active annotation/cast, or the __main__ docstring. If the pinned sizes still can't be met without deleting prose, reject under the render-headroom condition.",
-    "Carry forward: on control-consumer failure, cancel and await the active dispatch before re-raising, and test that path. Filter in-flight polling to typed kill requests so pause keeps next-boundary ordering. Refuse 'nothing running to kill' before creating any journal or lifecycle."
+    "Checks were green. Review raised one fixable snag: kill on a paused drain. `_wait_for_offer` loops on `allow_offer()`, which stays False while a pause hold is set, so the drain never sees `stopping`. It reports applied but keeps running and keeps the lock.",
+    "Fix: make the offer wait end once the stop latch is set. Either `_wait_for_offer` returns when `_stopping` is true and the caller checks `_stopping` before treating the result as a ceiling halt, or `allow_offer` returns True once `stopping` is set so the post-wait check returns `_killed()`.",
+    "Add a kill-while-paused case to tests/test_kill_cli_activation.py. Pause the live drain, then run kill. Assert `stopped: kill accepted`, lock release (prove it by reacquiring the lock), and no later dispatch or retry draw.",
+    "Keep what worked. Concurrent kill during dispatch reaches Stages.abort_active. Control-consumer failure cancels and awaits the dispatch. Stale kill mutates nothing. No-engine kill refuses before any journal or lifecycle is created. Pause keeps next-boundary ordering.",
+    "Keep the diff compact and scoped. Do not delete unrelated docstrings, why-comments, typing, or the __main__ docstring. The byte counts in the seed fixture are historical; only the render headroom bound applies."
   ],
-  "reason": "The implement stage failed on infrastructure (0 tokens, 10s, no model) before any work; no retry or capability increase can fix that.",
+  "reason": "Checks were green and the one review snag, kill during a pause hold, is a narrow fix with a concrete paved road; the same capability can do it.",
   "detail": null
 }
