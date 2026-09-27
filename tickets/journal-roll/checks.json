@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "517728792a221f9c0716461028dd03cc4b8cf7b4",
+  "produced_at_sha": "dd13c5c1e4f19af9c1abb77528475d00592d87b8",
   "stem": "journal-roll",
   "branch": "journal-roll",
-  "base": "1008554fe434effed74428dbd1ab474f7cf186b0",
-  "head": "517728792a221f9c0716461028dd03cc4b8cf7b4",
+  "base": "dd09faf1fe3f54e2284d2e96a51d8ff3b16577a0",
+  "head": "dd13c5c1e4f19af9c1abb77528475d00592d87b8",
   "changed_files": [
     "squatch/journal.py",
     "tests/test_journal_roll.py"
