@@ -1,0 +1,98 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "00388bbedcf2b4f09a4d8bfcea008bcbcd0f20a6",
+  "stem": "storm-notification-activation",
+  "branch": "storm-notification-activation",
+  "base": "910f9ed0654205f71c12d39f168e6932b27e4342",
+  "head": "00388bbedcf2b4f09a4d8bfcea008bcbcd0f20a6",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/box.py",
+    "squatch/daemon.py",
+    "squatch/storm.py",
+    "tests/test_drain.py",
+    "tests/test_storm.py",
+    "tests/test_storm_notification_activation.py",
+    "tests/test_storm_producer.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_storm_notification_activation.py",
+            "tests/test_storm_producer.py",
+            "tests/test_storm.py",
+            "tests/test_box.py",
+            "tests/test_daemon_composition.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_drain.py::test_bootstrap_drain_never_scans_or_mutates_the_box",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
