@@ -33,6 +33,7 @@ ownership:
     - tests/test_daemon_soak.py
     hooks:
     - squatch/artifacts.py
+    - squatch/stages.py
   phase3-continue-20:
     owns:
     - tickets
@@ -40,7 +41,9 @@ ownership:
     hooks: []
 ```
 
-Daemon soak registers the closed report through `squatch/artifacts.py`. Pin exact identities, dependency edges, high/high versus medium/medium tiers, 75m/150m budgets within `drain.max_ticket_minutes`, and the seeding cap. Pin every existing fence path as existing Context, every new path's registry owner, predecessor-test closure, authoring-time Context sizes, section 20's historical length, and each max-effort `specs/implement.md` render under `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`. Keep delimiter-bearing prompt-spec sources, including `squatch/specs.py`, outside Context. Exclude sibling-new paths from Context.
+Daemon soak defines the closed report schema through `squatch/artifacts.py` and registers it in the ordinary lane's `KNOWN_ARTIFACTS` through `squatch/stages.py`; both existing hook files must be Context. Pin exact identities, dependency edges, high/high versus medium/medium tiers, 75m/150m budgets within `drain.max_ticket_minutes`, and the seeding cap. Pin every existing fence path as existing Context, every new path's registry owner, predecessor-test closure, authoring-time Context sizes, section 20's historical length, and each max-effort `specs/implement.md` render under `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`. Keep delimiter-bearing prompt-spec sources, including `squatch/specs.py`, outside Context. Exclude sibling-new paths from Context.
+
+`phase3-continue-20` must state and test its exact terminal batches. It authors `soak-run` medium/medium with 75m/150m budgets, depending on `phase3-continue-20` and `daemon-soak`, fenced only to `tickets/soak-run/daemon-soak-report.json`, with code changes forbidden; it also authors its numbered continuation tail, medium/medium, depending on `soak-run`, owning `tickets` plus its matching seeded test. That tail authors `phase3-exit` alone and no successor. `phase3-exit` is KNOWN-HARD high/high, depends on `soak-run`, reads `tickets/soak-run/daemon-soak-report.json` against the daemon-soak schema, names `daemon-soak` as machinery and `soak-run` as producer, and owns `tickets`, `tests/test_phase3_exit.py`, and `tests/test_seeded_phase4_core.py`. The phase3-continue-20 seeded test pins all identities, edges, tiers, budgets, fences, Context partitions, owners, exit-read closure, seeding cap, authoring-time sizes, shrinking suffix, and max-effort render headroom.
 
 The finite ordered admissions are:
 ```yaml
@@ -59,6 +62,7 @@ Do not implement daemon soak, include sibling-new or delimiter-bearing Context, 
 - `tests/test_seeded_phase3_19.py` pins daemon-soak and phase3-continue-20 identities, dependency edges, high/high versus medium/medium tiers, 75m/150m budgets, `drain.max_ticket_minutes`, cap 3, and owns-then-hooks fences.
 - `tests/test_seeded_phase3_19.py` pins every existing fence path as existing Context, new-path registry owners, predecessor-test closure, and exclusion of sibling-new paths and `squatch/specs.py` from Context.
 - `tests/test_seeded_phase3_19.py` pins authoring-time Context sizes, section 20's historical length, each max-effort `specs/implement.md` render within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`, and exact successor suffix equality after removing only daemon-soak.
+- `tests/test_seeded_phase3_19.py` proves the authored `phase3-continue-20` ticket pins the exact `soak-run` and terminal `phase3-exit` batches, including their dependency edges, tiers, budgets, fences, Context, report producer/schema/machinery closure, new test owners, and absence of a successor after the exit seed.
 
 ## Verification
 ```
