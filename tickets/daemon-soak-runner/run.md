@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The fault callbacks are injected on the real production pipeline queue so the serve, control, worker, rework, triage, and pipeline objects remain production-composed without launching host or model work. Each fault is durably filed in its member-local Box before its report disposition is derived.
+The reconciled killed worker has no production Box enqueue path, so its applied kill plus abandoned terminal is reported as the closed-schema `alert` disposition. The two merge members use production Verification's base-red filing path for their Box dispositions while their discriminating observations remain the real merge-queue facts from the same production-allocated run.
 
 ## Dead ends
-An initial graph used a minimally constructed Pipeline object; it was replaced with `compose_pipeline` and the real Rework and Triage compositions before commit.
+An initial integration-red schedule let the ordinary merge replay the merge queue's completed regate effect and settle the ticket. The final fixture instead files the production Box during queue regate, fails queue integration, and produces the same-run verification terminal during the stage check.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI / GPT-5 Codex
+OpenAI / GPT-5
 
 ## Predicted vs actual
-75m expected / about 35m actual
+Expected 75m; actual about 50m.
