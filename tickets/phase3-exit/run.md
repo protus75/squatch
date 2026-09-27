@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The repaired section-20 registry now closes the prior ProcessExec and notification composition-root findings. The provider/failover admission carries no sibling payload but still carries its required next continuation.
+The prior review findings exposed compatibility contracts not explicit in the compact registry. The seeded tickets now require conditional callback kwargs, line-only process-seam delivery, a defaulted Serve notification keyword for direct callers, and an explicitly non-default production wrapper.
 
 ## Dead ends
-The first focused run exposed acceptance bullets that did not name their observable test artifacts; the ticket text was corrected to satisfy the existing lint contract.
+Initial seeded-test assertions were sensitive to prose line wrapping; the ticket wording was made explicit and the checks were rerun.
 
 ## Second problems filed
 
 ## Resolved engine/model
-codex/GPT-5
+OpenAI Codex / GPT-5 (exact model identifier not exposed)
 
 ## Predicted vs actual
-75m expected / about 12m actual
+75m expected / about 20m actual
