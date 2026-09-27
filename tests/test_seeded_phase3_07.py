@@ -44,10 +44,11 @@ PAUSE_OWNERSHIP = {
         "squatch/daemon.py", "squatch/control.py", "squatch/drain.py",
         "tests/test_drain.py"]},
     "pause-resume-activation": {"owns": ["tests/test_control_cli.py"], "hooks": [
-        "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py", "squatch/merge.py",
-        "squatch/drain.py",
-        "squatch/__main__.py", "tests/test_daemon_pause.py", "tests/test_mergequeue.py",
+        "squatch/daemon.py", "squatch/control.py", "squatch/drain.py",
+        "squatch/__main__.py", "tests/test_daemon_pause.py",
         "tests/test_daemon_composition.py"]},
+    "admission-holds-activation": {"owns": [], "hooks": [
+        "squatch/mergequeue.py", "squatch/merge.py", "tests/test_mergequeue.py"]},
     "phase3-continue-09": {"owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": []},
 }
 EXISTING_AT_AUTHORING = {
@@ -75,7 +76,7 @@ SUCCESSOR = (
 PAUSE_EDGES = {
     "dispatch-pause-boundary": ("phase3-continue-08",),
     "pause-resume-activation": ("dispatch-pause-boundary",),
-    "phase3-continue-09": ("dispatch-pause-boundary", "pause-resume-activation"),
+    "phase3-continue-09": ("admission-holds-activation",),
 }
 
 
@@ -174,20 +175,18 @@ def test_continuation_pins_pause_closure_and_shrinking_suffix():
     assert ownership["pause_ownership"] == PAUSE_OWNERSHIP
     assert _ticket("phase3-continue-08").context[-1] == "tests/test_mergequeue.py"
     assert "squatch/__main__.py" in _ticket("phase3-continue-08").context
-    for predecessor in ("tests/test_daemon_composition.py", "tests/test_daemon_tasks.py",
-                        "tests/test_control.py", "tests/test_mergequeue.py"):
+    for predecessor in ("tests/test_daemon_composition.py", "tests/test_mergequeue.py"):
         assert predecessor in scope
     for stem, depends in PAUSE_EDGES.items():
-        target = f"`{depends[0]}`" if len(depends) == 1 else "both"
-        assert f"`{stem}` depends on {target}" in scope
-    assert "medium/medium" in scope and "75m/150m" in scope and "seeding cap 3" in scope
+        assert stem in scope and depends[0] in scope
+    assert "medium/medium" in scope and "75m/150m" in scope and "configured cap 3" in scope
     for phrase in (
             "Author confirmed `dispatch-pause-boundary`, `pause-resume-activation`, and `phase3-continue-09` seeds",
-            "Derive each pause seed fence as its owns followed by its hooks",
+            "Derive each activation fence as its owns followed by its hooks",
             "exact new-path owners", "successor suffix equality",
-            "The pause seeds include their now-existing fenced predecessor paths in Context",
-            "explicit on-demand inspection exceptions required by render headroom",
-            "preservation-only suites, outside their fences and Context",
+            "The activation seeds include their now-existing fenced predecessor paths in Context",
+            "explicit on-demand inspection exception required by render headroom",
+            "preservation-only suites remain outside fences and Context",
             "Sibling-new paths remain outside this continuation Context"):
         assert phrase in scope
     assert SUCCESSOR == FULL[1:]

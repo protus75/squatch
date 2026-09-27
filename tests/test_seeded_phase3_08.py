@@ -16,24 +16,24 @@ REPO = Path(__file__).resolve().parent.parent
 BATCH = {
     "dispatch-pause-boundary": ("phase3-continue-08",),
     "pause-resume-activation": ("dispatch-pause-boundary",),
-    "phase3-continue-09": ("dispatch-pause-boundary", "pause-resume-activation"),
+    "phase3-continue-09": ("admission-holds-activation",),
 }
 OWNERSHIP = {
     "dispatch-pause-boundary": {"owns": ["tests/test_daemon_pause.py"], "hooks": [
         "squatch/daemon.py", "squatch/control.py", "squatch/drain.py", "tests/test_drain.py"]},
     "pause-resume-activation": {"owns": ["tests/test_control_cli.py"], "hooks": [
-        "squatch/daemon.py", "squatch/control.py", "squatch/mergequeue.py", "squatch/merge.py",
-        "squatch/drain.py",
-        "squatch/__main__.py", "tests/test_daemon_pause.py", "tests/test_mergequeue.py",
+        "squatch/daemon.py", "squatch/control.py", "squatch/drain.py",
+        "squatch/__main__.py", "tests/test_daemon_pause.py",
         "tests/test_daemon_composition.py"]},
+    "admission-holds-activation": {"owns": [], "hooks": [
+        "squatch/mergequeue.py", "squatch/merge.py", "tests/test_mergequeue.py"]},
     "phase3-continue-09": {"owns": ["tickets", "tests/test_seeded_phase3_09.py"], "hooks": []},
 }
 CONTEXT = {
     "dispatch-pause-boundary": ("tests/test_seeded_phase3_core.py", "squatch/daemon.py",
         "squatch/control.py", "squatch/drain.py", "tests/test_drain.py"),
     "pause-resume-activation": ("tests/test_seeded_phase3_core.py", "squatch/daemon.py",
-        "squatch/control.py", "squatch/mergequeue.py", "squatch/__main__.py",
-        "tests/test_mergequeue.py", "tests/test_daemon_composition.py"),
+        "squatch/control.py", "squatch/__main__.py", "tests/test_daemon_composition.py"),
     "phase3-continue-09": ("tests/test_seeded_phase3_core.py", "squatch/control.py",
         "squatch/daemon.py", "squatch/driver.py"),
 }
@@ -125,16 +125,18 @@ def test_ownership_existing_closure_and_exact_new_path_owners():
 
 def test_predecessor_closure_and_preservation_only_exclusions_are_pinned():
     activation = _ticket("pause-resume-activation")
-    for path in ("tests/test_daemon_pause.py", "tests/test_mergequeue.py",
-                 "tests/test_daemon_composition.py"):
+    for path in ("tests/test_daemon_pause.py", "tests/test_daemon_composition.py"):
         assert path in activation.scope_fence
         assert any(path in argv for argv in activation.verification)
-    assert "tests/test_mergequeue.py" in activation.context
-    assert "squatch/merge.py" in activation.scope_fence
-    assert "squatch/merge.py" not in activation.context
     assert "squatch/drain.py" in activation.scope_fence
     assert "squatch/drain.py" not in activation.context
     assert any("tests/test_drain.py" in argv for argv in activation.verification)
+    holds = _ticket("admission-holds-activation")
+    assert holds.depends == ("pause-resume-activation",)
+    assert holds.scope_fence == tuple(
+        OWNERSHIP["admission-holds-activation"]["hooks"])
+    assert "tests/test_mergequeue.py" in holds.context
+    assert any("tests/test_mergequeue.py" in argv for argv in holds.verification)
     assert "squatch/__main__.py" in activation.context
     boundary = _ticket("dispatch-pause-boundary")
     assert {"squatch/drain.py", "tests/test_drain.py"} <= set(boundary.scope_fence)

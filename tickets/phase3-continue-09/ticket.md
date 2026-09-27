@@ -7,8 +7,7 @@ agent_tier: medium
 agent_effort: medium
 ---
 ## Depends on
-- dispatch-pause-boundary
-- pause-resume-activation
+- admission-holds-activation
 
 ## Context
 - tests/test_seeded_phase3_core.py
