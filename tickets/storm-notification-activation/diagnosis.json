@@ -1,18 +1,19 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "Production wiring looks plausible. The failure is test coverage: the activation test calls compose_daemon_storm_producer directly, which the ticket counts as daemon-only construction, not activation.",
-    "Criterion 1: drive squatch.__main__ run/drain through _RestartRunner with a fake pipeline. Trigger a real harvest second-problem enqueue and a verification-attribution failure_report. Include Boxes constructed before binding.",
-    "Criterion 1 cleanup: after the session, assert the lock is released, the restart timer is shut down and the binding is reset. Check this on normal exit and on an exception raised inside the session.",
-    "Criterion 2: K occurrences give no trip and K+1 give one. K+2..2K in the same window add no trip. Test expiry at exactly T and at T minus epsilon on the SAME signature. Assert the trip_id of an emitting_stage=None trip.",
-    "Criterion 3: write one test per case. A resolved P0 report gets no new report and keeps reports==1. A segment roll before the crossing still recovers the trip. Occurrences with no trip repair to 1 trip and 1 report. A trip with no report repairs to 1 report.",
-    "Criterion 4: take the instance Lockfile, run box.main(['ingest', ...]) and assert rc==2, the refusal and paved-road text, and an unchanged Box. Run real drain work after a trip and assert dispatch proceeds with no control hold event.",
-    "In the test_drain migration, `kind in {None, 'storm_occurrence'}` exempts every event with no kind. Exempt only type=='signal' with kind=='storm_occurrence'. Keep the 'box' not in repr(event) check for every other event.",
-    "Check that journal.read() used by crossings/repair walks rolled segments; a test must prove it. Before the attempt ends, compare every acceptance criterion against a specific test."
+    "This is the second attempt to fail review on the same gaps. The prior lessons were in the prompt but mostly unaddressed. Before finishing, map each acceptance criterion to a named test and confirm the test exists.",
+    "Bug: compose_daemon_storm_producer's reconciliation loop calls record() for every Box message, including storm-breaker:P0 reports. Move the STORM_BREAKER_ORIGIN check into the shared record() closure, or skip those messages in the loop.",
+    "The no-recursion test is vacuous: Box signatures are sha256 hex, so startswith('storm-breaker') always passes. Run two sessions and assert no storm_occurrence carries the P0 report's message.signature. Also assert the report stays at reports==1.",
+    "Criterion 1: drive squatch.__main__ run/drain through _RestartRunner with a fake pipeline. Enqueue through real harvest second-problem and verification-attribution Boxes, including one built before binding. Calling compose_daemon_storm_producer directly does not count.",
+    "Criterion 1 cleanup: on normal exit and on an exception raised inside the session, assert the lock is released, the restart timer is shut down and the occurrence binding is reset.",
+    "Criterion 2: assert trip_id equals the sha256 of the canonical [signature, first, crossing] JSON and is stable across replay. Changing any one component must change it. Test expiry at exactly now-WINDOW and just inside it on the same signature.",
+    "Criterion 3: write separate tests for a rolled journal segment before recovery, for a trip signal already present with the report missing (repairs to exactly 1 report), and for a resolved report (no new report, reports stays 1).",
+    "Criterion 4: while holding Lockfile, box.main(['ingest', ...]) must return 2 with the refusal and paved-road text and leave the Box unchanged. After a trip, run real drain work and assert dispatch proceeds with no control_hold event.",
+    "The full `uv run pytest -q` run never finished inside the 30s output window. Run it in the background or in chunks, and record its exit status before marking the attempt ok."
   ],
-  "reason": "The implementation is plausible but the tests cover only part of four acceptance criteria and the drain assertion is too loose; all of this can be fixed at the same capability now that the findings say what to add.",
+  "reason": "A lessons-fed retry repeated the same unmet criteria, plus a real recursion bug and a vacuous test, and finished in 20m of a 75m budget. The ticket is feasible but needs more capability to cover it thoroughly.",
   "detail": null
 }
