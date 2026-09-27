@@ -1,17 +1,16 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The ticket-local verification is green, and the regenerated Phase 4 fences resolve the prior requisition findings. The required full suite is not green on the untouched base inputs.
+The repaired section-20 registry now closes the prior ProcessExec and notification composition-root findings. The provider/failover admission carries no sibling payload but still carries its required next continuation.
 
 ## Dead ends
-`uv run pytest -q` fails in `tests/test_seeded_phase3_23.py::test_phase4_registry_core_edges_owners_and_ordered_suffix` because the test searches `SQUATCH_PLAN.md` for the removed ``phase3-continue-23` fences` sentinel. `SQUATCH_PLAN.md`, that test, and `tickets/phase3-continue-23/ticket.md` are byte-identical to HEAD; all are outside this ticket's scope fence, so the failure cannot be repaired here.
+The first focused run exposed acceptance bullets that did not name their observable test artifacts; the ticket text was corrected to satisfy the existing lint contract.
 
 ## Second problems filed
-- Pre-existing red: `tests/test_seeded_phase3_23.py::test_phase4_registry_core_edges_owners_and_ordered_suffix` raises `ValueError` while locating the removed plan sentinel. The isolated test fails with the owning inputs unchanged from HEAD.
 
 ## Resolved engine/model
 codex/GPT-5
 
 ## Predicted vs actual
-75m expected / about 15m actual
+75m expected / about 12m actual
