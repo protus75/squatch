@@ -2,14 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-Kept the two authored ticket files uncommitted under the engine ticket-lift convention; the fenced seed contract test is committed.
+Applied the prior review's paved roads: restart delegates to reconciliation, timers are journal-backed, and flake release follows flake detection.
 
 ## Dead ends
+The continuation ticket initially used pronoun-only acceptance criteria, which ticket lint rejects; each criterion now names its observable seeded test.
 
 ## Second problems filed
 
 ## Resolved engine/model
-codex / GPT-5
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 12m.
+Expected 75m; actual approximately 15m.
