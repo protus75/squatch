@@ -1,9 +1,11 @@
 import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from eval.daemon_soak import dumps, write_report
+from eval.daemon_soak import dumps, run, write_report
 from squatch.artifacts import (DAEMON_SOAK_MEMBERS, DAEMON_SOAK_REPORT, DaemonSoakEntry,
                                DaemonSoakReport)
 from squatch.seams import LocalFilesystem
@@ -39,6 +41,26 @@ def report(**changes):
     return DaemonSoakReport(**values)
 
 
+class RunnerClock:
+    def __init__(self):
+        self.now = datetime(2026, 9, 27, tzinfo=timezone.utc)
+
+    def __call__(self):
+        return self.now
+
+    def advance(self, elapsed: timedelta):
+        self.now += elapsed
+
+
+class RecordingFilesystem(LocalFilesystem):
+    def __init__(self):
+        self.writes = []
+
+    def write(self, path, data):
+        self.writes.append(Path(path))
+        super().write(path, data)
+
+
 def test_schema_is_closed_complete_and_derives_green():
     with pytest.raises(ValidationError):
         entry(DAEMON_SOAK_MEMBERS[0], observed="failed", green=True)
@@ -57,6 +79,21 @@ def test_report_dump_is_canonical_and_registered_for_ordinary_lane_validation():
     assert dumps(made) == json.dumps(made.model_dump(mode="json"),
                                      sort_keys=True, indent=2) + "\n"
     assert KNOWN_ARTIFACTS[DAEMON_SOAK_REPORT](dumps(made)) == made
+
+
+def test_runner_returns_report_only_to_canonical_writer(tmp_path):
+    fs = RecordingFilesystem()
+    made = run(
+        repo=Path(__file__).resolve().parent.parent,
+        evidence_root=tmp_path / "evidence", clock=RunnerClock(), fs=fs)
+
+    assert isinstance(made, DaemonSoakReport)
+    assert not any(path.name == DAEMON_SOAK_REPORT for path in fs.writes)
+    destination = write_report(
+        workspace=tmp_path / "worktree", stem="soak-run", report=made, fs=fs)
+    assert destination == tmp_path / "worktree/tickets/soak-run" / DAEMON_SOAK_REPORT
+    assert [path for path in fs.writes if path.name == DAEMON_SOAK_REPORT] == [destination]
+    assert destination.read_text() == dumps(made)
 
 
 async def test_writer_uses_uncommitted_outbox_and_stage_terminal_lifts_it(repo, env):
