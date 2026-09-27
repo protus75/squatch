@@ -11,6 +11,7 @@ sent. The model seam is the journaled effect in `squatch.llmeffect`: a
 completed key replays its recorded result and never reaches the LLM.
 """
 
+import asyncio
 import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -77,11 +78,34 @@ class Driver:
         self._clock = clock
         self.retry_cap = retry_cap
         self._severity = severity
+        self._active: asyncio.Task[object] | None = None
 
     async def run(self, stage: LLMStage, inputs: Artifact, *, ticket: str | None,
                   run_seq: int, attempt: int, workspace: Path, sha: str,
                   terminal_findings: Callable[[Sequence[Finding]], bool] | None = None
                   ) -> StageResult:
+        active = asyncio.current_task()
+        self._active = active
+        try:
+            return await self._run(stage, inputs, ticket=ticket, run_seq=run_seq,
+                                   attempt=attempt, workspace=workspace, sha=sha,
+                                   terminal_findings=terminal_findings)
+        finally:
+            if self._active is active:
+                self._active = None
+
+    async def abort_active(self) -> None:
+        """Cancel the active invocation and wait for its unwind."""
+        active = self._active
+        if active is None:
+            return
+        active.cancel()
+        await asyncio.wait((active,))
+
+    async def _run(self, stage: LLMStage, inputs: Artifact, *, ticket: str | None,
+                   run_seq: int, attempt: int, workspace: Path, sha: str,
+                   terminal_findings: Callable[[Sequence[Finding]], bool] | None = None
+                   ) -> StageResult:
         if not isinstance(inputs, stage.consumes):
             raise TypeError(f"{stage.name} consumes {stage.consumes.__name__}, "
                             f"got {type(inputs).__name__}")

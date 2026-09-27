@@ -188,6 +188,15 @@ def control_consumer(inbox: ControlInbox, mutate: Mutation) -> ConsumerCallback:
     return consume
 
 
+def driver_abort_consumer(inbox: ControlInbox, driver: Driver) -> ConsumerCallback:
+    """Build the dormant kill mutation for the active Driver invocation."""
+    async def abort(request: ControlRequest) -> None:
+        if request.action == "kill":
+            await driver.abort_active()
+
+    return control_consumer(inbox, abort)
+
+
 class DaemonTasks:
     """Own the daemon's repeating background consumer tasks."""
 
