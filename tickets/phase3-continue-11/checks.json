@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "2a898c7874679eb6f2d802b63f8f2bf8336b3520",
+  "produced_at_sha": "028c1f4ab136cd38a5ccde98cd0aad1ce2663a01",
   "stem": "phase3-continue-11",
   "branch": "phase3-continue-11",
-  "base": "7c9eade95a00163b96adaf3e64a167e35a9f13ac",
-  "head": "2a898c7874679eb6f2d802b63f8f2bf8336b3520",
+  "base": "cf9f14d8710f81d119d045e4a7f8a4384bf5c108",
+  "head": "028c1f4ab136cd38a5ccde98cd0aad1ce2663a01",
   "changed_files": [
     "tests/test_seeded_phase3_11.py"
   ],
@@ -14,55 +14,16 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/kill-cli-activation/ticket.md",
-      "sha": "0f1a44895fe0082d4ad03e8981de97413da2989b",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/kill-cli-activation/ticket.md",
-          "line": 515,
-          "message": "The Driver used in production is built in squatch/stages.py:515, which is reached through the runner and pipeline. The plan limits kill-cli-activation to control, daemon, driver, and CLI files, so the kill mutation in __main__.py/daemon.py has no fenced way to reach the Driver that is actually running. Acceptance criterion 1 ('aborts the executor' through the in-process production composition) can't be met without editing an unfenced file.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/kill-cli-activation/ticket.md",
-          "line": 223,
-          "message": "DaemonTasks is only constructed in tests. No production composition owns the watcher, merge, and box worker tasks: the drain doesn't run them, and serve is deferred. 'Stops workers' and 'suppresses kill failures' through the production composition have nothing real to act on, so proving them would mean building a serve-like task owner, which is scope-out.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/kill-cli-activation/ticket.md",
-          "line": null,
-          "message": "The ticket requires 'blocks further admission after kill' and a 'kill' CLI verb, but the cited plan (section 20) gives neither. It doesn't say what kill does after it is accepted or what the no-running-engine direct locked path does with kill. The plan also says 'the closed CLI verb list does not change' while listing kill with serve. That leaves the seed's granted machinery undefined.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/phase3-continue-12/ticket.md",
-      "sha": "c2ed885ef8dceb62922da11252437b2819a57790",
+      "path": null,
+      "sha": null,
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-12/ticket.md",
-          "line": 33,
-          "message": "`squatch/heartbeat.py` does not exist on main and is a new module granted to `heartbeat` by the registry. The ownership block lists it under `hooks`, which are existing composition seams. That misstates its new-path owner, and the pinned owns-then-hooks fence order would put it after `tests/test_heartbeat.py` for the wrong reason.",
-          "paved_road": "Move `squatch/heartbeat.py` into `heartbeat.owns` (for example owns: [squatch/heartbeat.py, tests/test_heartbeat.py], hooks: [squatch/daemon.py]). Also pin NEW_PATH_OWNERS to map `squatch/heartbeat.py` and `tests/test_heartbeat.py` to `heartbeat`, and `tests/test_seeded_phase3_13.py` to `phase3-continue-13`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-12/ticket.md",
-          "line": 57,
-          "message": "Section 20 says each continuation 'asserts every existing fence path is existing Context' and 'checks predecessor-test closure'. The only criterion here covers neither. Nothing requires `heartbeat`'s Context to include the existing fence path `squatch/daemon.py`, and nothing requires `tests/test_seeded_phase3_12.py` to show that no existing test asserts behavior the heartbeat hook invalidates. The Scope in also names no Context for the `heartbeat` seed.",
-          "paved_road": "State `heartbeat`'s Context in Scope in: at least `squatch/daemon.py`, plus any existing daemon test surface it must preserve, and never the sibling-new paths. Add acceptance criteria that `tests/test_seeded_phase3_12.py` asserts every existing fence path of both seeds is existing Context, pins authoring-time Context sizes for the max-effort headroom render, and pins predecessor-test closure: either an empty set, verified against the current tests, or the named migrated tests fenced as hooks."
+          "line": 4,
+          "message": "Context path 'tests/test_seeded_phase3_11.py' does not exist",
+          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
         }
       ],
       "commands": []
@@ -111,20 +72,12 @@
     },
     {
       "code": "run_record",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "run_record",
-          "path": "tickets/phase3-continue-11/run.md",
-          "line": null,
-          "message": "tickets/phase3-continue-11/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
-          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
