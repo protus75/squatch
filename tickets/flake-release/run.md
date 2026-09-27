@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The quarantine projection now consumes release events, making durable append the sole state change and allowing reconstruction immediately after an interruption.
+The quarantine projection consumes release events, so the durable append precedes fold removal and reconstructs safely. A recorded release identity is terminal even if the report is detected again later.
 
 ## Dead ends
 
@@ -19,4 +19,4 @@ OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 15m.
+Expected 75m; actual about 20m.
