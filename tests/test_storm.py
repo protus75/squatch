@@ -18,7 +18,7 @@ def _clock(when):
     return lambda: when
 
 
-def _event(*, signature, occurrence_id, when, emitting_stage=None):
+def _event(*, signature, occurrence_id, when, emitting_stage=None, emitting_origin=None):
     return {
         "v": 1,
         "type": "signal",
@@ -26,7 +26,8 @@ def _event(*, signature, occurrence_id, when, emitting_stage=None):
         "ticket": None,
         "key": f"storm-occurrence/{signature}/{occurrence_id}",
         "body": {"kind": "storm_occurrence", "signature": signature,
-                 "occurrence_id": occurrence_id, "emitting_stage": emitting_stage},
+                 "occurrence_id": occurrence_id, "emitting_stage": emitting_stage,
+                 "emitting_origin": emitting_origin},
     }
 
 
@@ -48,7 +49,8 @@ def test_records_the_exact_identity_and_body_once_on_replay(tmp_path):
     assert (event.type, event.key, event.body) == (
         "signal", "storm-occurrence/provider-timeout/arrival-7",
         {"kind": "storm_occurrence", "signature": "provider-timeout",
-         "occurrence_id": "arrival-7", "emitting_stage": "implement"})
+         "occurrence_id": "arrival-7", "emitting_stage": "implement",
+         "emitting_origin": None})
 
 
 def test_window_spans_immutable_and_active_segments_in_journal_order(tmp_path):

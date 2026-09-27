@@ -30,7 +30,8 @@ from squatch.box import BoxCorruption
 from squatch.config import ConfigError, load
 from squatch.control import ControlRequest, publish_control
 from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
-                            compose_daemon_restart, compose_daemon_storm_producer)
+                            compose_daemon_restart, compose_daemon_storm_producer,
+                            StormDispatchHold)
 from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
@@ -180,10 +181,19 @@ class _AdmissionDispatchPause(DrainControl):
                     if hold_id in inbox.holds:
                         self.hold_id = hold_id
         self.admission_hold = AdmissionHold(inbox, journal)
+        self.storm_hold = StormDispatchHold(inbox, journal)
+
+    async def allow_offer(self, stem=None):
+        allowed = await super().allow_offer(stem)
+        return allowed and (stem is None or not self.storm_hold.holds_offer(stem))
+
+    def holds_offer(self, stem):
+        return self.storm_hold.holds_offer(stem)
 
     async def apply(self, request):
         await super().apply(request)
         await self.admission_hold.apply(request)
+        await self.storm_hold.apply(request)
 
 
 def _control_factory(state_dir: Path, config_supplier,

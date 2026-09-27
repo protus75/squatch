@@ -302,7 +302,7 @@ def test_cli_ingest_refuses_invalid_state_directory_with_paved_road(checkout, ca
     assert state.read_text() == "not a directory"
 
 
-def test_real_drain_dispatches_after_trip_without_a_storm_control_hold(checkout):
+def test_real_drain_dispatches_after_a_non_ticket_origin_trip_without_a_hold(checkout):
     author(checkout, "candidate")
     state = checkout / STATE
     clock = Clock()

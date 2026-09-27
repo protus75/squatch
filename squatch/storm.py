@@ -34,7 +34,7 @@ def fold(events: Iterable[Event], *, now: datetime) -> dict[str, OccurrenceWindo
     for event in events:
         if event.type != "signal" or event.body.get("kind") != _KIND:
             continue
-        signature, occurrence_id, emitting_stage = _occurrence(event)
+        signature, occurrence_id, emitting_stage, emitting_origin = _occurrence(event)
         occurred_at = datetime.fromisoformat(event.ts)
         if lower < occurred_at <= now:
             occurrences.setdefault(signature, []).append(occurrence_id)
@@ -51,9 +51,10 @@ class StormLedger:
         self._journal = journal
 
     def record(self, *, signature: str, occurrence_id: str,
-               emitting_stage: str | None = None) -> bool:
+               emitting_stage: str | None = None,
+               emitting_origin: str | None = None) -> bool:
         """Append an occurrence once, returning whether this call wrote it."""
-        _validate_identity(signature, occurrence_id, emitting_stage)
+        _validate_identity(signature, occurrence_id, emitting_stage, emitting_origin)
         key = f"{_KEY_PREFIX}/{signature}/{occurrence_id}"
         events = tuple(self._journal.read())
         existing = [event for event in events if event.type == "signal" and event.key == key]
@@ -66,6 +67,7 @@ class StormLedger:
             "signature": signature,
             "occurrence_id": occurrence_id,
             "emitting_stage": emitting_stage,
+            "emitting_origin": emitting_origin,
         }, key=key)
         return True
 
@@ -80,7 +82,7 @@ class StormLedger:
         for event in self._journal.read():
             if event.type != "signal" or event.body.get("kind") != _KIND:
                 continue
-            signature, occurrence_id, emitting_stage = _occurrence(event)
+            signature, occurrence_id, emitting_stage, emitting_origin = _occurrence(event)
             now = datetime.fromisoformat(event.ts)
             lower = now - WINDOW
             live = live_by_signature.setdefault(signature, [])
@@ -97,17 +99,27 @@ class StormLedger:
                 "first_live_occurrence_id": first_live_occurrence_id,
                 "crossing_occurrence_id": occurrence_id,
                 "emitting_stage": emitting_stage,
+                "emitting_origin": emitting_origin,
             })
         return tuple(crossings)
 
     def trip(self, crossing: dict) -> bool:
         """Append one deterministic trip signal, returning whether it was new."""
+        crossing = {**crossing, "emitting_origin": crossing.get("emitting_origin")}
+        _validate_trip(crossing)
         trip_id = crossing["trip_id"]
         key = f"{_TRIP_KEY_PREFIX}/{trip_id}"
-        if any(event.type == "signal" and event.key == key for event in self._journal.read()):
-            return False
+        for event in self._journal.read():
+            if event.type == "signal" and event.key == key:
+                _trip(event)
+                return False
         self._journal.append("signal", {"kind": _TRIP_KIND, **crossing}, key=key)
         return True
+
+    def trips(self) -> tuple[dict, ...]:
+        """Read durable trips, normalizing the legacy nullable origin."""
+        return tuple(_trip(event) for event in self._journal.read()
+                     if event.type == "signal" and event.body.get("kind") == _TRIP_KIND)
 
 
 def _trip_id(signature: str, first_live_occurrence_id: str,
@@ -118,23 +130,55 @@ def _trip_id(signature: str, first_live_occurrence_id: str,
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _occurrence(event: Event) -> tuple[str, str, str | None]:
+def _occurrence(event: Event) -> tuple[str, str, str | None, str | None]:
     try:
         signature = event.body["signature"]
         occurrence_id = event.body["occurrence_id"]
         emitting_stage = event.body["emitting_stage"]
-        _validate_identity(signature, occurrence_id, emitting_stage)
-        if (set(event.body) != {"kind", "signature", "occurrence_id", "emitting_stage"}
+        emitting_origin = event.body.get("emitting_origin")
+        _validate_identity(signature, occurrence_id, emitting_stage, emitting_origin)
+        fields = {"kind", "signature", "occurrence_id", "emitting_stage"}
+        if (set(event.body) not in (fields, fields | {"emitting_origin"})
                 or event.key != f"{_KEY_PREFIX}/{signature}/{occurrence_id}"):
             raise ValueError("storm occurrence does not have its durable identity")
     except (KeyError, ValueError) as error:
         raise JournalCorruption(f"invalid storm occurrence {event.key!r}: {error}") from error
-    return signature, occurrence_id, emitting_stage
+    return signature, occurrence_id, emitting_stage, emitting_origin
 
 
 def _validate_identity(signature: object, occurrence_id: object,
-                       emitting_stage: object) -> None:
+                       emitting_stage: object, emitting_origin: object) -> None:
     if (not isinstance(signature, str) or not signature
             or not isinstance(occurrence_id, str) or not occurrence_id
-            or (emitting_stage is not None and not isinstance(emitting_stage, str))):
-        raise ValueError("storm occurrence needs nonempty string identities and optional stage")
+            or (emitting_stage is not None and not isinstance(emitting_stage, str))
+            or (emitting_origin is not None and not isinstance(emitting_origin, str))):
+        raise ValueError(
+            "storm occurrence needs nonempty string identities and optional stage and origin")
+
+
+def _trip(event: Event) -> dict:
+    try:
+        body = dict(event.body)
+        body["emitting_origin"] = body.get("emitting_origin")
+        fields = {"kind", "trip_id", "signature", "first_live_occurrence_id",
+                  "crossing_occurrence_id", "emitting_stage"}
+        if (set(event.body) not in (fields, fields | {"emitting_origin"})
+                or event.key != f"{_TRIP_KEY_PREFIX}/{body['trip_id']}"):
+            raise ValueError("storm trip does not have its durable identity")
+        crossing = {name: value for name, value in body.items() if name != "kind"}
+        _validate_trip(crossing)
+    except (KeyError, ValueError) as error:
+        raise JournalCorruption(f"invalid storm trip {event.key!r}: {error}") from error
+    return crossing
+
+
+def _validate_trip(crossing: dict) -> None:
+    signature = crossing["signature"]
+    first = crossing["first_live_occurrence_id"]
+    last = crossing["crossing_occurrence_id"]
+    _validate_identity(signature, first, crossing["emitting_stage"],
+                       crossing.get("emitting_origin"))
+    _validate_identity(signature, last, crossing["emitting_stage"],
+                       crossing.get("emitting_origin"))
+    if crossing["trip_id"] != _trip_id(signature, first, last):
+        raise ValueError("storm trip id does not match its crossing")

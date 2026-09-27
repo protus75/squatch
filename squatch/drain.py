@@ -213,18 +213,20 @@ class Drain:
             if await self._resolve_rejects(journal, plane, facts):
                 continue
             queue = self._eligible(plane, facts)
-            offer = None if queue else self._reoffer(plane, facts)
-            ticket = queue[0] if queue else offer
+            offers = () if queue else self._reoffers(plane, facts)
+            candidates = queue if queue else offers
+            ticket = self._select_offer(candidates)
+            offer = ticket if offers else None
             if ticket is None:
                 return self._quiescent(plane, facts, merged_now)
-            if not await self._wait_for_offer(started + ceiling):
+            if not await self._wait_for_offer(started + ceiling, ticket.stem):
                 journal.append("timer_fired", {"kind": CEILING_TIMER, "next": ticket.stem})
                 return self._halted(plane, facts, merged_now, ticket)
             if self._stopping:
                 return self._killed()
             if offer is not None:
                 await self._draw_retry(journal, ticket)
-                if not await self._wait_for_offer(started + ceiling):
+                if not await self._wait_for_offer(started + ceiling, ticket.stem):
                     journal.append("timer_fired", {"kind": CEILING_TIMER, "next": ticket.stem})
                     return self._halted(plane, facts, merged_now, ticket)
                 if self._stopping:
@@ -244,9 +246,9 @@ class Drain:
                 if touched:
                     return self._handoff(journal, ticket.stem, facts, plane, touched)
 
-    async def _wait_for_offer(self, deadline: datetime) -> bool:
+    async def _wait_for_offer(self, deadline: datetime, stem: str) -> bool:
         while self._clock() < deadline:
-            allowed = self._pause is None or await self._pause.allow_offer()
+            allowed = self._pause is None or await self._pause.allow_offer(stem)
             if self._stopping:
                 return True
             if allowed:
@@ -322,14 +324,22 @@ class Drain:
                   if facts.latest.get(s) in NON_OK and not self._released(facts, s)}
         return sorted(parked | (self._carried & plane.tickets.keys()))
 
-    def _reoffer(self, plane: Plane, facts: Fold) -> Ticket | None:
+    def _reoffers(self, plane: Plane, facts: Fold) -> list[Ticket]:
         offers = [plane.tickets[s] for s in self._parked(plane, facts)
                   if s not in facts.rejects
                   if facts.latest.get(s) != PREMISE
                   and spent(self._config, facts.cap_drawn, s) is None
                   and all(d in facts.merged for d in plane.tickets[s].depends)]
         offers.sort(key=sort_key(facts))
-        return offers[0] if offers else None
+        return offers
+
+    def _select_offer(self, offers: Sequence[Ticket]) -> Ticket | None:
+        if not offers:
+            return None
+        if self._pause is None:
+            return offers[0]
+        return next((ticket for ticket in offers
+                     if not self._pause.holds_offer(ticket.stem)), offers[0])
 
     async def _resolve_rejects(self, journal: Journal, plane: Plane, facts: Fold) -> bool:
         """Materialize legacy spent arrivals or auto-keep one funded arrival."""

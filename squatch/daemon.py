@@ -6,7 +6,7 @@ from contextlib import AbstractAsyncContextManager, contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Generic, TypeVar, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from squatch.config import Config, Tier, snapshot
 from squatch.box import Box, STORM_BREAKER_ORIGIN, scoped_occurrence_recorder
@@ -46,9 +46,13 @@ class DispatchPause:
         self.hold_id: UUID | None = next(iter(inbox.holds), None)
         self._applied: set[UUID] = set()
 
-    async def allow_offer(self) -> bool:
+    async def allow_offer(self, stem: str | None = None) -> bool:
         await self.inbox.consume(self.apply)
         return self.hold_id is None
+
+    def holds_offer(self, stem: str) -> bool:
+        """Whether an independently owned hold suppresses this exact offer."""
+        return False
 
     async def apply(self, request: ControlRequest) -> None:
         if request.request_id in self._applied:
@@ -133,6 +137,55 @@ class DrainControl(DispatchPause):
             self._dispatch = None
 
 
+class StormDispatchHold:
+    """Materialize and release trip-bound holds for exact ticket origins."""
+
+    def __init__(self, inbox: ControlInbox, journal: Journal) -> None:
+        self.inbox = inbox
+        self._journal = journal
+        self._active: dict[UUID, tuple[str, str]] = {}
+        self._materialized: set[str] = set()
+        self._restore()
+
+    def _restore(self) -> None:
+        self._active.clear()
+        self._materialized.clear()
+        for event in self._journal.read():
+            body = event.body
+            if (event.type != "signal" or body.get("kind") != "control_hold"
+                    or body.get("trigger") != "storm_trip"):
+                continue
+            try:
+                hold_id = UUID(body["hold_id"])
+                trip_id, stem = body["trip_id"], body["stem"]
+            except (KeyError, TypeError, ValueError):
+                continue
+            self._materialized.add(trip_id)
+            if hold_id in self.inbox.holds:
+                self._active[hold_id] = (trip_id, stem)
+
+    def holds_offer(self, stem: str) -> bool:
+        """Journal each matching trip decision before suppressing its offer."""
+        for trip in StormLedger(journal=self._journal).trips():
+            if trip["trip_id"] in self._materialized or trip["emitting_origin"] != stem:
+                continue
+            hold_id = uuid4()
+            self._journal.append("signal", {
+                "kind": "control_hold", "hold_id": str(hold_id), "released": False,
+                "lifecycle": str(self.inbox.lifecycle), "trigger": "storm_trip",
+                "trip_id": trip["trip_id"], "stem": stem,
+            }, ticket=stem)
+            # The event is the decision; only after it commits does in-memory
+            # dispatch state change. Rehydration repairs a crash at this seam.
+            self.inbox.rehydrate_holds()
+            self._restore()
+        return any(active_stem == stem for _, active_stem in self._active.values())
+
+    async def apply(self, request: ControlRequest) -> None:
+        if request.action == "release" and request.hold_id in self._active:
+            self._active.pop(request.hold_id)
+
+
 class AdmissionTask(Generic[Result]):
     """The observer's handle for an admitted work task."""
 
@@ -200,7 +253,7 @@ def compose_daemon_dispatch(config_supplier: ConfigSupplier,
 
     async def dispatch(stem: str) -> None:
         if pause is not None:
-            while not await pause.allow_offer():
+            while not await pause.allow_offer(stem):
                 assert wait_for_control is not None
                 await wait_for_control()
         admitted = admission.admit(stem, work)
@@ -249,6 +302,9 @@ def compose_daemon_storm_producer(*, state_dir: Path, journal: Journal,
                 stage=crossing["emitting_stage"])
 
     def record(**values) -> bool:
+        if "emitting_origin" not in values:
+            message_id = values["occurrence_id"].rsplit("/", 1)[0]
+            values["emitting_origin"] = box.get(message_id).origin
         wrote = ledger.record(**values)
         if wrote:
             repair()
@@ -261,7 +317,8 @@ def compose_daemon_storm_producer(*, state_dir: Path, journal: Journal,
             for report in range(1, message.reports + 1):
                 record(signature=message.signature,
                        occurrence_id=f"{message.id}/{report}",
-                       emitting_stage=message.stage)
+                       emitting_stage=message.stage,
+                       emitting_origin=message.origin)
         repair()
         yield
 

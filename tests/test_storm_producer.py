@@ -54,14 +54,17 @@ def test_explicit_and_scoped_recorders_have_stable_arrival_identities(tmp_path):
         events = occurrences(journal)
         assert [(event.key, event.body) for event in events] == [
             (f"storm-occurrence/{scoped.get(first.id).signature}/{first.id}/1",
-             {"kind": "storm_occurrence", "signature": scoped.get(first.id).signature,
-              "occurrence_id": f"{first.id}/1", "emitting_stage": "implement"}),
+                 {"kind": "storm_occurrence", "signature": scoped.get(first.id).signature,
+                  "occurrence_id": f"{first.id}/1", "emitting_stage": "implement",
+                  "emitting_origin": "producer"}),
             (f"storm-occurrence/{scoped.get(first.id).signature}/{first.id}/2",
-             {"kind": "storm_occurrence", "signature": scoped.get(first.id).signature,
-              "occurrence_id": f"{first.id}/2", "emitting_stage": "implement"}),
+                 {"kind": "storm_occurrence", "signature": scoped.get(first.id).signature,
+                  "occurrence_id": f"{first.id}/2", "emitting_stage": "implement",
+                  "emitting_origin": "producer"}),
             (f"storm-occurrence/{scoped.get(first.id).signature}/{first.id}/3",
-             {"kind": "storm_occurrence", "signature": scoped.get(first.id).signature,
-              "occurrence_id": f"{first.id}/3", "emitting_stage": "implement"}),
+                 {"kind": "storm_occurrence", "signature": scoped.get(first.id).signature,
+                  "occurrence_id": f"{first.id}/3", "emitting_stage": "implement",
+                  "emitting_origin": "producer"}),
         ]
         assert not StormLedger(journal=journal).record(
             signature=scoped.get(first.id).signature, occurrence_id=f"{first.id}/3",
@@ -194,7 +197,7 @@ def test_entry_failure_resets_the_binding(tmp_path, monkeypatch):
         assert occurrences(journal) == []
 
 
-def test_producer_emits_one_trip_report_and_no_dispatch_hold(tmp_path):
+def test_producer_emits_one_trip_report_before_any_matching_offer(tmp_path):
     fs, clock = LocalFilesystem(), Clock()
     with Journal(tmp_path, clock=clock) as journal:
         queue = Box(tmp_path, fs=fs, clock=clock)
