@@ -1,14 +1,12 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "0cfd946fe4183b7813e0a45a6a394c35244abbdd",
+  "produced_at_sha": "8ff08419b385c9c77760e414dcfd0214ff3efe85",
   "stem": "soak-run",
   "branch": "soak-run",
-  "base": "6491c6f7f51c6476d56d843572465188cee582e6",
-  "head": "0cfd946fe4183b7813e0a45a6a394c35244abbdd",
-  "changed_files": [
-    "tickets/soak-run/daemon-soak-report.json"
-  ],
+  "base": "8ff08419b385c9c77760e414dcfd0214ff3efe85",
+  "head": "8ff08419b385c9c77760e414dcfd0214ff3efe85",
+  "changed_files": [],
   "checks": [
     {
       "code": "scope_fence",
@@ -22,12 +20,20 @@
     },
     {
       "code": "verification",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "verification",
+          "path": null,
+          "line": null,
+          "message": "the branch carries no committed diff",
+          "paved_road": "commit the work on the branch before answering; only the committed diff is checked and reviewed"
+        }
+      ],
       "commands": [
         {
           "argv": [
