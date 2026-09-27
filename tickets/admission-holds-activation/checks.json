@@ -1,0 +1,88 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "8b2d43fd1f39fd84d114d7007f7a78f10c099c7f",
+  "stem": "admission-holds-activation",
+  "branch": "admission-holds-activation",
+  "base": "64d8ddb92f7bd564b5a8fab06f73a0771699d4a9",
+  "head": "8b2d43fd1f39fd84d114d7007f7a78f10c099c7f",
+  "changed_files": [
+    "squatch/merge.py",
+    "squatch/mergequeue.py",
+    "tests/test_mergequeue.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "verification",
+          "path": null,
+          "line": null,
+          "message": "verification command exit 143: `uv run pytest -q`\nwarning: `VIRTUAL_ENV=/home/djp/source/squatch/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead",
+          "paved_road": "make every `## Verification` command exit 0 on the committed branch"
+        }
+      ],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_mergequeue.py",
+            "tests/test_daemon_composition.py",
+            "tests/test_control.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": "branch",
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
