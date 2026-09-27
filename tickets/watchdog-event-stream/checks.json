@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "0469fea3a7fd4adc52af2ea9bb53486bbace5e22",
+  "produced_at_sha": "6b8a9ee8059bcefafa42eaf65416bf9f5fba11ad",
   "stem": "watchdog-event-stream",
   "branch": "watchdog-event-stream",
-  "base": "c82853b6fc6345675d0fbbdd2aa1da90754a024f",
-  "head": "0469fea3a7fd4adc52af2ea9bb53486bbace5e22",
+  "base": "2bbdb2e04ae807808ec9f3cc323c0c3a2cc4ba91",
+  "head": "6b8a9ee8059bcefafa42eaf65416bf9f5fba11ad",
   "changed_files": [
     "squatch/providers.py",
     "squatch/seams.py",
