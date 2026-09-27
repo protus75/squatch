@@ -1,11 +1,11 @@
 ## Outcome
-ok
+premise_failed
 
 ## Surprises / judgment calls
-The existing requisition test pins every pre-existing Context and on-demand file to its authoring-time byte size. I kept those files at the pinned sizes while adding the activation, so the max-effort render headroom proof remains valid. In-flight polling filters for typed kill requests so pause retains its existing next-boundary ordering.
+The activation and the prior review's control-failure fix passed the focused verification (43 tests). The full suite then proved that `tests/test_seeded_phase3_11.py` requires every existing fenced production file to retain its exact authoring-time byte size, rather than checking only the stated 120,000-character render limit.
 
 ## Dead ends
-An initial shared in-flight control poll also consumed pause early, violating the preserved pause ordering test. The first implementation also exceeded the pinned authoring sizes; both were corrected before the final verification runs.
+The complete implementation preserved every pre-existing docstring, why-comment, type annotation, and whitespace line flagged by prior review, and it cancelled and awaited the active dispatch when its concurrent control consumer failed. `uv run pytest -q` nevertheless failed only `tests/test_seeded_phase3_11.py::test_authoring_sizes_and_max_effort_headroom`: the four required production edits changed their byte sizes. That test is outside the scope fence. Making it green inside the fence requires deleting or shrinking unrelated existing material, repeating the rejected prior approach; the prior-attempt paved road explicitly says to reject instead. The implementation changes were therefore removed and no commit was created.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ An initial shared in-flight control poll also consumed pause early, violating th
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 35m.
+Expected 75m; actual approximately 45m.
