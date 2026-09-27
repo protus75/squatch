@@ -4,19 +4,20 @@ ok
 
 ## Surprises / judgment calls
 
-The drain already supplied the pause-before-accounting hook but not its lock-held composition. The activation composes the inbox inside the existing Runner session so control decisions and dispatch share its journal.
+The existing pause boundary already supplied the drain hook, so activation stays within its fence and composes control at the dispatch and admission boundaries.
 
 ## Dead ends
 
-The full-suite command exceeded the terminal tool's 30-second observation window, so its completion could not be collected there; the required focused command completed green.
+None.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI Codex
+OpenAI Codex (model identity unavailable).
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 55m.
+Expected 75m; actual approximately 50m.
