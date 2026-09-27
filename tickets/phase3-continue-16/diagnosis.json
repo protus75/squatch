@@ -1,18 +1,15 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "escalate",
   "lessons": [
-    "storm-producer-wiring Scope in contradicts itself. A binding 'resolved by Box.enqueue at call time' with no constructor argument needs ambient state, but Scope out and Definition of rejected ban an ambient recorder global. Pick one exactly named mechanism.",
-    "Take the reviewer's paved road: a contextvars.ContextVar in squatch/box.py, set only inside a context manager returned by daemon.compose_daemon_storm_producer(...) and reset on exit. An explicit per-Box occurrence_recorder= keyword takes precedence.",
-    "Reword the ban to cover an unscoped module-global or a permanently installed recorder, not all ambient state. Add a criterion proving the binding is inactive after the scope exits.",
-    "The resolution slot must live in box.py or storm.py. daemon.py imports Box, so box.py cannot import daemon without a circular import; daemon owns only the install.",
-    "Give compose_daemon_storm_producer its full keyword signature, e.g. (*, state_dir, journal, fs), since install-time reconciliation needs the Box state dir, filesystem and clock.",
-    "State whether reconciliation records every missing <box_id>/<n> for n in 1..reports or only the latest, and which ledger timestamp each reconciled occurrence gets. Require tests/test_storm_producer.py to pin that choice.",
-    "Update test_seeded_phase3_16 phrase pins to the new wording. Drop 'without editing those construction modules' only if the chosen mechanism no longer supports it.",
-    "Keep every earlier fix from the prior lessons. Before finishing, self-run the requisition review on all three authored tickets as well as ticket lint and pytest. Five attempts have passed pytest and failed requisition_review."
+    "check failed on requisition_review for storm-producer-wiring. Scope in says compose_daemon_storm_producer must 'join all tasks using the binding before exit', but the ticket never says whether it is a sync or async context manager and gives it no way to spawn or track tasks.",
+    "Take the reviewer's simpler paved road (Option 2). The manager is a sync context manager that spawns no tasks. Callers must await any task that inherited the ContextVar before leaving the scope. Drop the 'join all tasks' wording.",
+    "State Option 2 the same way in Scope in and the acceptance criteria. The 'inactive after normal and exceptional scope exit' check covers the current context only. tests/test_storm_producer.py pins exactly that. Keep the fence unchanged.",
+    "Update the phrase pins in tests/test_seeded_phase3_16.py to the new wording. Keep every earlier fix: explicit occurrence_recorder= takes precedence, no unscoped global, box.py never imports daemon.py, the hold is high/high, and no sibling-new path is in Context.",
+    "Six attempts in a row passed lint and pytest but failed requisition_review. Each fix exposed a new gap. The run record says only a self-review was done. Before finishing, review every mechanism end to end (lifecycle, concurrency, ordering, and what failure leaves behind), not just the last finding."
   ],
-  "reason": "Five attempts at medium/medium keep failing requisition_review on under-specified seam design. Each fix introduces a new ambiguity, so more capability is likely needed for a self-consistent design.",
+  "reason": "Each retry fixed the named gap but left a new underspecified mechanism in the storm-producer-wiring ticket; more capability should specify the whole contract in one pass.",
   "detail": null
 }
