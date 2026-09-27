@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "Requisition review returned rma for daemon-soak: the pinned fence (eval/daemon_soak.py, tests/test_daemon_soak.py, hook squatch/artifacts.py) cannot register a closed report. Reports are validated via KNOWN_ARTIFACTS in squatch/stages.py, which is outside the fence.",
+    "squatch/artifacts.py has no report registry and cannot import squatch/stages.py without an import cycle. Fix the section 20 daemon-soak fence in the plan (e.g. add squatch/stages.py) before re-authoring the ticket.",
+    "phase3-continue-20 must name exact values: depends edges, medium/medium tiers, 75m/150m budgets, and each seed's Context for soak-run and phase3-exit. Add criteria pinning them, following the BATCH/CONTEXT/EXISTING_AT_AUTHORING pattern in tests/test_seeded_phase3_11.py.",
+    "phase3-exit needs more than owns [tickets]. Fence an exit-read test and a Phase 4 seeded test (e.g. tests/test_phase3_exit.py, tests/test_seeded_phase4_core.py). It should read tickets/soak-run/daemon-soak-report.json, with daemon-soak as the machinery and soak-run as the producer.",
+    "The committed tests/test_seeded_phase3_19.py passed locally, and its structure is reusable once the plan's ownership contract is corrected. The failure was the feasibility review, not the tests."
+  ],
+  "reason": "The ticket's plan-pinned daemon-soak fence can't register a closed report, and the successor ownership contract is unbuildable, so the plan has to change before the ticket can be re-authored.",
+  "detail": null
+}
