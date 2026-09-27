@@ -1,15 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Section 20 has no storm-ledger contract: no occurrence definition, identity key, signal event key/body, window or threshold, fold across rolled segments, or dormancy boundary. Plan must add a storm clarification like the flake one before re-authoring.",
-    "storm-ledger criteria must name observable behavior, such as the event key/body and fold result, plus a scriptable dormancy check like an AST import-closure test or an absent composition hook. Vague 'proves dormant boundary' wording fails review.",
-    "phase3-continue-16 runs after storm-ledger merges, so squatch/storm.py and tests/test_storm.py already exist. Put them in storm seeds' Context, or make them fenced on-demand exceptions with size pins. This reverses the earlier lesson to omit them.",
-    "Only paths this admission creates count as sibling-new: tests/test_storm_producer.py, tests/test_storm_notification_activation.py, tests/test_seeded_phase3_17.py. Restrict the 'no sibling-new in Context' pin to these.",
-    "storm-notification-activation must fence squatch/__main__.py (and squatch/drain.py if the drain is the activated path) to bind production composition. daemon.py alone is dormant construction, not activation."
-  ],
-  "reason": "Requisition review shows section 20 lacks the storm-ledger contract (paved road: fix the plan), so the ticket can't be satisfied until the plan is amended.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
