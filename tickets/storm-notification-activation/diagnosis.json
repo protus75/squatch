@@ -1,19 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "escalate",
+  "verdict": "retry",
   "lessons": [
-    "This is the second attempt to fail review on the same gaps. The prior lessons were in the prompt but mostly unaddressed. Before finishing, map each acceptance criterion to a named test and confirm the test exists.",
-    "Bug: compose_daemon_storm_producer's reconciliation loop calls record() for every Box message, including storm-breaker:P0 reports. Move the STORM_BREAKER_ORIGIN check into the shared record() closure, or skip those messages in the loop.",
-    "The no-recursion test is vacuous: Box signatures are sha256 hex, so startswith('storm-breaker') always passes. Run two sessions and assert no storm_occurrence carries the P0 report's message.signature. Also assert the report stays at reports==1.",
-    "Criterion 1: drive squatch.__main__ run/drain through _RestartRunner with a fake pipeline. Enqueue through real harvest second-problem and verification-attribution Boxes, including one built before binding. Calling compose_daemon_storm_producer directly does not count.",
-    "Criterion 1 cleanup: on normal exit and on an exception raised inside the session, assert the lock is released, the restart timer is shut down and the occurrence binding is reset.",
-    "Criterion 2: assert trip_id equals the sha256 of the canonical [signature, first, crossing] JSON and is stable across replay. Changing any one component must change it. Test expiry at exactly now-WINDOW and just inside it on the same signature.",
-    "Criterion 3: write separate tests for a rolled journal segment before recovery, for a trip signal already present with the report missing (repairs to exactly 1 report), and for a resolved report (no new report, reports stays 1).",
-    "Criterion 4: while holding Lockfile, box.main(['ingest', ...]) must return 2 with the refusal and paved-road text and leave the Box unchanged. After a trip, run real drain work and assert dispatch proceeds with no control_hold event.",
-    "The full `uv run pytest -q` run never finished inside the 30s output window. Run it in the background or in chunks, and record its exit status before marking the attempt ok."
+    "Review approved everything except one finding: box.main ingest calls lock.acquire() outside the try that catches OSError. A PermissionError from mkdir, open or flock on the state dir now escapes as a traceback instead of the paved-road refusal with exit 2.",
+    "Fix: add `except OSError` beside `except LockHeld` around lock.acquire(). It must print the existing 'fix the state directory permissions' paved road and return 2. Release the lock only after a successful acquire.",
+    "Add a test in tests/test_storm_notification_activation.py: box.main(['ingest', ...]) against an unwritable or invalid state_dir returns 2 and prints the paved-road text. Keep the LockHeld refusal test passing.",
+    "Keep the rest of this diff unchanged. Activation, trip identity, repair, recursion exclusion and the test migrations were accepted, and all checks are green. Do not widen scope.",
+    "Run the full `uv run pytest -q` in the background and record its exit status before marking the attempt ok."
   ],
-  "reason": "A lessons-fed retry repeated the same unmet criteria, plus a real recursion bug and a vacuous test, and finished in 20m of a 75m budget. The ticket is feasible but needs more capability to cover it thoroughly.",
+  "reason": "The single remaining finding is a narrow exception-scoping regression, and the review names the exact fix.",
   "detail": null
 }
