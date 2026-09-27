@@ -2,10 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The queue adapter had to retain the delivered ticket metadata and resulting squash commit until the serial slot unwound so finalization could occur afterward exactly once.
+The queue adapter retains the delivered ticket metadata and squash commit until the serial slot unwinds so successful finalization occurs exactly once. An unresolved rung-2 result is mapped to the runner's closed `gate_failed` outcome with a typed `post_rebase_regate` finding while the queue preserves its Rework handoff.
 
 ## Dead ends
-The first daemon conflict test fixture omitted its ticket's Context path; the fixture was corrected before verification.
+The prior attempt exposed the queue's internal `rework` outcome through `Delivery`, which the Runner rejects. This attempt replaced that boundary with the closed outcome mapping and exercised it through Serve's real watcher-to-Runner dispatch path.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The first daemon conflict test fixture omitted its ticket's Context path; the fi
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 90m; actual approximately 30m.
+Expected 90m; actual approximately 20m for this retry.
