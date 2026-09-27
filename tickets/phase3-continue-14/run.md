@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The section 20 clarification made the quarantine ledger, keyed by box and test identity, the release state; no SHA-held substitute was authored. The direct-hook contracts retain call-path dormancy while allowing daemon import reachability.
+The live Box schema separates authored status from fix identity, so flake release requires `status == "authored"` and `resolution.link == fix_stem`; merge and green-rerun evidence remain separate named inputs. The storm-ledger successor depends on journal-roll rather than running beside it.
 
 ## Dead ends
 
-The first seed draft omitted the ticket linter's observable-artifact references in several criteria. I added explicit fenced test artifacts before verification.
+The first focused run exposed one contract phrase placed only in Why rather than Scope in; I moved the flake rerun law into Scope in and reran the command green. One initial `git.py` wrapper invocation used invalid one-line async syntax; the corrected wrapper invocation committed only the seeded test.
 
 ## Second problems filed
 
@@ -20,4 +20,4 @@ OpenAI Codex; exact serving model identifier not exposed.
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 25m. `uv run pytest tests/test_seeded_phase3_14.py -q` passed (5 passed) and `uv run pytest -q` passed (1087 passed).
+Expected 75m; actual approximately 20m. `uv run pytest tests/test_seeded_phase3_14.py -q` passed (8 passed) and `uv run pytest -q` passed (1090 passed).
