@@ -1,16 +1,9 @@
 {
-  "run_seq": 6,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "split",
-  "lessons": [
-    "Sixth attempt, and `uv run pytest -q` was again killed with exit 143 (SIGTERM, a timeout or hang). The implementer never saw the full suite finish. Run it to completion with a per-test timeout, find the hang, and never claim success from the targeted command alone.",
-    "Likely hang: the `wait_for_control` in `__main__` runtime() is `inbox.consume` plus `asyncio.sleep(0)`. A paused drain busy-spins and starves the event loop. Block on a real wake signal or the injected clock sleep seam, and prove resume unblocks the drain.",
-    "The diff never touches tests/test_mergequeue.py or tests/test_daemon_composition.py. Prior lessons flagged this in attempts 1 through 5. Two acceptance criteria are still unmet, so the ticket is too large for one attempt.",
-    "Split into (1) CLI and daemon pause/resume activation: __main__, daemon, control, drain, test_control_cli.py, test_daemon_pause.py, test_daemon_composition.py. (2) Red-streak and tree-hash admission holds: mergequeue, merge, test_mergequeue.py, depending on (1).",
-    "Remove the `args.verb == 'drain'` special case and the per-`id(journal)` runtime cache in `_locked`. Build the control graph once through one production path, so a journal object's id cannot be reused across sessions.",
-    "test_control_cli.py needs cases for a stale lifecycle, a release predating the hold, and a live-lock publish that writes no journal event. Add these along with the red-streak A,B,A,C and reset-on-green tests in the holds ticket."
-  ],
-  "reason": "Sixth failed attempt: the full suite still times out, and two of the four acceptance suites have never been touched, so this ticket spans two independently provable boundaries.",
-  "detail": null
+  "run_seq": 7,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
