@@ -1,18 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "watchdog-detector: cite sections 9 and 20, or restate the section 9 detector contract: time regions and spend-without-progress over 3x per-call cost basis, reset by a declared-output mutation.",
-    "watchdog-detector criteria must pin behavior over injected clock, fences, cost basis, and events, plus an executable dormancy check. Form-only criteria let a no-op stub pass.",
-    "Detector input: WatchdogEvent has no path and cannot express output mutation. Either inject a separate mutation observation, or fence squatch/providers.py and tests/test_providers.py with a criterion.",
-    "watchdog-activation: fence squatch/stages.py (plus driver.py if needed). Require that every production driver call, review included, is watched on both the drain and serve paths, proven through the real composition.",
-    "watchdog-activation: drop the Context-partition criterion; the seeded test pins that. Add tests/test_serve.py and tests/test_daemon_soak.py as preservation suites, or fence them.",
-    "phase4-continue-02: pin a nonempty provider-cooldown-failover fence (providers, timers, their tests, a new direct test, drain/serve/__main__ wiring) with Context or on-demand partition and headroom proof.",
-    "phase4-continue-02: Scope out and Definition of rejected must forbid implementation and off-registry payloads, not 'an authored payload'. Mirror the wording in tickets/phase4-continue/ticket.md.",
-    "Update tests/test_seeded_phase4_01.py OWNERSHIP, CONTEXT, ON_DEMAND, sizes, and plan_sections to match the revised tickets. Rerun both pytest commands."
+    "phase4-continue-02 Scope out: delete 'do not author the provider payload now'. Authoring provider-cooldown-failover and phase4-continue-03 is its job. Forbid only implementing provider/reliability behavior and any payload off the registry or beyond that one row.",
+    "watchdog-activation: author at the registry tier, medium/medium. Section 20 raises only provider-cooldown-failover (KNOWN-DEEP) and phase4-exit (KNOWN-HARD). Update the test's tier assertion, which special-cases activation as high/high, to match.",
+    "tests/test_seeded_phase4_01.py EXISTING_AT_AUTHORING: squatch/providers.py is 18687 bytes, not 32667. Measure each Context file on disk before pinning its size. The other six sizes matched.",
+    "Delimiter exclusion: don't rely only on a hardcoded set. Read every Context path's content and assert it has no squatch:data or squatch:end prompt delimiter. Keep the explicit squatch/specs.py assertion.",
+    "Keep everything the reviewer accepted: identities, edges, fences, ownership, the admission registry, and successor-row removal. Rerun both Verification pytest commands after the edits."
   ],
-  "reason": "Requisition review found fixable ticket-authoring gaps with concrete paved roads; same capability suffices.",
+  "reason": "Four concrete, locally fixable authoring defects with paved roads; nothing shows the ticket is unsatisfiable or beyond current capability.",
   "detail": null
 }
