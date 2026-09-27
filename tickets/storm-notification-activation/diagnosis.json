@@ -1,9 +1,18 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Production wiring looks plausible. The failure is test coverage: the activation test calls compose_daemon_storm_producer directly, which the ticket counts as daemon-only construction, not activation.",
+    "Criterion 1: drive squatch.__main__ run/drain through _RestartRunner with a fake pipeline. Trigger a real harvest second-problem enqueue and a verification-attribution failure_report. Include Boxes constructed before binding.",
+    "Criterion 1 cleanup: after the session, assert the lock is released, the restart timer is shut down and the binding is reset. Check this on normal exit and on an exception raised inside the session.",
+    "Criterion 2: K occurrences give no trip and K+1 give one. K+2..2K in the same window add no trip. Test expiry at exactly T and at T minus epsilon on the SAME signature. Assert the trip_id of an emitting_stage=None trip.",
+    "Criterion 3: write one test per case. A resolved P0 report gets no new report and keeps reports==1. A segment roll before the crossing still recovers the trip. Occurrences with no trip repair to 1 trip and 1 report. A trip with no report repairs to 1 report.",
+    "Criterion 4: take the instance Lockfile, run box.main(['ingest', ...]) and assert rc==2, the refusal and paved-road text, and an unchanged Box. Run real drain work after a trip and assert dispatch proceeds with no control hold event.",
+    "In the test_drain migration, `kind in {None, 'storm_occurrence'}` exempts every event with no kind. Exempt only type=='signal' with kind=='storm_occurrence'. Keep the 'box' not in repr(event) check for every other event.",
+    "Check that journal.read() used by crossings/repair walks rolled segments; a test must prove it. Before the attempt ends, compare every acceptance criterion against a specific test."
+  ],
+  "reason": "The implementation is plausible but the tests cover only part of four acceptance criteria and the drain assertion is too loose; all of this can be fixed at the same capability now that the findings say what to add.",
+  "detail": null
 }
