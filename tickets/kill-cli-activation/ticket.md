@@ -31,6 +31,8 @@ Add the `kill` CLI verb through the bootstrap drain's lock-held control path. Th
 
 Migrate only `test_kill_boundary_is_dormant_and_not_a_cli_verb` in `tests/test_kill_signal_journal.py` to activation evidence. Add `tests/test_kill_cli_activation.py` for real in-process drain composition; do not launch serve. Preserve the executor abort, worker stop, and failure suppression contracts as read-only evidence. Worker/failure activation remains deferred to the first real serve task owner; DaemonTasks is not production evidence.
 
+The predecessor seed test's authoring-time byte counts are synthetic render fixtures, not live-size constraints on the four production files this activation must edit. Preserve unrelated documentation and typing; satisfy headroom with the compact kill changes rather than deleting existing prose.
+
 ## Scope out
 Do not create serve, activate DaemonTasks worker-stop or failure-suppression boundaries, or change a predecessor contract other than the migrated kill-verb absence assertion.
 
