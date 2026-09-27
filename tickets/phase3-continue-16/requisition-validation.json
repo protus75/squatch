@@ -1,27 +1,85 @@
 {
-  "review_method": "Implementer self-review against specs/requisition_review.md; no independent provider review was invoked.",
-  "plan_status": "No plan edit required. Section 20 already grants the production hold fence and on-demand partition.",
+  "review_method": "Configured RequisitionReview via CliClient, separate read-only provider sessions",
   "tickets": {
     "storm-producer-wiring": {
       "lint": "pass",
       "context_on_base": true,
-      "max_effort_render_chars": 99246,
-      "headroom_limit": 120000,
-      "self_review": "The allowed scoped ContextVar lives in box.py, daemon owns installation, explicit recorders take precedence, and normal/exceptional exit resets the binding. Full state_dir/journal/fs/clock signature and every missing 1..reports identity with append-time timestamps are specified. Scope and rejection text ban unscoped or permanent recorders, not the named scoped mechanism."
+      "render_measure": {
+        "chars": 99457,
+        "bound": 160000,
+        "headroom": 0.75,
+        "over": false
+      },
+      "review": {
+        "artifact_schema_version": 1,
+        "produced_by_spec_version": "1.0",
+        "produced_at_sha": "009a9795e8bca86983e3cfb379bb1dff785d4c76",
+        "verdict": "approve",
+        "summary": "The ticket can be built. Its fence covers the storm, box and daemon seams, the storm dormancy test it migrates, and the new producer test. It matches the section 20 storm-producer-wiring grant and leaves production composition dormant.",
+        "findings": []
+      },
+      "resolved_reviews": [
+        {
+          "provider": "claude",
+          "model": "opus"
+        }
+      ]
     },
     "storm-notification-activation": {
       "lint": "pass",
       "context_on_base": true,
-      "max_effort_render_chars": 117591,
-      "headroom_limit": 120000,
-      "self_review": "The fenced __main__.py session wrapper reaches production Box enqueue sites without changing their construction modules. Origin carries the P0 marker and deterministic trip identity without adding a prohibited priority field. Exact-origin lookup, report exclusion and ordered occurrence replay provide crash recovery. The sibling-new producer test is fenced but excluded from Context. Dispatch remains active until the hold seed."
+      "render_measure": {
+        "chars": 118077,
+        "bound": 160000,
+        "headroom": 0.75,
+        "over": false
+      },
+      "review": {
+        "artifact_schema_version": 1,
+        "produced_by_spec_version": "1.0",
+        "produced_at_sha": "009a9795e8bca86983e3cfb379bb1dff785d4c76",
+        "verdict": "approve",
+        "summary": "The ticket can be built as written. Every existing fence file is in Context, and test_storm_producer.py is the sibling-new file its predecessor creates, which the section 20 storm clarification allows. The criteria agree with each other, the seams hooked (box.py, __main__.py, daemon.py) are fenced, the machinery matches the storm-notification-activation grant, dispatch suppression is left to storm-dispatch-hold, and the render stays within headroom.",
+        "findings": []
+      },
+      "resolved_reviews": [
+        {
+          "provider": "claude",
+          "model": "opus"
+        },
+        {
+          "provider": "claude",
+          "model": "opus"
+        }
+      ]
     },
     "phase3-continue-17": {
       "lint": "pass",
       "context_on_base": true,
-      "max_effort_render_chars": 77107,
-      "headroom_limit": 120000,
-      "self_review": "The high/high hold owns live dispatch selection and resume, with both production roots fenced. Only drain.py and __main__.py are on-demand; all three merged storm predecessor tests enter future hold Context. The composition harness remains preservation-only. The medium/medium continuation carries exactly the remaining suffix."
+      "render_measure": {
+        "chars": 77503,
+        "bound": 160000,
+        "headroom": 0.75,
+        "over": false
+      },
+      "review": {
+        "artifact_schema_version": 1,
+        "produced_by_spec_version": "1.0",
+        "produced_at_sha": "009a9795e8bca86983e3cfb379bb1dff785d4c76",
+        "verdict": "approve",
+        "summary": "The continuation's fence (tickets plus its new numbered seeded test) is closed. Its criteria match section 20's storm-dispatch-hold ownership clarification: the exact fence, the drain/__main__ on-demand partition, high/high tiers, and preservation of the daemon composition test. Its admission suffix equals the one pinned in tests/test_seeded_phase3_11.py, and its base render is well within headroom.",
+        "findings": []
+      },
+      "resolved_reviews": [
+        {
+          "provider": "claude",
+          "model": "opus"
+        },
+        {
+          "provider": "claude",
+          "model": "opus"
+        }
+      ]
     }
   }
 }
