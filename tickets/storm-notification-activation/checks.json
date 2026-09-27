@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "bfe1906eff253e2d22d2603c0b2c7a19b1bb2344",
+  "produced_at_sha": "d55b0b3a467d2c2cb0323d51dbe4e45c83dab36d",
   "stem": "storm-notification-activation",
   "branch": "storm-notification-activation",
-  "base": "dba543d7baec8617ae2e93d79bacb627f6fad9a0",
-  "head": "bfe1906eff253e2d22d2603c0b2c7a19b1bb2344",
+  "base": "587c3a3549e4b2c45058a7d63114cb5519bd2886",
+  "head": "d55b0b3a467d2c2cb0323d51dbe4e45c83dab36d",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/box.py",
