@@ -13,9 +13,6 @@ agent_effort: medium
 ## Context
 - tests/test_seeded_phase3_core.py
 - squatch/daemon.py
-- squatch/stages.py
-- squatch/drain.py
-- squatch/__main__.py
 - tests/test_kill_signal_journal.py
 - tests/test_kill_executor_abort.py
 - tests/test_kill_worker_stop.py
@@ -40,7 +37,7 @@ The activation seed exposes kill through the production bootstrap drain that exi
 
 This activation does not pretend the test-only `DaemonTasks` graph is production. The worker-stop and failure-suppression boundaries remain dormant until a later real `serve` task owner activates them. Prove the real in-process drain composition in `tests/test_kill_cli_activation.py`; do not launch serve. Migrate `test_kill_boundary_is_dormant_and_not_a_cli_verb` in `tests/test_kill_signal_journal.py` to activation evidence in the same change that exposes kill. Preserve the other three predecessor kill suites unchanged as read-only Context and run them in Verification, along with the daemon tasks, control CLI, and composition suites.
 
-Every existing activation fence path must be existing Context when the activation is authored. Additionally, kill-cli-activation's Context includes the three preservation-only predecessor tests and existing `tests/test_daemon_composition.py` as read-only Context, never fence entries. `tests/test_seeded_phase3_11.py` must assert those inclusions and exclusions and keep the activation's max-effort render within `REQ_RENDER_HEADROOM`. The structured read-only Context requirement below is part of this authoring contract.
+Every existing activation fence path must be existing Context when the activation is authored except the plan-authorized on-demand inspection paths `squatch/stages.py`, `squatch/drain.py`, and `squatch/__main__.py`. Those three remain fence entries but are not embedded Context. Kill-cli-activation's embedded Context includes `squatch/daemon.py`, the fenced kill-signal test, the three preservation-only predecessor tests, and existing `tests/test_daemon_composition.py`; the preservation files are never fence entries. `tests/test_seeded_phase3_11.py` must assert this exact embedded/on-demand partition and keep the activation's max-effort render within `REQ_RENDER_HEADROOM`. The structured read-only Context requirement below is part of this authoring contract.
 
 The authored `phase3-continue-12` must repair the heartbeat contract now rather than pass the defect forward: `heartbeat.owns` is exactly new `squatch/heartbeat.py` and new `tests/test_heartbeat.py`; its hook is existing `squatch/daemon.py`; `NEW_PATH_OWNERS` also maps new `tests/test_seeded_phase3_13.py` to `phase3-continue-13`. Its Scope in names `squatch/daemon.py` and the existing daemon preservation tests it selects as heartbeat Context. Its acceptance criteria assert every existing fence path is existing Context, pin the selected predecessor-test closure, pin authoring-time Context sizes for the max-effort headroom render, and exclude sibling-new paths.
 
@@ -86,7 +83,7 @@ Do not implement kill behavior, author heartbeat in this admission, author beyon
 
 ## Acceptance criteria
 - `tests/test_seeded_phase3_11.py` pins exactly kill-cli-activation and phase3-continue-12, their dependency edges, activation high/high and continuation medium/medium tiers, 75m/150m budgets, cap 3, owns-then-hooks fences, and new-path owners.
-- `tests/test_seeded_phase3_11.py` asserts every existing fence path is existing Context, pins predecessor-test closure over all four kill tests, migrates only the kill-verb absence assertion, and keeps executor/worker/failure contracts as explicit preservation evidence; it pins that worker/failure activation is deferred to the first real serve owner.
+- `tests/test_seeded_phase3_11.py` asserts every existing fence path is existing Context except the exact three plan-authorized on-demand inspection paths, pins that partition and authoring-time file sizes, pins predecessor-test closure over all four kill tests, migrates only the kill-verb absence assertion, and keeps executor/worker/failure contracts as explicit preservation evidence; it pins that worker/failure activation is deferred to the first real serve owner.
 - `tests/test_seeded_phase3_11.py` asserts all four structured read-only paths are Context for kill-cli-activation and absent from its fence, and its max-effort render stays within REQ_RENDER_HEADROOM using pinned authoring-time Context sizes.
 - `tests/test_seeded_phase3_11.py` pins the repaired heartbeat ownership, new-path owners, daemon Context, predecessor-test closure, and authoring-time Context-size/headroom requirements in the authored phase3-continue-12 ticket.
 - `tests/test_seeded_phase3_11.py` pins the exact ordered suffix and successor equality after removing only [kill-cli-activation], leaving [heartbeat] first; no prior admission is duplicated or merged.
