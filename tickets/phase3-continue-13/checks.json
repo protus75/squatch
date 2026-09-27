@@ -1,0 +1,133 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "67aac5eef682b30b39375dbf5f5cc48df99478f2",
+  "stem": "phase3-continue-13",
+  "branch": "phase3-continue-13",
+  "base": "c0b06ab616ae0fce991457af10c7d0f3677825aa",
+  "head": "67aac5eef682b30b39375dbf5f5cc48df99478f2",
+  "changed_files": [
+    "tests/test_seeded_phase3_13.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-14/ticket.md",
+      "sha": "ab0553c7ba66616c700d8e56c6f78139764011bb",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-14/ticket.md",
+          "line": null,
+          "message": "Scope in makes flake-detection and flake-release both depend only on phase3-continue-14. The section 20 registry orders them as `flake-detection`, then `flake-release`, and grants the pair the single new module `squatch/flake.py` and the single test `tests/test_flake.py`. As parallel siblings, flake-release would fence paths that do not exist yet and that a sibling in the same admission creates, and two parallel tickets would both create the same new files. The established precedent for a 'then' pair is dispatch-admission-boundary -> dispatch-config-snapshot: the later seed depends on the earlier one, hooks its new paths, and leaves them out of Context.",
+          "paved_road": "Make flake-release depend on flake-detection, not on phase3-continue-14. Keep phase3-continue-15 depending on both. Pin these edges in tests/test_seeded_phase3_14.py."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase3-continue-14/ticket.md",
+          "line": null,
+          "message": "The ticket says 'Derive each fence as its owns followed by its hooks' and its criteria pin owns-then-hooks fences, new-path owners, and Context closure. But it states no ownership contract, no per-seed Context, and no new-path owner mapping, so the implementer has to invent all three. Predecessor continuations (see the `ownership` yaml block pinned by tests/test_seeded_phase3_11.py) carry an explicit contract that the seeded test asserts equal.",
+          "paved_road": "Add an `ownership` yaml block to Scope in. flake-detection owns squatch/flake.py and tests/test_flake.py and hooks squatch/daemon.py. flake-release owns nothing new and hooks squatch/flake.py, tests/test_flake.py, and squatch/daemon.py; the two flake paths are sibling-new, so they stay out of its Context. phase3-continue-15 owns tickets and tests/test_seeded_phase3_15.py with no hooks. Name each seed's exact Context: squatch/daemon.py for both flake seeds, and for phase3-continue-15 an established seeded-test pattern plus existing composition surfaces. Extend the new-path owner map with the restart-timers paths (squatch/restart.py, squatch/timers.py, tests/test_restart_timers.py), the flake paths -> flake-detection, tests/test_seeded_phase3_14.py -> phase3-continue-14, and tests/test_seeded_phase3_15.py -> phase3-continue-15."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/restart-timers/ticket.md",
+      "sha": "486bfd6e83c75b8e48083f589ecbbddfbc9855a4",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/restart-timers/ticket.md",
+          "line": null,
+          "message": "Reaping orphaned runs before dispatch is already merged. `squatch/reconcile.py` does it, and `squatch/runner.py:153` calls it at lock entry before any dispatch, so the CLI composition root already reaps before dispatch. The plan defines Phase 3 restart-reconcile as reaping 'exactly like reconcile-on-entry'. A fresh reap in new `squatch/restart.py` would be a second reap path, which is dual-path code. Neither `squatch/reconcile.py` nor `tests/test_reconcile.py` is in Context, so the implementer can't see the behavior it has to reuse or keep intact.",
+          "paved_road": "Add `squatch/reconcile.py` and `tests/test_reconcile.py` to Context; render headroom allows it at 96,106 of 120,000 characters. In Scope in, say that `squatch/restart.py` delegates to the existing `reconcile` and does not reimplement it. Name exactly what gets reaped: `running` with no terminal, and `effect_intent` with no completion, both reaped to `abandoned`. Add `tests/test_reconcile.py` to the unchanged predecessor-test closure and to Verification."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/restart-timers/ticket.md",
+          "line": null,
+          "message": "The criterion 'restart timers persist and re-arm' can't be tested as written. The ticket doesn't say what a timer is, where it persists, what re-arms it, or which consumer fires it. The plan's Timer row defines timers as journaled deadlines re-armed at daemon startup, but the ticket never carries that contract. The implementer would have to invent the persistence medium, which risks a state-dir side file becoming a second source of truth next to the journal.",
+          "paved_road": "State the contract in Scope in and in Acceptance criteria. Timers are journaled deadlines appended through the Journal seam, read against the injected Clock, and re-armed from a journal fold when `compose_daemon_*` composes the daemon. Pin the test assertions: a deadline armed before a simulated restart re-arms once afterwards, a deadline that has already expired fires once, and a deadline that has fired never re-arms."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/restart-timers/ticket.md",
+          "line": null,
+          "message": "The Why says restart reaping and timers follow the heartbeat liveness boundary, but neither `squatch/heartbeat.py` nor `tests/test_heartbeat.py` is in Context. The ticket also doesn't say whether that boundary stays dormant or is consumed here. If `tests/test_heartbeat.py` asserts heartbeat dormancy, consuming the boundary would contradict it, and that test isn't fenced.",
+          "paved_road": "Either add `squatch/heartbeat.py` and `tests/test_heartbeat.py` to Context, list `tests/test_heartbeat.py` as an unchanged preservation suite, and say whether heartbeat stays dormant; or remove the heartbeat dependency from Why if restart reaping doesn't read it."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase3_13.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
