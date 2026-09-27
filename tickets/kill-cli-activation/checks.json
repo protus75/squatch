@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "7410aedbbc22e219abfa87e80194addb9f155b69",
+  "produced_at_sha": "f277410b86faa2638efe8e3bf4764c3361f10755",
   "stem": "kill-cli-activation",
   "branch": "kill-cli-activation",
-  "base": "024b4f2cdd201cb479890285d164c48411907254",
-  "head": "7410aedbbc22e219abfa87e80194addb9f155b69",
+  "base": "ec9b9757d28ec308d94c4a06ba783d7070e55b14",
+  "head": "f277410b86faa2638efe8e3bf4764c3361f10755",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/daemon.py",
