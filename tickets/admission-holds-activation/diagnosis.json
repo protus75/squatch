@@ -1,16 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "`uv run pytest -q` was killed with exit 143 (SIGTERM), which usually means a timeout or hang. The targeted suite was not flagged. Before claiming green, run the full suite locally under a timeout (e.g. `--timeout`) and find the test that hangs.",
-    "Likely hang: `AdmissionHold.wait()` blocks forever once a hold fires and no release is consumed. Existing tests or daemon paths that hit a tree mismatch or 3 reds and then admit again will stall. Check every `compose_merge_queue` or `compose_pipeline` caller outside `test_mergequeue`.",
-    "Drop the `control_inbox=None` fallback in `compose_merge_queue`, which builds its own `ControlInbox`. The ticket forbids a second inbox, and the fallback is a dual path. Inject the lock holder's shared inbox. If that needs an edit outside the fence, that is the reject condition.",
-    "Make sure the hold's `apply` is wired to the engine's one control consumer in the production path. Tests calling `inbox.consume` by hand don't prove the daemon releases the hold.",
-    "Explicitly test stale-lifecycle releases and rebase/regate failures that must not count. Note that `apply` never checks lifecycle, so confirm the inbox filters it, or check it in `apply`.",
-    "Keep the original indentation on the `Admission(...)` continuation line in `_admit`; the diff shifted it by one space."
-  ],
-  "reason": "The code is on track, but the full suite was killed (exit 143), most likely by a hold wait that never releases. This is fixable at the same capability now that the findings point to it.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
