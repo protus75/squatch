@@ -1,16 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Requisition review found the plan defective: the production Driver is built in squatch/stages.py:515, which kill-cli-activation's fence (control/daemon/driver/CLI) excludes. The kill mutation cannot reach the running Driver without an unfenced edit.",
-    "No production composition owns DaemonTasks: the drain does not run watcher, merge, or box tasks, and serve is deferred. 'Stops workers' and 'suppresses failures' through production have nothing real to act on.",
-    "Section 20 does not define kill semantics: what happens after kill is accepted, what 'blocks further admission' means, or what the no-running-engine direct locked path does. It also says the closed CLI verb list does not change.",
-    "Fix the plan and re-author the ticket before retrying. When re-authored, move squatch/heartbeat.py into heartbeat.owns (it is new, not a hook) and add both of them to NEW_PATH_OWNERS.",
-    "The phase3-continue-12 seed must give heartbeat its Context (including squatch/daemon.py). It must also require asserting that existing fence paths are in Context, pinning Context sizes for the headroom render, and predecessor-test closure.",
-    "The run.md ## Outcome must be one closed value (for example ok), never 'implemented'. Leaving daemon-task/control-CLI sources out of Context kept the render under 120000 chars."
-  ],
-  "reason": "Requisition review proved the plan-prescribed kill-cli-activation fence and section 20 spec cannot yield a satisfiable seed, so the plan must be fixed and the ticket re-authored.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
