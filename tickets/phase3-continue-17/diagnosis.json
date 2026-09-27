@@ -1,15 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "reject",
   "lessons": [
-    "All three review findings are plan defects, and their paved road is 'fix the plan, then re-author the ticket'. Another implementer retry cannot clear them. Section 20 must change first.",
-    "Section 20 gives checkpoint-push only squatch/checkpoint.py, tests/test_checkpoint.py and the squatch/daemon.py hook. squatch/git.py has no push operation, so the seed must leave its fence or bypass git.py. The plan must add git.py and its test to the fence.",
-    "The plan never says how a trip's emitting_stage maps to a drain offer. The drain selects whole tickets, so an implement trip pauses everything and a check/review trip suppresses nothing. The plan must define stage-selectable dispatch first.",
-    "phase3-continue-18 demands exact Context pins for checkpoint-push and phase3-continue-19 but never names that Context. The plan must list it, e.g. squatch/daemon.py plus one established seeded test.",
-    "Once the plan is fixed, regenerate by rerunning the owning deliverable. Don't hand-patch the untracked ticket files or tests/test_seeded_phase3_17.py."
+    "Both requisition findings are ticket/plan defects that no retry fixes. Scope-in adds emitting_origin to occurrence and trip records, yet allows migrating only dispatch-absence assertions, so the exact four-key storm_occurrence body tests in test_storm.py and test_storm_producer.py must break.",
+    "Section 20 must state the durable emitting_origin body contract: always present as a nullable string, validated like emitting_stage. It must also define how storm_occurrence events journaled without the field replay, and whether StormLedger.record takes emitting_origin as an optional argument.",
+    "Section 20 and this ticket must permit migrating the exact occurrence-body, key-set, and _event fixture assertions in the fenced predecessor storm tests. They must still forbid changes to occurrence identity, trip_id, and report assertions, and keep tests/test_daemon_composition.py unchanged.",
+    "Fix section 20 first, then regenerate by rerunning phase3-continue-17. Delete the untracked storm-dispatch-hold and phase3-continue-18 tickets and tests/test_seeded_phase3_17.py rather than hand-patching them.",
+    "The earlier fixes (emitting_origin selection, git.py in the checkpoint fence, continuation Context) held up. Keep them; the only remaining gap is the emitting_origin body/migration rule."
   ],
-  "reason": "The review gate showed that section 20 is under-specified for both seeds (a checkpoint fence without git push, no stage-to-offer mapping for the hold, no named successor Context), so the ticket can't be satisfied until the plan is fixed.",
+  "reason": "The ticket requires emitting_origin on occurrence records but forbids changing the positive exact-body assertions that this necessarily breaks, and it leaves the body contract undefined, so the plan must change first.",
   "detail": null
 }
