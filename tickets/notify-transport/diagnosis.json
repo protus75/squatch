@@ -1,17 +1,15 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Drive storm escalations from the journaled `storm_trip` signal itself, not from its lazily created `control_hold`. Holds exist only after dispatch offers the origin, so startup reconcile misses trips. This overrides the earlier lesson that said to drive storm notices from the control_hold.",
-    "Key storm notifications as effect_key('notify', emitting_origin, 'storm_trip', trip_id), so the key stays the same whether or not a hold exists later. Keep red-streak keys on hold_id unchanged.",
-    "Resume action: if an unreleased storm_trip control_hold matches trip_id, render `squatch resume --hold-id <hold_id>`. If not, read daemon.py StormDispatchHold and the resume verb, then render the real pull-side action for a pending trip. Never render a placeholder.",
-    "Add a test_notify startup case that journals only a storm_trip signal with no hold and asserts it is sent. Add a test_serve case asserting it is sent before the first dispatch.",
-    "In SubprocessNotifications.notify, turn launch OSErrors other than FileNotFoundError (e.g. PermissionError, IsADirectoryError) into RuntimeError. Add a test_seams case with a non-executable file as argv[0], plus a reconciler test that it is reported and no completion is journaled.",
-    "Keep what passed review: seam isolation, config validator, red-streak keys, _serve wiring, startup-then-poll ordering, unset warning, replay suppression, timeout handling. Change only notify.py, seams.py and their tests, and add the serve startup case.",
+    "Only remaining defect: notify.py `_escalations` builds the `holds` map of unreleased holds, then ignores it. Yield integration_red_streak escalations only for hold_ids still in `holds`, never from raw per-event released=False records.",
+    "Storm trips: collect trip_ids whose storm_trip control_hold was later released and skip those trips entirely. Still send trips that never had a hold (the pending-trip action) and trips whose hold is still active (render the real --hold-id).",
+    "Add tests/test_notify.py cases: (1) journal a red-streak hold, then its release, reconcile, and assert zero sends; (2) journal a storm trip, its storm_trip hold, then that hold's release, reconcile, and assert zero sends.",
+    "Keep everything else as-is; it passed review: seam isolation, config validator, Effect keys, _serve wiring, startup-then-poll order, unset warning, failure/timeout handling, replay suppression. Change only notify.py and test_notify.py.",
     "Re-run all three Verification commands before committing. The soak suites must stay unchanged and green."
   ],
-  "reason": "Review found two concrete, fixable defects: storm trips without a hold are missed at startup, and non-FileNotFound OSErrors can crash serve. Both have clear fixes, so a retry at the same capability is enough.",
+  "reason": "Checks all passed; review found one fixable logic defect (released holds and resolved trips still notified) with a concrete paved road.",
   "detail": null
 }
