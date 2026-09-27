@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The worktree contained the dormant predecessor boundary. Inspected and reused the seven scoped activation files from 69c97ab7d8ce7b22de351b17b06a2aaa764dea93, then fixed the remaining lock-identity finding. Section 20 already requires identity-bound control and a single journal writer; this was an implementation defect, not a plan defect.
+The worktree contained the dormant predecessor boundary. Read the ticket, every Context file, section 20, and the fenced drain and pause tests. The plan already specifies this activation; no plan defect or unfenced edit was required. Inspected and reused the seven scoped activation files from dc7608a9ab18415d10a7e8aa816353805d37a982 after verifying their parent versions matched this base.
 
-The production control factory reads the actual Holder record through the filesystem seam after Runner has acquired its lock and exposed the journal. This avoids changing the unfenced Runner/Lockfile APIs or guessing the acquisition timestamp in advance. Lifecycle signals store that Holder, and live CLI publication requires an exact match, including pid and started_at. Regression cases retain the engine version while independently changing each acquisition field; both refuse without publishing or journaling. Existing live publication remains covered with matching identity.
+Resolved the remaining review finding in the production drain routing test. Resume is now published by the sleep seam injected through the production control factory, only after the drain is paused. The callback verifies the durable hold, completion of the first dispatch, and absence of the next ticket's dispatch accounting. There is no background release task or wall-clock ordering. An advancing test clock bounds a stuck pause, and an unexpected second wait fails the trace assertion. The journal assertions prove both pause and release decisions precede their hold mutations and the next dispatch.
 
-Retained production drain routing, durable no-engine pause/resume, decision-before-mutation, accepted-but-unapplied crash recovery, matching release, non-preemption, accounting-order tests, and the injectable one-second control wait. Merge admission holds remain the dependent ticket's boundary.
+Retained the prior activation design: publication bound to the actual lock acquisition, a single journal writer, direct lock-held no-engine operation, durable holds and lifecycle recovery, accepted-but-unapplied crash recovery, matching releases, stale and pre-hold release rejection, non-preemption, and accounting-order tests. The control inbox's snapshot-before-hold rule is unchanged from the prior implementation. Merge admission holds remain the dependent ticket's boundary; no kill or serve verb was added.
 
 Verification commands ran exactly as specified and exited 0:
-- uv run pytest tests/test_control_cli.py tests/test_daemon_pause.py tests/test_daemon_composition.py tests/test_daemon_tasks.py tests/test_control.py tests/test_drain.py -q: 115 passed in 8.94s.
-- uv run pytest -q: 1020 passed in 45.81s.
+- uv run pytest tests/test_control_cli.py tests/test_daemon_pause.py tests/test_daemon_composition.py tests/test_daemon_tasks.py tests/test_control.py tests/test_drain.py -q: 115 passed in 8.22s.
+- uv run pytest -q: 1020 passed in 44.76s.
 
 Preservation-only suites are unchanged. The commit contains only the seven fenced code/test paths; this run record is uncommitted.
 
@@ -24,4 +24,4 @@ None.
 OpenAI / GPT-6 (Codex); exact serving variant unavailable.
 
 ## Predicted vs actual
-Expected: 75 minutes. Actual: approximately 7 minutes, including inspection, prior implementation recovery, identity fix, verification, and commit.
+Expected: 75 minutes. Actual: approximately 5 minutes, including inspection, prior implementation recovery, deterministic test fix, both verification commands, and commit.
