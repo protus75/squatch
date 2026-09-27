@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "a3eba249068473f0cf3540018aff66eb44adbdf6",
+  "produced_at_sha": "a7493f0095a917d9be8c6a8d912e3105179c90e3",
   "stem": "phase3-continue-21",
   "branch": "phase3-continue-21",
-  "base": "6246fbec6eed30a31079f27dc99ed005b8cb3686",
-  "head": "a3eba249068473f0cf3540018aff66eb44adbdf6",
+  "base": "abeb06171b97ab952fec791b7e70472de5b53127",
+  "head": "a7493f0095a917d9be8c6a8d912e3105179c90e3",
   "changed_files": [
     "tests/test_seeded_phase3_21.py"
   ],
