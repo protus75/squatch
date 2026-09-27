@@ -1,9 +1,17 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "split",
+  "lessons": [
+    "Fourth attempt, and tests/test_mergequeue.py and tests/test_daemon_composition.py are still untouched. The ticket covers two features across 10 files. Split it: (1) CLI and daemon pause/resume activation; (2) red-streak and tree-hash merge admission holds, depending on (1).",
+    "AdmissionHold.allow loops on wait_for_control, which never yields, so a held admission hot-spins and starves the event loop. Block on a real wake signal or the injected clock sleep seam, and add a test showing another task makes progress while the hold is pending.",
+    "Red streak: call red(stem) when integration_check returns findings, which is the integration-red outcome, not only on re-gate failure. Clear the streak when a hold fires or is released so the next hold needs three new distinct reds. Reset on green. Test the sequence A,B,A,C.",
+    "Journal a hold event (hold_id, trigger red_streak or tree_hash, lifecycle) before setting hold_id, through the shared inbox's journal, so the operator can find the id to pass to `squatch resume --hold-id`. That event is the hold's paved-road release.",
+    "daemon.py rehydration clears the dispatch pause on any control_hold release in the lifecycle. Record which hold actually changed (dispatch or merge, and whether it matched), and clear the dispatch pause only when the release's hold_id equals the current dispatch hold_id.",
+    "The CLI probes the lock, releases it, then _locked reacquires it, which races with a starting daemon. Hold the probed lock through the direct apply, or fall back to publish_control on LockHeld.",
+    "The _drain lambda calls runtime(journal) twice and __main__ special-cases args.verb == 'drain'. Build the control once and pass it through a single path. Remove the unused Awaitable imports and the unused `graph` binding."
+  ],
+  "reason": "Four attempts at the same capability keep leaving two acceptance-criteria test suites unwritten and ship new hold bugs; the ticket bundles two separable features and is too large for one attempt.",
+  "detail": null
 }
