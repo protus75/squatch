@@ -1,15 +1,16 @@
 {
-  "run_seq": 2,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "reject",
+  "verdict": "retry",
   "lessons": [
-    "Both requisition findings are ticket/plan defects that no retry fixes. Scope-in adds emitting_origin to occurrence and trip records, yet allows migrating only dispatch-absence assertions, so the exact four-key storm_occurrence body tests in test_storm.py and test_storm_producer.py must break.",
-    "Section 20 must state the durable emitting_origin body contract: always present as a nullable string, validated like emitting_stage. It must also define how storm_occurrence events journaled without the field replay, and whether StormLedger.record takes emitting_origin as an optional argument.",
-    "Section 20 and this ticket must permit migrating the exact occurrence-body, key-set, and _event fixture assertions in the fenced predecessor storm tests. They must still forbid changes to occurrence identity, trip_id, and report assertions, and keep tests/test_daemon_composition.py unchanged.",
-    "Fix section 20 first, then regenerate by rerunning phase3-continue-17. Delete the untracked storm-dispatch-hold and phase3-continue-18 tickets and tests/test_seeded_phase3_17.py rather than hand-patching them.",
-    "The earlier fixes (emitting_origin selection, git.py in the checkpoint fence, continuation Context) held up. Keep them; the only remaining gap is the emitting_origin body/migration rule."
+    "Every check passed, and the requisition review passed both authored tickets. The three review snags are test and ticket-authoring oversights inside the fence (tickets, tests/test_seeded_phase3_17.py). No plan defect is implicated this time.",
+    "The NEW_PATH_OWNERS assertion compares a constant with itself, so it proves nothing. Derive owners from the tickets: tests/test_storm_hold.py goes in the hold's scope_fence owns, and checkpoint-push and phase3-continue-19 owns come from the ownership YAML in phase3-continue-18's Scope in.",
+    "Also assert that each new path (tests/test_storm_hold.py, tests/test_seeded_phase3_18.py, squatch/checkpoint.py, tests/test_checkpoint.py, tests/test_seeded_phase3_19.py) does not exist in the repo at authoring time.",
+    "Add an acceptance criterion to the storm-dispatch-hold ticket: tests/test_storm_hold.py proves the per-stem hold is bound through the live drain's CLI composition root, so a drain built through that root suppresses the tripped stem and resumes it. Without it, a dormant-only build passes.",
+    "Pin the binding in test_seeded_phase3_17.py: the phrase \"live drain's CLI composition root\" in the hold's Scope in, the new acceptance-criterion text, and the Scope out wording against deferring production activation.",
+    "Keep everything that already passed: identities, tiers, budgets, fences, Context partition, predecessor migration pins, authoring sizes, render headroom and suffix equality. Change only the three snagged points."
   ],
-  "reason": "The ticket requires emitting_origin on occurrence records but forbids changing the positive exact-body assertions that this necessarily breaks, and it leaves the body contract undefined, so the plan must change first.",
+  "reason": "Every review finding is a test or ticket-authoring oversight inside the fence with a concrete fix; the findings now steer a same-capability retry.",
   "detail": null
 }
