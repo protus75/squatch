@@ -1,22 +1,22 @@
 ## Outcome
 
-ok
+premise_failed
 
 ## Surprises / judgment calls
 
-The successor ticket explicitly assigns producer, notification, and continuation ownership and preservation classifications to clear the prior requisition findings.
+The supplied section 20 registry names the storm files and dependency but does not define an occurrence, identity key, journal event/body, fold behavior across rolled segments, or a scriptable dormancy boundary.
 
 ## Dead ends
 
-The first authored acceptance criteria that did not name an observable test were rejected by ticket lint; each now names its direct test artifact.
+Authoring `tickets/storm-ledger/ticket.md` would require inventing the missing contract. The prior-attempt finding prescribes a plan correction first, but `SQUATCH_PLAN.md` is outside this ticket's scope fence, so the required repair cannot be made here.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI Codex / GPT-5, as supplied by the engine.
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 15m.
+Expected 75m; stopped during contract validation before implementation.
