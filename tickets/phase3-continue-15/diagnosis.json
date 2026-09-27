@@ -1,16 +1,15 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Seeds, dependencies, ownership YAML, Context partition and successor suffix passed review; keep them. Only fix the three review findings below.",
-    "journal-roll criterion 2 contradicts its read-only preservation: move the cross-segment replay proof to tests/test_journal_roll.py; reword to 'tests/test_journal.py passes unchanged'; assert that wording in test_seeded_phase3_15.py.",
-    "EXISTING_AT_AUTHORING pins tests/test_seeded_phase3_15.py at 0 bytes but it is real phase3-continue-16 Context (~10KB). Use its real size (read the file itself at test time, since a self-pin changes the size) so the headroom check is honest.",
-    "Do not skip phase3-continue-16 in the field loop. Parse it without the existence lint (yaml frontmatter + _section lists) and assert source/state/priority, section 20, 75/150, owns+hooks fence and exact CONTEXT equality.",
-    "Apply the prompt-spec exclusion (squatch/specs.py, specs/implement.md) and the existing-fence-path-in-Context check to phase3-continue-16 too.",
-    "Check each NEW_PATH_OWNERS entry owned by this batch or the successor's ownership block appears in that owner's fence, as the predecessor seeded test did."
+    "Only failure: requisition review rejected 3 phase3-continue-16 Context paths that do not exist at check time: tests/test_seeded_phase3_15.py, squatch/storm.py, tests/test_storm.py. Everything else passed; keep the seeds, the tests and the ownership YAML.",
+    "Context holds only files that exist now. It does not hold files a predecessor will create before the ticket runs. This overrides the earlier lesson to put storm.py and test_storm.py in phase3-continue-16 Context.",
+    "Drop squatch/storm.py and tests/test_storm.py from phase3-continue-16 Context. The plan's 'then-existing storm Context' is for the storm-producer-wiring seed, which phase3-continue-16 authors after storm-ledger merges. It is not for phase3-continue-16's own Context.",
+    "For the seeded-pattern Context, use an already-merged seeded test. phase3-continue-15 cites tests/test_seeded_phase3_11.py; use tests/test_seeded_phase3_14.py or another merged one. Do not use test_seeded_phase3_15.py, which this ticket creates.",
+    "Update the CONTEXT and EXISTING_AT_AUTHORING pins in tests/test_seeded_phase3_15.py to match. Remove the 0-byte and self-read size entries and re-check max-effort headroom. Before calling it implemented, run lint_ticket with the existence check on all three tickets, phase3-continue-16 included."
   ],
-  "reason": "Review snag lists three concrete, fixable test and criterion gaps with paved roads; checks all passed and the premise holds.",
+  "reason": "The check gate found a fixable Context error: phase3-continue-16 names files that don't exist yet. Dropping them passes the gate while keeping the existing-fence-in-Context rule.",
   "detail": null
 }
