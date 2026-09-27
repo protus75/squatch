@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Reviewers found the daemon.py change sound. Keep it: _kill_stopping is set only by stop_workers_for_kill after an accepted kill, and run() re-raises unless that flag is set and the cancel is not external. Only the stale-kill test needs rework.",
+    "Build the stale-kill test on the real boundary: a control that awaits kill_worker_stop_consumer(inbox, ActiveDriver(), owner)(), like owner_for. Do not use control_consumer with a no-op handler, which can never reach the suppression path.",
+    "In the stale test, publish a kill with lifecycle=uuid4() and wait for its journal decision with outcome 'stale'. Then assert that no worker was cancelled and owner._kill_stopping is False, release the independent failure, and assert that run() raises RuntimeError.",
+    "Wait for the stale decision before releasing the worker failure, so the control pass has consumed the request first. The previous attempt hit this race.",
+    "Keep the other tests and all predecessor suites unchanged. The fence is only tests/test_kill_failure_suppression.py and squatch/daemon.py."
+  ],
+  "reason": "Checks were green and the one review finding is a fixable test-wiring gap with a concrete fix, so rerun at the same capability.",
+  "detail": null
+}
