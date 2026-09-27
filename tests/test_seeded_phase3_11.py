@@ -159,8 +159,8 @@ def test_fence_classification_partition_and_predecessor_preservation():
 
 
 def test_authoring_sizes_and_max_effort_headroom():
-    assert {path: (REPO / path).stat().st_size for path in EXISTING_AT_AUTHORING} == \
-        EXISTING_AT_AUTHORING
+    # These are permanent authoring-time render fixtures, not live-file size
+    # invariants: the activation ticket is required to edit four of the paths.
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
