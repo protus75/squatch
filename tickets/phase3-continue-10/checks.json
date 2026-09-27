@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "ff1966b404e0168a4e7fbae4122093f6449f4d36",
+  "produced_at_sha": "3d9e18db9a62fd48d65180c6414c0e13403b63f5",
   "stem": "phase3-continue-10",
   "branch": "phase3-continue-10",
-  "base": "e246058686766cdfd99831fb0a1a6fbd6e25c19a",
-  "head": "ff1966b404e0168a4e7fbae4122093f6449f4d36",
+  "base": "ae1315ed3b443f54952e5373ef262afaacc0323f",
+  "head": "3d9e18db9a62fd48d65180c6414c0e13403b63f5",
   "changed_files": [
     "tests/test_seeded_phase3_10.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/kill-failure-suppression/ticket.md",
-      "sha": "80a6518e538d93c1aff65324417b79a2330d6f72",
+      "sha": "b59398d182860cc2cf11a2af8140d835dc5779cd",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,27 +25,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/kill-worker-stop/ticket.md",
-      "sha": "c90c38d19b7e77d33c60929db8907de530e24429",
+      "sha": "36b277a463d204c08782a2f88cde76499e24ee2e",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-11/ticket.md",
-      "sha": "7158961dbef86057b83e4e851bb8f460aa679eeb",
+      "sha": "e8d48301532cfa48b10bdd5a4ca6aba37512f4b6",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-11/ticket.md",
-          "line": null,
-          "message": "Section 20's compact registry says: 'The later activation seeds authored after that sibling merges include the then-existing composition harness in their own Context.' scheduler-activation, which lands tests/test_daemon_composition.py, is already on the committed plane. Scope in only requires existing activation fence paths to be Context, and the harness is not a fence path. So neither Scope in nor any acceptance criterion requires or pins tests/test_daemon_composition.py in kill-cli-activation's Context. That seed must prove the real in-process production composition, so it would be authored without its harness interface evidence.",
-          "paved_road": "Add a Scope in requirement and an acceptance criterion: kill-cli-activation's Context includes the existing tests/test_daemon_composition.py as read-only Context, not a fence entry, and tests/test_seeded_phase3_11.py asserts this and keeps it within max-effort render headroom."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
