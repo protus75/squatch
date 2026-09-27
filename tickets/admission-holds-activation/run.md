@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-The hold is optional on `MergeQueue` so the minimal Rework fixture continues to enter its slot, while production composition makes the shared inbox mandatory.
+The hold remains optional on `MergeQueue` for the minimal Rework fixture. Production composition makes the inbox mandatory, blocks on an event, and routes releases through the dispatch boundary's single consumer.
 
 ## Dead ends
 
@@ -20,4 +20,4 @@ OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; completed in about 50m.
+Expected 75m; completed in about 35m.
