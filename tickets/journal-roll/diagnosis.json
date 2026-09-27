@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Everything but one reviewer finding passed: roll trigger, ordered naming, immutability, cross-segment replay. Keep that work; fix the one defect only.",
+    "`_first_event_time` must fail closed. On a bad first line, raise `JournalCorruption(f\"{path}:{n}: {e}\")` the way `_read_segment` does, never return None. A blank line is corruption, not skipped. Return None only for an empty segment.",
+    "Add a test in `tests/test_journal_roll.py` that opens a journal whose active segment has a corrupt or blank first line and asserts `JournalCorruption` is raised. Do not touch `tests/test_journal.py`.",
+    "Put the corrupt case after `_truncate_torn_tail` so a torn final line still truncates as before and only earlier bad lines raise. Check that existing torn-tail tests stay green."
+  ],
+  "reason": "The review snag is a small, clearly steered fail-closed fix inside the scope fence; the rest of the diff passed checks and review.",
+  "detail": null
+}
