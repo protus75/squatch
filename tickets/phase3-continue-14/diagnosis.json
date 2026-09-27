@@ -1,0 +1,18 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Requisition review rejected the authored seeds, not the test mechanics. Rewrite ticket content before re-pinning it in tests/test_seeded_phase3_14.py.",
+    "flake-detection Scope in must state the exact flake rule and its inputs, quoting the plan's gate re-run law. If no plan section defines flakes, stop and raise a plan repair instead of inventing semantics.",
+    "flake-detection must name its journal record: event type, kind, key form, and body fields. Require tests/test_flake.py to assert that exact record and that no release record or state change is written.",
+    "Make flake-detection dormant construction: a compose_daemon_flake-style hook in squatch/daemon.py, like compose_daemon_timers, tested directly in tests/test_flake.py and not reached from __main__.py or the drain. Remove the 'daemon path' wording.",
+    "flake-detection Context: replace tests/test_seeded_phase3_11.py with squatch/journal.py plus one dormant-boundary pattern (squatch/timers.py or heartbeat.py) and keep squatch/daemon.py. Re-measure the sizes and the max-effort render against headroom.",
+    "phase3-continue-15 Context: keep tests/test_seeded_phase3_11.py as the pattern and swap the daemon/CLI/composition files for squatch/journal.py and tests/test_journal.py. Keep sibling-new paths such as squatch/storm.py out.",
+    "Add a phase3-continue-15 criterion that checks predecessor-test closure: classify tests/test_journal.py as fenced migration or read-only preservation for journal-roll and storm-ledger, pinned like the PRESERVATION set in test_seeded_phase3_11.py.",
+    "Don't reuse one five-path Context for every seed. Each seed's Context must be the files its own work reads, and the seed test must pin each one separately with updated EXISTING_AT_AUTHORING sizes."
+  ],
+  "reason": "Requisition review found fixable ticket-content gaps (undefined flake semantics, unnamed journal record, unclear dormant vs. live construction, wrong Context); the findings steer each fix directly.",
+  "detail": null
+}
