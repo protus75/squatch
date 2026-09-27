@@ -1,7 +1,7 @@
 """`python -m squatch <verb>`: the module entry (SQUATCH_PLAN.md section 18).
 
 stdlib argparse, the bootstrap verbs -- `status`, `new <stem>`, `run <stem>`,
-`drain [--parked <stem>]...`, and `triage` -- plus the section 18 exit-code contract: 0
+`drain [--parked <stem>]...`, `serve`, and `triage` -- plus the section 18 exit-code contract: 0
 settled or quiescent, 1 a non-ok ticket terminal or a ceiling-halted drain,
 2 an engine-plane refusal. Nothing reaches the operator as a raw traceback:
 every refusal prints its message and paved road. The checkout root is the
@@ -44,6 +44,7 @@ from squatch.mergequeue import AdmissionHold
 from squatch.runner import EXIT_OK, EXIT_REFUSED, PipelineFactory, Refusal, Runner
 from squatch.seams import (Clock, ExecutableNotFound, LocalFilesystem, ProcessExec,
                            SubprocessExec)
+from squatch.serve import Serve
 from squatch.status import project, render
 from squatch.specs import load_spec
 from squatch.tickets import new_ticket
@@ -75,8 +76,9 @@ def _parser() -> argparse.ArgumentParser:
     drain.add_argument("--parked", action="append", default=[], metavar="STEM",
                        help="a stem the handing-off parent drain had parked (repeatable; "
                             "the self-upgrade re-exec sets it, never an operator)")
+    sub.add_parser("serve", help="run the continuous daemon until stopped")
     sub.add_parser("pause", help="pause dispatch at its next safe boundary")
-    sub.add_parser("kill", help="stop the live drain and its active stage invocation")
+    sub.add_parser("kill", help="stop the live drain or serve process and active work")
     resume = sub.add_parser("resume", help="release one dispatch pause hold")
     resume.add_argument("--hold-id", type=UUID, required=True)
     sub.add_parser("triage", help="triage every pending Suggestion Box message once, then stop")
@@ -101,7 +103,7 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
         return int(e.code or 0)
     try:
         return {"status": _status, "new": _new, "run": _run, "confirm": _confirm,
-                "reject": _reject, "drain": _drain, "triage": _triage,
+                "reject": _reject, "drain": _drain, "serve": _serve, "triage": _triage,
                 "pause": _control, "resume": _control, "kill": _control}[args.verb](
             args, cwd, env, out, pipeline, clock, process)
     except Refusal as e:
@@ -163,6 +165,17 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
                        carried=args.parked,
                        control_factory=control,
                        report=lambda line: print(line, file=out)).run())
+
+
+def _serve(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    def run(runner, config, git, control):
+        return Serve(
+            runner=runner, repo=cwd, config_supplier=lambda: _config(args, cwd),
+            pipeline=runner._pipeline, control=control, git=git, fs=LocalFilesystem(),
+            clock=clock, process=process, env=env,
+            report=lambda line: print(line, file=out)).run()
+
+    return _locked(args, cwd, env, out, pipeline, clock, process, run)
 
 
 class _AdmissionDispatchPause(DrainControl):
@@ -358,16 +371,23 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
 
     control = _control_factory(cwd / config.state_dir, config_supplier)
 
+    serve_pipelines = {}
+
     def factory(journal):
+        if getattr(args, "verb", None) == "serve" and journal in serve_pipelines:
+            return serve_pipelines[journal]
         if pipeline is not None:  # a scripted stand-in (tests)
-            return pipeline(journal)
-        pause, _wait = control(journal)
-        composed = compose_pipeline(repo=cwd, config=config, env=env, journal=journal,
-                                    clock=clock, process=process, fs=LocalFilesystem(), git=git,
-                                    control_inbox=pause.inbox,
-                                    admission_hold=pause.admission_hold)
-        if getattr(args, "verb", None) == "drain":
-            pause.bind_abort(composed.stages.abort_active)
+            composed = pipeline(journal)
+        else:
+            pause, _wait = control(journal)
+            composed = compose_pipeline(repo=cwd, config=config, env=env, journal=journal,
+                                        clock=clock, process=process, fs=LocalFilesystem(), git=git,
+                                        control_inbox=pause.inbox,
+                                        admission_hold=pause.admission_hold)
+            if getattr(args, "verb", None) == "drain":
+                pause.bind_abort(composed.stages.abort_active)
+        if getattr(args, "verb", None) == "serve":
+            serve_pipelines[journal] = composed
         return composed
 
     async def go() -> int:

@@ -490,11 +490,26 @@ class DaemonTasks:
 
 
 def kill_worker_stop_consumer(inbox: ControlInbox, driver: Driver,
-                              tasks: DaemonTasks) -> ConsumerCallback:
-    """Build the dormant kill boundary for the driver's worker siblings."""
+                              tasks: DaemonTasks, *, mutate: Mutation | None = None,
+                              stopped: asyncio.Event | None = None) -> ConsumerCallback:
+    """Apply control, then unwind active work before stopping worker siblings.
+
+    ``stopped`` is published only after the inbox has journaled the applied
+    decision, so the production serve owner can leave its lifetime without
+    racing the control record.
+    """
     async def stop(request: ControlRequest) -> None:
+        if mutate is not None:
+            await mutate(request)
         if request.action == "kill":
             await driver.abort_active()
             await tasks.stop_workers_for_kill()
 
-    return control_consumer(inbox, stop)
+    consume = control_consumer(inbox, stop)
+
+    async def consume_and_publish_stop() -> None:
+        await consume()
+        if tasks._kill_stopping and stopped is not None:
+            stopped.set()
+
+    return consume_and_publish_stop

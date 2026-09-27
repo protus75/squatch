@@ -1,4 +1,4 @@
-"""Task-lifetime contracts for the dormant daemon background consumers."""
+"""Task-lifetime contracts used by the production serve owner."""
 
 import asyncio
 from datetime import datetime, timezone

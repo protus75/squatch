@@ -165,7 +165,7 @@ def config(*, max_unmerged: int = 2) -> Config:
     }, source="test")
 
 
-def test_composition_constructs_in_process_without_starting_work_or_adding_a_verb():
+def test_dispatch_composition_stays_dormant_while_the_root_exposes_serve():
     calls: list[str] = []
 
     async def work(stem: str, captured: Config) -> None:
@@ -180,7 +180,7 @@ def test_composition_constructs_in_process_without_starting_work_or_adding_a_ver
     assert calls == []
     subparsers = next(action for action in _parser()._actions
                       if isinstance(action, argparse._SubParsersAction))
-    assert "serve" not in subparsers.choices
+    assert "serve" in subparsers.choices
 
 
 @pytest.mark.asyncio

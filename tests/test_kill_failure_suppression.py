@@ -1,4 +1,4 @@
-"""The dormant kill boundary suppresses only its own worker cancellations."""
+"""The serve kill boundary suppresses only its own worker cancellations."""
 
 import asyncio
 from datetime import datetime, timezone
@@ -10,6 +10,7 @@ from squatch.control import ControlRequest, publish_control
 from squatch.daemon import DaemonTasks, compose_daemon_control, kill_worker_stop_consumer
 from squatch.journal import Journal
 from squatch.seams import LocalFilesystem
+from squatch.serve import ServeGraph
 
 
 NOW = datetime(2026, 9, 26, 12, 0, tzinfo=timezone.utc)
@@ -145,3 +146,26 @@ async def test_external_control_cancellation_propagates_after_a_current_kill(tmp
         owner._control.cancel()
         with pytest.raises(asyncio.CancelledError):
             await run
+
+
+@pytest.mark.asyncio
+async def test_serve_owner_never_suppresses_an_independent_terminal_worker_failure():
+    started = asyncio.Event()
+    failure = RuntimeError("production worker failed")
+
+    async def watcher():
+        started.set()
+        raise failure
+
+    owner = DaemonTasks(
+        watcher=watcher,
+        merge=blocked(asyncio.Event(), asyncio.Event(), [], "merge"),
+        box=blocked(asyncio.Event(), asyncio.Event(), [], "box"),
+        control=blocked(asyncio.Event(), asyncio.Event(), [], "control"))
+    graph = ServeGraph(
+        dispatch=None, pipeline=None, rework=None, triage=None, control=None,
+        checkpoint=None, heartbeat=None, tasks=owner, stopped=asyncio.Event())
+
+    with pytest.raises(RuntimeError, match="production worker failed"):
+        await graph.run()
+    assert started.is_set()

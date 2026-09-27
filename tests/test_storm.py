@@ -1,4 +1,4 @@
-"""The dormant storm occurrence ledger and its production-reachability fence."""
+"""The storm occurrence ledger and its production-root activation fence."""
 
 import ast
 import importlib.util
@@ -87,7 +87,7 @@ def test_window_is_strictly_greater_than_threshold_and_expires_lower_boundary(tm
 
 
 def test_production_import_closure_activates_the_storm_producer_only_at_the_root():
-    reachable, pending = set(), ["squatch.__main__", "squatch.drain"]
+    reachable, pending = set(), ["squatch.__main__", "squatch.drain", "squatch.serve"]
     while pending:
         module = pending.pop()
         if module in reachable:

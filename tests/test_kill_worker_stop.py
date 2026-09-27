@@ -1,4 +1,4 @@
-"""The dormant kill boundary that stops only daemon worker siblings."""
+"""The serve kill boundary stops only daemon worker siblings."""
 
 import asyncio
 from datetime import datetime, timezone
@@ -150,3 +150,47 @@ async def test_run_keeps_control_task_alive_to_journal_the_kill(tmp_path):
         with pytest.raises(asyncio.CancelledError):
             await run
         assert all(task.done() for task in owner._workers)
+
+
+@pytest.mark.asyncio
+async def test_serve_activation_publishes_stop_only_after_the_applied_decision(tmp_path):
+    fs = LocalFilesystem()
+    trace = []
+    stopped = asyncio.Event()
+    started = [asyncio.Event() for _ in range(3)]
+    cancelled = [asyncio.Event() for _ in range(3)]
+    release = asyncio.Event()
+    release.set()
+
+    class Driver:
+        async def abort_active(self):
+            trace.append("executor unwound")
+
+    with Journal(tmp_path, clock=lambda: NOW) as journal:
+        inbox = compose_daemon_control(state_dir=tmp_path, journal=journal, fs=fs)
+        owner: DaemonTasks
+
+        async def mutate(request):
+            assert request.action == "kill"
+            assert any(event.body.get("request") == request.model_dump(mode="json")
+                       and event.body.get("applied") is False for event in journal.read())
+            trace.append("decision committed")
+
+        async def control():
+            await kill_worker_stop_consumer(
+                inbox, Driver(), owner, mutate=mutate, stopped=stopped)()
+
+        owner = DaemonTasks(
+            watcher=worker(started[0], cancelled[0], release),
+            merge=worker(started[1], cancelled[1], release),
+            box=worker(started[2], cancelled[2], release), control=control)
+        owner.start()
+        await asyncio.gather(*(event.wait() for event in started))
+        request = ControlRequest(action="kill", lifecycle=inbox.lifecycle)
+        publish_control(tmp_path, request, fs)
+        await stopped.wait()
+
+        assert trace == ["decision committed", "executor unwound"]
+        assert all(event.is_set() for event in cancelled)
+        assert applied(journal, request)
+        await owner.shutdown()

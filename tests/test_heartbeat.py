@@ -1,4 +1,4 @@
-"""The daemon heartbeat remains a dormant, seam-driven liveness boundary."""
+"""The daemon heartbeat is a seam-driven boundary activated by serve."""
 
 import argparse
 import asyncio
@@ -100,7 +100,7 @@ async def test_heartbeat_skips_stopped_cancelled_and_terminal_workers(tmp_path):
         assert fs.writes == []
 
 
-def test_heartbeat_composition_is_dormant_and_adds_no_serve_verb(tmp_path):
+def test_heartbeat_construction_is_dormant_and_serve_is_registered(tmp_path):
     fs = Filesystem()
     tasks = DaemonTasks(watcher=lambda: _never(), merge=lambda: _never(),
                         box=lambda: _never(), control=lambda: _never())
@@ -112,7 +112,7 @@ def test_heartbeat_composition_is_dormant_and_adds_no_serve_verb(tmp_path):
     assert not tasks.workers_live and fs.writes == []
     subparsers = next(action for action in _parser()._actions
                       if isinstance(action, argparse._SubParsersAction))
-    assert "serve" not in subparsers.choices
+    assert "serve" in subparsers.choices
 
 
 async def _never():
