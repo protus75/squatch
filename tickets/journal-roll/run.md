@@ -1,21 +1,16 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-Segment age is anchored to the first durable event timestamp so it survives a writer restart without a sidecar or index.
+The preservation suite constructs schema-invalid first records and expects corruption on read, so startup fails closed for malformed or blank JSON while retaining that read-time envelope validation behavior.
 
 ## Dead ends
-
-`uv run ruff check squatch/journal.py tests/test_journal_roll.py` could not run because ruff is not installed in the project environment.
+The first focused test used an over-escaped assertion regex; corrected before verification.
 
 ## Second problems filed
 
 ## Resolved engine/model
-
-OpenAI / GPT-5 Codex
+Codex / GPT-5
 
 ## Predicted vs actual
-
-Expected 75m; actual about 10m.
+Expected 75m; actual about 15m.
