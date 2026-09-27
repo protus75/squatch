@@ -2,10 +2,9 @@
 ok
 
 ## Surprises / judgment calls
-The repaired seed fixture now treats its byte counts as historical inputs, so the compact activation fits the render headroom without removing existing documentation or typing. The concurrent control owner cancels and awaits dispatch on every control-consumer failure before propagating it.
+The prior green implementation was recoverable from its reviewed commit. I restored its scoped composition and added the carried review fix: a latched kill now ends the offer wait even while a pause hold remains, with a regression proving stop, lock release, and no admission or retry draw.
 
 ## Dead ends
-The first control-failure regression assertion expected lock release to unlink the lockfile. The lock deliberately persists to preserve flock inode identity, so the test now proves release by reacquiring it.
 
 ## Second problems filed
 
@@ -13,4 +12,4 @@ The first control-failure regression assertion expected lock release to unlink t
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 25m.
+Expected 75m; actual approximately 20m.
