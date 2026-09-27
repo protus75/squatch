@@ -44,6 +44,24 @@ ownership:
     hooks: []
 ```
 
+The exact authoring-time Context partitions are:
+```yaml
+context:
+  soak-run:
+  - eval/daemon_soak.py
+  - squatch/artifacts.py
+  - squatch/stages.py
+  - tests/test_daemon_soak.py
+  phase3-continue-21:
+  - tests/test_seeded_phase3_11.py
+  - tests/test_daemon_composition.py
+  phase3-exit:
+  - tickets/soak-run/daemon-soak-report.json
+  - eval/daemon_soak.py
+  - squatch/artifacts.py
+  - tests/test_daemon_soak.py
+```
+
 `soak-run` depends on both `phase3-continue-20` and `daemon-soak`, changes no code, is fenced only to `tickets/soak-run/daemon-soak-report.json`, and produces that report through the ordinary lane. `phase3-continue-21` depends on `soak-run`, owns `tickets` plus `tests/test_seeded_phase3_21.py`, and authors `phase3-exit` alone and no successor. `phase3-exit` is KNOWN-HARD high/high, depends on `soak-run`, reads `tickets/soak-run/daemon-soak-report.json` against the schema owned by `squatch/artifacts.py`; `daemon-soak` is its machinery and `soak-run` its producer. It owns `tickets`, `tests/test_phase3_exit.py`, and `tests/test_seeded_phase4_core.py`.
 
 The exact future Context partitions are `soak-run`: `eval/daemon_soak.py`, `squatch/artifacts.py`, `squatch/stages.py`, and `tests/test_daemon_soak.py`; `phase3-continue-21`: `tests/test_seeded_phase3_11.py` and `tests/test_daemon_composition.py`; and `phase3-exit`: `tickets/soak-run/daemon-soak-report.json`, `eval/daemon_soak.py`, `squatch/artifacts.py`, and `tests/test_daemon_soak.py`. Every listed path exists when its ticket is authored; each listed predecessor test is closure Context, and sibling-new or delimiter-bearing prompt-spec paths remain excluded.
