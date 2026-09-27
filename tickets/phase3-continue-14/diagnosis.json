@@ -1,16 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Requisition review rejected only the flake-release ticket. flake-detection and phase3-continue-15 passed, so keep them and rewrite flake-release/ticket.md. Then re-pin its text in tests/test_seeded_phase3_14.py.",
-    "flake-release Scope in: remove 'extend the direct daemon composition test'. State that the direct test of the release hook (a compose_daemon_flake-style function in squatch/daemon.py) lives in the fenced tests/test_flake.py, as heartbeat does with tests/test_heartbeat.py.",
-    "Keep tests/test_daemon_composition.py out of the flake-release fence and Context unless the shared harness truly must change. If it must, fence it, add it to Context, and re-measure the max-effort render against REQ_RENDER_HEADROOM.",
-    "flake-release must name the state that release mutates, for example a SHA leaving the flake-held set folded from flake_detected journal records. The criteria must then test that the flake_released append is observed before that mutation.",
-    "Define idempotence in terms of that named state: a second release of the same SHA appends no journal record and changes no state. Pin these phrases in the seed test's flake-release contract check.",
-    "If the plan does not define the state that flake release governs, raise a plan repair instead of inventing semantics."
+    "Requisition review rejected only flake-release/ticket.md. Keep flake-detection and phase3-continue-15 as they are unless a wording change is needed for consistency.",
+    "flake-release's 'release does not reach squatch/__main__.py or the drain' conflicts with the daemon.py hook: daemon.py is already import-reachable from the production root, so squatch.flake will be too. Restate it as call-path dormancy.",
+    "New wording: no production composition in squatch/__main__.py or squatch/drain.py calls or constructs the release hook, and squatch.flake may be import-reachable through squatch/daemon.py. This matches the compose_daemon_heartbeat and timers precedent.",
+    "Keep the direct release-hook test in fenced tests/test_flake.py. Keep the flake-held set, append-before-removal ordering, and second-release idempotence wording that already passed.",
+    "Update the flake-release phrase pins in tests/test_seeded_phase3_14.py to the new call-path wording. If flake-detection's 'not reached from' phrase is reworded for consistency, re-pin it too. Rerun both verification commands."
   ],
-  "reason": "Check rejected fixable authoring gaps in the flake-release ticket, and the review's paved roads say exactly how to fix them; the other seeds and the test mechanics passed.",
+  "reason": "Check failed on one flake-release criterion that can be fixed by rewording, and the requisition finding gives a concrete paved road.",
   "detail": null
 }
