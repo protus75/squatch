@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-Added a structured terminal Context block to phase3-continue-21 so the seeded contract can pin the exit read set exactly.
+The successor ticket records the runner's member-local evidence and canonical-writer custody so the no-code soak-run cannot self-attest its report.
 
 ## Dead ends
 
-The initial soak-run acceptance criteria named no observable artifact, so ticket lint rejected them. I revised both to name the report path.
+The first serve ticket criterion named predecessor tests collectively, which ticket lint rejected because it did not identify an observable verification target. Named the three test files explicitly.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ codex / gpt-5.6-terra
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 15m.
+Expected 75m; actual approximately 20m.
