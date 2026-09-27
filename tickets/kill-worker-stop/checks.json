@@ -1,0 +1,80 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "4f2c6bcd7f26be630f07697cb457d719fdde65af",
+  "stem": "kill-worker-stop",
+  "branch": "kill-worker-stop",
+  "base": "4fe624ea303eb03b4012274e0d9a12b8674cd5d5",
+  "head": "4f2c6bcd7f26be630f07697cb457d719fdde65af",
+  "changed_files": [
+    "squatch/daemon.py",
+    "tests/test_kill_worker_stop.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_kill_worker_stop.py",
+            "tests/test_kill_executor_abort.py",
+            "tests/test_kill_signal_journal.py",
+            "tests/test_daemon_tasks.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
