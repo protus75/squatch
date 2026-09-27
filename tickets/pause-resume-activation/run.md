@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-Recovered the prior fenced implementation commit, then made a pause request ID the durable hold ID so both direct and live CLI callers have a usable matching resume handle. Bound published lifecycle records to the active lock holder to refuse requests to a non-drain holder or stale lifecycle record.
+Reused the prior fenced implementation, preserved the predecessor dispatch graph alongside the drain hook, and made a pause request ID the operator-visible hold ID. Releases are judged against holds active at the start of an inbox snapshot, so a release published before its pause is consumed cannot release the later hold.
 
 ## Dead ends
 
-The first non-interactive full-suite invocation exceeded the tool's 30-second reporting window without an exit status; reran the exact command in a persistent terminal session, which completed successfully.
+The first focused run exposed a missing configuration-supplier closure in the production control factory; passing the live configuration supplier fixed it. Both exact verification commands then passed on the committed tree.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 35m.
+Expected 75m; actual approximately 30m.
