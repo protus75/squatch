@@ -9,8 +9,10 @@ from typing import Generic, TypeVar, cast
 from uuid import UUID
 
 from squatch.config import Config, Tier, snapshot
+from squatch.box import Box
 from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
+from squatch.flake import Flake
 from squatch.heartbeat import Heartbeat
 from squatch.journal import Journal
 from squatch.llm import Effort
@@ -215,6 +217,11 @@ def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,
     """Compose the dormant post-admission consumer without starting it."""
     return Rework(repo=repo, queue=pipeline.merge_queue, journal=journal, fs=fs,
                   driver=driver, spec=spec, tier=tier, effort=effort)
+
+
+def compose_daemon_flake(*, journal: Journal, box: Box) -> Flake:
+    """Compose the dormant, report-keyed flake quarantine boundary."""
+    return Flake(journal=journal, box=box)
 
 
 def compose_daemon_control(*, state_dir: Path, journal: Journal,
