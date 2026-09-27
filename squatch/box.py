@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, 
 from squatch.config import ConfigError, load
 from squatch.git import Git, GitError
 from squatch.journal import render_ts
+from squatch.lockfile import LockHeld, Lockfile
 from squatch.providers import child_env
 from squatch.seams import Clock, Filesystem, LocalFilesystem, SubprocessExec
 
@@ -27,6 +28,7 @@ MESSAGE_CLASSES = frozenset(
     {"suggestion", "failure_report", "override_report", "retro_finding", "bug_report"})
 STATUSES = frozenset({"pending", "authored", "tombstoned", "decided"})
 BOOTSTRAP_ORIGIN = "bootstrap-ingest"
+STORM_BREAKER_ORIGIN = "storm-breaker:"
 
 MessageClass = Literal[
     "suggestion", "failure_report", "override_report", "retro_finding", "bug_report"]
@@ -203,6 +205,8 @@ class Box:
         return Enqueued(message.id, False)
 
     def _record_occurrence(self, message: Message) -> None:
+        if message.origin.startswith(STORM_BREAKER_ORIGIN):
+            return
         recorder = self._occurrence_recorder
         if recorder is None:
             binding = _occurrence_binding.get()
@@ -214,6 +218,11 @@ class Box:
 
     def pending(self) -> list[Message]:
         return [message for _, message in self._records() if message.status == "pending"]
+
+    def by_origin(self, origin: str) -> Message | None:
+        """Return the exact-origin record across every durable status."""
+        return next((message for _, message in self._records()
+                     if message.origin == origin), None)
 
     def get(self, id: str) -> Message:
         for _, message in self._records():
@@ -335,6 +344,19 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
               file=sys.stderr)
         return 2
     state_dir = checkout / config.state_dir
+    lock = Lockfile(state_dir, instance_id="box-ingest", clock=_now)
+    try:
+        lock.acquire()
+    except LockHeld as e:
+        print(f"refused: engine holds the instance lock: {e}", file=sys.stderr)
+        print("  paved road: wait for the active run or drain to finish, then re-run `ingest`",
+              file=sys.stderr)
+        return 2
+    except OSError as e:
+        print(f"refused: cannot ingest into {state_dir / 'box'}: {e}", file=sys.stderr)
+        print("  paved road: repair or remove the named corrupt box message, or fix the "
+              "state directory permissions, then re-run `ingest`", file=sys.stderr)
+        return 2
     try:
         result = ingest(Box(state_dir, fs=LocalFilesystem(), clock=_now), source)
     except (ValueError, OSError) as e:
@@ -342,6 +364,8 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
         print("  paved road: repair or remove the named corrupt box message, or fix the "
               "state directory permissions, then re-run `ingest`", file=sys.stderr)
         return 2
+    finally:
+        lock.release()
     print(f"filed {result.filed}; duplicates {result.duplicates}")
     return 0
 

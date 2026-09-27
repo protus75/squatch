@@ -84,7 +84,7 @@ def test_window_is_strictly_greater_than_threshold_and_expires_lower_boundary(tm
     assert strict["timeout"] == OccurrenceWindow(tuple(f"live-{n}" for n in range(THRESHOLD)), THRESHOLD, False)
 
 
-def test_production_import_closure_does_not_activate_the_dormant_producer():
+def test_production_import_closure_activates_the_storm_producer_only_at_the_root():
     reachable, pending = set(), ["squatch.__main__", "squatch.drain"]
     while pending:
         module = pending.pop()
@@ -123,7 +123,8 @@ def test_production_import_closure_does_not_activate_the_dormant_producer():
             def visit_Call(self, node):
                 name = node.func.id if isinstance(node.func, ast.Name) else (
                     node.func.attr if isinstance(node.func, ast.Attribute) else None)
-                assert name not in hooks, f"{module} activates dormant storm producer"
+                if module != "squatch.__main__":
+                    assert name not in hooks, f"{module} activates storm producer outside root"
                 self.generic_visit(node)
 
         ProductionCalls().visit(tree)

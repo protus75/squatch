@@ -707,7 +707,8 @@ def test_bootstrap_drain_never_scans_or_mutates_the_box(checkout):
     assert rc == EXIT_OK and fake.calls == [("first", 0), ("second", 0)]
     assert path.read_bytes() == before and queue.get(message.id).status == "pending"
     assert message.id not in out
-    assert all("box" not in repr(event) for event in read_events(checkout / STATE))
+    assert all((event.type == "signal" and event.body.get("kind") == "storm_occurrence")
+               or "box" not in repr(event) for event in read_events(checkout / STATE))
     assert not any(event.type == "signal" and event.body.get("kind") == "triage_pass"
                    for event in read_events(checkout / STATE))
     assert not any(event.key and event.key.startswith("llm/triage/")

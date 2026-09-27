@@ -18,6 +18,7 @@ import json
 import os
 import sys
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,7 +30,7 @@ from squatch.box import BoxCorruption
 from squatch.config import ConfigError, load
 from squatch.control import ControlRequest, publish_control
 from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
-                            compose_daemon_restart)
+                            compose_daemon_restart, compose_daemon_storm_producer)
 from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
@@ -320,7 +321,17 @@ async def _triage_pass(runner: Runner, config, git: Git, cwd: Path, env,
 
 class _RestartRunner(Runner):
     def session(self):
-        return compose_daemon_restart(session=super().session(), clock=self._clock)
+        restarted = compose_daemon_restart(session=super().session(), clock=self._clock)
+
+        @asynccontextmanager
+        async def active():
+            async with restarted as session:
+                with compose_daemon_storm_producer(
+                        state_dir=self.state_dir, journal=session.journal,
+                        fs=self._fs, clock=self._clock):
+                    yield session
+
+        return active()
 
 
 def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None, clock: Clock,

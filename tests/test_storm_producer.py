@@ -194,7 +194,7 @@ def test_entry_failure_resets_the_binding(tmp_path, monkeypatch):
         assert occurrences(journal) == []
 
 
-def test_producer_is_dormant_and_emits_no_trip_report_notification_or_hold(tmp_path):
+def test_producer_emits_one_trip_report_and_no_dispatch_hold(tmp_path):
     fs, clock = LocalFilesystem(), Clock()
     with Journal(tmp_path, clock=clock) as journal:
         queue = Box(tmp_path, fs=fs, clock=clock)
@@ -207,6 +207,9 @@ def test_producer_is_dormant_and_emits_no_trip_report_notification_or_hold(tmp_p
         assert window == {message.signature: OccurrenceWindow(
             tuple(f"{message.id}/{n}" for n in range(1, 7)), 6, True)}
         assert {event.type for event in journal.read()} == {"signal"}
-        assert {event.body["kind"] for event in journal.read()} == {"storm_occurrence"}
-        assert [item.message_class for item in queue.pending()] == ["suggestion"]
-        assert all(item.stage != "dispatch" for item in queue.pending())
+        assert {event.body["kind"] for event in journal.read()} == {
+            "storm_occurrence", "storm_trip"}
+        reports = [item for item in queue.pending()
+                   if item.message_class == "failure_report"]
+        assert len(reports) == 1 and reports[0].origin.startswith("storm-breaker:P0:")
+        assert all(event.body.get("kind") != "control_hold" for event in journal.read())

@@ -9,7 +9,7 @@ from typing import Generic, TypeVar, cast
 from uuid import UUID
 
 from squatch.config import Config, Tier, snapshot
-from squatch.box import Box, scoped_occurrence_recorder
+from squatch.box import Box, STORM_BREAKER_ORIGIN, scoped_occurrence_recorder
 from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
 from squatch.flake import Flake
@@ -230,13 +230,39 @@ def compose_daemon_storm_producer(*, state_dir: Path, journal: Journal,
                                   fs: Filesystem, clock: Clock):
     """Temporarily bind the lock holder's occurrence producer to its Box."""
     ledger = StormLedger(journal=journal)
-    with scoped_occurrence_recorder(state_dir=state_dir, recorder=ledger.record):
-        box = Box(state_dir, fs=fs, clock=clock)
+
+    box = Box(state_dir, fs=fs, clock=clock)
+
+    def repair() -> None:
+        for crossing in ledger.crossings():
+            ledger.trip(crossing)
+            origin = f"{STORM_BREAKER_ORIGIN}P0:{crossing['trip_id']}"
+            if box.by_origin(origin) is not None:
+                continue
+            identities = (f"{crossing['signature']}: "
+                          f"{crossing['first_live_occurrence_id']} -> "
+                          f"{crossing['crossing_occurrence_id']}")
+            box.enqueue(
+                message_class="failure_report", origin=origin,
+                summary=f"P0 storm trip {crossing['trip_id']}",
+                detail=f"P0 storm trip {crossing['trip_id']}: {identities}",
+                stage=crossing["emitting_stage"])
+
+    def record(**values) -> bool:
+        wrote = ledger.record(**values)
+        if wrote:
+            repair()
+        return wrote
+
+    with scoped_occurrence_recorder(state_dir=state_dir, recorder=record):
         for _, message in box._records():
+            if message.origin.startswith(STORM_BREAKER_ORIGIN):
+                continue
             for report in range(1, message.reports + 1):
-                ledger.record(signature=message.signature,
-                              occurrence_id=f"{message.id}/{report}",
-                              emitting_stage=message.stage)
+                record(signature=message.signature,
+                       occurrence_id=f"{message.id}/{report}",
+                       emitting_stage=message.stage)
+        repair()
         yield
 
 

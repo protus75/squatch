@@ -3,6 +3,8 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import hashlib
+import json
 
 from squatch.journal import Event, Journal, JournalCorruption, render_ts
 
@@ -11,6 +13,8 @@ THRESHOLD = 5
 WINDOW = timedelta(hours=1)
 _KIND = "storm_occurrence"
 _KEY_PREFIX = "storm-occurrence"
+_TRIP_KIND = "storm_trip"
+_TRIP_KEY_PREFIX = "storm-trip"
 
 
 @dataclass(frozen=True)
@@ -68,6 +72,50 @@ class StormLedger:
     def window(self, *, now: datetime) -> dict[str, OccurrenceWindow]:
         """Read the ordered journal stream into its currently live windows."""
         return fold(self._journal.read(), now=now)
+
+    def crossings(self) -> tuple[dict, ...]:
+        """Recover every historical threshold crossing at its occurrence time."""
+        live_by_signature: dict[str, list[tuple[str, datetime]]] = {}
+        crossings: list[dict] = []
+        for event in self._journal.read():
+            if event.type != "signal" or event.body.get("kind") != _KIND:
+                continue
+            signature, occurrence_id, emitting_stage = _occurrence(event)
+            now = datetime.fromisoformat(event.ts)
+            lower = now - WINDOW
+            live = live_by_signature.setdefault(signature, [])
+            live[:] = [item for item in live if lower < item[1] <= now]
+            was_over_threshold = len(live) > THRESHOLD
+            live.append((occurrence_id, now))
+            if was_over_threshold or len(live) <= THRESHOLD:
+                continue
+            first_live_occurrence_id = live[0][0]
+            trip_id = _trip_id(signature, first_live_occurrence_id, occurrence_id)
+            crossings.append({
+                "trip_id": trip_id,
+                "signature": signature,
+                "first_live_occurrence_id": first_live_occurrence_id,
+                "crossing_occurrence_id": occurrence_id,
+                "emitting_stage": emitting_stage,
+            })
+        return tuple(crossings)
+
+    def trip(self, crossing: dict) -> bool:
+        """Append one deterministic trip signal, returning whether it was new."""
+        trip_id = crossing["trip_id"]
+        key = f"{_TRIP_KEY_PREFIX}/{trip_id}"
+        if any(event.type == "signal" and event.key == key for event in self._journal.read()):
+            return False
+        self._journal.append("signal", {"kind": _TRIP_KIND, **crossing}, key=key)
+        return True
+
+
+def _trip_id(signature: str, first_live_occurrence_id: str,
+             crossing_occurrence_id: str) -> str:
+    encoded = json.dumps(
+        [signature, first_live_occurrence_id, crossing_occurrence_id],
+        ensure_ascii=False, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _occurrence(event: Event) -> tuple[str, str, str | None]:
