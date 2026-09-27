@@ -75,28 +75,82 @@ class ControlInbox:
     def holds(self) -> frozenset[UUID]:
         return frozenset(self._holds)
 
-    def hold(self) -> UUID:
+    def hold(self, hold_id: UUID | None = None) -> UUID:
         """Create a never-reused hold identity for a later bound release."""
-        hold_id = uuid4()
+        hold_id = hold_id or uuid4()
+        if hold_id in self._holds:
+            raise ValueError("hold identity is already active")
         self._holds.add(hold_id)
+        self._journal.append("signal", {"kind": "control_hold", "hold_id": str(hold_id),
+                                        "lifecycle": str(self.lifecycle), "released": False})
         return hold_id
 
     def discard_hold(self, hold_id: UUID) -> None:
         """Retire a superseded hold so its release cannot affect a successor."""
-        self._holds.discard(hold_id)
+        if hold_id in self._holds:
+            self._holds.discard(hold_id)
+            self._journal.append("signal", {"kind": "control_hold", "hold_id": str(hold_id),
+                                            "lifecycle": str(self.lifecycle), "released": True})
+
+    @classmethod
+    def active_lifecycle(cls, journal: Journal) -> UUID | None:
+        """Keep the lifecycle of a durable hold or unfinished accepted work."""
+        active: dict[tuple[str, str], UUID] = {}
+        for event in journal.read():
+            body = event.body
+            if event.type != "signal":
+                continue
+            if body.get("kind") == "control_decision" and event.key is not None:
+                decision = ControlDecision.model_validate(body)
+                key = ("decision", event.key)
+                active.pop(key, None)
+                if decision.outcome == "accepted" and not decision.applied:
+                    assert decision.request is not None
+                    active[key] = decision.request.lifecycle
+                continue
+            if body.get("kind") != "control_hold":
+                continue
+            try:
+                hold_id, lifecycle = UUID(body["hold_id"]), UUID(body["lifecycle"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if body.get("released") is True:
+                active.pop(("hold", str(hold_id)), None)
+            elif body.get("released") is False:
+                active[("hold", str(hold_id))] = lifecycle
+        return next(reversed(active.values()), None) if active else None
+
+    def rehydrate_holds(self) -> None:
+        """Restore this lifecycle's unreleased hold identities from the journal."""
+        self._holds.clear()
+        for event in self._journal.read():
+            body = event.body
+            if event.type != "signal" or body.get("kind") != "control_hold":
+                continue
+            try:
+                hold_id, lifecycle = UUID(body["hold_id"]), UUID(body["lifecycle"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if lifecycle != self.lifecycle:
+                continue
+            if body.get("released") is True:
+                self._holds.discard(hold_id)
+            elif body.get("released") is False:
+                self._holds.add(hold_id)
 
     async def consume(self, mutate: Mutation) -> tuple[ControlDecision, ...]:
         """Consume one stable snapshot, retrying only incomplete accepted work."""
         decisions = self._decisions()
+        releasable = frozenset(self._holds)
         consumed = []
         for path in self._fs.list(self._directory, "*.json"):
-            decision = await self._consume(path, decisions, mutate)
+            decision = await self._consume(path, decisions, releasable, mutate)
             decisions[path.stem] = decision
             consumed.append(decision)
         return tuple(consumed)
 
     async def _consume(self, path: Path, decisions: dict[str, ControlDecision],
-                       mutate: Mutation) -> ControlDecision:
+                       releasable: frozenset[UUID], mutate: Mutation) -> ControlDecision:
         raw = self._fs.read(path)
         try:
             request = ControlRequest.model_validate_json(raw)
@@ -151,7 +205,7 @@ class ControlInbox:
         if request.lifecycle != self.lifecycle:
             decision = ControlDecision(
                 outcome="stale", request=request, reason="lifecycle does not match")
-        elif request.action == "release" and request.hold_id not in self._holds:
+        elif request.action == "release" and request.hold_id not in releasable:
             decision = ControlDecision(
                 outcome="stale", request=request, reason="hold does not match")
         else:
@@ -166,7 +220,8 @@ class ControlInbox:
 
     async def _apply(self, request: ControlRequest, mutate: Mutation) -> None:
         if request.action == "release":
-            self._holds.discard(request.hold_id)
+            assert request.hold_id is not None
+            self.discard_hold(request.hold_id)
         await mutate(request)
 
     def _append(self, request_id: str, decision: ControlDecision) -> None:

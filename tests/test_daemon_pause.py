@@ -1,4 +1,4 @@
-"""Pause at the production admission boundary, dormant until activation."""
+"""Pause at the production admission boundary, before dispatch accounting."""
 
 import asyncio
 from io import StringIO
@@ -72,7 +72,7 @@ async def test_real_dispatch_waits_before_snapshot_and_preserves_admitted_work(b
 
 async def test_decision_precedes_hold_mutation_and_duplicate_is_idempotent(boundary, monkeypatch):
     pause, journal, send = boundary
-    original = pause._apply
+    original = pause.apply
     probes = []
 
     async def probe(request):
@@ -82,7 +82,7 @@ async def test_decision_precedes_hold_mutation_and_duplicate_is_idempotent(bound
         probes.append((request.action, pause.hold_id))
         await original(request)
 
-    monkeypatch.setattr(pause, '_apply', probe)
+    monkeypatch.setattr(pause, 'apply', probe)
     request = send('pause')
     assert not await pause.allow_offer()
     hold = pause.hold_id
@@ -123,14 +123,14 @@ def test_pause_requires_an_explicit_waiter(boundary):
         compose_daemon_dispatch(config, None, pause=pause)
 
 
-def test_production_composition_keeps_pause_dormant(checkout, monkeypatch):
+def test_production_composition_activates_pause_at_the_lock_held_boundary(checkout, monkeypatch):
     import squatch.__main__ as cli
     original_drain = cli.Drain
     original_dispatch = cli.compose_daemon_dispatch
     drains, graphs = [], []
 
     def capture_drain(**kwargs):
-        assert kwargs.get('pause') is None
+        assert callable(kwargs.get('control_factory'))
         instance = original_drain(**kwargs)
         drains.append(instance)
         return instance
@@ -144,7 +144,7 @@ def test_production_composition_keeps_pause_dormant(checkout, monkeypatch):
     monkeypatch.setattr(cli, 'compose_daemon_dispatch', capture_dispatch)
     assert main(['drain'], cwd=checkout, env=git_env(checkout.parent), out=StringIO()) == 0
     assert len(drains) == len(graphs) == 1
-    assert drains[0]._pause is None and graphs[0].pause is None
+    assert drains[0]._pause is graphs[0].pause
     with Journal(checkout / 'control-test', clock=lambda: T0) as journal:
         inbox = compose_daemon_control(state_dir=checkout / 'control-test', journal=journal,
                                        fs=LocalFilesystem())

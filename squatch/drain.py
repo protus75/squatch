@@ -82,6 +82,7 @@ CONTINUE = "`squatch drain`"
 HANDOFF_SIGNAL = "drain_handoff"
 UPGRADE_PREFIXES = ("squatch/", "specs/")
 UV_FORM = ("uv", "run", "python", "-m", "squatch")
+ControlFactory = Callable[[Journal], tuple[DispatchPause, ConsumerCallback]]
 
 
 @dataclass(frozen=True)
@@ -167,11 +168,15 @@ class Drain:
                  process: ProcessExec, env: Mapping[str, str], report: Report,
                  config_path: Path | None = None, carried: Sequence[str] = (),
                  pause: DispatchPause | None = None,
-                 wait_for_control: ConsumerCallback | None = None):
+                 wait_for_control: ConsumerCallback | None = None,
+                 control_factory: ControlFactory | None = None):
+        if control_factory is not None and (pause is not None or wait_for_control is not None):
+            raise ValueError("control_factory replaces pause and wait_for_control")
         if pause is not None and wait_for_control is None:
             raise ValueError("pause requires wait_for_control")
         self._pause = pause
         self._wait_for_control = wait_for_control
+        self._control_factory = control_factory
         self._runner = runner
         self._repo = Path(repo)
         self._config = config
@@ -194,6 +199,8 @@ class Drain:
 
     async def _drain(self, session: Session) -> int | Handoff:
         journal = session.journal
+        if self._control_factory is not None and self._pause is None:
+            self._pause, self._wait_for_control = self._control_factory(journal)
         started = self._clock()
         ceiling = timedelta(hours=self._config.drain.max_runtime_hours)
         journal.append("timer_armed", {"kind": CEILING_TIMER,

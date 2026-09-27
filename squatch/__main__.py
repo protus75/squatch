@@ -14,21 +14,26 @@ touchpoint 6) earns a console script.
 
 import argparse
 import asyncio
+import json
 import os
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO
+from uuid import UUID
 
 import squatch
 from squatch.box import BoxCorruption
 from squatch.config import ConfigError, load
-from squatch.daemon import compose_daemon_dispatch
+from squatch.control import ControlRequest, publish_control
+from squatch.daemon import DispatchPause, compose_daemon_control, compose_daemon_dispatch
 from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
-from squatch.journal import JournalCorruption, read_events
+from squatch.journal import Journal, JournalCorruption, read_events
+from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
 from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
 from squatch.merge import compose_pipeline
@@ -66,6 +71,9 @@ def _parser() -> argparse.ArgumentParser:
     drain.add_argument("--parked", action="append", default=[], metavar="STEM",
                        help="a stem the handing-off parent drain had parked (repeatable; "
                             "the self-upgrade re-exec sets it, never an operator)")
+    sub.add_parser("pause", help="pause dispatch at its next safe boundary")
+    resume = sub.add_parser("resume", help="release one dispatch pause hold")
+    resume.add_argument("--hold-id", type=UUID, required=True)
     sub.add_parser("triage", help="triage every pending Suggestion Box message once, then stop")
     return p
 
@@ -88,7 +96,8 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
         return int(e.code or 0)
     try:
         return {"status": _status, "new": _new, "run": _run, "confirm": _confirm,
-                "reject": _reject, "drain": _drain, "triage": _triage}[args.verb](
+                "reject": _reject, "drain": _drain, "triage": _triage,
+                "pause": _control, "resume": _control}[args.verb](
             args, cwd, env, out, pipeline, clock, process)
     except Refusal as e:
         print(f"refused: {e.message}", file=out)
@@ -147,7 +156,89 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
                        runner=runner, repo=cwd, config=config, git=git, clock=clock,
                        process=process, env=env, config_path=args.config,
                        carried=args.parked,
+                       control_factory=_control_factory(
+                           cwd / config.state_dir, lambda: _config(args, cwd)),
                        report=lambda line: print(line, file=out)).run())
+
+
+def _control_factory(state_dir: Path, config_supplier,
+                     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep):
+    def factory(journal: Journal):
+        fs = LocalFilesystem()
+        # Runner has acquired the lock before exposing this journal. Read the
+        # actual acquisition record; the engine version is shared by all verbs.
+        holder = Holder(**json.loads(fs.read(state_dir / LOCK_NAME)))
+        inbox = compose_daemon_control(state_dir=state_dir, journal=journal, fs=fs,
+                                       holder=holder)
+        pause = DispatchPause(inbox)
+
+        async def wait_for_control() -> None:
+            await inbox.consume(pause.apply)
+            await sleep(1)
+
+        async def work(_stem, _captured) -> None:
+            raise RuntimeError("the bootstrap drain owns dispatch observations")
+
+        graph = compose_daemon_dispatch(
+            config_supplier, work, pause=pause, wait_for_control=wait_for_control)
+        return graph.pause, wait_for_control
+    return factory
+
+
+def _control(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    """Publish to the live holder, or become the short-lived direct holder."""
+    config = _config(args, cwd)
+    state_dir = cwd / config.state_dir
+    lock = Lockfile(state_dir, instance_id="control", clock=clock)
+    try:
+        lock.acquire()
+    except LockHeld as held:
+        lifecycle = _published_lifecycle(state_dir, held.holder)
+        if lifecycle is None:
+            raise Refusal("the lock holder is not a live drain control consumer",
+                          "wait for its next control boundary, then repeat the command") from None
+        request = _control_request(args, lifecycle)
+        publish_control(state_dir, request, LocalFilesystem())
+        hold_id = request.request_id if args.verb == "pause" else args.hold_id
+        print(f"published {args.verb}: hold id {hold_id}", file=out)
+        return EXIT_OK
+    try:
+        with Journal(state_dir, clock=clock) as journal:
+            inbox = compose_daemon_control(state_dir=state_dir, journal=journal,
+                                           fs=LocalFilesystem())
+            pause = DispatchPause(inbox)
+            request = _control_request(args, inbox.lifecycle)
+            publish_control(state_dir, request, LocalFilesystem())
+            decisions = asyncio.run(inbox.consume(pause.apply))
+            decision = next(item for item in decisions if item.request == request)
+            if decision.outcome != "accepted":
+                raise Refusal(f"{args.verb}: {decision.reason or decision.outcome}",
+                              "check the active hold id, then repeat the command")
+            hold_id = request.request_id if args.verb == "pause" else args.hold_id
+            print(f"applied {args.verb}: hold id {hold_id}", file=out)
+        return EXIT_OK
+    finally:
+        lock.release()
+
+
+def _control_request(args, lifecycle: UUID) -> ControlRequest:
+    if args.verb == "pause":
+        return ControlRequest(action="pause", lifecycle=lifecycle)
+    return ControlRequest(action="release", lifecycle=lifecycle, hold_id=args.hold_id)
+
+
+def _published_lifecycle(state_dir: Path, holder: Holder | None) -> UUID | None:
+    if holder is None:
+        return None
+    for event in reversed(tuple(read_events(state_dir))):
+        if event.type == "signal" and event.body.get("kind") == "control_lifecycle":
+            if event.body.get("holder") != asdict(holder):
+                continue
+            try:
+                return UUID(event.body["lifecycle"])
+            except (KeyError, TypeError, ValueError):
+                return None
+    return None
 
 
 def _triage(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
@@ -206,10 +297,6 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         runner = Runner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=clock,
                         instance_id=instance_id, pipeline=factory, log=log,
                         report=lambda line: print(line, file=out))
-        # Construct at the production root; a later daemon boundary owns feeding observations.
-        compose_daemon_dispatch(
-            config_supplier,
-            lambda _stem, captured: verb(runner, captured, git))
         return await verb(runner, config, git)
 
     try:

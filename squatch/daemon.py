@@ -2,7 +2,7 @@
 
 import asyncio
 from collections.abc import Awaitable, Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Generic, TypeVar, cast
 from uuid import UUID
@@ -12,6 +12,7 @@ from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
 from squatch.journal import Journal
 from squatch.llm import Effort
+from squatch.lockfile import Holder
 from squatch.merge import Pipeline
 from squatch.rework import Rework
 from squatch.scheduler import Scheduler
@@ -34,20 +35,22 @@ class DispatchPause:
 
     def __init__(self, inbox: ControlInbox) -> None:
         self.inbox = inbox
-        self.hold_id: UUID | None = None
+        self.hold_id: UUID | None = next(iter(inbox.holds), None)
         self._applied: set[UUID] = set()
 
     async def allow_offer(self) -> bool:
-        await self.inbox.consume(self._apply)
+        await self.inbox.consume(self.apply)
         return self.hold_id is None
 
-    async def _apply(self, request: ControlRequest) -> None:
+    async def apply(self, request: ControlRequest) -> None:
         if request.request_id in self._applied:
             return
         if request.action == "pause":
             if self.hold_id is not None:
                 self.inbox.discard_hold(self.hold_id)
-            self.hold_id = self.inbox.hold()
+            # A pause request's immutable identity is also its release handle,
+            # so a publisher can tell the operator how to resume it.
+            self.hold_id = self.inbox.hold(request.request_id)
         elif request.action == "release" and request.hold_id == self.hold_id:
             self.hold_id = None
         self._applied.add(request.request_id)
@@ -141,9 +144,16 @@ def compose_daemon_rework(*, repo: Path, pipeline: Pipeline, driver: Driver,
 
 
 def compose_daemon_control(*, state_dir: Path, journal: Journal,
-                           fs: Filesystem) -> ControlInbox:
+                           fs: Filesystem, holder: Holder | None = None) -> ControlInbox:
     """Compose control intake with the daemon's already lock-held Journal."""
-    return ControlInbox(state_dir, journal=journal, fs=fs)
+    lifecycle = ControlInbox.active_lifecycle(journal)
+    inbox = ControlInbox(state_dir, journal=journal, fs=fs, lifecycle=lifecycle)
+    inbox.rehydrate_holds()
+    lifecycle = {"kind": "control_lifecycle", "lifecycle": str(inbox.lifecycle)}
+    if holder is not None:
+        lifecycle["holder"] = asdict(holder)
+    journal.append("signal", lifecycle)
+    return inbox
 
 
 def watcher_consumer(watcher: Watcher, priority_snapshot: PrioritySnapshot) -> ConsumerCallback:
