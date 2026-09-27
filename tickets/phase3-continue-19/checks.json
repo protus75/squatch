@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "0dfd97a81a64c85b76a713a52ae0d22142adc6be",
+  "produced_at_sha": "49b75189afe98bc2c0ac2da2852833aa5ddf313a",
   "stem": "phase3-continue-19",
   "branch": "phase3-continue-19",
-  "base": "95f91836c5737ad2c4ed96db935561cdc88074e4",
-  "head": "0dfd97a81a64c85b76a713a52ae0d22142adc6be",
+  "base": "a6aa5b4f20deaf11ca19518f32ee55d9f7d68d77",
+  "head": "49b75189afe98bc2c0ac2da2852833aa5ddf313a",
   "changed_files": [
     "tests/test_seeded_phase3_19.py"
   ],
@@ -14,48 +14,16 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/daemon-soak/ticket.md",
-      "sha": "648b576b1768d6bd5f7f81b6cca96787a0e6035a",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/daemon-soak/ticket.md",
-          "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"rma\",\\n \"summary\": \"The plan\\'s pinned daemon-soak fence cannot register a closed report. The ordinary lane validates reports through `KNOWN_ARTIFACTS` in `squatch/stages.py`, and that file is outside the fence; `squatch/artifacts.py` has no report registry and cannot import stages without a cycle. The criteria are also too thin to review for feasibility.\",\\n \"findings\": [\\n  {\"code\": \"requisition_review\",\\n   \"path\": \"squatch/stages.py\",\\n   \"line\": 84,\\n   \"message\": \"Closed lane'",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/phase3-continue-20/ticket.md",
-      "sha": "2c2064c024627f8ee9764f114f9feb3a58273476",
+      "path": null,
+      "sha": null,
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase3-continue-20/ticket.md",
-          "line": null,
-          "message": "The ownership contract gives phase3-exit `owns: [tickets]` and nothing else. Section 20 says phase3-exit transitively covers Phase 3 and seeds Phase 4. The merged exit precedent (tickets/phase2-exit) re-reads the exit criteria from committed artifacts through its own merged test (tests/test_phase2_exit.py) and pins the next phase's seeds through a seeded test (tests/test_seeded_phase3_core.py). With only the ticket plane fenced, the phase3-exit Implement has nowhere to put its exit-read test or its Phase 4 seed-pinning test. It is also barred from changing paths under tickets/ in its own diff, as the phase2-exit precedent shows. The seed as pinned is therefore not buildable.",
-          "paved_road": "Change the phase3-exit ownership to `owns: [tickets, tests/test_phase3_exit.py, tests/test_seeded_phase4_core.py]` (or equivalent new exit and seeded-test paths), `hooks: []`. Pin that fence and those new-path owners in tests/test_seeded_phase3_20.py."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-20/ticket.md",
-          "line": null,
-          "message": "Exit-read closure is missing. The terminal exit's natural read is the committed report tickets/soak-run/daemon-soak-report.json, but neither the scope nor the criteria name the report's machinery (daemon-soak: eval/daemon_soak.py and its registered closed report schema in squatch/artifacts.py) or its producer (soak-run). The phase3-exit criteria the seed must carry are also left unspecified.",
-          "paved_road": "State in Scope in that phase3-exit reads tickets/soak-run/daemon-soak-report.json, validated against the daemon-soak report schema, with daemon-soak as the machinery and soak-run as the producer. Add an acceptance criterion requiring tests/test_seeded_phase3_20.py to pin that phase3-exit names both, and that phase3-exit's depends reach soak-run."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-20/ticket.md",
-          "line": null,
-          "message": "Scope in says to pin 'dependencies, tiers, budgets, fences, Context partition' but never states their values. The only acceptance criterion ('pins the terminal admissions and rejects a successor') cannot check the dependency edges (soak-run on this continuation and/or daemon-soak; phase3-exit on soak-run), the medium/medium tiers (neither seed is KNOWN-DEEP), or each seed's exact Context. That leaves the review unable to check the ticket against the plan.",
-          "paved_road": "List the exact depends, tier (medium/medium), budget (75m/150m) and Context for soak-run and phase3-exit in Scope in. Add criteria that tests/test_seeded_phase3_20.py pins each of them. The pattern is tests/test_seeded_phase3_11.py BATCH/CONTEXT/EXISTING_AT_AUTHORING."
+          "line": 4,
+          "message": "Context path 'tests/test_seeded_phase3_19.py' does not exist",
+          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
         }
       ],
       "commands": []
