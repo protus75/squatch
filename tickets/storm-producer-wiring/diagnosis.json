@@ -1,15 +1,16 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Reviewer judged box.py and daemon.py wiring correct: write before record, <box_id>/<reports> identity, token reset in finally, state-dir-scoped binding. Keep the implementation and fix the test gaps.",
-    "Add a reconciliation test that compares each reconciled event.ts with the injected Journal clock at append time. Then re-enter the scope and assert earlier ts are unchanged and no new events were written.",
-    "Add a crash test: a record with reports>=3 enqueued unbound, plus a resolved record, with some occurrences already recorded before a journal segment roll. Enter the scope twice and assert the exact ordered ids (box seq, then n) with no duplicates.",
-    "In test_storm_producer.py, push a signature past THRESHOLD and assert no trip or other signal kinds, no new P0 or failure Box report, no notification call, and no dispatch hold. Replace the truthy window assert with an exact OccurrenceWindow comparison.",
-    "Rewrite the dormancy test in test_storm.py: walk the squatch import closure from __main__ and drain as the old test did. Flag Calls whose func is an ast.Name or an ast.Attribute naming compose_daemon_storm_producer or scoped_occurrence_recorder, and exempt only the definitions."
+    "Keep the box.py/daemon.py wiring unchanged. The reviewer confirmed the box is written before recording, the <box_id>/<reports> identity, the finally token reset, state-dir scoping, and seq-ordered idempotent reconciliation. Only the test_storm_producer.py task tests need fixing.",
+    "`asyncio.create_task(asyncio.sleep(0, result=enqueue(box)))` calls enqueue in the caller before the task exists. Define `async def arrive(): return enqueue(box)`, then `task = asyncio.create_task(arrive())`, so the enqueue runs inside the task's inherited context.",
+    "Normal path: create the task inside the scope and await it there. Then assert that its `<id>/1` occurrence is in first_journal and that the created-task count equals only the tasks the test made itself (the scope spawns none).",
+    "Exceptional path: inside the scope, create a task whose body enqueues, await it, then raise. After pytest.raises, assert its occurrence landed in first_journal and that an outer-context enqueue after exit records nothing.",
+    "Optional: a task created inside the scope but run after exit still records through its copied context. This shows why callers must await such tasks before leaving the scope.",
+    "Keep the fixes to the earlier lessons in place: exact reconcile timestamps, the resolved record plus rolled segment, the exact OccurrenceWindow, and the AST dormancy walk. The reviewer raised no new issue with them."
   ],
-  "reason": "Review snagged only on missing acceptance-criteria test coverage and a weak AST dormancy check; the implementation was judged correct and the findings give concrete paved roads.",
+  "reason": "The review flagged one fixable test defect: the task body never enqueues, so criterion 2 is unproven. The implementation is judged correct.",
   "detail": null
 }
