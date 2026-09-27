@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-Replaced the prior attempt's `StreamReader.readline()` loop with chunked line splitting so JSONL records over 64 KiB preserve capture semantics. Callback failures also share the group kill-and-wait cleanup path.
+Kept the prior chunked stdout reader so JSONL records over 64 KiB preserve capture semantics, and routed callback failures through the existing group kill-and-wait path. Expanded the provider proof across all three Codex tool shapes, Claude positive and negative shapes, non-JSON chatter, redaction, prompt spool capture, terminal parsing, and cost preservation.
 
 ## Dead ends
 
@@ -16,7 +16,7 @@ None.
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity not exposed to this worktree).
+OpenAI Codex, GPT-5.
 
 ## Predicted vs actual
 
