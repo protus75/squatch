@@ -11,9 +11,21 @@ base fields (its provenance lives in the journal).
 from dataclasses import dataclass, field
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ARTIFACT_SCHEMA_VERSION = 1
+
+DAEMON_SOAK_REPORT = "daemon-soak-report.json"
+DAEMON_SOAK_MEMBERS = (
+    "worker_killed_mid_run",
+    "conflict_resolution_rungs",
+    "semantic_conflict_integration_red",
+)
+DaemonSoakMemberName = Literal[
+    "worker_killed_mid_run",
+    "conflict_resolution_rungs",
+    "semantic_conflict_integration_red",
+]
 
 StageName = Literal["author", "implement", "check", "review", "rework", "merge", "triage", "retro"]
 STAGE_NAMES: frozenset[str] = frozenset(StageName.__args__)
@@ -61,6 +73,45 @@ class Artifact(ClosedModel):
                 f"artifact_schema_version {v} is newer than this engine's "
                 f"{ARTIFACT_SCHEMA_VERSION}; upgrade the engine")
         return v
+
+
+class DaemonSoakEntry(ClosedModel):
+    """One machine-observed member of the bounded Phase 3 daemon soak."""
+
+    member: DaemonSoakMemberName
+    fault: str = Field(min_length=1)
+    observable: str = Field(min_length=1)
+    expected: str = Field(min_length=1)
+    observed: str = Field(min_length=1)
+    disposition: Literal["box", "alert"]
+    producing_run: str = Field(pattern=r"^[^/]+/\d+$")
+    auditor: Literal["green", "red"]
+    green: bool
+
+    @model_validator(mode="after")
+    def _green_is_derived(self):
+        expected = self.observed == self.expected and self.auditor == "green"
+        if self.green != expected:
+            raise ValueError(
+                "green must be true exactly when observed equals expected and auditor is green")
+        return self
+
+
+class DaemonSoakReport(ClosedModel):
+    """Closed report emitted by the bounded, injected-clock daemon soak."""
+
+    schema_version: Literal[1]
+    produced_at_sha: str = Field(min_length=1)
+    injected_hours: float = Field(ge=24)
+    entries: tuple[DaemonSoakEntry, ...]
+
+    @model_validator(mode="after")
+    def _closed_member_list(self):
+        members = tuple(entry.member for entry in self.entries)
+        if members != DAEMON_SOAK_MEMBERS:
+            raise ValueError(
+                f"entries must contain the closed member list in order: {DAEMON_SOAK_MEMBERS}")
+        return self
 
 
 class Finding(ClosedModel):

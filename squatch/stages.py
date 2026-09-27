@@ -39,7 +39,8 @@ import yaml
 from pydantic import Field, model_validator
 
 import squatch
-from squatch.artifacts import OUTCOMES, Artifact, ClosedModel, Cost, Finding, StageResult
+from squatch.artifacts import (DAEMON_SOAK_REPORT, OUTCOMES, Artifact, ClosedModel, Cost,
+                               DaemonSoakReport, Finding, StageResult)
 from squatch.box import Box
 from squatch.config import Config, Severity
 from squatch.driver import Driver, LLMStage, Spool
@@ -81,7 +82,10 @@ SPLIT_ROAD = "split the ticket (diagnosis verdict `split`, section 11)"
 # Names in this registry are validated before any bytes from an outbox are
 # written. Unregistered evidence remains intentionally open as section 10's
 # ordinary ticket-plane lane requires.
-KNOWN_ARTIFACTS = {REPORT_NAME: ShakeoutReport.model_validate_json}
+KNOWN_ARTIFACTS = {
+    REPORT_NAME: ShakeoutReport.model_validate_json,
+    DAEMON_SOAK_REPORT: DaemonSoakReport.model_validate_json,
+}
 
 ImplementVerdict = Literal["implemented", "already_satisfied", "premise_failed"]
 ReviewVerdictName = Literal["approve", "snag", "rma"]
