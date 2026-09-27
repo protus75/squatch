@@ -26,8 +26,9 @@ exit read and the Phase 4 handoff.
 
 ## Scope in
 Author only confirmed `phase3-exit`, plus `tests/test_seeded_phase3_23.py`, and
-migrate `tests/test_seeded_phase3_22.py` only for the required addition of
-`squatch/artifacts.py` to this ticket's pinned Context.
+migrate `tests/test_seeded_phase3_22.py` only where it pins this continuation's
+changed fence, Context, and authoring-time size, or the required addition of
+`squatch/artifacts.py` to the exit Context. Preserve every unrelated assertion.
 `phase3-exit`, which depends on `soak-run`, is KNOWN-HARD high/high and owns
 `tickets`, `tests/test_phase3_exit.py`, and `tests/test_seeded_phase4_core.py`.
 It reads the committed `tickets/soak-run/daemon-soak-report.json` as evidence custody with `daemon-soak-runner` as machinery and `soak-run` as producer. Its exact
@@ -82,7 +83,7 @@ sibling-new or delimiter-bearing Context path, or split the terminal batch.
 - `tests/test_seeded_phase3_23.py` pins the exit Context partition including the `DaemonSoakReport` owner `squatch/artifacts.py`, no on-demand exceptions, authoring-time Context sizes, predecessor-test closure, new-path owners, and exclusion of sibling-new paths and `squatch/specs.py`.
 - `tests/test_seeded_phase3_23.py` pins the singleton terminal admission, report evidence custody with daemon-soak-runner as machinery and soak-run as producer, max-effort render headroom, and no successor after phase3-exit.
 - `tests/test_seeded_phase3_23.py` pins the section 20 Phase 4 core identities, ownership fences, dependency edges, and finite ordered suffix without inventing Phase 4 authority.
-- `tests/test_seeded_phase3_22.py` changes only its pinned `phase3-continue-23` Context to include `squatch/artifacts.py`; every other predecessor assertion remains unchanged.
+- `tests/test_seeded_phase3_22.py` migrates every assertion pinned to `phase3-continue-23`'s changed fence, Context, and authoring-time size, plus the added `squatch/artifacts.py` exit Context; every unrelated predecessor assertion remains unchanged.
 
 ## Verification
 ```
