@@ -14,9 +14,15 @@ from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
 REPO = Path(__file__).resolve().parent.parent
 BATCH = {
-    "daemon-soak-runner": ("serve-merge-admission",),
+    "daemon-soak-runner": ("worker-recovery-disposition",),
     "phase3-continue-22": ("daemon-soak-runner",),
 }
+CORRECTION = "worker-recovery-disposition"
+CORRECTION_DEPENDS = ("serve-merge-admission",)
+CORRECTION_OWNERSHIP = {
+    "owns": ["squatch/reconcile.py", "tests/test_reconcile.py"], "hooks": [],
+}
+CORRECTION_CONTEXT = ("squatch/reconcile.py", "tests/test_reconcile.py")
 OWNERSHIP = {
     "daemon-soak-runner": {
         "owns": ["eval/daemon_soak.py", "tests/test_daemon_soak.py",
@@ -44,6 +50,8 @@ EXISTING_AT_AUTHORING = {
     "tests/test_daemon_soak.py": 3626,
     "tests/test_audit.py": 5267,
     "tests/test_seeded_phase3_11.py": 9238,
+    "squatch/reconcile.py": 5538,
+    "tests/test_reconcile.py": 10334,
 }
 NEW_PATH_OWNERS = {
     "tests/test_daemon_soak_runner.py": "daemon-soak-runner",
@@ -104,6 +112,16 @@ def test_exact_seeds_edges_tiers_budgets_cap_and_fences():
         assert ticket.scope_fence == tuple(OWNERSHIP[stem]["owns"] + OWNERSHIP[stem]["hooks"])
         assert ticket.context == CONTEXT[stem]
 
+    correction = _ticket(CORRECTION)
+    assert (correction.source, correction.state, correction.priority) == (
+        "seed", "confirmed", "P1")
+    assert correction.depends == CORRECTION_DEPENDS
+    assert correction.plan_sections == ("20",)
+    assert (correction.agent_tier, correction.agent_effort) == ("high", "high")
+    assert (correction.expected_minutes, correction.stuck_minutes) == (75, 150)
+    assert correction.scope_fence == tuple(CORRECTION_OWNERSHIP["owns"])
+    assert correction.context == CORRECTION_CONTEXT
+
 
 def test_context_partition_fault_references_and_new_path_owners():
     runner = _ticket("daemon-soak-runner")
@@ -147,6 +165,16 @@ def test_context_partition_fault_references_and_new_path_owners():
                    "`conflict_resolution_rungs`, and `semantic_conflict_integration_red`",
                    "member's local run evidence", "canonical writer"):
         assert phrase in scope
+    for phrase in ("`recovery_alert`", "clean redispatched run's production terminal",
+                   "never plant a second failure", "daily cadences fired"):
+        assert phrase in scope
+
+    correction_scope = _section(CORRECTION, "Scope in")
+    for phrase in ("immediately after its `abandoned` state transition",
+                   "before worktree removal", "kind `recovery_alert`",
+                   "disposition `alert`", "outcome `abandoned`",
+                   "does not duplicate the alert"):
+        assert phrase in correction_scope
 
 
 def test_authoring_sizes_predecessor_closure_and_max_effort_headroom():
@@ -165,6 +193,19 @@ def test_authoring_sizes_predecessor_closure_and_max_effort_headroom():
             plan=plan, plan_sections=ticket.plan_sections, effort="max",
         )
         assert len(rendered) <= limit, (stem, len(rendered), limit)
+
+    correction = _ticket(CORRECTION)
+    context = "".join(f"### {path}\n{'x' * EXISTING_AT_AUTHORING[path]}\n"
+                      for path in correction.context)
+    workspace = (f"stem: {CORRECTION}\nbranch: {CORRECTION}\n"
+                 f"run record: tickets/{CORRECTION}/{RUN_RECORD}\n")
+    rendered = spec.render(
+        {"workspace": DataBlock("engine", workspace),
+         "ticket": DataBlock("host", _path(CORRECTION).read_text()),
+         "context": DataBlock("host", context)},
+        plan=plan, plan_sections=correction.plan_sections, effort="max",
+    )
+    assert len(rendered) <= limit, (CORRECTION, len(rendered), limit)
 
     continuation = _ticket("phase3-continue-22")
     assert continuation.context == CONTEXT["phase3-continue-22"]
