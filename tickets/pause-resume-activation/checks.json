@@ -1,18 +1,20 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "78cb1dc797ae7d457c53d6e9b2977fbec9975624",
+  "produced_at_sha": "4360249a5ff3f1e70ff337484d501fbccd64685f",
   "stem": "pause-resume-activation",
   "branch": "pause-resume-activation",
-  "base": "f4854e7e1cf83520e9c3b8da7008be25f1dcb5ab",
-  "head": "78cb1dc797ae7d457c53d6e9b2977fbec9975624",
+  "base": "da5776c565f07cd115c65e73d1b1fdd5d007082b",
+  "head": "4360249a5ff3f1e70ff337484d501fbccd64685f",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/control.py",
+    "squatch/daemon.py",
+    "squatch/drain.py",
+    "squatch/merge.py",
     "squatch/mergequeue.py",
     "tests/test_control_cli.py",
-    "tests/test_daemon_composition.py",
-    "tests/test_mergequeue.py"
+    "tests/test_daemon_pause.py"
   ],
   "checks": [
     {
@@ -45,6 +47,7 @@
             "tests/test_daemon_composition.py",
             "tests/test_daemon_tasks.py",
             "tests/test_control.py",
+            "tests/test_drain.py",
             "-q"
           ],
           "attribution": null,
