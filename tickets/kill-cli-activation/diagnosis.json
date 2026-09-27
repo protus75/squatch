@@ -1,16 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "Checks were green. Review raised two fixable snags. First: in DrainControl.run_dispatch, if the control consumer raises, `active` keeps running unowned after the lock is released. On any control failure, cancel `active` and await it before re-raising.",
-    "Add a test in tests/test_kill_cli_activation.py where the dispatch-time control consumer raises. Assert the dispatch task and Driver have unwound before main returns.",
-    "Second snag: do not delete unrelated docstrings, why-comments (such as the DispatchPause pause-identity comment), the `_active` annotation/cast, or the __main__ exit-code module docstring. Restore all of them; limit the diff to the kill-activation changes.",
-    "The run record says docstrings were cut to keep files at the byte sizes pinned by the requisition test. Read that test first and find its actual bound (limit or exact size). The last render was 109618 of the 120000 headroom limit.",
-    "Make the kill additions compact rather than cutting existing prose. If activation still can't fit the pinned sizes without deleting existing docs, that is the ticket's 'render exceeds headroom' reject condition. Report it; do not trim docstrings to fit.",
-    "Keep what worked: in-flight polling that filters for typed kill requests, so pause keeps its next-boundary ordering, and the no-engine `nothing running to kill` refusal before any journal or lifecycle is created."
-  ],
-  "reason": "Checks passed and the design meets the criteria. Review found one missing cleanup path and some out-of-scope docstring deletions, both fixable at the same capability.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
