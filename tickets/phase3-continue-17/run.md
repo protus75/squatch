@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The repaired section 20 contract selects whole drain offers by `emitting_origin`, not diagnostic `emitting_stage`; the authored hold and its seed test pin that distinction. The future checkpoint seed includes the clarified Git seam and direct Git test.
+The continuation Context uses the established phase-11 seed test and the composition harness; it excludes sibling-new phase-17 while retaining the two required production-root on-demand exceptions for the hold.
 
 ## Dead ends
 
-The first generated ticket lint exposed acceptance bullets that did not name their observable test artifact. I amended those bullets to name the verification test.
+Initial acceptance bullets in the generated hold ticket omitted their observable test artifact and failed ticket lint; naming `tests/test_storm_hold.py` resolved it.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI Codex (GPT-5).
 
 ## Predicted vs actual
 
-Expected 75m; actual about 15m.
+Expected 75m; actual about 12m.
