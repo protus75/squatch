@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "4360249a5ff3f1e70ff337484d501fbccd64685f",
+  "produced_at_sha": "3e7a40b768ac35340ecb06ed8ea6a7a4b3a4e463",
   "stem": "pause-resume-activation",
   "branch": "pause-resume-activation",
-  "base": "da5776c565f07cd115c65e73d1b1fdd5d007082b",
-  "head": "4360249a5ff3f1e70ff337484d501fbccd64685f",
+  "base": "c21a4e28731af27518f7dc7b9d336635206bd15f",
+  "head": "3e7a40b768ac35340ecb06ed8ea6a7a4b3a4e463",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/control.py",
@@ -14,7 +14,8 @@
     "squatch/merge.py",
     "squatch/mergequeue.py",
     "tests/test_control_cli.py",
-    "tests/test_daemon_pause.py"
+    "tests/test_daemon_pause.py",
+    "tests/test_mergequeue.py"
   ],
   "checks": [
     {
