@@ -1,18 +1,16 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "split",
   "lessons": [
-    "Split into (1) CLI and daemon pause/resume activation with test_control_cli.py and test_daemon_composition.py, and (2) red-streak and tree-hash merge admission holds with test_mergequeue.py, depending on (1).",
-    "A pause applied with no engine must survive engine start. The engine's control composition must rebuild the active dispatch pause and admission holds from unreleased control_hold events in the journal. A fresh uuid4 lifecycle drops the pause.",
-    "Pass lifecycle into the ControlInbox constructor. Never assign inbox.lifecycle after construction, and never call _rehydrate_holds or pause._apply from __main__. Expose public methods instead.",
-    "Call hold.red(stem) only on the integration_check red branch, never on rebase or regate failure. Test that rebase and regate failures do not count toward K=3, and test the sequence A,B,A,C.",
-    "AdmissionHold.allow must not busy-poll with a raw asyncio.sleep. Block on an event set by apply or on the injected control waiter, and prove another task makes progress while the hold is pending.",
-    "test_mergequeue.py: build a MergeQueue with hold= and call admit. Prove that 3 integration-reds and a tree-hash mismatch block the next admit and a matching resume releases it. Replace the stale hasattr(q, 'hold') assertion.",
-    "test_control_cli.py: fake a live engine lock and assert the CLI publishes a request and writes no journal event. With no engine, pause, read the journaled hold_id, then resume with it. Prove stale-lifecycle and older-hold releases leave the current hold in place.",
-    "Delete the unused _noop and the unused `graph` binding in _locked."
+    "Sixth attempt, and `uv run pytest -q` was again killed with exit 143 (SIGTERM, a timeout or hang). The implementer never saw the full suite finish. Run it to completion with a per-test timeout, find the hang, and never claim success from the targeted command alone.",
+    "Likely hang: the `wait_for_control` in `__main__` runtime() is `inbox.consume` plus `asyncio.sleep(0)`. A paused drain busy-spins and starves the event loop. Block on a real wake signal or the injected clock sleep seam, and prove resume unblocks the drain.",
+    "The diff never touches tests/test_mergequeue.py or tests/test_daemon_composition.py. Prior lessons flagged this in attempts 1 through 5. Two acceptance criteria are still unmet, so the ticket is too large for one attempt.",
+    "Split into (1) CLI and daemon pause/resume activation: __main__, daemon, control, drain, test_control_cli.py, test_daemon_pause.py, test_daemon_composition.py. (2) Red-streak and tree-hash admission holds: mergequeue, merge, test_mergequeue.py, depending on (1).",
+    "Remove the `args.verb == 'drain'` special case and the per-`id(journal)` runtime cache in `_locked`. Build the control graph once through one production path, so a journal object's id cannot be reused across sessions.",
+    "test_control_cli.py needs cases for a stale lifecycle, a release predating the hold, and a live-lock publish that writes no journal event. Add these along with the red-streak A,B,A,C and reset-on-green tests in the holds ticket."
   ],
-  "reason": "Fifth attempt with the same misses (test_daemon_composition.py untouched, weak mergequeue and CLI tests); the ticket bundles two features across 10 files, which is too much for one attempt.",
+  "reason": "Sixth failed attempt: the full suite still times out, and two of the four acceptance suites have never been touched, so this ticket spans two independently provable boundaries.",
   "detail": null
 }
