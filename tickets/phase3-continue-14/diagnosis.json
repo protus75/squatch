@@ -1,16 +1,17 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Requisition review rejected only flake-detection/ticket.md, and only its criterion 2. Keep flake-release and phase3-continue-15 unless a wording change is needed for consistency.",
-    "Remove '`caps.quarantine` folds only the named test'. caps.quarantine is an integer bound in Config.caps and QUARANTINE_CAP is a cap name in squatch/caps.py. Neither one folds tests.",
-    "Change the criterion to: the quarantine-ledger fold adds exactly the named test_id entry, keyed by box_id, and changes no other entry. Require tests/test_flake.py to assert this.",
-    "Name the section 11.5 caps.quarantine bound, its cap crossing that halts auto-quarantine, and its escalation in flake-detection Scope out. The section 20 flake-boundary clarification does not grant them, and the fence has no escalation path.",
-    "Ignore the earlier lessons about a SHA 'flake-held set'. Section 20 now forbids any SHA-held substitute. Release state is the quarantine-ledger entry keyed by box_id and test_id.",
-    "Re-pin every changed flake-detection phrase in tests/test_seeded_phase3_14.py, re-measure the max-effort render, and rerun both verification commands."
+    "Requisition review rejected flake-release and phase3-continue-15 ticket content. flake-detection passed; leave it unchanged. The test mechanics were fine, so rewrite the two tickets, then re-pin their text in tests/test_seeded_phase3_14.py.",
+    "flake-release fix identity: Box.get(box_id) has status == \"authored\" and resolution.link == fix_stem exactly. Drop wording that makes Message.status name a stem (it is the closed Literal pending|authored|tombstoned|decided) or that says the rerun is observed through resolution.link.",
+    "flake-release merge evidence: name the existing journal state_transition to `merged` for fix_stem, read through squatch.journal (already in Context). Never infer the merge from the stem name.",
+    "flake-release green rerun: make it a typed explicit input that the dormant hook's caller supplies, and state that production supply belongs to a later activation. tests/test_flake.py fabricates both the merge and rerun inputs directly.",
+    "flake-release criteria: keep one no-release case per prerequisite: wrong box status, link mismatch, unmerged stem, and missing or red rerun. Keep the append-before-fold, idempotence, call-path dormancy and no-SHA-set wording that already passed.",
+    "phase3-continue-15: make journal-roll depend on phase3-continue-15 and storm-ledger depend on journal-roll, matching section 20's 'journal-roll, then storm-ledger' order. phase3-continue-16 depends on both. State this the same way in Scope in and the criteria.",
+    "Pin the corrected journal-roll -> storm-ledger edge in phase3-continue-15's directive for tests/test_seeded_phase3_15.py. Re-pin every changed phrase in tests/test_seeded_phase3_14.py, re-measure the max-effort render, and rerun both verification commands."
   ],
-  "reason": "A fixable wording oversight in one flake-detection criterion (a caps.quarantine misattribution); the review's paved road gives the exact fix.",
+  "reason": "Every finding is a fixable ticket-wording or edge defect with a concrete fix that stays inside the tickets fence and section 20's clarification.",
   "detail": null
 }
