@@ -1,48 +1,41 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "19c023f79ebecfe30fa92dadd0275cf380bfd3b8",
+  "produced_at_sha": "6497d1d82b8aeedd58a7dc8e32778c553bfe4416",
   "stem": "phase3-continue-22",
   "branch": "phase3-continue-22",
-  "base": "ca20a05a204497da4a08538cd9e58fe2aa7cf9f2",
-  "head": "19c023f79ebecfe30fa92dadd0275cf380bfd3b8",
+  "base": "bc80088519fccecd69a1e99e009cd4a67c44ba22",
+  "head": "6497d1d82b8aeedd58a7dc8e32778c553bfe4416",
   "changed_files": [
     "tests/test_seeded_phase3_22.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase3-continue-23/ticket.md",
-      "sha": "8a203e4ade48297ce662f114139a7eab1f9a8381",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/soak-run/ticket.md",
-      "sha": "9b832211f44e54b6e821655800337d6f9c4d68b5",
+      "path": "tickets/phase3-continue-23/ticket.md",
+      "sha": "f5b51cc60f8476881d7ebe5c0aeef553bf1adf48",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
-          "path": "tickets/soak-run/ticket.md",
+          "path": "tickets/phase3-continue-23/ticket.md",
           "line": null,
-          "message": "The second acceptance criterion and the Verification block both depend on `tests/test_daemon_soak.py`, but Context names only `eval/daemon_soak.py` and `tests/test_daemon_soak_runner.py`. Scope in also says there are no on-demand exceptions. So the implementer cannot read the suite whose behavior the criterion asserts, and this ticket may not edit it.",
-          "paved_road": "Add the existing `tests/test_daemon_soak.py` to Context as a preservation suite. It exists on main as the merged `daemon-soak` test. Alternatively, rewrite the criterion so it cites only suites that are in Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/soak-run/ticket.md",
-          "line": null,
-          "message": "Criteria 2 and 3 say unchanged test suites 'prove' the report is never self-attested and that `soak-run` remains the producer for the terminal Phase 3 exit. The ticket forbids code changes and owns only the report path, so these tests cannot be edited. The embedded runner test shows only that the runner never writes `DAEMON_SOAK_REPORT` itself. Nothing in the Context shows an assertion that `soak-run` is the producer. If no such assertion exists, the criterion cannot be met.",
-          "paved_road": "Restate criteria 2 and 3 as preservation requirements: `tests/test_daemon_soak.py` and `tests/test_daemon_soak_runner.py` pass unchanged, and the report at `tickets/soak-run/daemon-soak-report.json` is the canonical writer's output of the runner's returned `DaemonSoakReport`. Leave the producer-custody assertion to the `phase3-exit` exit read."
+          "message": "Scope in and the first acceptance criterion make `phase3-exit` 'KNOWN-HARD high/high' and pin that tier. Section 20's compact seed registry sets every Phase 3 seed to default `medium`/`medium` unless it is marked KNOWN-DEEP. `phase3-exit` is listed only as 'alone and last, transitively covering Phase 3 and seeding Phase 4', with no KNOWN-DEEP mark. 'KNOWN-HARD' is not a registry term. The seed would therefore carry a tier its cited plan section does not grant, and the seeded test would pin that wrong value.",
+          "paved_road": "Author `phase3-exit` as `medium`/`medium`, the registry default. Replace 'KNOWN-HARD high/high' in Scope in with that tier and pin medium/medium in `tests/test_seeded_phase3_23.py` and the first acceptance criterion. If the exit really needs high/high, route an RMA to add a KNOWN-DEEP mark for `phase3-exit` in section 20 first."
         }
       ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/soak-run/ticket.md",
+      "sha": "5ac473e7141d543b67f81f208fcac05643966328",
+      "bypassed": false,
+      "findings": [],
       "commands": []
     },
     {
