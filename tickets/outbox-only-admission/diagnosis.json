@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Worktree guard in output_lift_allows_empty checks only the rename destination (`split(' -> ')[-1]`). Require every side of each porcelain entry to sit under `tickets/<stem>/`, so a staged rename from code into the OUTBOX is not exempted.",
+    "Add a tests/test_stages.py case: stage a rename from a code path into tickets/<stem>/ next to a registered report, and assert gate_failed with 'no committed diff'.",
+    "integration_check in merge.py newly ORs `_seed_lift(...)` into allow_empty. That is out-of-scope seed-lift behavior with no test. Use allow_empty=lifted_output only, and file the seed-lift/integration_check mismatch in the Suggestion Box.",
+    "Everything else passed: fence, verification, run_record, diff_budget, and the reviewer said all acceptance criteria were met. Keep the rest of the diff as it is; the fix is small and targeted."
+  ],
+  "reason": "Review snag named two concrete fixes: close the rename-source hole in the OUTBOX guard and drop the unrequested seed-lift change in integration_check. All checks passed, so re-run at the same capability.",
+  "detail": null
+}
