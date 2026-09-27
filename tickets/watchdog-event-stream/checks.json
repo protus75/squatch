@@ -1,0 +1,83 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "0469fea3a7fd4adc52af2ea9bb53486bbace5e22",
+  "stem": "watchdog-event-stream",
+  "branch": "watchdog-event-stream",
+  "base": "c82853b6fc6345675d0fbbdd2aa1da90754a024f",
+  "head": "0469fea3a7fd4adc52af2ea9bb53486bbace5e22",
+  "changed_files": [
+    "squatch/providers.py",
+    "squatch/seams.py",
+    "squatch/watchdog.py",
+    "tests/test_providers.py",
+    "tests/test_seams.py",
+    "tests/test_watchdog.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_watchdog.py",
+            "tests/test_providers.py",
+            "tests/test_seams.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
