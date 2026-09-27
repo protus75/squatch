@@ -5,10 +5,10 @@ import inspect
 import os
 import sys
 
-from squatch.artifacts import Finding
+from squatch.artifacts import OUTCOMES, Cost, Finding
 import squatch.merge as merge_module
 from test_stages import PLAN, TICKET, run_record
-from squatch.stages import Verification
+from squatch.stages import Delivery, PackingSlip, Verification
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -33,6 +33,7 @@ from squatch.mergequeue import (
     UnresolvedConflictHandoff,
 )
 from squatch.seams import LocalFilesystem, SubprocessExec
+from squatch.tickets import lint_ticket
 
 
 def config(*strategies):
@@ -106,6 +107,14 @@ async def release_hold(repo, q):
 
 async def green(_candidate):
     return ()
+
+
+class SettledStages:
+    def __init__(self, delivery):
+        self.delivery = delivery
+
+    async def run(self, ticket, *, run_seq):
+        return self.delivery
 
 
 @pytest.mark.parametrize("prefix", [(), ("c", "b", "green")])
@@ -725,6 +734,96 @@ def test_mergequeue_has_no_scheduler_or_watcher_dependency():
     source = Path(mergequeue_module.__file__).read_text()
     assert "squatch.scheduler" not in source and "squatch.watcher" not in source
     assert inspect.getsource(git_module.Git.rebase).count("rebase_abort") == 1
+
+
+async def daemon_conflict_pipeline(tmp_path, *, strategies=(), fail_on=0):
+    repo, env, git = await fixture_repo(tmp_path, path="squatch/widget.py")
+    command = (f'{sys.executable} -c "from pathlib import Path; '
+               "p=Path('verification-count'); n=int(p.read_text())+1 if p.exists() else 1; "
+               f"p.write_text(str(n)); raise SystemExit(int(n == {fail_on}))\"")
+    ticket_path = repo / "tickets/candidate/ticket.md"
+    ticket_path.parent.mkdir(parents=True)
+    ticket_path.write_text(TICKET.format(verify=command, frontmatter="state: confirmed"))
+    (repo / "squatch/existing.py").write_text("EXISTING = 1\n")
+    (repo / "SQUATCH_PLAN.md").write_text(PLAN)
+    await git.add(repo, ["tickets/candidate/ticket.md", "squatch/existing.py",
+                         "SQUATCH_PLAN.md"])
+    base = await git.commit(repo, "ticket")
+    worktree = tmp_path / "candidate"
+    await git.worktree_add(repo, worktree, "candidate", "main")
+    (worktree / "squatch/widget.py").write_text("start\nbranch\n")
+    await git.add(worktree, ["squatch/widget.py"])
+    reviewed = await git.commit(worktree, "candidate change")
+    run_path = worktree / "tickets/candidate/run.md"
+    run_path.write_text(run_record())
+
+    (repo / "squatch/widget.py").write_text("start\nmain\n")
+    (repo / "tickets/candidate/run.md").write_text(run_record())
+    (repo / "tickets/candidate/review.md").write_text(
+        f"---\nverdict: approve\nreviewed_sha: {reviewed}\n---\n")
+    await git.add(repo, ["squatch/widget.py", "tickets/candidate/run.md",
+                         "tickets/candidate/review.md"])
+    await git.commit(repo, "main move and ticket plane")
+    main_before = await git.rev_parse(repo, "main")
+
+    ticket = lint_ticket(ticket_path.read_text(), stem="candidate", repo=repo, plan=PLAN,
+                         resolve_stem=lambda stem: False)
+    slip = PackingSlip(
+        stem="candidate", verdict="implemented", summary=ticket.goal, branch="candidate",
+        base=base, head=reviewed, produced_by_spec_version="1.1", produced_at_sha=reviewed)
+    delivery = Delivery(
+        outcome="ok", findings=[], slip=slip, invoice=None, review=None,
+        worktree=worktree, base=base, stage="review", reason=None,
+        cost=Cost(tokens=0, seconds=0, attempts=0))
+    cfg = config(*strategies)
+    journal = Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc))
+    pipeline = compose_pipeline(
+        **shared_control(repo, journal), repo=repo, config=cfg, env=env, journal=journal,
+        clock=lambda: datetime.now(timezone.utc), process=SubprocessExec(),
+        fs=LocalFilesystem(), git=git)
+    pipeline.stages = SettledStages(delivery)
+    pipeline.select_daemon_admission()
+    return repo, worktree, git, journal, pipeline, ticket, main_before
+
+
+@pytest.mark.parametrize("case", ["mechanical", "rework", "integration_red"])
+async def test_daemon_pipeline_routes_conflicts_and_integration_red_through_queue(
+        tmp_path, case):
+    strategies = (() if case == "rework" else
+                  ({"paths": ["squatch/widget.py"], "strategy": "union"},))
+    built = await daemon_conflict_pipeline(
+        tmp_path, strategies=strategies, fail_on=2 if case == "integration_red" else 0)
+    repo, worktree, git, journal, pipeline, ticket, main_before = built
+    queue = pipeline.merge_queue
+    published_after_unwind = []
+    put = queue._rework.put_nowait
+
+    def publish(handoff):
+        published_after_unwind.append(not queue._slot.locked())
+        put(handoff)
+
+    queue._rework.put_nowait = publish
+    with journal:
+        result = await pipeline.run(ticket, run_seq=7)
+        handoff = await queue.next_rework() if case == "rework" else None
+        events = tuple(journal.read())
+
+    [facts] = [event.body for event in events
+               if event.body.get("kind") == CONFLICT_FACTS_SIGNAL]
+    if case == "mechanical":
+        assert result.outcome == "ok" and facts["rung"] == "mechanical"
+        assert not worktree.exists()
+        assert await git.rev_parse(repo, "main") != main_before
+    elif case == "rework":
+        assert result.outcome == "gate_failed" and result.outcome in OUTCOMES
+        assert facts["rung"] == "rework"
+        assert [finding.code for finding in result.findings] == ["post_rebase_regate"]
+        assert handoff.facts.rung == "rework" and published_after_unwind == [True]
+        assert worktree.is_dir() and await git.rev_parse(repo, "main") == main_before
+    else:
+        assert result.outcome == "gate_failed" and facts["rung"] == "mechanical"
+        assert [finding.code for finding in result.findings] == ["verification"]
+        assert worktree.is_dir() and await git.rev_parse(repo, "main") == main_before
 
 
 async def adapter_repo(tmp_path, *, fail_on=0):

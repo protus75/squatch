@@ -5,21 +5,25 @@ import threading
 import time
 from contextlib import contextmanager
 from io import StringIO
+from pathlib import Path
 
 import pytest
 
 import squatch.__main__ as main_module
 import squatch.daemon as daemon_module
 import squatch.runner as runner_module
+from squatch.artifacts import OUTCOMES, Cost
 from squatch.checkpoint import Checkpoint
 from squatch.control import ControlInbox
 from squatch.daemon import DaemonTasks
+from squatch.diagnose import DiagnosisRecord
 from squatch.heartbeat import Heartbeat
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.merge import Pipeline
+from squatch.mergequeue import Admission, ConflictFacts, UnresolvedConflictHandoff
 from squatch.rework import Rework
 from squatch.serve import ServeGraph
-from squatch.stages import Stages
+from squatch.stages import Delivery, Stages
 from squatch.triage import Triage
 from test_cli import STATE, T0, author, checkout, git_env  # noqa: F401
 
@@ -57,6 +61,7 @@ def test_cli_constructs_every_boundary_after_reconcile_without_launching_host_wo
     async def inspect(self):
         assert trace == ["reconcile", "timers", "storm"]
         assert isinstance(self.pipeline, Pipeline)
+        assert self.pipeline.admission_mode == "daemon"
         assert isinstance(self.rework, Rework)
         assert isinstance(self.triage, Triage)
         assert isinstance(self.control, ControlInbox)
@@ -122,6 +127,70 @@ def test_live_serve_holds_one_writer_beats_and_exits_after_applied_kill(checkout
                    for event in main_module.read_events(checkout / STATE))
     with Lockfile(checkout / STATE, instance_id="after", clock=lambda: T0):
         pass
+
+
+def test_serve_selected_pipeline_routes_a_settled_delivery_to_its_composed_queue(
+        checkout, monkeypatch):
+    offered = []
+    observed = []
+    author(checkout, "candidate")
+
+    async def inspect(self):
+        async def settled(ticket, *, run_seq):
+            return Delivery(
+                outcome="ok", findings=[], slip=None, invoice=None, review=None,
+                worktree=Path("/synthetic-candidate"), base="base", stage="review",
+                reason=None, cost=Cost(tokens=0, seconds=0, attempts=0))
+
+        async def precheck(ticket, delivery, *, run_seq):
+            return None, []
+
+        async def restore(worktree):
+            return None
+
+        async def admit_delivery(candidate, **kwargs):
+            offered.append(candidate)
+            facts = ConflictFacts(
+                stem=candidate.stem, paths=("squatch/widget.py",), rung="rework")
+            handoff = UnresolvedConflictHandoff(
+                stem=candidate.stem, branch=candidate.branch,
+                run_seq=candidate.run_seq, facts=facts)
+            return Admission(
+                outcome="rework", conflict_facts=facts, rework=handoff), None, []
+
+        async def diagnose(ticket, delivery, *, run_seq):
+            observed.append(delivery)
+            assert delivery.outcome in OUTCOMES
+            return DiagnosisRecord(
+                run_seq=run_seq, outcome=delivery.outcome, call="synthetic",
+                verdict="abandon-human", lessons=("resolve the conflict",),
+                reason="unresolved conflict", detail=None)
+
+        self.pipeline.stages.run = settled
+        self.pipeline.merge._precheck = precheck
+        self.pipeline.merge._restore_ticket_plane = restore
+        self.pipeline.merge_queue.admit_delivery = admit_delivery
+        self.pipeline.diagnose = diagnose
+        await self.tasks._callbacks[0]()
+        await self.dispatch.scheduler.join()
+        return 0
+
+    monkeypatch.setattr(ServeGraph, "run", inspect)
+    out = StringIO()
+
+    assert main_module.main(
+        ["serve"], cwd=checkout, env=git_env(checkout.parent), out=out,
+        clock=lambda: T0) == 0
+    assert [(candidate.stem, candidate.run_seq) for candidate in offered] == [
+        ("candidate", 0)]
+    assert len(observed) == 1
+    assert observed[0].outcome == "gate_failed"
+    [finding] = observed[0].findings
+    assert (finding.code, finding.path) == ("post_rebase_regate", "squatch/widget.py")
+    terminals = [event.body for event in main_module.read_events(checkout / STATE)
+                 if event.type == "state_transition" and event.ticket == "candidate"
+                 and event.body.get("to") != "running"]
+    assert [terminal["to"] for terminal in terminals] == ["gate_failed"]
 
 
 def test_live_kill_reaches_the_pipeline_executor_before_serve_releases_lock(

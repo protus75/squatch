@@ -1,4 +1,4 @@
-"""The merge admission (SQUATCH_PLAN.md sections 7, 9, 10; section 19, Phase 1).
+"""Bootstrap and daemon merge admission (SQUATCH_PLAN.md sections 7, 9, 10, 20).
 
 One admission settles one delivered run, everything BEFORE main moves: the
 pinned approval for the head being admitted (`correctness_review` at merge is
@@ -11,15 +11,15 @@ red together) is caught while main stays green; then the squash-merge with
 its two identity trailers, the branch and worktree retired, and the run's
 `to: merged` transition journaled. A red candidate is never admitted: main
 is untouched, the findings become the run's `gate_failed` terminal, and the
-branch stays in place, re-runnable. Phase 1 runs the admission inline in
-the one CLI process holding the single-writer lock; the serial merge task,
-host safety checks, the red-streak pause, and the tree-hash assert are
-Phase 3.
+branch stays in place, re-runnable. Bootstrap runs this admission inline.
+Serve selects daemon admission, which keeps the immutable delivery checks
+here and delegates rebase through integration to the serial MergeQueue.
 """
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Literal
 
 from squatch.artifacts import Finding
 from squatch.box import Box
@@ -53,6 +53,8 @@ APPROVAL_ROAD = ("an admission needs an `approve` verdict pinned to the branch h
                  "re-run the stem so Review approves the current head")
 SEED_SAFETY_ROAD = ("re-run the stem: a lifted seed has no recorded approval for the bytes "
                     "on main")
+REWORK_ROAD = ("let the daemon Rework consumer revise or split the ticket from the published "
+               "conflict handoff, then dispatch the resulting ticket")
 
 
 
@@ -176,18 +178,7 @@ class Merge:
     async def admit(self, ticket: Ticket, delivery: Delivery, *, run_seq: int) -> Admission:
         stem = ticket.stem
         slip, worktree = delivery.slip, delivery.worktree
-        if delivery.outcome not in SETTLED or slip is None:
-            raise ValueError(f"{stem}: only a settled delivery is admitted, not {delivery.outcome!r}")
-        head = await self._git.rev_parse(self._repo, f"refs/heads/{stem}")
-        # An already_satisfied run settles on Check's proof alone (section 5):
-        # nothing was implemented, so nothing is reviewed or integrated.
-        reviewed = None if slip.verdict == "already_satisfied" else head
-        findings = self._approval(stem, head) if reviewed else []
-        safety = (CodeLane(self._git, self._repo),
-                  SeedSafety(self._git, self._repo, self._journal, delivery.invoice,
-                             run_seq=run_seq))
-        findings += (await run_gates(safety, slip, worktree,
-                                     severity=self._severity(ticket))).hard_failures
+        reviewed, findings = await self._precheck(ticket, delivery, run_seq=run_seq)
         if findings:
             return self._blocked(stem, run_seq, findings)
 
@@ -217,6 +208,60 @@ class Merge:
                         commit=commit, reviewed_sha=reviewed,
                         findings=[f.model_dump() for f in soft])
         return Admission(delivery.outcome, soft, commit, reviewed)
+
+    async def admit_daemon(self, ticket: Ticket, delivery: Delivery, *, run_seq: int,
+                           queue: "_ReviewedMergeQueue") -> Admission:
+        """Run immutable delivery checks, then hand all moving-main work to the queue."""
+        stem = ticket.stem
+        reviewed, findings = await self._precheck(ticket, delivery, run_seq=run_seq)
+        if findings:
+            return self._blocked(stem, run_seq, findings)
+
+        await self._restore_ticket_plane(delivery.worktree)
+        candidate = Candidate(stem=stem, branch=stem, worktree=delivery.worktree,
+                              run_seq=run_seq)
+        queued, commit, soft = await queue.admit_delivery(
+            candidate, ticket=ticket, delivery=delivery, reviewed_head=reviewed)
+        if queued.outcome != "integrated":
+            findings = list(queued.findings)
+            if queued.outcome == "rework":
+                paths = queued.conflict_facts.paths
+                findings.append(Finding(
+                    code=REGATE, path=paths[0] if len(paths) == 1 else None,
+                    paved_road=REWORK_ROAD,
+                    message=(f"unresolved rebase conflicts require Rework"
+                             f"{': ' + ', '.join(paths) if paths else ''}")))
+            self._log.event("merge", ticket=stem, run_seq=run_seq,
+                            outcome="gate_failed",
+                            findings=[finding.model_dump() for finding in findings])
+            return Admission("gate_failed", findings, None, reviewed)
+
+        await self._retire(stem, delivery.worktree, run_seq)
+        self._journal.append("state_transition", {
+            "to": "merged", "run_seq": run_seq, "commit": commit,
+            "reviewed_sha": reviewed}, ticket=stem)
+        self._log.event("merge", ticket=stem, run_seq=run_seq, outcome=delivery.outcome,
+                        commit=commit, reviewed_sha=reviewed,
+                        findings=[finding.model_dump() for finding in soft])
+        return Admission(delivery.outcome, soft, commit, reviewed)
+
+    async def _precheck(self, ticket: Ticket, delivery: Delivery, *,
+                        run_seq: int) -> tuple[str | None, list[Finding]]:
+        stem = ticket.stem
+        slip, worktree = delivery.slip, delivery.worktree
+        if delivery.outcome not in SETTLED or slip is None:
+            raise ValueError(f"{stem}: only a settled delivery is admitted, not {delivery.outcome!r}")
+        head = await self._git.rev_parse(self._repo, f"refs/heads/{stem}")
+        # An already_satisfied run settles on Check's proof alone (section 5):
+        # nothing was implemented, so nothing is reviewed or integrated.
+        reviewed = None if slip.verdict == "already_satisfied" else head
+        findings = self._approval(stem, head) if reviewed else []
+        safety = (CodeLane(self._git, self._repo),
+                  SeedSafety(self._git, self._repo, self._journal, delivery.invoice,
+                             run_seq=run_seq))
+        findings += (await run_gates(safety, slip, worktree,
+                                     severity=self._severity(ticket))).hard_failures
+        return reviewed, findings
 
     # -- the pinned approval --
 
@@ -352,22 +397,34 @@ class Merge:
         return Admission("gate_failed", findings, None, None)
 
 
+AdmissionMode = Literal["inline", "daemon"]
+
+
 class Pipeline:
-    """Implement -> Check -> Review -> Merge behind the runner's stage-dispatch
-    seam: a settled delivery is admitted; any other stage terminal is the
-    run's outcome, the admission never reached."""
+    """Implement -> Check -> Review -> selected admission behind the runner seam."""
 
     def __init__(self, stages: Stages, merge: Merge, merge_queue: MergeQueue | None = None):
         self.stages = stages
         self.merge = merge
         self.merge_queue = merge_queue
+        self.admission_mode: AdmissionMode = "inline"
         self.diagnoser = Diagnoser(stages)
+
+    def select_daemon_admission(self) -> None:
+        if not isinstance(self.merge_queue, _ReviewedMergeQueue):
+            raise ValueError("daemon admission requires the composed merge queue")
+        self.admission_mode = "daemon"
 
     async def run(self, ticket: Ticket, *, run_seq: int) -> Delivery:
         delivery = await self.stages.run(ticket, run_seq=run_seq)
         if delivery.outcome not in SETTLED:
             return delivery
-        admission = await self.merge.admit(ticket, delivery, run_seq=run_seq)
+        if self.admission_mode == "daemon":
+            assert isinstance(self.merge_queue, _ReviewedMergeQueue)
+            admission = await self.merge.admit_daemon(
+                ticket, delivery, run_seq=run_seq, queue=self.merge_queue)
+        else:
+            admission = await self.merge.admit(ticket, delivery, run_seq=run_seq)
         return replace(delivery, outcome=admission.outcome, findings=admission.findings,
                        stage="merge", reason=None)
 
@@ -391,19 +448,22 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
                   redact=redact, clock=clock, env=env)
     async def regate(candidate: Candidate):
         state = queue.admission_state[candidate.stem, candidate.run_seq]
-        findings = merge._approval(candidate.stem, state.reviewed_head)
+        findings = (merge._approval(candidate.stem, state.reviewed_head)
+                    if state.reviewed_head is not None else [])
         if findings:
             return findings
-        path = repo / TICKETS_DIR / candidate.stem / TICKET_FILE
-        plan = repo / PLAN_FILE
-        state.ticket = lint_ticket(
-            path.read_text(), stem=candidate.stem, repo=repo,
-            plan=plan.read_text() if plan.is_file() else None,
-            resolve_stem=lambda stem: (repo / TICKETS_DIR / stem / TICKET_FILE).is_file())
+        if state.ticket is None:
+            path = repo / TICKETS_DIR / candidate.stem / TICKET_FILE
+            plan = repo / PLAN_FILE
+            state.ticket = lint_ticket(
+                path.read_text(), stem=candidate.stem, repo=repo,
+                plan=plan.read_text() if plan.is_file() else None,
+                resolve_stem=lambda stem: (repo / TICKETS_DIR / stem / TICKET_FILE).is_file())
         head = await git.rev_parse(candidate.worktree, "HEAD")
         state.slip = PackingSlip(
-            stem=candidate.stem, branch=candidate.branch, verdict="implemented",
-            summary=state.ticket.goal, base=await git.rev_parse(repo, "main"), head=head,
+            stem=candidate.stem, branch=candidate.branch, verdict=state.verdict,
+            summary=state.summary or state.ticket.goal,
+            base=await git.rev_parse(repo, "main"), head=head,
             produced_by_spec_version=MERGE_VERSION, produced_at_sha=head)
         state.invoice = await merge._regate(
             state.ticket, state.slip, candidate.worktree, candidate.run_seq)
@@ -416,12 +476,13 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
 
     async def integrate(candidate: Candidate):
         state = queue.admission_state[candidate.stem, candidate.run_seq]
-        findings = merge._approval(candidate.stem, state.reviewed_head)
+        findings = (merge._approval(candidate.stem, state.reviewed_head)
+                    if state.reviewed_head is not None else [])
         if findings:
             raise ValueError(findings[0].message)
-        review = load_review((repo / TICKETS_DIR / candidate.stem / REVIEW).read_text())
-        await merge._squash(state.ticket, state.invoice, review["reviewed_sha"],
-                            candidate.run_seq)
+        if state.reviewed_head is not None and state.invoice.changed_files:
+            state.commit = (await merge._squash(
+                state.ticket, state.invoice, state.reviewed_head, candidate.run_seq))["commit"]
 
     queue = compose_merge_queue(
         repo=repo, config=config, env=env, journal=journal, process=process, fs=fs, git=git,
@@ -432,10 +493,13 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
 
 @dataclass
 class _AdmissionState:
-    reviewed_head: str
+    reviewed_head: str | None
     ticket: Ticket | None = None
     slip: PackingSlip | None = None
     invoice: Invoice | None = None
+    commit: str | None = None
+    verdict: str = "implemented"
+    summary: str = ""
 
 
 class _ReviewedMergeQueue(MergeQueue):
@@ -450,6 +514,21 @@ class _ReviewedMergeQueue(MergeQueue):
             self.admission_state[key] = _AdmissionState(
                 await self._git.rev_parse(candidate.worktree, "HEAD"))
             return await super().admit(candidate)
+        finally:
+            self.admission_state.pop(key, None)
+
+    async def admit_delivery(self, candidate: Candidate, *, ticket: Ticket,
+                             delivery: Delivery, reviewed_head: str | None):
+        key = candidate.stem, candidate.run_seq
+        assert delivery.slip is not None
+        state = _AdmissionState(
+            reviewed_head=reviewed_head, ticket=ticket, verdict=delivery.slip.verdict,
+            summary=delivery.slip.summary)
+        self.admission_state[key] = state
+        try:
+            result = await super().admit(candidate)
+            soft = list(state.invoice.soft_findings) if state.invoice is not None else []
+            return result, state.commit, soft
         finally:
             self.admission_state.pop(key, None)
 

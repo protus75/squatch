@@ -192,6 +192,7 @@ class Serve:
         pipeline = self._pipeline(journal)
         if pipeline.merge_queue is None:
             raise ValueError("production serve requires the merge queue")
+        pipeline.select_daemon_admission()
 
         redact = Redactor.from_config(config, self._env)
         registry = Registry(config)

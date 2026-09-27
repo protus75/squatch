@@ -84,6 +84,23 @@ def merge_of(h: Harness, git: Git | None = None) -> Merge:
                  clock=h.clock, env=h.env)
 
 
+def composed_pipeline_of(h: Harness) -> Pipeline:
+    inbox = ControlInbox(h.state, journal=h.journal, fs=LocalFilesystem())
+    hold = AdmissionHold(inbox, h.journal)
+    return compose_pipeline(
+        control_inbox=inbox, admission_hold=hold, repo=h.repo, config=h.config,
+        env=h.env, journal=h.journal, clock=h.clock, process=SubprocessExec(),
+        fs=LocalFilesystem(), git=h.git)
+
+
+class SettledStages:
+    def __init__(self, delivery):
+        self.delivery = delivery
+
+    async def run(self, ticket, *, run_seq):
+        return self.delivery
+
+
 def ticket_of(h: Harness):
     return lint_ticket((h.repo / "tickets" / STEM / "ticket.md").read_text(), stem=STEM,
                        repo=h.repo, plan=PLAN, resolve_stem=lambda s: False)
@@ -478,6 +495,102 @@ async def test_pipeline_runs_the_stages_then_the_admission(repo, env):
     delivery = await Pipeline(h.stages, merge_of(h)).run(ticket, run_seq=0)
     assert delivery.outcome == "ok"
     assert STEM in merged_stems(h.journal.read()) and "squatch/widget.py" in h.main_files()
+
+
+async def test_composed_pipeline_keeps_bootstrap_admission_inline(repo, env, monkeypatch):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    delivery = await deliver(h)
+    pipeline = composed_pipeline_of(h)
+    pipeline.stages = SettledStages(delivery)
+
+    async def queue_must_stay_dormant(*args, **kwargs):
+        raise AssertionError("bootstrap admission reached the daemon queue")
+
+    monkeypatch.setattr(pipeline.merge_queue, "admit_delivery", queue_must_stay_dormant)
+    result = await pipeline.run(ticket_of(h), run_seq=0)
+
+    assert pipeline.admission_mode == "inline" and result.outcome == "ok"
+    assert not branch_exists(h) and not h.worktree().exists()
+
+
+async def test_daemon_pipeline_offers_one_candidate_and_finalizes_once(repo, env, monkeypatch):
+    agent = Agent(answer("implemented"), review("approve"), actions=[implementer(env, WIDGET)])
+    h = Harness(repo, env, agent)
+    delivery = await deliver(h)
+    pipeline = composed_pipeline_of(h)
+    pipeline.stages = SettledStages(delivery)
+    pipeline.select_daemon_admission()
+    offered = []
+    original = pipeline.merge_queue.admit_delivery
+
+    async def admit_delivery(candidate, **kwargs):
+        offered.append(candidate)
+        return await original(candidate, **kwargs)
+
+    monkeypatch.setattr(pipeline.merge_queue, "admit_delivery", admit_delivery)
+    result = await pipeline.run(ticket_of(h), run_seq=0)
+
+    assert result.outcome == "ok" and len(offered) == 1
+    assert offered[0].stem == STEM and offered[0].worktree == h.worktree()
+    main = git(repo, env, "rev-parse", "main").strip()
+    assert transitions(h) == [{"to": "merged", "run_seq": 0, "commit": main,
+                               "reviewed_sha": delivery.slip.head}]
+    assert h.completions().count(f"retire/{STEM}/0") == 1
+    assert not branch_exists(h) and not h.worktree().exists()
+    merge_events = [json.loads(line) for line in (h.state / "engine.log").read_text().splitlines()
+                    if json.loads(line).get("event") == "merge"]
+    assert [(event["commit"], event["reviewed_sha"]) for event in merge_events] == [
+        (main, delivery.slip.head)]
+
+
+async def test_daemon_prechecks_code_lane_before_offering(repo, env, monkeypatch):
+    def commit_everything(req):
+        writes(WIDGET)(req)
+        git(req.worktree, env, "add", "-A")
+        git(req.worktree, env, "commit", "-q", "-m", "code plus outbox")
+
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"),
+                                 actions=[commit_everything]))
+    delivery = await deliver(h)
+    pipeline = composed_pipeline_of(h)
+    pipeline.stages = SettledStages(delivery)
+    pipeline.select_daemon_admission()
+
+    async def queue_must_not_run(*args, **kwargs):
+        raise AssertionError("unsafe delivery reached the daemon queue")
+
+    monkeypatch.setattr(pipeline.merge_queue, "admit_delivery", queue_must_not_run)
+    result = await pipeline.run(ticket_of(h), run_seq=0)
+
+    assert result.outcome == "gate_failed"
+    assert [finding.code for finding in result.findings] == ["post_rebase_regate"]
+    assert branch_exists(h) and h.worktree().is_dir() and transitions(h) == []
+
+
+async def test_daemon_prechecks_seed_safety_before_offering(repo, env, monkeypatch):
+    text = seed_ticket()
+    agent = Agent(answer("implemented"), requisition_approve(), review("approve"),
+                  actions=[writes(("tickets/next-seed/ticket.md", text),
+                                  record=run_record())])
+    h = Harness(repo, env, agent)
+    delivery = await deliver(h, verify=f'{PYTHON} -c "import sys; sys.exit(0)"')
+    commit_on_main(h, "tickets/next-seed/ticket.md",
+                   text.replace("The widget module lands.", "Changed after approval."),
+                   "tamper with seed")
+    pipeline = composed_pipeline_of(h)
+    pipeline.stages = SettledStages(delivery)
+    pipeline.select_daemon_admission()
+
+    async def queue_must_not_run(*args, **kwargs):
+        raise AssertionError("stale seed approval reached the daemon queue")
+
+    monkeypatch.setattr(pipeline.merge_queue, "admit_delivery", queue_must_not_run)
+    result = await pipeline.run(ticket_of(h), run_seq=0)
+
+    assert result.outcome == "gate_failed"
+    assert [finding.code for finding in result.findings] == ["requisition_review"]
+    assert branch_exists(h) and h.worktree().is_dir() and transitions(h) == []
 
 
 async def test_pipeline_skips_the_admission_on_a_non_ok_stage_terminal(repo, env):
