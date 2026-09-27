@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-The report is intentionally left uncommitted in the ticket OUTBOX for ordinary-lane lift.
+The base already contained the report from a prior attempt; the canonical writer refreshed it for the current HEAD. It remains uncommitted in the ticket OUTBOX for ordinary-lane lift.
 
 ## Dead ends
 
@@ -12,4 +12,4 @@ The report is intentionally left uncommitted in the ticket OUTBOX for ordinary-l
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-75m / approximately 4m
+75m / approximately 5m
