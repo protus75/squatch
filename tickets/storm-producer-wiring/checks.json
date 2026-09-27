@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "488c200b9962a2407e72198d8ccc6b9ab045a097",
+  "produced_at_sha": "9e888042fa657b4f7cca672960616813fd901aff",
   "stem": "storm-producer-wiring",
   "branch": "storm-producer-wiring",
-  "base": "1712a2b5bf7189c0869230d7bc3e389c87e2be39",
-  "head": "488c200b9962a2407e72198d8ccc6b9ab045a097",
+  "base": "4f612e0ded5e148c7f4fecb41da618250e61e97a",
+  "head": "9e888042fa657b4f7cca672960616813fd901aff",
   "changed_files": [
     "squatch/box.py",
     "squatch/daemon.py",
