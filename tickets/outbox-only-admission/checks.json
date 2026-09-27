@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "bda60c625858b6e47f27c6fb87afc1ed3df335a8",
+  "produced_at_sha": "6587800e98af88e0fe4a5362a404c78ee418819d",
   "stem": "outbox-only-admission",
   "branch": "outbox-only-admission",
-  "base": "e12a8a97adfa23b4398140aee731e7710083ab94",
-  "head": "bda60c625858b6e47f27c6fb87afc1ed3df335a8",
+  "base": "7119232c54cd58f539a9edaebfaa17f07c943d15",
+  "head": "6587800e98af88e0fe4a5362a404c78ee418819d",
   "changed_files": [
     "squatch/merge.py",
     "squatch/stages.py",
