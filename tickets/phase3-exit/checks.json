@@ -1,0 +1,131 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "6b7008f270ba3582e6d0ca6623ef3164c1bcde79",
+  "stem": "phase3-exit",
+  "branch": "phase3-exit",
+  "base": "1f2093dae73723286790e5f6a554a78406cf11be",
+  "head": "6b7008f270ba3582e6d0ca6623ef3164c1bcde79",
+  "changed_files": [
+    "tests/test_phase3_exit.py",
+    "tests/test_seeded_phase4_core.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/notify-transport/ticket.md",
+      "sha": "09231ef39d251e4910b1856860737dc91e717fe2",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/notify-transport/ticket.md",
+          "line": null,
+          "message": "Scope in says 'This ticket's merge is the production flip for already-journaled storm-breaker and integration-red-streak escalations through the new module's reconciliation entry point', and section 20 assigns the 'escalation-dispatch flip' to this fence. The fence is exactly squatch/notify.py, config.py, seams.py and their tests. It includes no production composition root. On main, squatch/serve.py, squatch/daemon.py and squatch/__main__.py import checkpoint, control, daemon, drain, storm and others, but no module that could reach a new squatch.notify. Nothing reads config.notify either. After merge, the reconciliation entry point and the unset-transport startup warning have no production caller. The module would be dormant, not flipped, and criterion 3 can only prove it in isolation.",
+          "paved_road": "fix the plan, then re-author the ticket"
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/notify-transport/ticket.md",
+          "line": null,
+          "message": "Section 15 lists a distinct notifications seam, `notify(argv)`, and forbids sharing a process seam between active work and notification. Section 20's registry fences seams.py for this ticket without saying whether the transport adds that `notify(argv)` seam or reuses a separate ProcessExec instance. The ticket picks ProcessExec, so the seam contract the plan grants is ambiguous.",
+          "paved_road": "fix the plan, then re-author the ticket"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase4-continue/ticket.md",
+      "sha": "ef2f4c9c82da4ea3b66ba6152c64207d3f71b826",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/watchdog-event-stream/ticket.md",
+      "sha": "6300c3413df9fd53b3a341f0724ce307ebe2ac4a",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-event-stream/ticket.md",
+          "line": null,
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"rma\", \"summary\": \"The Phase 4 registry in plan section 20 fixes watchdog-event-stream\\'s fence at squatch/watchdog.py, squatch/providers.py, tests/test_watchdog.py and tests/test_providers.py, but in-flight event delivery requires changing the ProcessExec seam, which squatch/seams.py owns and the fence does not include. The ticket copies the plan\\'s fence faithfully, so only a plan repair can make it buildable.\", \"findings\": [{\"code\": \"requisition_review\", \"path\": \"squatch/sea'",
+          "paved_road": "fix the plan, then re-author the ticket"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_phase3_exit.py",
+            "tests/test_seeded_phase4_core.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
