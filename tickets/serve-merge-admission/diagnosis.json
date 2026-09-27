@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "A queue `rework` result must not reach `Delivery.outcome`: the runner only accepts `artifacts.OUTCOMES` (runner.py:326) and turns anything else into a fault. In `admit_daemon`, map rework to `gate_failed` with a typed conflict finding built from `queued.conflict_facts`. Do not extend the vocabulary.",
+    "Keep the branch and worktree on rework and gate_failed. Publish or consume the Rework handoff only after `admit_delivery`'s queue slot unwinds, and assert that ordering in tests/test_mergequeue.py.",
+    "Tests that call `pipeline.run` directly never run the runner's outcome check. Add a rung-2 conflict test through the runner/Serve dispatch path that asserts the outcome is in `squatch.artifacts.OUTCOMES`.",
+    "Fix the tests/test_mergequeue.py case that asserts `result.outcome == \"rework\"`, because it locks in the defect. The rest of the diff (prechecks, one Candidate, finalizing once, the bootstrap inline regression) was not flagged by review, so keep it."
+  ],
+  "reason": "Review found one fixable gap (the queue's rework outcome is outside the closed Outcome vocabulary) and gave a paved road inside the fence. Checks passed and the rest of the design held.",
+  "detail": null
+}
