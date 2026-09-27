@@ -1,13 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Do not commit tickets/phase3-exit/ticket.md. Anything under tickets/** is ticket-plane outbox output: leave it uncommitted in the worktree and the driver lifts it. Commit only tests/test_seeded_phase3_23.py.",
-    "The code content passed scope_fence, verification, run_record, diff_budget and review (approve). Keep the ticket and test as they are and change only what gets committed.",
-    "Before finishing, run git status and check that the branch's committed diff touches no tickets/** path. The untracked ticket file must still exist in the worktree so tests/test_seeded_phase3_23.py can read it."
+    "Requisition review found the authored phase3-exit ticket has no plan authority. Section 20 grants no Phase 4 stems, owned modules, or ordered Phase 4 suffix, so seeding watchdog-event-stream, notify-transport, or phase4-continue means making them up.",
+    "phase3-exit owns tests/test_seeded_phase4_core.py, which must pin a Phase 4 suffix, but the plan defines no Phase 4 admission list. Section 19 cannot be cited instead, because a continuation that cites it measures over the 160,000-character render bound.",
+    "The ticket pins phase3-exit's Context exactly, and it leaves out squatch/artifacts.py. That file owns DaemonSoakReport and DAEMON_SOAK_MEMBERS, so validating the report against it cannot be grounded. Fix the plan and the parent ticket, not the implementer's output.",
+    "Paved road: amend plan section 20 (or a Phase 4 seed registry) with the Phase 4 core stems, their fences, and the finite ordered suffix, and add squatch/artifacts.py to the exit Context. Then re-author phase3-continue-23.",
+    "Committing only the test file and leaving tickets/** uncommitted is now correct. Keep that from earlier lessons. The KNOWN-HARD high/high tier is backed by the plan's Phase 3 exit tier clarification."
   ],
-  "reason": "The only failure was post_rebase_regate: the new ticket file was committed on the code lane, which is a fixable packaging mistake with a stated fix, and every other gate and the review passed.",
+  "reason": "All requisition findings name a plan gap (no Phase 4 seed authority or suffix, and exact Context missing squatch/artifacts.py), with paved road 'fix the plan, then re-author the ticket'. A retry cannot fix that.",
   "detail": null
 }
