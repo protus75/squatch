@@ -1,18 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Gate failure was requisition review of the authored seed tickets; the seed test was fine. Each finding has a paved road, so fix the ticket bodies and extend tests/test_seeded_phase3_13.py to pin the changes.",
-    "phase3-continue-14: make flake-release depend on flake-detection, not phase3-continue-14 (the 'then' pair precedent). Keep phase3-continue-15 depending on both, and require test_seeded_phase3_14 to pin these edges.",
-    "phase3-continue-14: add an explicit `ownership` yaml block. flake-detection owns squatch/flake.py and tests/test_flake.py and hooks squatch/daemon.py. flake-release hooks those plus daemon, and the sibling-new paths stay out of its Context. continue-15 owns tickets and test_seeded_phase3_15.py.",
-    "phase3-continue-14 must also name each seed's exact Context and a full new-path owner map, carrying the restart-timers paths, flake paths -> flake-detection, and test_seeded_phase3_14/15 -> their continuations.",
-    "restart-timers: reap-before-dispatch already exists (squatch/reconcile.py, called at runner.py:153). Say restart.py delegates to reconcile with no second reap path. Add reconcile.py and tests/test_reconcile.py to Context (fits headroom) and run test_reconcile unchanged in Verification.",
-    "restart-timers: define timers as journaled deadlines appended through the Journal seam, read against the injected Clock, and re-armed from a journal fold at compose_daemon_*. Criteria: re-arm once after restart, an expired deadline fires once, a fired deadline never re-arms. No side-file store.",
-    "restart-timers: either add squatch/heartbeat.py and tests/test_heartbeat.py to Context as an unchanged preservation suite and say whether heartbeat stays dormant, or drop the heartbeat claim from Why.",
-    "Keep the pinned predecessor-test closure (test_control_cli, test_daemon_composition) exactly as the parent ticket requires. Add the reconcile and heartbeat suites as extra read-only preservation Context, then recompute authoring sizes and the max-effort headroom assertion."
+    "The seed content and test passed checks and review. The only failure was the merge regate: tickets/restart-timers/ticket.md and tickets/phase3-continue-14/ticket.md were committed on the branch, and tickets/** never rides the code lane.",
+    "Write both seed ticket files into the working tree but leave them uncommitted, because the driver lifts outbox files. Commit only tests/test_seeded_phase3_13.py and the run record as the run-record contract requires.",
+    "Having `tickets` in the scope fence lets you write ticket files, not commit them. Before finishing, confirm that git diff against the base shows no tickets/<stem>/ticket.md path.",
+    "Keep the approved ticket bodies and the seed test as they are: restart delegates to reconcile, timers are journaled, flake-release depends on flake-detection, and sizes and headroom are pinned. Redo only the commit step, and recheck that the pinned authoring sizes still match the current files."
   ],
-  "reason": "Requisition review flagged fixable gaps in the authored seed tickets (a missing edge, an ownership contract, reconcile and heartbeat Context, an undefined timer contract); every finding has a paved road inside the fence and none needs a plan fix.",
+  "reason": "Fixable oversight: the seed tickets were committed instead of left as uncommitted outbox files; the gate's fix instruction says exactly what to do.",
   "detail": null
 }
