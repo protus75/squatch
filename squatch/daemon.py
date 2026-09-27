@@ -207,6 +207,7 @@ class DaemonTasks:
         self._workers: tuple[asyncio.Task[None], ...] = ()
         self._control: asyncio.Task[None] | None = None
         self._workers_stopped = False
+        self._kill_stopping = False
 
     def start(self) -> None:
         """Start each consumer once; callbacks first run in their own tasks."""
@@ -216,6 +217,7 @@ class DaemonTasks:
                             for callback in self._callbacks)
         self._workers, self._control = self._tasks[:3], self._tasks[3]
         self._workers_stopped = False
+        self._kill_stopping = False
 
     async def stop_workers(self) -> None:
         """Stop the worker siblings without interrupting their control caller."""
@@ -231,11 +233,17 @@ class DaemonTasks:
         if failure is not None:
             raise failure
 
+    async def stop_workers_for_kill(self) -> None:
+        """Mark and stop workers after the current-lifecycle kill is accepted."""
+        self._kill_stopping = True
+        await self.stop_workers()
+
     async def shutdown(self) -> None:
         """Cancel, observe, and propagate every consumer's terminal outcome."""
         tasks, self._tasks = self._tasks, ()
         self._workers, self._control = (), None
         self._workers_stopped = False
+        self._kill_stopping = False
         for task in tasks:
             task.cancel()
         outcomes = await asyncio.gather(*tasks, return_exceptions=True)
@@ -252,7 +260,7 @@ class DaemonTasks:
             try:
                 await asyncio.gather(*self._tasks)
             except asyncio.CancelledError:
-                if not self._workers_stopped or asyncio.current_task().cancelling():
+                if not self._kill_stopping or asyncio.current_task().cancelling():
                     raise
                 assert self._control is not None
                 await self._control
@@ -273,6 +281,6 @@ def kill_worker_stop_consumer(inbox: ControlInbox, driver: Driver,
     async def stop(request: ControlRequest) -> None:
         if request.action == "kill":
             await driver.abort_active()
-            await tasks.stop_workers()
+            await tasks.stop_workers_for_kill()
 
     return control_consumer(inbox, stop)
