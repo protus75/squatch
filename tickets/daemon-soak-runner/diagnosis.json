@@ -1,15 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "escalate",
-  "lessons": [
-    "Never call pipeline.merge_queue.admit from the harness. Let serve's own Pipeline.run reach Merge.admit (squatch/merge.py:370) after implement, review, and check. Plant the conflict by advancing main through the git seam while implement runs.",
-    "Never write tickets/<stem>/review.md yourself. The production review stage must produce the approval, driven by the scripted review-surface response through the provider process seam.",
-    "Build Box and every other report-derivation object with the run's injected clock and fs. Store them on _Evidence. Never use LocalFilesystem() or datetime.now in the runner.",
-    "Fail the integration-red member only by returning a nonzero result for the post-rebase integration verification argv at the process seam. Derive the terminal from events that production writes on the ordinary merge path.",
-    "Before coding, trace one settled delivery through serve -> Pipeline.run -> Merge.admit -> merge queue. If the conflict rung and integration-red cannot be reached without harness admission or a production change, return the ticket for re-authoring instead of simulating it."
-  ],
-  "reason": "Earlier lessons already banned self-attestation, yet this attempt found new shortcuts: harness-triggered queue admission, a forged review approval, and a raw wall clock. Scripting production faults honestly needs more capability; a same-level retry is unlikely to fix it.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
