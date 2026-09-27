@@ -4,11 +4,10 @@ ok
 
 ## Surprises / judgment calls
 
-Notification delivery carries the rendered escalation as the final argv element. Transport failures are reported per signal and leave the durable Effect intent incomplete for retry.
+Storm-trip delivery waits for the matching materialized control hold so the rendered resume command contains its real hold identity. Completed Effects produce neither another transport call nor another status report; timed-out delivery stays incomplete for conservative retry.
 
 ## Dead ends
 
-The full-suite terminal invocation detaches after its reporting limit; both launched runs completed without a remaining pytest process.
 
 ## Second problems filed
 
@@ -19,4 +18,4 @@ OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 30m.
+Expected 75m; actual about 20m.
