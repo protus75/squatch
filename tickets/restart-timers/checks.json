@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "54f65ab898a4f09fc016eb84e27e14fae067be66",
+  "produced_at_sha": "e1db78ffc495e3327f71ffd1f643999ff55b90cc",
   "stem": "restart-timers",
   "branch": "restart-timers",
-  "base": "ae7e7e4b572906fbe26483c0d921427a01580103",
-  "head": "54f65ab898a4f09fc016eb84e27e14fae067be66",
+  "base": "180ee47137ba2f318de15cf4b33538d5a7a6204c",
+  "head": "e1db78ffc495e3327f71ffd1f643999ff55b90cc",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/daemon.py",
