@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "All three review findings are plan defects, and their paved road is 'fix the plan, then re-author the ticket'. Another implementer retry cannot clear them. Section 20 must change first.",
+    "Section 20 gives checkpoint-push only squatch/checkpoint.py, tests/test_checkpoint.py and the squatch/daemon.py hook. squatch/git.py has no push operation, so the seed must leave its fence or bypass git.py. The plan must add git.py and its test to the fence.",
+    "The plan never says how a trip's emitting_stage maps to a drain offer. The drain selects whole tickets, so an implement trip pauses everything and a check/review trip suppresses nothing. The plan must define stage-selectable dispatch first.",
+    "phase3-continue-18 demands exact Context pins for checkpoint-push and phase3-continue-19 but never names that Context. The plan must list it, e.g. squatch/daemon.py plus one established seeded test.",
+    "Once the plan is fixed, regenerate by rerunning the owning deliverable. Don't hand-patch the untracked ticket files or tests/test_seeded_phase3_17.py."
+  ],
+  "reason": "The review gate showed that section 20 is under-specified for both seeds (a checkpoint fence without git push, no stage-to-offer mapping for the hold, no named successor Context), so the ticket can't be satisfied until the plan is fixed.",
+  "detail": null
+}
