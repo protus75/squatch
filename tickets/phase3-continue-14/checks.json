@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "3628d71326a61b5f1da773f3721c67c23f94a4dd",
+  "produced_at_sha": "d85133881fb347389f4467c45ae8454caea8d2e4",
   "stem": "phase3-continue-14",
   "branch": "phase3-continue-14",
-  "base": "d0286b2a1ed9f6cdebecc37e3ab4db2f168e891a",
-  "head": "3628d71326a61b5f1da773f3721c67c23f94a4dd",
+  "base": "559da5d63c70682b46586cdd9c2924f90df1ff52",
+  "head": "d85133881fb347389f4467c45ae8454caea8d2e4",
   "changed_files": [
     "tests/test_seeded_phase3_14.py"
   ],
@@ -15,34 +15,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/flake-detection/ticket.md",
-      "sha": "2a072d39f7bc13c45e114bb2f5437b24142225e0",
+      "sha": "fefde788fadc6944c5d273d1353396c0d4528937",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/flake-release/ticket.md",
-      "sha": "dc2f8d593c75dfa02841cf2064d6f2220d229d93",
+      "sha": "cbec2e08ce496981edc3259e10a8a0bd08379ee0",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/flake-release/ticket.md",
-          "line": 214,
-          "message": "The merge prerequisite reads 'the existing journal `state_transition` to `merged` for that exact `fix_stem`' but never names the emitter. None of the Context files (journal.py, box.py, daemon.py) shows that event's shape: stem in the envelope `ticket` field, `body.to == \"merged\"`, plus `run_seq`/`commit`/`reviewed_sha`. So the implementer must either guess the shape for both the production read and the fabricated test event, or open an unlisted file. The ticket's own Definition of rejected makes that an on-demand Context exception, which means stop.",
-          "paved_road": "Name `squatch/merge.py` as the emitter of the `state_transition` `{to: merged}` event keyed by `ticket=<stem>` and add `squatch/merge.py` to Context as read-only evidence. Do not add it to the fence. The render is 62,377 chars, well under the 120,000 headroom. Alternatively, cite an existing compact merged-stem reader already in the repo (e.g. `squatch/runner.py` or `squatch/status.py`) as the Context evidence for that shape."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/flake-release/ticket.md",
-          "line": null,
-          "message": "The fix-identity prerequisite `status == \"authored\"` and `resolution.link == fix_stem` names no emitter. Context shows only `Box.resolve`. The machinery that actually writes `status=authored, link=<stem>` is the merged Author stage (`squatch/author.py`, `self._box.resolve(message.id, status=\"authored\", link=authored.stem, ...)`), and the ticket does not name it. Exit-read closure therefore rests on an unnamed producer.",
-          "paved_road": "In Scope in, state that the authored-link resolution is produced by the merged `author-stage` path (`squatch/author.py` resolving the box message `authored` with `link=<authored stem>`). That text is enough. The file does not need to be embedded, because `Box.resolve` in Context already shows the record shape."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -50,7 +35,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-15/ticket.md",
-      "sha": "7feb0d969ea502e2fab17a577c29a3554f937789",
+      "sha": "94031fd126982ed72fc9258b7a073b2283440698",
       "bypassed": false,
       "findings": [],
       "commands": []
