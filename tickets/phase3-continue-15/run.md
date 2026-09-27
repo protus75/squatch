@@ -4,11 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The full-suite timeout regression keeps pytest alive longer than a non-interactive command capture, so its terminal result was collected through the same plain pytest command in a PTY.
+The successor ticket explicitly assigns producer, notification, and continuation ownership and preservation classifications to clear the prior requisition findings.
 
 ## Dead ends
 
-The first storm-ledger wording did not tie its dormancy criterion to an observable test, which ticket lint rejected; the criterion now names `tests/test_storm.py`.
+The first authored acceptance criteria that did not name an observable test were rejected by ticket lint; each now names its direct test artifact.
 
 ## Second problems filed
 
