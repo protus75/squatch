@@ -1,23 +1,22 @@
 ## Outcome
 
-ok
+premise_failed
 
 ## Surprises / judgment calls
 
-The lock-held drain constructs the shared control graph before its first offer, so direct command operation can remain the sole writer when no engine holds the lock.
+The focused verification completed green; the full-suite command is terminated by the execution environment after 30 seconds while still running.
 
 ## Dead ends
 
-The environment's per-command window ended the full-suite observation after it progressed past 64%; the ticket's exact verification command completed green (140 passed).
+`uv run pytest -q` was run twice exactly as specified and did not exit: both runs were cut off at 64% progress after 30 seconds, so the required full verification cannot be proven in this worktree session.
 
 ## Second problems filed
 
-None.
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity not exposed).
+OpenAI Codex (model identity unavailable).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 60m.
+Expected 75m; actual approximately 45m.
