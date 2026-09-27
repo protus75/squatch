@@ -1,17 +1,35 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "3359e49b7ad054f587c2a38be55a34c1ddc51ecb",
+  "produced_at_sha": "79c7326f6937884da716e92a6b3f812bc9229dd2",
   "stem": "phase3-continue-13",
   "branch": "phase3-continue-13",
-  "base": "e4cec7050265620b56ee5a14b63b91924dc83a5e",
-  "head": "3359e49b7ad054f587c2a38be55a34c1ddc51ecb",
+  "base": "e49a00d3c0c68374b54352a14ccdec0386418981",
+  "head": "79c7326f6937884da716e92a6b3f812bc9229dd2",
   "changed_files": [
-    "tests/test_seeded_phase3_13.py",
-    "tickets/phase3-continue-14/ticket.md",
-    "tickets/restart-timers/ticket.md"
+    "tests/test_seeded_phase3_13.py"
   ],
   "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase3-continue-14/ticket.md",
+      "sha": "4f5e9adf4a9974158c8e247700aaf0c6c7a5bc7a",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/restart-timers/ticket.md",
+      "sha": "12365dd326986936c59d23bc8ab01627b6595503",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
     {
       "code": "scope_fence",
       "verdict": "pass",
