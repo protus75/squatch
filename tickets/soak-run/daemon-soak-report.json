@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "auditor": "green",
+      "disposition": "alert",
+      "expected": "recovery_alert:abandoned->merged;redispatched=1",
+      "fault": "kill a production-dispatched worker while its provider process is active",
+      "green": true,
+      "member": "worker_killed_mid_run",
+      "observable": "the recovery alert, abandoned run, and clean re-dispatched terminal",
+      "observed": "recovery_alert:abandoned->merged;redispatched=1",
+      "producing_run": "worker-killed-mid-run/0"
+    },
+    {
+      "auditor": "green",
+      "disposition": "alert",
+      "expected": "mechanical->rework;main=green",
+      "fault": "plant two real Git conflicts, one union-resolvable and one unresolved",
+      "green": true,
+      "member": "conflict_resolution_rungs",
+      "observable": "the production conflict facts while main stays at its green pre-admission tree",
+      "observed": "mechanical->rework;main=green",
+      "producing_run": "conflict-resolution-rungs/0"
+    },
+    {
+      "auditor": "green",
+      "disposition": "box",
+      "expected": "integration_red:verification;main=green",
+      "fault": "fail the real post-rebase integration command through the process seam",
+      "green": true,
+      "member": "semantic_conflict_integration_red",
+      "observable": "the production integration-red terminal while main stays green and unchanged",
+      "observed": "integration_red:verification;main=green",
+      "producing_run": "semantic-conflict-integration-red/0"
+    }
+  ],
+  "injected_hours": 24.0,
+  "produced_at_sha": "6491c6f7f51c6476d56d843572465188cee582e6",
+  "schema_version": 1
+}
