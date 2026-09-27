@@ -1,14 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "phase3-continue-16 Scope in needs an explicit ownership YAML block, like phase3-continue-15 has, giving exact owns/hooks for storm-producer-wiring, storm-notification-activation, and phase3-continue-17. It must also name every new path's registry owner.",
-    "Keep the phase3-continue-16 Context as the seeded pattern test plus the existing hooked surfaces: squatch/daemon.py, squatch/box.py, tests/test_box.py, and tests/test_daemon_composition.py. Drop the journal files. Leave out squatch/storm.py and tests/test_storm.py.",
-    "In phase3-continue-16, classify each storm seed's predecessor tests. Say which are fenced migration targets (for example, the storm-ledger dormancy assertions in tests/test_storm.py) and which are read-only preservation. Require that PRESERVATION set to be pinned in tests/test_seeded_phase3_16.py.",
-    "The journal-roll and storm-ledger seeds and tests/test_seeded_phase3_15.py passed. Only the phase3-continue-16 successor ticket failed requisition review. Keep the rest and fix that ticket, then pin its Context sizes and headroom again."
+    "Section 20 has no storm-ledger contract: no occurrence definition, identity key, signal event key/body, window or threshold, fold across rolled segments, or dormancy boundary. Plan must add a storm clarification like the flake one before re-authoring.",
+    "storm-ledger criteria must name observable behavior, such as the event key/body and fold result, plus a scriptable dormancy check like an AST import-closure test or an absent composition hook. Vague 'proves dormant boundary' wording fails review.",
+    "phase3-continue-16 runs after storm-ledger merges, so squatch/storm.py and tests/test_storm.py already exist. Put them in storm seeds' Context, or make them fenced on-demand exceptions with size pins. This reverses the earlier lesson to omit them.",
+    "Only paths this admission creates count as sibling-new: tests/test_storm_producer.py, tests/test_storm_notification_activation.py, tests/test_seeded_phase3_17.py. Restrict the 'no sibling-new in Context' pin to these.",
+    "storm-notification-activation must fence squatch/__main__.py (and squatch/drain.py if the drain is the activated path) to bind production composition. daemon.py alone is dormant construction, not activation."
   ],
-  "reason": "The review failures are fixable gaps in the authored phase3-continue-16 ticket (a missing ownership block, the wrong Context, and no preservation classification), and each finding gives a concrete fix.",
+  "reason": "Requisition review shows section 20 lacks the storm-ledger contract (paved road: fix the plan), so the ticket can't be satisfied until the plan is amended.",
   "detail": null
 }
