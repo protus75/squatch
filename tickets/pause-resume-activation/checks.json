@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "16a57a082084b1859bc2293c5ff6948c9fe08d32",
+  "produced_at_sha": "c3d5aff733abf567040a6b3dd7b514a583bc1936",
   "stem": "pause-resume-activation",
   "branch": "pause-resume-activation",
-  "base": "8f2a91d3cb793d65d0d594e98a3cd4cdb07b40a7",
-  "head": "16a57a082084b1859bc2293c5ff6948c9fe08d32",
+  "base": "edd4467f73010ea5a29c05f220d62589b3fdedaa",
+  "head": "c3d5aff733abf567040a6b3dd7b514a583bc1936",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/control.py",
