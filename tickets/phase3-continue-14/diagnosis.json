@@ -1,17 +1,15 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Requisition review rejected flake-release and phase3-continue-15 ticket content. flake-detection passed; leave it unchanged. The test mechanics were fine, so rewrite the two tickets, then re-pin their text in tests/test_seeded_phase3_14.py.",
-    "flake-release fix identity: Box.get(box_id) has status == \"authored\" and resolution.link == fix_stem exactly. Drop wording that makes Message.status name a stem (it is the closed Literal pending|authored|tombstoned|decided) or that says the rerun is observed through resolution.link.",
-    "flake-release merge evidence: name the existing journal state_transition to `merged` for fix_stem, read through squatch.journal (already in Context). Never infer the merge from the stem name.",
-    "flake-release green rerun: make it a typed explicit input that the dormant hook's caller supplies, and state that production supply belongs to a later activation. tests/test_flake.py fabricates both the merge and rerun inputs directly.",
-    "flake-release criteria: keep one no-release case per prerequisite: wrong box status, link mismatch, unmerged stem, and missing or red rerun. Keep the append-before-fold, idempotence, call-path dormancy and no-SHA-set wording that already passed.",
-    "phase3-continue-15: make journal-roll depend on phase3-continue-15 and storm-ledger depend on journal-roll, matching section 20's 'journal-roll, then storm-ledger' order. phase3-continue-16 depends on both. State this the same way in Scope in and the criteria.",
-    "Pin the corrected journal-roll -> storm-ledger edge in phase3-continue-15's directive for tests/test_seeded_phase3_15.py. Re-pin every changed phrase in tests/test_seeded_phase3_14.py, re-measure the max-effort render, and rerun both verification commands."
+    "Requisition review rejected only tickets/flake-release/ticket.md, for unnamed emitters. Keep flake-detection and phase3-continue-15 unchanged. Test mechanics passed.",
+    "flake-release merge evidence: before writing, read squatch/merge.py and confirm the emitted shape. Then name it as the emitter of the journal state_transition with envelope ticket=<fix_stem> and body.to == \"merged\" (plus run_seq/commit/reviewed_sha).",
+    "Add squatch/merge.py to flake-release Context as read-only evidence, never to its fence. Add its authoring-time size to EXISTING_AT_AUTHORING and CONTEXT in tests/test_seeded_phase3_14.py, then re-measure the max-effort render against REQ_RENDER_HEADROOM.",
+    "flake-release fix identity: in Scope in, state that status == \"authored\" with resolution.link == fix_stem is produced by the merged author-stage path (squatch/author.py resolving the box message with link=<authored stem>). Text is enough; do not add author.py to Context.",
+    "Keep all previously passing flake-release wording: append-before-fold, idempotence, no-release cases, call-path dormancy, no SHA-held set, rerun as a typed explicit input. Re-pin the new emitter phrases in the seed test and rerun both verification commands."
   ],
-  "reason": "Every finding is a fixable ticket-wording or edge defect with a concrete fix that stays inside the tickets fence and section 20's clarification.",
+  "reason": "A fixable ticket-authoring oversight: flake-release names the merge and authored-link prerequisites without their emitters, and review gave a concrete paved road.",
   "detail": null
 }
