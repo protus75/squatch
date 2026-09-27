@@ -1,17 +1,15 @@
 {
-  "run_seq": 10,
+  "run_seq": 11,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "All checks passed and the production wiring now works. Keep the current design and fix only the two review findings. Do not rework the drain, daemon or CLI structure.",
-    "No-engine `_control`: read this request's decision from the tuple `inbox.consume` returns. If the outcome is not `accepted`, raise Refusal with the decision reason and a paved road such as 'check the active hold id', so the exit is non-zero. Never print `applied` for a stale decision.",
-    "Output labels: print `hold id <request_id>` only for pause, where the request id is the hold. For resume, print the released hold (`args.hold_id`) or label the value `request id`. Fix both the live-lock path and the no-engine path.",
-    "Crash window: `ControlInbox.active_lifecycle` must also count accepted-but-unapplied `control_decision` events. Reuse the lifecycle of the latest incomplete accepted decision, or of an active hold, before minting a new one, so a restart retries the accepted pause instead of deciding it stale.",
-    "Add a composition test: journal an accepted, unapplied pause decision with its request still in the inbox, restart through `compose_daemon_control` and the production factory, then assert the pause is applied and its control_hold is journaled.",
-    "Add CLI tests: a no-engine resume with a wrong or already-released hold id returns non-zero and leaves the hold active, and a no-engine resume of the matching hold prints the released hold id and exits 0.",
-    "Run `uv run pytest -q` to completion before claiming success. Earlier attempts were killed with exit 143."
+    "All checks passed and the production wiring works. Keep the current design and fix only the one review finding: the live-lock check matches the lifecycle on instance_id, which is the git-describe version that every lock holder shares.",
+    "Tie control_lifecycle to the specific lock acquisition. Have the drain's control factory journal the holder's pid and started_at from the Lockfile Holder with the lifecycle. Have _published_lifecycle match on both from LockHeld.holder, and refuse when nothing matches.",
+    "Pass the Holder identity (pid, started_at) from _locked into _control_factory and compose_daemon_control; don't pass only instance_id. Keep the change inside the fenced __main__.py, daemon.py and drain.py.",
+    "Add a test_control_cli.py case: a drain journals lifecycle L1 and exits, then a non-drain holder (e.g. run) with the same instance_id holds the lock. `squatch pause` must refuse with non-zero exit and publish no request.",
+    "Keep the existing live-publish test passing by writing the matching pid/started_at in its fake lifecycle signal. Run `uv run pytest -q` to completion before claiming success."
   ],
-  "reason": "Checks are green and the review raised two localized, fixable defects (a stale decision reported as success, and a lost lifecycle in the crash window), each with a concrete fix inside the fence.",
+  "reason": "Checks passed; one narrow, fixable review finding on live-holder identity matching that the findings now steer.",
   "detail": null
 }
