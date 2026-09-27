@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-Parsed the not-yet-lintable successor directly so its complete contract is asserted before its predecessor-owned Context paths exist. The self Context fixture reads its authored byte size at test time because embedding that number would mutate the fixture.
+The successor Context uses the already-merged seeded pattern and present composition surfaces only; its authored storm seeds name their then-existing storm Context.
 
 ## Dead ends
 
-None.
+The carried successor Context named future sibling outputs and was rejected by requisition review, so those paths were not retained.
 
 ## Second problems filed
 
-None.
+
 
 ## Resolved engine/model
 
-OpenAI Codex / GPT-5.
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
