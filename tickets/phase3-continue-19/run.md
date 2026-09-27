@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-Used the repaired section 20 daemon-soak fence, including `squatch/stages.py` as the ordinary-lane report registry hook. The continuation carries the terminal consumer contract without authoring its future seeds.
+Used the repaired section 20 daemon-soak fence, including `squatch/stages.py` as the ordinary-lane report registry hook. The continuation uses an already-existing seeded-test pattern rather than the sibling-new test created by this ticket.
 
 ## Dead ends
 
@@ -12,4 +12,4 @@ Used the repaired section 20 daemon-soak fence, including `squatch/stages.py` as
 codex; model not reported.
 
 ## Predicted vs actual
-Expected 75m; actual approximately 16m.
+Expected 75m; actual approximately 14m.
