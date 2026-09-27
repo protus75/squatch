@@ -38,7 +38,7 @@ Unbound ordinary enqueue records nothing in the storm journal. Out-of-process CL
 
 Recover crossings by walking the complete ordered occurrence journal, including rolled segments, using each event's original envelope timestamp as now and the existing half-open window. This makes recovery deterministic even long after the crossing expires. Replay trips and repair missing reports on session entry, including a crash after occurrence append before trip creation and between trip signal and report enqueue. Existing trip keys and exact-origin reports are reused: replay cannot mint a second trip or increment report count. Both the live path and recovery use this same crossing rule. The reserved-report exclusion applies before reconciling Box counters so repair never feeds back into the ledger.
 
-Migrate only producer/composition dormancy and no-trip/no-report assertions in tests/test_storm.py and tests/test_storm_producer.py; retain ledger and identity positives. tests/test_storm_producer.py is created by the depends-predecessor storm-producer-wiring and is sibling-new at authoring: it is a fenced migration target, never Context for this seed. tests/test_box.py and tests/test_daemon_composition.py are read-only preservation suites, run unchanged. There is no push transport in Phase 3: the journaled signal is the notification boundary.
+Migrate only producer/composition dormancy and no-trip/no-report assertions in tests/test_storm.py and tests/test_storm_producer.py; retain ledger and identity positives. tests/test_storm_producer.py is created by the depends-predecessor storm-producer-wiring and is sibling-new at authoring: it is a fenced migration target, never Context for this seed. Also migrate only `tests/test_drain.py::test_bootstrap_drain_never_scans_or_mutates_the_box`'s obsolete blanket assertion that no journal event contains `box`: keep its proof that drain neither mutates nor triages the pending Box record, while allowing the composed lock holder's required `storm_occurrence` reconciliation events. `tests/test_drain.py` is a fenced on-demand inspection exception rather than embedded Context because embedding the large suite breaches requisition headroom. tests/test_box.py and tests/test_daemon_composition.py are read-only preservation suites, run unchanged. There is no push transport in Phase 3: the journaled signal is the notification boundary.
 
 Dispatch suppression stays exclusively in `storm-dispatch-hold`. tests/test_storm_notification_activation.py must exercise real drain work after a trip and prove dispatch still proceeds, with no storm control hold. Keep this dispatch-absence assertion available for the next seed to migrate.
 
@@ -53,17 +53,19 @@ No dispatch suppression, control hold/release, serve task owner, push transport,
 - squatch/__main__.py
 - tests/test_storm.py
 - tests/test_storm_producer.py
+- tests/test_drain.py
 
 ## Acceptance criteria
 - `tests/test_storm_notification_activation.py` proves the real __main__ run/drain session records arrivals from the harvest/second-problem and verification-attribution paths through the scoped producer, retaining lock, timer and exception cleanup behavior.
 - `tests/test_storm_notification_activation.py` proves strict threshold, lower-bound expiry, same-window non-crossings, a later new crossing, and deterministic trip identity including emitting_stage=None.
 - `tests/test_storm_notification_activation.py` proves exactly one trip signal and P0 failure_report per crossing across replay, resolved reports, rolled segments, occurrence-before-trip crashes, and trip-before-report crashes, without recursively recording reports or incrementing reports on recovery.
 - `tests/test_storm_notification_activation.py` proves unbound enqueue makes no journal writes, CLI ingest refuses while the instance lock is held, and dispatch still proceeds after a trip with no storm control hold.
-- `tests/test_storm.py` and `tests/test_storm_producer.py` migrate dormancy assertions while retaining positive ledger/producer tests; `tests/test_box.py` and `tests/test_daemon_composition.py` pass unchanged.
+- `tests/test_storm.py` and `tests/test_storm_producer.py` migrate dormancy assertions while retaining positive ledger/producer tests; the named `tests/test_drain.py` test retains no-mutation/no-triage coverage while permitting storm reconciliation events; `tests/test_box.py` and `tests/test_daemon_composition.py` pass unchanged.
 
 ## Verification
 ```
 uv run pytest tests/test_storm_notification_activation.py tests/test_storm_producer.py tests/test_storm.py tests/test_box.py tests/test_daemon_composition.py -q
+uv run pytest tests/test_drain.py::test_bootstrap_drain_never_scans_or_mutates_the_box -q
 uv run pytest -q
 ```
 

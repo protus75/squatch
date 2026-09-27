@@ -27,7 +27,7 @@ OWNERSHIP = {
     "storm-notification-activation": {
         "owns": ["tests/test_storm_notification_activation.py"],
         "hooks": ["squatch/storm.py", "squatch/box.py", "squatch/daemon.py", "squatch/__main__.py",
-                  "tests/test_storm.py", "tests/test_storm_producer.py"],
+                  "tests/test_storm.py", "tests/test_storm_producer.py", "tests/test_drain.py"],
     },
     "phase3-continue-17": {"owns": ["tickets", "tests/test_seeded_phase3_17.py"], "hooks": []},
 }
@@ -59,8 +59,10 @@ PLAN_SECTION_AT_AUTHORING = 21923
 PRESERVATION = ("tests/test_box.py", "tests/test_daemon_composition.py")
 MIGRATION = {
     "storm-producer-wiring": ("tests/test_storm.py",),
-    "storm-notification-activation": ("tests/test_storm.py", "tests/test_storm_producer.py"),
+    "storm-notification-activation": ("tests/test_storm.py", "tests/test_storm_producer.py",
+                                      "tests/test_drain.py"),
 }
+ACTIVATION_ON_DEMAND = {"tests/test_drain.py"}
 NEW_PATH_OWNERS = {
     "tests/test_storm_producer.py": "storm-producer-wiring",
     "tests/test_storm_notification_activation.py": "storm-notification-activation",
@@ -159,7 +161,7 @@ def test_existing_context_has_no_exceptions_or_sibling_new_paths_and_preserves_t
             assert (REPO / path).is_file()
             assert DATA_MARKER not in (REPO / path).read_text()
         for path in ticket.scope_fence:
-            if path == "tickets" or path in SIBLING_NEW:
+            if path == "tickets" or path in SIBLING_NEW or path in ACTIVATION_ON_DEMAND:
                 continue
             assert path in ticket.context, (stem, path)
     for stem, migration in MIGRATION.items():
@@ -171,6 +173,8 @@ def test_existing_context_has_no_exceptions_or_sibling_new_paths_and_preserves_t
         _phrases(stem, "Scope in", [*PRESERVATION, "read-only preservation", "unchanged"])
     activation = _ticket("storm-notification-activation")
     assert "squatch/__main__.py" in activation.scope_fence
+    assert ACTIVATION_ON_DEMAND <= set(activation.scope_fence)
+    assert ACTIVATION_ON_DEMAND.isdisjoint(activation.context)
     assert "tests/test_storm_producer.py" not in activation.context
     _phrases("storm-notification-activation", "Scope in", [
         "created by the depends-predecessor storm-producer-wiring", "sibling-new at authoring"])
@@ -227,6 +231,8 @@ def test_notification_is_production_replay_safe_and_does_not_own_dispatch_hold()
         "replay cannot mint a second trip", "emitting_stage=None", "no push transport",
         "Dispatch suppression stays exclusively in `storm-dispatch-hold`",
         "real drain work after a trip", "dispatch still proceeds",
+        "test_bootstrap_drain_never_scans_or_mutates_the_box",
+        "fenced on-demand inspection exception", "neither mutates nor triages",
     ])
 
 

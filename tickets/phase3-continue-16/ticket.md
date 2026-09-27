@@ -50,6 +50,7 @@ ownership:
     - squatch/__main__.py
     - tests/test_storm.py
     - tests/test_storm_producer.py
+    - tests/test_drain.py
   phase3-continue-17:
     owns:
     - tickets
@@ -59,7 +60,7 @@ ownership:
 
 Storm producer wiring uses the then-existing `squatch/storm.py` and `tests/test_storm.py` Context, wiring every box arrival, including a signature-dedup hit, to one stable occurrence identity through the daemon/box seam while production composition remains dormant. `tests/test_storm.py` is its fenced migration target for the ledger dormancy assertion; `tests/test_box.py` and `tests/test_daemon_composition.py` are read-only preservation Context.
 
-Storm notification activation migrates the storm dormancy assertion and activates the section 12 trip signal plus its one P0 `failure_report`. Its real production fence includes `squatch/__main__.py`; daemon-only construction is not activation. The trip identity is deterministic over `(signature, first_live_occurrence_id, crossing_occurrence_id)` and replay cannot mint a second trip. `tests/test_storm.py` and `tests/test_storm_producer.py` are fenced migration targets; `tests/test_box.py` and `tests/test_daemon_composition.py` remain read-only preservation. Dispatch suppression stays exclusively in `storm-dispatch-hold`.
+Storm notification activation migrates the storm dormancy assertion and activates the section 12 trip signal plus its one P0 `failure_report`. Its real production fence includes `squatch/__main__.py`; daemon-only construction is not activation. The trip identity is deterministic over `(signature, first_live_occurrence_id, crossing_occurrence_id)` and replay cannot mint a second trip. `tests/test_storm.py` and `tests/test_storm_producer.py` are fenced migration targets; `tests/test_drain.py` is a fenced on-demand migration target for the obsolete blanket no-box-journal assertion; `tests/test_box.py` and `tests/test_daemon_composition.py` remain read-only preservation. Dispatch suppression stays exclusively in `storm-dispatch-hold`.
 
 Regenerate `phase3-continue-17` from section 20's storm-dispatch-hold ownership clarification. It must author the hold as high/high with the exact production fence, predecessor migration/preservation classification, and the explicit `squatch/drain.py`/`squatch/__main__.py` on-demand Context partition; its continuation remains medium/medium. Pin the real dispatch-selection activation and identity-bound resume rather than deferring the hold to an unowned later admission.
 
