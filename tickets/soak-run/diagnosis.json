@@ -1,14 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "abandon-human",
   "lessons": [
-    "The report content was correct, but it was committed on the branch. Anything under tickets/** never rides the code lane, so the post-rebase regate refused the merge.",
-    "Generate tickets/soak-run/daemon-soak-report.json with eval.daemon_soak.run() and write_report() exactly as before, but leave it uncommitted in the worktree OUTBOX. The driver lifts outbox files onto the ticket plane.",
-    "Do not git add or commit anything. This is a no-code ticket, so the expected committed diff is empty. Leave tickets/soak-run/run.md uncommitted too.",
-    "Run `uv run pytest tests/test_daemon_soak_runner.py -q` before finishing. It passed on this attempt and must stay green."
+    "Both routes are now blocked. Attempt 1 committed the report, and the post-rebase regate refused it because tickets/** never rides the code lane. Attempt 2 left it uncommitted in the OUTBOX, and the check gate refused it for having no committed diff.",
+    "The report was produced correctly both times: the merged runner and write_report() ran and tests/test_daemon_soak_runner.py passed. The implementer did the work right; retrying either way just repeats one of the two refusals.",
+    "The engine is at fault: the check gate requires a non-empty committed diff, but this ticket must produce no code and put its output only in the OUTBOX. The plan must define how the check stage admits an OUTBOX-only no-code ticket before this ticket can pass.",
+    "diff_stat shows tickets/soak-run/daemon-soak-report.json as modified, not new. The report may already exist on the base from attempt 1. A human should check the base tree for a stray committed report before re-running."
   ],
-  "reason": "A fixable process mistake: the outbox report was committed instead of left for the driver to lift. The paved road names the fix, and the same capability can apply it.",
+  "reason": "No retry or escalation can fix this: the check gate rejects the empty diff this no-code, OUTBOX-only ticket requires, and the engine blocks the committed alternative.",
   "detail": null
 }
