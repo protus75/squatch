@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The existing producer seam was retained and made the session-scoped activation hook. Storm trip reports are excluded by the reserved origin namespace before Box recording.
+The prior implementation commit was not present on this branch, so the activation was rebuilt from the predecessor wiring. Production-path coverage drives the real `main` run/drain session while invoking the harvest second-problem and verification-attribution enqueue methods through a Box constructed before the scoped binding.
 
 ## Dead ends
-The full `uv run pytest -q` command was started repeatedly but this execution environment ended its output window after 30 seconds while it was still progressing past 44%; focused verification and the named drain test exited 0.
+None.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex
+OpenAI Codex / GPT-5.
 
 ## Predicted vs actual
-Expected 75m; actual approximately 20m.
+Expected 75m; actual approximately 30m.
