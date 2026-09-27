@@ -1,15 +1,9 @@
 {
-  "run_seq": 2,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "Requisition review rejected only flake-release/ticket.md. Keep flake-detection and phase3-continue-15 as they are unless a wording change is needed for consistency.",
-    "flake-release's 'release does not reach squatch/__main__.py or the drain' conflicts with the daemon.py hook: daemon.py is already import-reachable from the production root, so squatch.flake will be too. Restate it as call-path dormancy.",
-    "New wording: no production composition in squatch/__main__.py or squatch/drain.py calls or constructs the release hook, and squatch.flake may be import-reachable through squatch/daemon.py. This matches the compose_daemon_heartbeat and timers precedent.",
-    "Keep the direct release-hook test in fenced tests/test_flake.py. Keep the flake-held set, append-before-removal ordering, and second-release idempotence wording that already passed.",
-    "Update the flake-release phrase pins in tests/test_seeded_phase3_14.py to the new call-path wording. If flake-detection's 'not reached from' phrase is reworded for consistency, re-pin it too. Rerun both verification commands."
-  ],
-  "reason": "Check failed on one flake-release criterion that can be fixed by rewording, and the requisition finding gives a concrete paved road.",
-  "detail": null
+  "run_seq": 3,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
