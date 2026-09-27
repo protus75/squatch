@@ -1,14 +1,14 @@
 ## Outcome
 
-premise_failed
+ok
 
 ## Surprises / judgment calls
 
-The supplied section 20 registry names the storm files and dependency but does not define an occurrence, identity key, journal event/body, fold behavior across rolled segments, or a scriptable dormancy boundary.
+`phase3-continue-16` treats the merged storm module and test as existing Context, while its own three future sibling-new paths stay outside Context.
 
 ## Dead ends
 
-Authoring `tickets/storm-ledger/ticket.md` would require inventing the missing contract. The prior-attempt finding prescribes a plan correction first, but `SQUATCH_PLAN.md` is outside this ticket's scope fence, so the required repair cannot be made here.
+The first draft omitted artifact names from a few seed criteria; ticket lint rejected them, so the criteria now name their verification tests.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; stopped during contract validation before implementation.
+Expected 75m; actual approximately 45m.
