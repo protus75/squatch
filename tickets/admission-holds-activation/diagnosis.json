@@ -1,16 +1,17 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "escalate",
+  "verdict": "retry",
   "lessons": [
-    "Never call inbox.consume inside AdmissionHold. Wire hold.apply into the single consumer in __main__._control_factory, e.g. a composite that calls pause.apply and then hold.apply. wait() should block on an asyncio.Event that apply sets, with no sleep and no polling.",
-    "Build the lock-held inbox once per journal in one composition function and pass it explicitly to both the drain control factory and compose_pipeline. Remove the setattr/_inboxes side channel, the id(journal) keying, and the lazy inbox_for construction, which is a forbidden second inbox and fallback.",
-    "Raw asyncio.sleep in engine code bypasses the clock/sleep seam and is also busy-polling. An Event-based wait removes both problems.",
-    "tests/test_daemon_composition.py must drive _control_factory plus the pipeline factory over one journal. Assert the pause and queue.admission_hold share the same inbox object, publish a matching release, consume it through wait_for_control, and assert the hold clears.",
-    "tests/test_mergequeue.py needs queue-level tests through compose_merge_queue/admit: A,B,A,C reds hold the next admit; rebase and regate failures leave the count unchanged; green resets; a real tree mismatch in admit holds; a pre-hold release is stale; an unrelated task progresses while admit waits.",
-    "Prior lessons already required wiring apply to the one production consumer, and this attempt still added a second consumer. Before writing code, read ControlInbox._consume/discard_hold and the drain's wait_for_control."
+    "Build one AdmissionHold per journal in _SharedControl and pass it into compose_pipeline/compose_merge_queue. Do not construct a new hold per dispatch: Runner.dispatch calls the pipeline factory once per ticket, so an in-memory red set never reaches K=3.",
+    "Alternatively, rebuild the red streak from journaled integration outcomes when the hold is constructed, so the streak, green reset, and fresh-streak-after-release rule survive across dispatches and restarts.",
+    "Add a test that drives three distinct integration reds through three separate production factory calls (or three compose_pipeline calls on one journal) and asserts the hold fires.",
+    "DispatchPause seeds hold_id from next(iter(inbox.holds)), so after a restart it adopts a rehydrated admission hold. Seed the pause only from pause-owned holds, and never let a pause discard_hold an admission hold id.",
+    "Add a restart test: with an admission hold active, rebuild the control factory, assert allow_offer() is true, and assert a matching resume still releases the admission hold.",
+    "Check whether the dispatch-pause fix needs an edit to squatch/daemon.py, which is outside the fence. If it does, the ticket's reject condition applies; prefer a fix in __main__.py, e.g. clear the pause's adopted id when it belongs to the admission hold.",
+    "In eval/shakeout/bench.py, build the inbox once per journal, not inside the per-dispatch factory. Each compose_daemon_control call appends a control_lifecycle signal."
   ],
-  "reason": "Five attempts in, the same design lesson (a single consumer and a single shared inbox) went unapplied, and the required cross-module composition calls for more capability, not another same-tier retry.",
+  "reason": "Checks passed; the review found two concrete, fixable wiring defects (a per-dispatch hold rebuild and pause adopting the admission hold), each with a clear paved road.",
   "detail": null
 }
