@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8f6f708e782725a5807cbe088c50298d0aa5cf7b",
+  "produced_at_sha": "483c8bdd48f52f29e62ba593a2816e2fca9f193e",
   "stem": "phase3-continue-18",
   "branch": "phase3-continue-18",
-  "base": "8f1d8e3d92fd8cf456cb7eee2f08b89ec88cb854",
-  "head": "8f6f708e782725a5807cbe088c50298d0aa5cf7b",
+  "base": "4f0aea08cb199a3175394baed0c611df69cf92a9",
+  "head": "483c8bdd48f52f29e62ba593a2816e2fca9f193e",
   "changed_files": [
     "tests/test_seeded_phase3_18.py"
   ],
@@ -15,34 +15,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/checkpoint-push/ticket.md",
-      "sha": "32f02f317875b8e2cb5c7b10bf4d47d2c464e725",
+      "sha": "43b5ab0f3f17872aca5f5fe453bfe72cb2b0db97",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase3-continue-19/ticket.md",
-      "sha": "af98290b1f55d9ab75e433ba90e6a5e46b158402",
+      "sha": "1e0d0fe0c12a28ae5e7b3d21756107a95c621da1",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-19/ticket.md",
-          "line": 27,
-          "message": "Scope in says only 'the next confirmed seeds permitted by the remaining Phase 3 registry'. It never names what to emit. Under the registry the head admission is `daemon-soak`, which must be authored ALONE as KNOWN-DEEP (`high`/`high`). The emitted set is therefore exactly `daemon-soak` plus its numbered tail `phase3-continue-20`. Neither stem, their depends edges, their tiers, their budgets, nor the daemon-soak fence (`eval/daemon_soak.py`, `squatch/artifacts.py`, `tests/test_daemon_soak.py`, registering the closed report) is stated, so the implementer has to reconstruct the batch identity from the plan.",
-          "paved_road": "Name the exact batch in Scope in: `daemon-soak` (source seed, confirmed, P1, high/high, depends on phase3-continue-19, plan contract section 20, fence `eval/daemon_soak.py`, `squatch/artifacts.py`, `tests/test_daemon_soak.py`) and `phase3-continue-20` (medium/medium, owns `tickets` plus `tests/test_seeded_phase3_20.py`, depends on daemon-soak, successor admissions `[[soak-run], [phase3-exit]]`). Add an ownership YAML block like the one in phase3-continue-11/12."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase3-continue-19/ticket.md",
-          "line": 42,
-          "message": "Section 20 requires every continuation's seeded test to do seven things: pin exact emitted identities, edges, tier, and budget; assert every existing fence path is existing Context; name each new module's registry owner; check predecessor-test closure; carry the shrinking suffix; keep the batch within `seeding.max_seeds_per_admission`; and keep a max-effort synthetic render within `REQ_RENDER_HEADROOM`. The criteria only cover the ordered admissions/suffix and the Context partition. Nothing requires tests/test_seeded_phase3_19.py to pin identities, tiers, or budgets, the new-path owners (`eval/daemon_soak.py`, `tests/test_daemon_soak.py`, `tests/test_seeded_phase3_20.py`), fence-in-Context, predecessor-test closure, the seeding cap, authoring-time Context sizes, or the max-effort render. The Definition of rejected cites 'a render over headroom', but no criterion or verification step enforces it.",
-          "paved_road": "Add acceptance criteria, following phase3-continue-12's criteria and tests/test_seeded_phase3_11.py. The test must pin the exact seeds, depends edges, high/high vs medium/medium tiers, 75/150 budgets within `drain.max_ticket_minutes`, and the batch size within `seeding.max_seeds_per_admission`. It must assert every existing fence path is existing Context and name each new path's registry owner. It must check predecessor-test closure for daemon-soak and exclude sibling-new paths and delimiter-bearing sources (`squatch/specs.py`) from Context. It must pin authoring-time Context sizes as synthetic fixtures and assert that a max-effort `specs/implement.md` render of each emitted seed stays within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`."
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
