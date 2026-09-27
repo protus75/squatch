@@ -1,0 +1,13 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag was narrow: the test only checked that ON_DEMAND paths are absent from runner Context. It must also pin them positively. Assert that each path in ON_DEMAND['daemon-soak-runner'] appears in _section('daemon-soak-runner', 'Scope in') as an on-demand fault reference.",
+    "Make sure the emitted daemon-soak-runner ticket's Scope in names tests/test_restart_timers.py and tests/test_mergequeue.py explicitly in an on-demand sentence. Keep the existing disjointness checks against Context and the fence.",
+    "Everything else passed: all mechanical checks, including scope_fence, verification, and requisition_review on both emitted seeds. Keep the existing tickets and test, and make only the minimal additive fix."
+  ],
+  "reason": "A single fixable test-coverage gap that the review finding steers directly; no capability or ticket change is needed.",
+  "detail": null
+}
