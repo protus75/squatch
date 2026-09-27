@@ -1,22 +1,16 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-The continuation Context uses the established phase-11 seed test and the composition harness; it excludes sibling-new phase-17 while retaining the two required production-root on-demand exceptions for the hold.
+Recovered the prior authored seed test from the local object database, then replaced its tautological registry assertion with ticket-derived ownership and authoring-time new-path checks.
 
 ## Dead ends
-
-Initial acceptance bullets in the generated hold ticket omitted their observable test artifact and failed ticket lint; naming `tests/test_storm_hold.py` resolved it.
+The first focused run exposed that phase3-continue-18 owns its own seeded test outside its future ownership YAML; the check now derives that path from the continuation ticket fence.
 
 ## Second problems filed
 
-
 ## Resolved engine/model
-
-OpenAI Codex (GPT-5).
+OpenAI Codex (GPT-5)
 
 ## Predicted vs actual
-
-Expected 75m; actual about 12m.
+Expected 75m; actual approximately 8m.
