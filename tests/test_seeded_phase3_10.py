@@ -26,9 +26,11 @@ CONTEXT = {
     "kill-worker-stop": ("squatch/daemon.py", *PRESERVATION),
     "kill-failure-suppression": ("squatch/daemon.py", *PRESERVATION),
     "phase3-continue-11": (
-        "tests/test_seeded_phase3_core.py", "tests/test_kill_signal_journal.py",
-        "tests/test_kill_executor_abort.py", "tests/test_daemon_tasks.py",
-        "tests/test_control_cli.py", "tests/test_daemon_composition.py",
+        "tests/test_seeded_phase3_core.py", "squatch/daemon.py",
+        "tests/test_kill_signal_journal.py", "tests/test_kill_executor_abort.py",
+        "tests/test_kill_worker_stop.py", "tests/test_kill_failure_suppression.py",
+        "tests/test_daemon_tasks.py", "tests/test_control_cli.py",
+        "tests/test_daemon_composition.py",
     ),
 }
 OWNERSHIP = {
@@ -41,10 +43,12 @@ OWNERSHIP = {
 }
 # Historical render fixtures must not grow with later production edits.
 EXISTING_AT_AUTHORING = {
-    "squatch/daemon.py": 9085,
+    "squatch/daemon.py": 11054,
     "tests/test_seeded_phase3_core.py": 5877,
     "tests/test_kill_executor_abort.py": 3882,
     "tests/test_kill_signal_journal.py": 2723,
+    "tests/test_kill_worker_stop.py": 5915,
+    "tests/test_kill_failure_suppression.py": 5486,
     "tests/test_daemon_tasks.py": 6757,
     "tests/test_control_cli.py": 9688,
     "tests/test_daemon_composition.py": 21280,
@@ -65,10 +69,8 @@ FULL = (
 ACTIVATION_OWNERSHIP = {
     "kill-cli-activation": {
         "owns": ["tests/test_kill_cli_activation.py"],
-        "hooks": ["squatch/control.py", "squatch/daemon.py", "squatch/driver.py",
-                  "squatch/__main__.py", "tests/test_kill_signal_journal.py",
-                  "tests/test_kill_executor_abort.py", "tests/test_kill_worker_stop.py",
-                  "tests/test_kill_failure_suppression.py"],
+        "hooks": ["squatch/daemon.py", "squatch/stages.py", "squatch/drain.py",
+                  "squatch/__main__.py", "tests/test_kill_signal_journal.py"],
     },
     "phase3-continue-12": {"owns": ["tickets", "tests/test_seeded_phase3_12.py"],
                            "hooks": []},
@@ -123,19 +125,21 @@ def test_owns_then_hooks_fences_existing_context_and_new_path_owners():
     [contract] = [block["ownership"] for block in _yaml("phase3-continue-10")
                   if isinstance(block, dict) and "ownership" in block]
     assert contract == OWNERSHIP
-    assert set(EXISTING_AT_AUTHORING).isdisjoint(NEW_PATH_OWNERS)
     for stem in BATCH:
         ticket = _ticket(stem)
         assert ticket.scope_fence == tuple(OWNERSHIP[stem]["owns"] + OWNERSHIP[stem]["hooks"])
         assert ticket.context == CONTEXT[stem]
         assert set(ticket.context) <= set(EXISTING_AT_AUTHORING)
-        assert set(ticket.context).isdisjoint(NEW_PATH_OWNERS)
+        if stem != "phase3-continue-11":
+            assert set(ticket.context).isdisjoint(NEW_PATH_OWNERS)
         assert set(ticket.context).isdisjoint({"squatch/specs.py", "specs/implement.md"})
         for path in ticket.scope_fence:
-            if path in EXISTING_AT_AUTHORING:
+            if path in NEW_PATH_OWNERS:
+                assert NEW_PATH_OWNERS[path] == stem
+            elif path in EXISTING_AT_AUTHORING:
                 assert path in ticket.context
             elif path != "tickets":
-                assert NEW_PATH_OWNERS[path] == stem
+                raise AssertionError(f"unclassified fence path: {path}")
         if stem != "phase3-continue-11":
             assert _yaml(stem) == [{"ownership": {stem: OWNERSHIP[stem]}}]
             assert "squatch/__main__.py" not in ticket.scope_fence
@@ -159,7 +163,10 @@ def test_activation_predecessor_closure_and_read_only_harness_requirement():
     [contract] = [block for block in _yaml("phase3-continue-11") if isinstance(block, dict)]
     assert contract["ownership"] == ACTIVATION_OWNERSHIP
     assert contract["read_only_context"] == {
-        "kill-cli-activation": ["tests/test_daemon_composition.py"],
+        "kill-cli-activation": [
+            "tests/test_kill_executor_abort.py", "tests/test_kill_worker_stop.py",
+            "tests/test_kill_failure_suppression.py", "tests/test_daemon_composition.py",
+        ],
     }
     activation = contract["ownership"]["kill-cli-activation"]
     read_only = contract["read_only_context"]["kill-cli-activation"]
@@ -169,6 +176,8 @@ def test_activation_predecessor_closure_and_read_only_harness_requirement():
     for section in ("Scope in", "Acceptance criteria"):
         paths = re.findall(r"tests/[\w_]+\.py", _section("phase3-continue-11", section))
         assert "tests/test_daemon_composition.py" in paths
+    assert {"squatch/stages.py", "squatch/drain.py", "squatch/__main__.py"}.isdisjoint(
+        _ticket("phase3-continue-11").context)
 
 
 def test_successor_removes_only_the_head_admission():

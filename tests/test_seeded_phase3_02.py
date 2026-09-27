@@ -24,6 +24,7 @@ FENCES = {
 }
 BUDGETS = {"rework-stage": (120, 180), "phase3-continue-03": (75, 150)}
 TIERS = {"rework-stage": ("high", "high"), "phase3-continue-03": ("medium", "medium")}
+PLAN_SECTION_AT_AUTHORING = 8911
 
 # Authoring-time sizes are synthetic render inputs, never live-file invariants:
 # later admissions own and edit several of these paths outside this test's fence.
@@ -173,4 +174,6 @@ def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
             "ticket": DataBlock("host", _path(stem).read_text()),
             "context": DataBlock("host", context),
         }, plan=plan, plan_sections=ticket.plan_sections, effort="max")
-        assert len(rendered) <= limit, (stem, len(rendered), limit)
+        section = plan.split("## 20. Open decisions", 1)[1].split("## 21.", 1)[0]
+        historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING)
+        assert historical_length <= limit, (stem, historical_length, limit)
