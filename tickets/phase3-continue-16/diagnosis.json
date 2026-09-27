@@ -1,15 +1,17 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "In phase3-continue-17's Scope in, make storm-dispatch-hold high/high: section 20 marks it KNOWN-DEEP. Make phase3-continue-18 medium/medium. Pin that split and a high-tier max-effort headroom render, following tests/test_seeded_phase3_11.py.",
-    "phase3-continue-17 must make the hold seed take tests/test_storm.py, test_storm_producer.py, test_storm_notification_activation.py and test_daemon_composition.py as Context. It must hook any predecessor test whose dispatch-absence assertion it migrates, pinned via PRESERVATION.",
-    "The storm-notification-activation review reply was malformed, not a verdict. Its partial content: say how the P0 failure_report is stored, which box arrival path the trip hooks into, and how 'dispatch suppression stays in storm-dispatch-hold' is tested.",
-    "tests/test_storm_producer.py is sibling-new. Keep it in notification's fence as a migration target, as ticket 16 requires, but never in its Context. State in Scope in that it is created by the depends-predecessor storm-producer-wiring.",
-    "Before finishing, run the requisition review as well as ticket lint and pytest. The last attempt passed lint and pytest but failed requisition_review on all authored tickets."
+    "requisition_review failed on storm-notification-activation: production Box instances are built in runner.py, stages.py, merge.py, triage.py and author.py, which take no journal or producer, and none of these files is in the fence or Context.",
+    "Keep the pinned ownership fences. Take the reviewer's alternative paved road: in producer-wiring, name the exact box.py/daemon.py seam that lets __main__.py inject one journal-backed producer into every production Box without editing the construction modules.",
+    "In notification's Scope in, replace 'same production Box instance' with every production Box construction reachable from the __main__.py drain/run composition. List each site: runner, stages, merge, triage, author.",
+    "Name how that reachability is proven: tests/test_storm_notification_activation.py must cover at least the harvest/second-problem path and the verification-attribution failure_report path.",
+    "If no in-fence seam can reach those construction sites, say so in the run record and stop. Do not widen the ticket-pinned fence; that needs a plan-level ownership change.",
+    "Before finishing, run the requisition review on all three authored tickets, as well as ticket lint and pytest. Pytest alone has repeatedly missed check-stage failures.",
+    "Keep the earlier fixes: test_storm_producer.py stays in notification's fence and out of its Context, the hold is high/high, and phase3-continue-17 Context names no file that is new in this attempt."
   ],
-  "reason": "The failures are fixable authoring oversights in the seeded tickets: wrong tier for the KNOWN-DEEP successor, missing predecessor-test closure, and underspecified trip details. The findings now steer all of them.",
+  "reason": "Requisition review found the notification ticket's arrival-binding contract unprovable; it offered an in-fence fix, which is to name the injection seam and list every production Box.",
   "detail": null
 }
