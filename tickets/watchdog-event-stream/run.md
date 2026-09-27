@@ -4,18 +4,20 @@ ok
 
 ## Surprises / judgment calls
 
-The process callback publishes decoded line content without its line ending while retaining the exact captured stdout. Codex's no-cost stream emits its flat estimate at call start; adapter parsing emits only recognized tool-call records.
+Replaced the prior attempt's `StreamReader.readline()` loop with chunked line splitting so JSONL records over 64 KiB preserve capture semantics. Callback failures also share the group kill-and-wait cleanup path.
 
 ## Dead ends
 
+None.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI / GPT-5
+OpenAI Codex (model identity not exposed to this worktree).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 12m.
+Expected: 75m. Actual: about 20m.
