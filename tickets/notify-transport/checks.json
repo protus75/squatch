@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "c895bab50c75614b98f734161423c2deb6d23522",
+  "produced_at_sha": "69b87a0530542b90cade5beb3f9a4ebc2ad7ea2d",
   "stem": "notify-transport",
   "branch": "notify-transport",
-  "base": "60a3fae18dea63c08f9e911fe68dccfd767f2a94",
-  "head": "c895bab50c75614b98f734161423c2deb6d23522",
+  "base": "509b7b498ea117fbcd7a4abaeea5e6d8adccc800",
+  "head": "69b87a0530542b90cade5beb3f9a4ebc2ad7ea2d",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/config.py",
