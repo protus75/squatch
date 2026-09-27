@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "5ccc050924134f0a54b31a21602cf8deab8e2773",
+  "produced_at_sha": "7e55a486309aa962c65f1a9856c90c5fc8860c39",
   "stem": "admission-holds-activation",
   "branch": "admission-holds-activation",
-  "base": "9e512a57f5505658146a2916ccd0c2b7ec32ee0e",
-  "head": "5ccc050924134f0a54b31a21602cf8deab8e2773",
+  "base": "dba9d94fbbcbb935e2ef81c33162d7df3d0d5546",
+  "head": "7e55a486309aa962c65f1a9856c90c5fc8860c39",
   "changed_files": [
     "eval/shakeout/bench.py",
     "squatch/__main__.py",
