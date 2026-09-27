@@ -1,35 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e6db70391f06316f43dcb142adbc6a27caf7e4dc",
+  "produced_at_sha": "00f5a4b8204b6bb63b6287e7fb3a9de6e3c1b648",
   "stem": "phase3-continue-20",
   "branch": "phase3-continue-20",
-  "base": "98c7ea8ec8fd34d7baf5022d4e7bcd1f0a75f399",
-  "head": "e6db70391f06316f43dcb142adbc6a27caf7e4dc",
+  "base": "6a652e3f4b33e4f23938b33f8312fd81b24622d5",
+  "head": "00f5a4b8204b6bb63b6287e7fb3a9de6e3c1b648",
   "changed_files": [
     "tests/test_seeded_phase3_20.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase3-continue-21/ticket.md",
-      "sha": "c1ebfced7741bca994050d4ea040d95e89014e65",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/serve-activation/ticket.md",
-      "sha": "fbdd85b8b005c70a4ba4372614eb46dfce85e1e7",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
