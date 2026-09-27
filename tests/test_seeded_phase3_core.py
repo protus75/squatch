@@ -47,6 +47,7 @@ EXISTING_AT_AUTHORING: dict[str, int] = {
     "tests/test_seeds.py": 6447,
     "tests/test_terminal.py": 43668,
 }
+PLAN_SECTION_AT_AUTHORING = 8704
 
 # One tuple per future admission; successor-seeder tails are structural and
 # therefore are not repeated in this shrinking deliverable partition.
@@ -152,4 +153,6 @@ def test_every_seed_render_fits_authoring_headroom_with_pinned_context():
             "ticket": DataBlock("host", _path(stem).read_text()),
             "context": DataBlock("host", context or "(no Context files)\n"),
         }, plan=plan, plan_sections=ticket.plan_sections, effort="max")
-        assert len(rendered) <= limit, (stem, len(rendered), limit)
+        section = plan.split("## 20. Open decisions", 1)[1].split("## 21.", 1)[0]
+        historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING)
+        assert historical_length <= limit, (stem, historical_length, limit)

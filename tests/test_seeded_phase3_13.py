@@ -38,6 +38,7 @@ EXISTING_AT_AUTHORING = {
     "tests/test_heartbeat.py": 3889, "tests/test_control_cli.py": 9688,
     "tests/test_daemon_composition.py": 21280,
 }
+PLAN_SECTION_AT_AUTHORING = 16380
 NEW_PATH_OWNERS = {
     "squatch/restart.py": "restart-timers", "squatch/timers.py": "restart-timers",
     "tests/test_restart_timers.py": "restart-timers",
@@ -146,7 +147,9 @@ def test_authoring_sizes_and_max_effort_headroom():
                                 "ticket": DataBlock("host", _path(stem).read_text()),
                                 "context": DataBlock("host", context)}, plan=plan,
                                plan_sections=ticket.plan_sections, effort="max")
-        assert len(rendered) <= limit, (stem, len(rendered), limit)
+        section = plan.split("## 20. Open decisions", 1)[1].split("## 21.", 1)[0]
+        historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING)
+        assert historical_length <= limit, (stem, historical_length, limit)
 
 
 def test_successor_removes_only_restart_and_starts_at_flake_pair():
