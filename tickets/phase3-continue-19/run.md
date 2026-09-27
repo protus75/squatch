@@ -2,7 +2,7 @@
 ok
 
 ## Surprises / judgment calls
-Used the current section 20 historical fixture (24,760 characters) and retained the established seeded-test plus composition-harness Context for the continuation.
+Used the repaired section 20 daemon-soak fence, including `squatch/stages.py` as the ordinary-lane report registry hook. The continuation carries the terminal consumer contract without authoring its future seeds.
 
 ## Dead ends
 
@@ -12,4 +12,4 @@ Used the current section 20 historical fixture (24,760 characters) and retained 
 codex; model not reported.
 
 ## Predicted vs actual
-Expected 75m; actual approximately 6m.
+Expected 75m; actual approximately 16m.
