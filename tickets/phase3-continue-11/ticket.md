@@ -31,7 +31,7 @@ agent_effort: medium
 Author the singleton kill activation and the shrinking Phase 3 continuation.
 
 ## Why
-The four kill boundaries must merge before their production activation can be authored against existing interfaces.
+The four kill boundaries must merge before their production activation can be authored against existing interfaces. This repaired continuation activates only the production bootstrap-drain boundary that exists now.
 
 ## Scope in
 Author only confirmed `kill-cli-activation` and `phase3-continue-12` seeds plus `tests/test_seeded_phase3_11.py`. The singleton activation admission stays alone: `kill-cli-activation` depends on `phase3-continue-11`; `phase3-continue-12` depends on `kill-cli-activation`. The activation is KNOWN-DEEP and uses high/high; the continuation uses medium/medium. Both use 75m/150m budgets within configured seeding cap 3. Derive each fence as its owns followed by its hooks below. Pin exact identities, edges, tiers, budgets, new-path owners, max-effort render headroom, and successor suffix equality.
