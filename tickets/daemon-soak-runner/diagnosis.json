@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Do not write the Box record yourself (_land_in_box). Let production triage/harvest route the fault, then derive disposition by reading the member's state dir (Box.by_origin or the alert record).",
+    "Never journal state_transition events or hard-code run_seq from the harness. Let production allocate the run seq and write the terminal, for example via the kill/reconcile path in tests/test_restart_timers.py. Derive observed and producing_run only from events production wrote.",
+    "The 24h must elapse while the serve graph runs. Advance the clock through the graph's sleep seam, compute injected_hours from the first and last journal event timestamps, and assert that the serve loop saw 24h or more of ticks.",
+    "Do not overwrite private attributes (queue._regate, _integration_check, _integrate, stages.abort_active) or stub out Git. Inject faults through public seams: a temp git repo with a planted conflict, and a failing integration command via process exec.",
+    "Before coding, check that compose_pipeline and compose_serve_graph expose enough public seams to inject all three faults. If they do not, stop and report that the ticket cannot be satisfied, rather than patching private state."
+  ],
+  "reason": "Review found fixable self-attestation and private-patching shortcuts, each with a concrete paved road; the attempt did not prove the ticket unsatisfiable.",
+  "detail": null
+}
