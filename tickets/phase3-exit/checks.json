@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "6b7008f270ba3582e6d0ca6623ef3164c1bcde79",
+  "produced_at_sha": "836673f3f169d3a8c8d764b9bf8f9d01dcdb5522",
   "stem": "phase3-exit",
   "branch": "phase3-exit",
-  "base": "1f2093dae73723286790e5f6a554a78406cf11be",
-  "head": "6b7008f270ba3582e6d0ca6623ef3164c1bcde79",
+  "base": "99e53147a69ef945d57a4b583b05a349f343a3a6",
+  "head": "836673f3f169d3a8c8d764b9bf8f9d01dcdb5522",
   "changed_files": [
     "tests/test_phase3_exit.py",
     "tests/test_seeded_phase4_core.py"
@@ -16,22 +16,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/notify-transport/ticket.md",
-      "sha": "09231ef39d251e4910b1856860737dc91e717fe2",
+      "sha": "5d41023ef6ef404134e16d935a1cd11e23a3b389",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/notify-transport/ticket.md",
-          "line": null,
-          "message": "Scope in says 'This ticket's merge is the production flip for already-journaled storm-breaker and integration-red-streak escalations through the new module's reconciliation entry point', and section 20 assigns the 'escalation-dispatch flip' to this fence. The fence is exactly squatch/notify.py, config.py, seams.py and their tests. It includes no production composition root. On main, squatch/serve.py, squatch/daemon.py and squatch/__main__.py import checkpoint, control, daemon, drain, storm and others, but no module that could reach a new squatch.notify. Nothing reads config.notify either. After merge, the reconciliation entry point and the unset-transport startup warning have no production caller. The module would be dormant, not flipped, and criterion 3 can only prove it in isolation.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/notify-transport/ticket.md",
-          "line": null,
-          "message": "Section 15 lists a distinct notifications seam, `notify(argv)`, and forbids sharing a process seam between active work and notification. Section 20's registry fences seams.py for this ticket without saying whether the transport adds that `notify(argv)` seam or reuses a separate ProcessExec instance. The ticket picks ProcessExec, so the seam contract the plan grants is ambiguous.",
-          "paved_road": "fix the plan, then re-author the ticket"
+          "line": 403,
+          "message": "The scope says `_serve` constructs the notification wrapper and passes it into `Serve`, which means `Serve.__init__` gains a notification parameter. `eval/daemon_soak.py:403` also constructs `Serve(...)` directly, and `tests/test_daemon_soak_runner.py` drives that path. Neither file is fenced or listed as preserved. A required new parameter breaks the soak runner, and the ticket never says what notification behavior the soak composition gets. The section 20 registry fixes this ticket's fence, so the soak runner cannot simply be added to it.",
+          "paved_road": "State in Scope in and Acceptance criteria that `Serve`'s notification parameter is a keyword whose default means no transport, the same status-only behavior as an unset `config.notify`, so the unchanged `eval/daemon_soak.py` caller and `tests/test_daemon_soak_runner.py` keep passing. Name `tests/test_daemon_soak.py` and `tests/test_daemon_soak_runner.py` as preservation-only suites in Verification. Also require a `tests/test_serve.py` proof that the real `_serve` passes a non-default wrapper, so the default can never be the production path."
         }
       ],
       "commands": []
@@ -41,7 +34,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue/ticket.md",
-      "sha": "ef2f4c9c82da4ea3b66ba6152c64207d3f71b826",
+      "sha": "59b5a0ef372a076696bff0a29f4c3fa158f766ed",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -51,15 +44,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/watchdog-event-stream/ticket.md",
-      "sha": "6300c3413df9fd53b3a341f0724ce307ebe2ac4a",
+      "sha": "7d22953ae0af54410bd0182dd4c836ecf091a134",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/watchdog-event-stream/ticket.md",
+          "line": 331,
+          "message": "CliClient calls `self._process.run(...)`, and many ProcessExec fakes and wrappers outside the fence accept only the current keywords. Examples: `eval/shakeout/providers_group.py:73`, `eval/daemon_soak.py:213`, `tests/test_eval_diagnose.py:40`, `tests/test_eval_harness.py:64`, `tests/test_drain_reentry.py:90`, `tests/test_drain_upgrade.py:115`, and `tests/test_providers.py:578` (`run(self, argv, *, on_spawn=None, **kw)`). If the new callback is threaded as an always-present keyword (for example `on_event=None`), every one of them raises TypeError and the full `uv run pytest -q` goes red outside the fence. The ticket says 'calls that supply no consumer' stay unchanged but never states this invariant.",
+          "paved_road": "Add a scope-in sentence and a criterion: CliClient passes the in-flight callback keyword to `ProcessExec.run` only when a consumer was supplied, so an existing fake or wrapper with the current signature is never called with the new keyword. Pin that no-consumer call's kwargs in `tests/test_providers.py`. Alternatively, widen the fence to every ProcessExec fake and wrapper listed and embed them as Context."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-event-stream/ticket.md",
           "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"rma\", \"summary\": \"The Phase 4 registry in plan section 20 fixes watchdog-event-stream\\'s fence at squatch/watchdog.py, squatch/providers.py, tests/test_watchdog.py and tests/test_providers.py, but in-flight event delivery requires changing the ProcessExec seam, which squatch/seams.py owns and the fence does not include. The ticket copies the plan\\'s fence faithfully, so only a plan repair can make it buildable.\", \"findings\": [{\"code\": \"requisition_review\", \"path\": \"squatch/sea'",
-          "paved_road": "fix the plan, then re-author the ticket"
+          "message": "The first acceptance criterion says the ProcessExec seam 'delivers normalized adapter events'. Scope-in says the subprocess seam delivers complete stdout JSONL lines and the provider boundary does the normalization. So the criterion requires adapter-specific knowledge inside `squatch/seams.py`, the generic process seam, which contradicts the ticket's own layering and forces normalization into the wrong module.",
+          "paved_road": "Restate the seams criterion: `tests/test_seams.py` proves SubprocessExec delivers each complete stdout line in flight, in order, and exactly once to the optional callback, including a final unterminated line, while the returned (rc, out, err) capture, stdin handling, and process-group kill-and-wait stay unchanged. Keep normalization only in the providers and watchdog criteria."
         }
       ],
       "commands": []
