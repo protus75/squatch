@@ -1,17 +1,9 @@
 {
-  "run_seq": 2,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "requisition_review failed on storm-notification-activation: production Box instances are built in runner.py, stages.py, merge.py, triage.py and author.py, which take no journal or producer, and none of these files is in the fence or Context.",
-    "Keep the pinned ownership fences. Take the reviewer's alternative paved road: in producer-wiring, name the exact box.py/daemon.py seam that lets __main__.py inject one journal-backed producer into every production Box without editing the construction modules.",
-    "In notification's Scope in, replace 'same production Box instance' with every production Box construction reachable from the __main__.py drain/run composition. List each site: runner, stages, merge, triage, author.",
-    "Name how that reachability is proven: tests/test_storm_notification_activation.py must cover at least the harvest/second-problem path and the verification-attribution failure_report path.",
-    "If no in-fence seam can reach those construction sites, say so in the run record and stop. Do not widen the ticket-pinned fence; that needs a plan-level ownership change.",
-    "Before finishing, run the requisition review on all three authored tickets, as well as ticket lint and pytest. Pytest alone has repeatedly missed check-stage failures.",
-    "Keep the earlier fixes: test_storm_producer.py stays in notification's fence and out of its Context, the hold is high/high, and phase3-continue-17 Context names no file that is new in this attempt."
-  ],
-  "reason": "Requisition review found the notification ticket's arrival-binding contract unprovable; it offered an in-fence fix, which is to name the injection seam and list every production Box.",
-  "detail": null
+  "run_seq": 3,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
