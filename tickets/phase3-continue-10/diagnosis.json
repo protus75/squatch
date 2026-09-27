@@ -1,15 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Add tests/test_kill_executor_abort.py to kill-worker-stop Context and Verification. State that worker-stop is a separate composition in squatch/daemon.py and that `driver_abort_consumer(inbox, driver)` keeps its two-argument signature and behavior unchanged.",
-    "kill-worker-stop must name the exact workers: DaemonTasks' sibling watcher, merge, and box tasks. It must say how the stop avoids cancelling the control consumer that runs the kill. Add tests/test_daemon_tasks.py to Context and Verification as a preservation-only suite.",
-    "The kill-cli-activation seed in continue-11 must fence the predecessor negative test it invalidates: tests/test_kill_signal_journal.py (the kill-boundary dormancy test near line 71). Add the other test_kill_*.py predecessor tests it must migrate or preserve too.",
-    "continue-11's criteria must require predecessor-test closure and a check that every existing fence path is existing Context, as section 20 requires of every continuation. Keep the singleton [kill-cli-activation] batch and the heartbeat-first suffix.",
-    "Extend tests/test_seeded_phase3_10.py to pin the added Context paths and the preservation suites, then rerun the max-effort render headroom check, since the extra Context grows the render. Green tests did not catch the requisition gaps, so read each seed against the review criteria."
+    "Requisition review failed on one gap: continue-11's Scope in must require kill-cli-activation's Context to include the existing tests/test_daemon_composition.py as read-only Context, not as a fence entry.",
+    "Section 20: activation seeds authored after scheduler-activation merges include the composition harness in Context. It is already committed, so the kill-cli-activation seed needs it to prove in-process production composition.",
+    "Add a continue-11 acceptance criterion: tests/test_seeded_phase3_11.py asserts that tests/test_daemon_composition.py is in kill-cli-activation's Context and that its max-effort render stays within REQ_RENDER_HEADROOM.",
+    "Extend tests/test_seeded_phase3_10.py to assert that continue-11's Scope in names tests/test_daemon_composition.py as read-only Context for kill-cli-activation. Keep the rest: the singleton activation, the heartbeat-first suffix, and predecessor kill-test hooks.",
+    "Green tests did not catch this. Before committing, check each emitted seed's Scope in and criteria against every section 20 Context rule: established seeded-test pattern, predecessor tests, composition harness, and no delimiter-bearing specs."
   ],
-  "reason": "Requisition review found fixable Context, fence and worker-identity gaps in the authored seeds; each has a paved road within the ticket's fence.",
+  "reason": "One steerable requisition gap (composition harness missing from the activation seed's Context requirement); fixable at the same capability.",
   "detail": null
 }
