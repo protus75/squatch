@@ -1,14 +1,14 @@
 ---
 verdict: approve
-reviewed_sha: 0cfd946fe4183b7813e0a45a6a394c35244abbdd
+reviewed_sha: 1ed1bfdf4c27681d6b4096355d3bb67a7db5095e
 produced_by_spec_version: '1.0'
-produced_at_sha: 0cfd946fe4183b7813e0a45a6a394c35244abbdd
+produced_at_sha: 1ed1bfdf4c27681d6b4096355d3bb67a7db5095e
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-The diff adds only the fenced report file. Its shape matches `dumps()` from `write_report` byte for byte (sorted keys, 2-space indent, trailing newline), and its content matches what the merged runner returns: all three closed members are present and green, `produced_at_sha` equals the base commit, and `schema_version` is 1. The check report is green on scope_fence, verification, run_record and diff_budget.
+The committed code diff is empty, which is what this no-code ticket calls for under the merged OUTBOX-only admission rule. The ordinary run-record lift (6280f8b) brought in only the fenced path, tickets/soak-run/daemon-soak-report.json, with produced_at_sha equal to HEAD 1ed1bfd and all three soak entries green; the check report shows scope_fence, verification (tests/test_daemon_soak_runner.py), run_record and diff_budget all passing.
 
 ## Findings
 - none
