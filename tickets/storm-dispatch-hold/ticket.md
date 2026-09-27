@@ -54,6 +54,7 @@ Do not alter ticket selection by emitting stage, create a global hold for an unk
 - `tests/test_storm_hold.py` proves nullable durable emitting-origin bodies, legacy replay, and Box-origin propagation without changing occurrence or trip identities.
 - `tests/test_storm_hold.py` proves only the matching offered ticket is held before durable accounting, unrelated stems proceed, and null or non-ticket origins do not create a global hold.
 - `tests/test_storm_hold.py` proves decision-before-mutation, identity-bound current-lifecycle resume, stale/pre-trip/wrong-hold rejection, crash recovery, and independent manual-pause and merge-admission ownership.
+- `tests/test_storm_hold.py` proves the per-stem hold is bound through the live drain's CLI composition root, so a drain assembled through that root suppresses the tripped stem and resumes it.
 - The named predecessor tests migrate only the permitted dispatch-absence and emitting-origin body assertions; `tests/test_daemon_composition.py` passes unchanged.
 
 ## Verification
