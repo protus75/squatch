@@ -1,15 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "phase4-continue-02 Scope out: delete 'do not author the provider payload now'. Authoring provider-cooldown-failover and phase4-continue-03 is its job. Forbid only implementing provider/reliability behavior and any payload off the registry or beyond that one row.",
-    "watchdog-activation: author at the registry tier, medium/medium. Section 20 raises only provider-cooldown-failover (KNOWN-DEEP) and phase4-exit (KNOWN-HARD). Update the test's tier assertion, which special-cases activation as high/high, to match.",
-    "tests/test_seeded_phase4_01.py EXISTING_AT_AUTHORING: squatch/providers.py is 18687 bytes, not 32667. Measure each Context file on disk before pinning its size. The other six sizes matched.",
-    "Delimiter exclusion: don't rely only on a hardcoded set. Read every Context path's content and assert it has no squatch:data or squatch:end prompt delimiter. Keep the explicit squatch/specs.py assertion.",
-    "Keep everything the reviewer accepted: identities, edges, fences, ownership, the admission registry, and successor-row removal. Rerun both Verification pytest commands after the edits."
+    "phase4-continue-02 Context must not name tests/test_seeded_phase4_01.py. This attempt creates that file, so it does not exist when requisition review checks Context. Keep every path this admission creates out of every authored ticket's Context.",
+    "phase4-continue-02: take tests/test_seeded_phase3_11.py, the existing continuation-pattern test, as its embedded Context. That mirrors phase4-continue's own Context. If the successor needs the phase4_01 test, name it in Scope in prose only.",
+    "In tests/test_seeded_phase4_01.py, change CONTEXT['phase4-continue-02'] to match. In EXISTING_AT_AUTHORING, drop the phase4_01 entry and add tests/test_seeded_phase3_11.py with its size measured on disk. Also assert that no Context names a path created in this diff.",
+    "Before claiming done, run requisition lint on each authored ticket against a checkout without this diff's new files. Passing pytest alone missed the missing-path error.",
+    "Keep everything else as it is: identities, edges, medium/medium tiers, budgets, fences, ON_DEMAND, the other Context sizes, delimiter scanning, registry rows, successor-row removal and headroom. Rerun both Verification pytest commands."
   ],
-  "reason": "Four concrete, locally fixable authoring defects with paved roads; nothing shows the ticket is unsatisfiable or beyond current capability.",
+  "reason": "One fixable check finding: the successor's Context names a file this same attempt creates. The rest of the contract passed.",
   "detail": null
 }
