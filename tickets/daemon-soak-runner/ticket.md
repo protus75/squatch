@@ -7,10 +7,11 @@ agent_tier: high
 agent_effort: high
 ---
 ## Depends on
-- serve-activation
+- serve-merge-admission
 
 ## Context
 - tests/test_serve.py
+- tests/test_merge.py
 - eval/daemon_soak.py
 - tests/test_daemon_soak.py
 - tests/test_audit.py
@@ -36,13 +37,15 @@ verdict, and green value from that member's local run evidence. Return the
 `DaemonSoakReport` to the existing canonical writer, without writing the
 committed report itself.
 
-The exact embedded Context is `tests/test_serve.py`, `eval/daemon_soak.py`,
-`tests/test_daemon_soak.py`, and `tests/test_audit.py`.
+The exact embedded Context is `tests/test_serve.py`, `tests/test_merge.py`,
+`eval/daemon_soak.py`, `tests/test_daemon_soak.py`, and `tests/test_audit.py`.
 `tests/test_restart_timers.py` is the on-demand worker-reconcile fault
 reference and `tests/test_mergequeue.py` is the on-demand two-rung and
 integration-red fault reference. Production modules are on-demand read-only
 inspection only. `tests/test_daemon_soak_runner.py` is sibling-new, and
 delimiter-bearing `squatch/specs.py` is never Context.
+
+The merged `serve-merge-admission` correction is the production-path prerequisite: drive settled work only through `Serve` -> `Pipeline.run` -> `MergeQueue`, never by calling queue admission from this harness. Script approval through the production review/provider seam, conflicts through the Git/process seams, integration-red through the post-rebase verification argv, time through the serve sleep seam, and dispositions/terminals/run ids only through records production writes.
 
 ## Scope out
 Do not run the ordinary soak lane, write or self-attest the committed report,

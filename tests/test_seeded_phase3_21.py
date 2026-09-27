@@ -14,7 +14,7 @@ from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
 REPO = Path(__file__).resolve().parent.parent
 BATCH = {
-    "daemon-soak-runner": ("serve-activation",),
+    "daemon-soak-runner": ("serve-merge-admission",),
     "phase3-continue-22": ("daemon-soak-runner",),
 }
 OWNERSHIP = {
@@ -29,8 +29,8 @@ OWNERSHIP = {
 }
 CONTEXT = {
     "daemon-soak-runner": (
-        "tests/test_serve.py", "eval/daemon_soak.py", "tests/test_daemon_soak.py",
-        "tests/test_audit.py",
+        "tests/test_serve.py", "tests/test_merge.py", "eval/daemon_soak.py",
+        "tests/test_daemon_soak.py", "tests/test_audit.py",
     ),
     "phase3-continue-22": ("tests/test_seeded_phase3_11.py", "tests/test_serve.py"),
 }
@@ -39,6 +39,7 @@ ON_DEMAND = {
 }
 EXISTING_AT_AUTHORING = {
     "tests/test_serve.py": 6235,
+    "tests/test_merge.py": 22138,
     "eval/daemon_soak.py": 1142,
     "tests/test_daemon_soak.py": 3626,
     "tests/test_audit.py": 5267,
