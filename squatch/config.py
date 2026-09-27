@@ -192,6 +192,14 @@ class Config(_Strict):
     report_inbox: Path | None = None
     context_files: list[Path] = []
 
+    @field_validator("notify", mode="before")
+    @classmethod
+    def _notify_argv(cls, value):
+        if (not isinstance(value, list) or not value
+                or any(not isinstance(arg, str) or not arg for arg in value)):
+            raise ValueError("must be a non-empty argv of non-empty strings; omit to disable")
+        return value
+
     @model_validator(mode="after")
     def _cross_references(self):
         if self.worktree_root is None:

@@ -43,7 +43,7 @@ from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
 from squatch.runner import EXIT_OK, EXIT_REFUSED, PipelineFactory, Refusal, Runner
 from squatch.seams import (Clock, ExecutableNotFound, LocalFilesystem, ProcessExec,
-                           SubprocessExec)
+                           SubprocessExec, SubprocessNotifications)
 from squatch.serve import Serve
 from squatch.status import project, render
 from squatch.specs import load_spec
@@ -169,10 +169,12 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
 
 def _serve(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     def run(runner, config, git, control):
+        notifications = SubprocessNotifications(
+            cwd=cwd, env=child_env(env, {p.auth for p in config.providers if p.auth}))
         return Serve(
             runner=runner, repo=cwd, config_supplier=lambda: _config(args, cwd),
             pipeline=runner._pipeline, control=control, git=git, fs=LocalFilesystem(),
-            clock=clock, process=process, env=env,
+            clock=clock, process=process, env=env, notifications=notifications,
             report=lambda line: print(line, file=out)).run()
 
     return _locked(args, cwd, env, out, pipeline, clock, process, run)

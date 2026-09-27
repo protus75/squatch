@@ -62,6 +62,34 @@ class Filesystem(Protocol):
         ...
 
 
+class Notifications(Protocol):
+    async def notify(self, argv: Sequence[str]) -> None:
+        """Deliver argv, raising ExecutableNotFound or RuntimeError on failure."""
+        ...
+
+
+class SubprocessNotifications:
+    """Notification children never share the active-work executor."""
+
+    def __init__(self, *, cwd: Path, env: Mapping[str, str], timeout: float = 30) -> None:
+        self._process = SubprocessExec()
+        self._cwd = cwd
+        self._env = dict(env)
+        self._timeout = timeout
+
+    async def notify(self, argv: Sequence[str]) -> None:
+        try:
+            rc, _, _ = await self._process.run(
+                argv, cwd=self._cwd, env=self._env, timeout=self._timeout)
+        except TimeoutError:
+            raise RuntimeError("notification command timed out") from None
+        except (OSError, ValueError):
+            raise RuntimeError("notification command could not be launched") from None
+        if rc != 0:
+            # Captured command output may contain secrets; only report the exit.
+            raise RuntimeError(f"notification command exited {rc}")
+
+
 class ExecutableNotFound(Exception):
     """argv[0] did not resolve; the seam's declared error, never an escaping
     FileNotFoundError."""

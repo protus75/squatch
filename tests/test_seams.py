@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from squatch.seams import ExecutableNotFound, SubprocessExec
+from squatch.seams import ExecutableNotFound, SubprocessExec, SubprocessNotifications
 
 PY = sys.executable
 ENV = {"PATH": os.environ["PATH"]}
@@ -192,3 +192,34 @@ async def test_on_spawn_publishes_the_childs_process_group_at_spawn(tmp_path):
         [PY, "-c", "import os; print(os.getpgrp())"],
         cwd=tmp_path, env=ENV, timeout=30, on_spawn=seen.append)
     assert seen == [int(out.strip())]
+
+
+async def test_notifications_own_private_executor_and_preserve_argv(tmp_path):
+    active = SubprocessExec()
+    notify = SubprocessNotifications(cwd=tmp_path, env=ENV)
+    other = SubprocessNotifications(cwd=tmp_path, env=ENV)
+    assert isinstance(notify._process, SubprocessExec)
+    assert notify._process is not active and notify._process is not other._process
+    marker = tmp_path / "args"
+    literal = "hello ; $(touch unwanted)"
+    await notify.notify([PY, "-c", "import pathlib, sys; "
+                         "pathlib.Path(sys.argv[1]).write_text(sys.argv[2])",
+                         str(marker), literal])
+    assert marker.read_text() == literal
+    assert not (tmp_path / "unwanted").exists()
+
+
+async def test_notification_missing_nonzero_timeout_and_launch_errors(tmp_path):
+    notify = SubprocessNotifications(cwd=tmp_path, env=ENV, timeout=.1)
+    with pytest.raises(ExecutableNotFound):
+        await notify.notify(["/nonexistent/notify"])
+    with pytest.raises(RuntimeError, match="exited 7"):
+        await notify.notify([PY, "-c", "raise SystemExit(7)"])
+    with pytest.raises(RuntimeError, match="timed out"):
+        await notify.notify([PY, "-c", "import time; time.sleep(60)"])
+    path = tmp_path / "not-executable"
+    path.write_text("not executable")
+    path.chmod(0o600)
+    for argv in ([str(path)], [str(tmp_path)]):
+        with pytest.raises(RuntimeError, match="could not be launched"):
+            await notify.notify(argv)

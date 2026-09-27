@@ -23,11 +23,12 @@ from squatch.heartbeat import Heartbeat
 from squatch.journal import Journal
 from squatch.llmeffect import LLMEffect
 from squatch.merge import Pipeline
+from squatch.notify import NotificationReconciler
 from squatch.providers import CliClient, Registry
 from squatch.redact import Redactor
 from squatch.rework import Rework
 from squatch.runner import EXIT_OK, Dispatched, PipelineFactory, Refusal, Runner, Session
-from squatch.seams import Clock, Filesystem, ProcessExec, Sleep
+from squatch.seams import Clock, Filesystem, Notifications, ProcessExec, Sleep
 from squatch.specs import load_spec
 from squatch.tickets import Intake, Ticket
 from squatch.triage import Triage
@@ -98,6 +99,7 @@ def compose_serve_graph(*, repo: Path, state_dir: Path, journal: Journal,
                         fs: Filesystem, clock: Clock, work: Callable[[str, Config],
                         Awaitable[Dispatched]], priority_snapshot: PrioritySnapshot,
                         sha: Callable[[], Awaitable[str]],
+                        reconcile_notifications: ConsumerCallback | None = None,
                         sleep: Sleep = asyncio.sleep) -> ServeGraph:
     """Compose every daemon boundary without starting a task or host run."""
     stopped = asyncio.Event()
@@ -120,6 +122,8 @@ def compose_serve_graph(*, repo: Path, state_dir: Path, journal: Journal,
     triage_spec = load_spec(SPECS / "triage.md")
 
     async def watch() -> None:
+        if reconcile_notifications is not None:
+            await reconcile_notifications()
         await watcher_consumer(dispatch.watcher, priority_snapshot)()
         assert heartbeat is not None
         heartbeat.beat()
@@ -156,6 +160,7 @@ class Serve:
                  pipeline: PipelineFactory, control: ControlFactory, git: Git,
                  fs: Filesystem, clock: Clock, process: ProcessExec,
                  env: Mapping[str, str], report: Callable[[str], None],
+                 notifications: Notifications | None = None,
                  sleep: Sleep = asyncio.sleep) -> None:
         self._runner = runner
         self._repo = Path(repo)
@@ -169,12 +174,16 @@ class Serve:
         self._env = env
         self._report = report
         self._sleep = sleep
+        self._notifications = notifications
+        self._notification_reconciler: NotificationReconciler | None = None
         self.graph: ServeGraph | None = None
 
     async def run(self) -> int:
         try:
             async with self._runner.session() as session:
                 self.graph = self.compose(session)
+                if self._notification_reconciler is not None:
+                    await self._notification_reconciler.reconcile()
                 return await self.graph.run()
         except Refusal:
             raise
@@ -187,6 +196,12 @@ class Serve:
         """Build the real graph under an already reconciled, lock-held session."""
         journal = session.journal
         config = self._config_supplier()
+        if config.notify is None or self._notifications is None:
+            self._report("warning: push notifications are off; escalations remain status-only")
+        else:
+            self._notification_reconciler = NotificationReconciler(
+                journal=journal, notifications=self._notifications,
+                argv=config.notify, report=self._report)
         state_dir = self._repo / config.state_dir
         pause, _ = self._control(journal)
         pipeline = self._pipeline(journal)
@@ -249,4 +264,6 @@ class Serve:
             repo=self._repo, state_dir=state_dir, journal=journal,
             config_supplier=self._config_supplier, pipeline=pipeline, pause=pause,
             rework=rework, triage=triage, git=self._git, fs=self._fs, clock=self._clock,
-            work=work, priority_snapshot=priority_snapshot, sha=sha, sleep=self._sleep)
+            work=work, priority_snapshot=priority_snapshot, sha=sha, sleep=self._sleep,
+            reconcile_notifications=(self._notification_reconciler.reconcile
+                                     if self._notification_reconciler is not None else None))

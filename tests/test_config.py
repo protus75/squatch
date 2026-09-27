@@ -130,6 +130,17 @@ def test_minimal_config_needs_only_the_required_keys():
     assert cfg.notify is None
 
 
+@pytest.mark.parametrize("argv", [[], "notify-send", [""], ["notify", ""],
+                                  ["notify", 1], [False], [None], ("notify",)])
+def test_notify_requires_a_nonempty_list_of_nonempty_strings(argv):
+    assert refused(variant(notify=argv)).key.startswith("notify")
+
+
+def test_notify_preserves_literal_arguments():
+    argv = ["notify", "a b", "; $(literal)"]
+    assert parse(variant(notify=argv), source="config.yaml").notify == argv
+
+
 def test_explicit_worktree_root_is_kept():
     cfg = parse(variant(worktree_root="/elsewhere"), source="config.yaml")
     assert cfg.worktree_root == Path("/elsewhere")
