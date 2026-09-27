@@ -35,6 +35,7 @@ ownership:
     - squatch/daemon.py
     - squatch/git.py
     - tests/test_git.py
+    - tests/test_mergequeue.py
   phase3-continue-19:
     owns:
     - tickets
@@ -42,7 +43,7 @@ ownership:
     hooks: []
 ```
 
-Checkpoint push has exact embedded Context `squatch/daemon.py`, `squatch/git.py`, and `tests/test_git.py`. It owns a public argv-only Git push seam, composition through that seam, and re-firing an incomplete push after restart without duplicating a completed push. `squatch/checkpoint.py` and `tests/test_checkpoint.py` are new paths. Phase3-continue-19 has exact Context `tests/test_seeded_phase3_11.py` and `tests/test_daemon_composition.py`; the established seeded-test pattern exists at this admission, and sibling-new `tests/test_seeded_phase3_18.py` never enters Context.
+Checkpoint push has exact embedded Context `squatch/daemon.py`, `squatch/git.py`, and `tests/test_git.py`; `tests/test_mergequeue.py` is its sole fenced on-demand inspection exception for migrating the public-operation allowlist only. It owns a public argv-only Git push seam, composition through that seam, and re-firing an incomplete push after restart without duplicating a completed push. `squatch/checkpoint.py` and `tests/test_checkpoint.py` are new paths. Phase3-continue-19 has exact Context `tests/test_seeded_phase3_11.py` and `tests/test_daemon_composition.py`; the established seeded-test pattern exists at this admission, and sibling-new `tests/test_seeded_phase3_18.py` never enters Context.
 
 Pin exact Context, every existing fence path as existing Context, new-path registry owners, authoring-time Context sizes, section 20's historical length, predecessor-test closure, and every max-effort render under `REQ_RENDER_HEADROOM`. Keep delimiter-bearing prompt-spec sources outside Context.
 

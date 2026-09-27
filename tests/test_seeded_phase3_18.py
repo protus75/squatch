@@ -17,7 +17,8 @@ BATCH = {"checkpoint-push": ("phase3-continue-18",),
          "phase3-continue-19": ("checkpoint-push",)}
 OWNERSHIP = {
     "checkpoint-push": {"owns": ["squatch/checkpoint.py", "tests/test_checkpoint.py"],
-                        "hooks": ["squatch/daemon.py", "squatch/git.py", "tests/test_git.py"]},
+                        "hooks": ["squatch/daemon.py", "squatch/git.py", "tests/test_git.py",
+                                  "tests/test_mergequeue.py"]},
     "phase3-continue-19": {"owns": ["tickets", "tests/test_seeded_phase3_19.py"], "hooks": []},
 }
 CONTEXT = {
@@ -36,6 +37,7 @@ NEW_PATH_OWNERS = {
     "tests/test_seeded_phase3_20.py": "phase3-continue-20",
 }
 FULL = (("checkpoint-push",), ("daemon-soak",), ("soak-run",), ("phase3-exit",))
+CHECKPOINT_ON_DEMAND = {"tests/test_mergequeue.py"}
 
 
 def _path(stem):
@@ -96,12 +98,17 @@ def test_context_partition_and_checkpoint_contract():
         for path in ticket.context:
             assert (REPO / path).is_file() and DATA_MARKER not in (REPO / path).read_text()
         for path in ticket.scope_fence:
-            if path != "tickets" and path not in NEW_PATH_OWNERS:
+            if path != "tickets" and path not in NEW_PATH_OWNERS and path not in CHECKPOINT_ON_DEMAND:
                 assert path in ticket.context, (stem, path)
     checkpoint = _section("checkpoint-push", "Scope in")
     for phrase in ("public argv-only Git push", "composition calls only that seam",
-                   "re-fires an incomplete push after restart", "duplicating a completed push"):
+                   "re-fires an incomplete push after restart", "duplicating a completed push",
+                   "test_git_conflict_seams_are_only_additions_and_old_rebase_still_aborts",
+                   "fenced on-demand inspection exception", "public-operation allowlist"):
         assert phrase in checkpoint
+    checkpoint_ticket = _ticket("checkpoint-push")
+    assert CHECKPOINT_ON_DEMAND <= set(checkpoint_ticket.scope_fence)
+    assert CHECKPOINT_ON_DEMAND.isdisjoint(checkpoint_ticket.context)
     continuation = _ticket("phase3-continue-19")
     assert "tests/test_seeded_phase3_18.py" not in continuation.context
     assert continuation.context == CONTEXT["phase3-continue-19"]
