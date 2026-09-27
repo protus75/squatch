@@ -1,0 +1,16 @@
+---
+verdict: snag
+reviewed_sha: 52a43466c8385583d368935fd4e7fa1b283d53ae
+produced_by_spec_version: '1.0'
+produced_at_sha: 52a43466c8385583d368935fd4e7fa1b283d53ae
+provider: claude
+model: opus
+artifact_schema_version: 1
+---
+## Summary
+The seeds, dependencies, ownership contract and successor suffix are correct, but the diff has three fixable problems. One authored seed has a criterion it cannot meet. The headroom test undercounts a Context file that already exists. And `phase3-continue-16` is never checked field by field, so several acceptance pins are only partly met.
+
+## Findings
+- correctness_review at tickets/journal-roll/ticket.md:38: The second acceptance criterion requires `tests/test_journal.py` to prove replay is preserved across rolled segments. The same ticket makes that file read-only preservation that must stay unchanged, and leaves it out of the fence. A test file written before rolling existed and never edited cannot cover rolled segments. The criterion contradicts the ticket's own fence and Scope in, so the implementer can only fail it or change the file, which the ticket rejects. (paved road: Put the cross-segment replay proof in `tests/test_journal_roll.py`. Reword the preservation criterion to say `tests/test_journal.py` passes unchanged. Have `tests/test_seeded_phase3_15.py` assert that wording.)
+- correctness_review at tests/test_seeded_phase3_15.py:43: `EXISTING_AT_AUTHORING` pins `tests/test_seeded_phase3_15.py` at 0 bytes. That file is real `phase3-continue-16` Context, about 9921 bytes at head. The predecessor pins its own seeded test at its real size (`tests/test_seeded_phase3_11.py`: 9238). The max-effort headroom check for `phase3-continue-16` therefore runs about 10 KB short, so the pin on 'authoring-time Context sizes' and 'each max-effort render within `REQ_RENDER_HEADROOM`' is not actually enforced for that seed. (paved road: Pin the real authored byte size of `tests/test_seeded_phase3_15.py`. Add a check that each existing Context path's pinned size matched the file at authoring, or state why a path is exempt. Rerun the headroom assertion.)
+- correctness_review at tests/test_seeded_phase3_15.py:123: The loop skips `phase3-continue-16`. For that seed the test only substring-checks the dependency lines and the tier strings. Nothing pins its source/state/priority, section 20 citation, 75m/150m budget, owns-then-hooks fence, or exact Context against `CONTEXT[...]`. `CONTEXT[...]` is used only to build the render fixture. The delimiter-free check (`squatch/specs.py`, `specs/implement.md`) and the existing-fence-path-in-Context check also run only for the other two seeds. `NEW_PATH_OWNERS` is never checked against each owner's fence (the predecessor did check this). These acceptance criteria are therefore only partly met. (paved road: Parse `phase3-continue-16` without the existence-checking lint: frontmatter via yaml, plus `_section` lists for Depends on, Plan contract, Scope fence, Context and Time budget. Assert exact equality with `BATCH`, `OWNERSHIP` and `CONTEXT`, and with 75/150. Apply the prompt-spec exclusion to its Context. For every `NEW_PATH_OWNERS` entry whose owner is in this batch, assert the path is in that owner's parsed fence.)
