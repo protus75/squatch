@@ -23,6 +23,7 @@ from squatch.providers import (
     ADAPTERS, PLACEHOLDER, CliClient, FailureFact, ProviderError, Registry, RoutingError,
     child_env)
 from squatch.redact import Redactor
+from squatch.watchdog import EventCollector, WatchdogEvent
 
 ROOT = Path(__file__).resolve().parent.parent
 CLAUDE_KEY, CODEX_KEY = "FAKE_CLAUDE_KEY", "FAKE_CODEX_KEY"
@@ -72,15 +73,21 @@ class ScriptedExec:
         self.calls: list[dict] = []
         self.pgid = pgid
 
-    async def run(self, argv, *, cwd, env, timeout, stdin_path=None, on_spawn=None):
+    async def run(self, argv, *, cwd, env, timeout, stdin_path=None, on_spawn=None,
+                  on_stdout_line=None):
         self.calls.append({"argv": list(argv), "cwd": Path(cwd), "env": dict(env),
                            "timeout": timeout, "stdin_path": stdin_path,
-                           "stdin": Path(stdin_path).read_text() if stdin_path else None})
+                           "stdin": Path(stdin_path).read_text() if stdin_path else None,
+                           "on_stdout_line": on_stdout_line})
         if on_spawn is not None:
             on_spawn(self.pgid)
         response = self.responses.pop(0)
         if isinstance(response, BaseException):
             raise response
+        self.calls[-1]["stdout"] = response[1]
+        if on_stdout_line is not None:
+            for line in response[1].splitlines():
+                on_stdout_line(line)
         return response
 
 
@@ -355,6 +362,89 @@ async def test_prompt_reaches_the_cli_on_stdin_and_never_in_argv(tmp_path):
     assert call["stdin_path"].is_relative_to(tmp_path / "state" / "spools" / "t-1")
     assert not any(prompt in a or "long enough" in a for a in call["argv"])
     assert call["timeout"] == providers.CALL_TIMEOUT_SECONDS
+
+
+async def test_call_without_a_watchdog_consumer_keeps_the_existing_process_kwargs(tmp_path):
+    class ExistingWrapper:
+        def __init__(self):
+            self.kwargs = None
+
+        async def run(self, argv, *, cwd, env, timeout, stdin_path=None, on_spawn=None):
+            self.kwargs = {"cwd": cwd, "env": env, "timeout": timeout,
+                           "stdin_path": stdin_path, "on_spawn": on_spawn}
+            on_spawn(4242)
+            return (0, claude_stream("ok"), "")
+
+    wrapper = ExistingWrapper()
+    await client(tmp_path, wrapper).call(request("review"))
+    assert set(wrapper.kwargs) == {"cwd", "env", "timeout", "stdin_path", "on_spawn"}
+
+
+async def test_claude_watchdog_normalizes_each_tool_and_ignores_non_tools(tmp_path):
+    stream = claude_stream("ok", extra_lines=(
+        '{"type":"system","subtype":"init"}',
+        providers.json.dumps({"type": "assistant", "message": {"content": [
+            {"type": "text", "text": "working"}]}}),
+        providers.json.dumps({"type": "assistant", "message": {
+            "usage": {"input_tokens": 7, "output_tokens": 3}, "content": [
+                {"type": "tool_use", "name": "Read", "input": {}},
+                {"type": "text", "text": "then"},
+                {"type": "tool_use", "name": "Grep", "input": {}},
+            ]}}),
+    ))
+    ex = ScriptedExec((0, stream, ""))
+    collector = EventCollector()
+    result = await client(tmp_path, ex).call(request("review"), on_event=collector)
+    assert result.text == "ok"
+    assert ex.calls[0]["on_stdout_line"] is not None
+    assert collector.events == [
+        WatchdogEvent("claude", "tool_call", 7, 3),
+        WatchdogEvent("claude", "tool_call", 7, 3),
+    ]
+
+
+@pytest.mark.parametrize("item_type", ["command_execution", "file_change", "mcp_tool_call"])
+async def test_codex_watchdog_starts_with_flat_estimate_and_normalizes_tools(
+        tmp_path, item_type):
+    stream = "\n".join((
+        providers.json.dumps({"type": "item.started", "item": {"type": item_type}}),
+        '{"type":"item.started","item":{"type":"agent_message"}}',
+        providers.json.dumps({"type": "item.completed", "item": {"type": item_type}}),
+        '{"type":"turn.started"}',
+        codex_stream("ok").rstrip(),
+    )) + "\n"
+    ex = ScriptedExec((0, stream, ""))
+    collector = EventCollector()
+    result = await client(tmp_path, ex).call(
+        request("implement", worktree=tmp_path / "wt"), on_event=collector)
+    assert result.usd == 1.0
+    assert collector.events == [
+        WatchdogEvent("codex", "start", usd=1.0),
+        WatchdogEvent("codex", "tool_call"),
+    ]
+
+
+async def test_watchdog_consumer_preserves_chatter_redaction_result_and_prompt_spool(tmp_path):
+    chatter = f"warning: key {CLAUDE_SECRET}"
+    stream = chatter + "\n" + claude_stream(f"answer {CLAUDE_SECRET}")
+    with_consumer = ScriptedExec((0, stream, ""))
+    without_consumer = ScriptedExec((0, stream, ""))
+    collector = EventCollector()
+    rendered = f"prompt {CLAUDE_SECRET}"
+
+    observed = await client(tmp_path / "observed", with_consumer).call(
+        request("review", rendered=rendered), on_event=collector)
+    baseline = await client(tmp_path / "baseline", without_consumer).call(
+        request("review", rendered=rendered))
+
+    assert collector.events == []
+    assert observed == baseline
+    assert observed.text == f"answer [REDACTED:{CLAUDE_KEY}]"
+    assert with_consumer.responses == without_consumer.responses == []
+    assert with_consumer.calls[0]["stdout"] == without_consumer.calls[0]["stdout"] == stream
+    assert with_consumer.calls[0]["stdin"] == without_consumer.calls[0]["stdin"] == (
+        f"prompt [REDACTED:{CLAUDE_KEY}]")
+    assert with_consumer.calls[0]["stdout"].startswith(chatter + "\n")
 
 
 async def test_claude_text_usage_and_cost_come_from_the_result_event(tmp_path):

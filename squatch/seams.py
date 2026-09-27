@@ -24,11 +24,14 @@ class ProcessExec(Protocol):
     async def run(self, argv: Sequence[str], *, cwd: Path, env: Mapping[str, str],
                   timeout: float | None, stdin_path: Path | None = None,
                   on_spawn: Callable[[int], None] | None = None,
+                  on_stdout_line: Callable[[str], None] | None = None,
                   ) -> tuple[int, str, str]:
         """Spawn argv (never a shell) and return (rc, out, err). `on_spawn` is
         the spawn-time pgid hook: called with the child's process-group id
         the moment it exists, so a synchronous kill seam (`abort_current`)
-        can target it while `run` is still awaiting."""
+        can target it while `run` is still awaiting. When capture is active,
+        `on_stdout_line` receives each decoded stdout line without its line
+        ending as it arrives; stdout capture remains complete and unchanged."""
         ...
 
 
@@ -115,6 +118,7 @@ class SubprocessExec:
     async def run(self, argv: Sequence[str], *, cwd: Path, env: Mapping[str, str],
                   timeout: float | None, stdin_path: Path | None = None,
                   on_spawn: Callable[[int], None] | None = None,
+                  on_stdout_line: Callable[[str], None] | None = None,
                   ) -> tuple[int, str, str]:
         capture = timeout is not None
         pipe = asyncio.subprocess.PIPE if capture else None
@@ -131,17 +135,47 @@ class SubprocessExec:
                 stdin.close()
         if on_spawn is not None:
             on_spawn(proc.pid)  # start_new_session makes the pid the pgid
+        tasks: tuple[asyncio.Task, ...] = ()
         try:
             async with asyncio.timeout(timeout):
-                out, err = await proc.communicate()
-        except (TimeoutError, asyncio.CancelledError):
+                if capture:
+                    tasks = (
+                        asyncio.create_task(_read_stdout(proc.stdout, on_stdout_line)),
+                        asyncio.create_task(proc.stderr.read()),
+                        asyncio.create_task(proc.wait()),
+                    )
+                    out, err, _ = await asyncio.gather(*tasks)
+                else:
+                    await proc.wait()
+                    out, err = b"", b""
+        except BaseException:
             # One kill-and-wait path for both the seam's timeout and an outer
-            # cancellation unwinding through here.
+            # cancellation unwinding through here, plus capture failures.
             await _kill_and_wait(proc)
+            if tasks:
+                await asyncio.gather(*tasks, return_exceptions=True)
             raise
         return (proc.returncode,
                 out.decode(errors="replace") if capture else "",
                 err.decode(errors="replace") if capture else "")
+
+
+async def _read_stdout(reader: asyncio.StreamReader, callback: Callable[[str], None] | None
+                       ) -> bytes:
+    """Capture stdout while publishing each logical line before process exit."""
+    chunks: list[bytes] = []
+    pending = bytearray()
+    while chunk := await reader.read(65536):
+        chunks.append(chunk)
+        pending.extend(chunk)
+        while (end := pending.find(b"\n")) >= 0:
+            line = bytes(pending[:end])
+            del pending[:end + 1]
+            if callback is not None:
+                callback(line.removesuffix(b"\r").decode(errors="replace"))
+    if pending and callback is not None:
+        callback(bytes(pending).decode(errors="replace"))
+    return b"".join(chunks)
 
 
 async def _kill_and_wait(proc: asyncio.subprocess.Process) -> None:

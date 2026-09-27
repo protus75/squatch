@@ -24,6 +24,7 @@ from squatch.config import Config, ConfigError, Provider
 from squatch.llm import LLM_SURFACES, WRITING_SURFACES, LLMRequest, LLMResult
 from squatch.redact import Redactor
 from squatch.seams import Filesystem, ProcessExec, kill_group
+from squatch.watchdog import WatchdogCallback, WatchdogEvent
 
 # The section 0 placeholder an unset operator value carries; a resolved row
 # still holding it is refused pre-call, never sent to a model.
@@ -106,6 +107,14 @@ class _Adapter:
     auth_paved_road: str
     failure_signatures: tuple[tuple[FailureClass, str], ...]
 
+    def watchdog_events(self, line: str):
+        """Normalize this adapter's one-line JSONL vocabulary, if any."""
+        try:
+            event = json.loads(line)
+        except ValueError:
+            return ()
+        return self._watchdog_events(event) if isinstance(event, dict) else ()
+
     def error(self, reason: str, *, rc: int | None, stderr: str) -> ProviderError:
         channels = tuple(channel.casefold() for channel in (reason, stderr))
         failure_class: FailureClass = "unclassified"
@@ -155,6 +164,21 @@ class ClaudeAdapter(_Adapter):
                       output_tokens=_int(usage.get("output_tokens")),
                       usd=_float(result.get("total_cost_usd")))
 
+    def _watchdog_events(self, event: dict):
+        if event.get("type") != "assistant":
+            return ()
+        message = event.get("message") or {}
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, list):
+            return ()
+        usage = message.get("usage") or event.get("usage") or {}
+        input_tokens = _int(usage.get("input_tokens")) if isinstance(usage, dict) else None
+        output_tokens = _int(usage.get("output_tokens")) if isinstance(usage, dict) else None
+        return tuple(
+            WatchdogEvent("claude", "tool_call", input_tokens, output_tokens)
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "tool_use")
+
 
 class CodexAdapter(_Adapter):
     name = "codex"
@@ -196,6 +220,15 @@ class CodexAdapter(_Adapter):
             return Parsed(failure="stream carried no `agent_message` item")
         return Parsed(text=text, input_tokens=_int(usage.get("input_tokens")),
                       output_tokens=_int(usage.get("output_tokens")), usd=None)
+
+    def _watchdog_events(self, event: dict):
+        if event.get("type") != "item.started":
+            return ()
+        item = event.get("item") or {}
+        if not isinstance(item, dict) or item.get("type") not in {
+                "command_execution", "file_change", "mcp_tool_call"}:
+            return ()
+        return (WatchdogEvent("codex", "tool_call"),)
 
 
 def _int(v) -> int | None:
@@ -300,7 +333,7 @@ class CliClient:
         self._seq = 0
         self._pgid: int | None = None
 
-    async def call(self, req: LLMRequest) -> LLMResult:
+    async def call(self, req: LLMRequest, *, on_event: WatchdogCallback | None = None) -> LLMResult:
         resolved = self._registry.resolve(req.tier, req.surface)
         provider, model = resolved.provider, resolved.model
         if PLACEHOLDER in (model, provider.auth):
@@ -327,10 +360,22 @@ class CliClient:
                   / f"{self._seq:06d}-{req.surface}-prompt.md")
         self._fs.write(prompt, self._redact(req.rendered).encode())
         argv = adapter.argv(model=model, effort=req.effort, grant=grant)
+        process_kwargs = {
+            "cwd": cwd, "env": env, "timeout": self._timeout, "stdin_path": prompt,
+            "on_spawn": self._bind,
+        }
+        if on_event is not None:
+            if not adapter.reports_cost:
+                on_event(WatchdogEvent(provider.name, "start",
+                                       usd=provider.limits.est_cost_per_call_usd))
+
+            def on_stdout_line(line: str) -> None:
+                for event in adapter.watchdog_events(self._redact(line)):
+                    on_event(event)
+
+            process_kwargs["on_stdout_line"] = on_stdout_line
         try:
-            rc, out, err = await self._process.run(
-                argv, cwd=cwd, env=env, timeout=self._timeout, stdin_path=prompt,
-                on_spawn=self._bind)
+            rc, out, err = await self._process.run(argv, **process_kwargs)
         finally:
             self._pgid = None
         # Both sinks are scrubbed before anything is parsed or raised from them.

@@ -21,6 +21,65 @@ async def test_runs_argv_and_captures_streams(tmp_path):
     assert (rc, out, err) == (3, "o\n", "e\n")
 
 
+async def test_stdout_line_callback_observes_arrival_order_and_unterminated_tail(tmp_path):
+    seen = []
+    first_line = asyncio.Event()
+    release = tmp_path / "release"
+    code = (
+        "import pathlib, sys, time\n"
+        "sys.stdout.write('first\\nsecond\\n'); sys.stdout.flush()\n"
+        f"release = pathlib.Path({str(release)!r})\n"
+        "while not release.exists(): time.sleep(.01)\n"
+        "sys.stdout.write('tail'); sys.stdout.flush()\n"
+    )
+
+    def observe(line):
+        seen.append(line)
+        first_line.set()
+
+    task = asyncio.create_task(SubprocessExec().run(
+        [PY, "-c", code], cwd=tmp_path, env=ENV, timeout=30, on_stdout_line=observe))
+    await first_line.wait()
+    assert seen == ["first", "second"]
+    release.touch()
+    rc, out, err = await task
+    assert (rc, out, err) == (0, "first\nsecond\ntail", "")
+    assert seen == ["first", "second", "tail"]
+
+
+async def test_stdout_callback_preserves_long_lines_with_and_without_a_consumer(tmp_path):
+    code = "import sys; sys.stdout.write('x' * 70000 + '\\nend'); sys.stdout.flush()"
+    uncaptured = await SubprocessExec().run(
+        [PY, "-c", code], cwd=tmp_path, env=ENV, timeout=30)
+    seen = []
+    captured = await SubprocessExec().run(
+        [PY, "-c", code], cwd=tmp_path, env=ENV, timeout=30, on_stdout_line=seen.append)
+    assert captured == uncaptured == (0, "x" * 70000 + "\nend", "")
+    assert seen == ["x" * 70000, "end"]
+
+
+async def test_callback_failure_kills_the_whole_group(tmp_path):
+    marker = tmp_path / "grandchild.pid"
+    code = (
+        "import pathlib, subprocess, sys, time\n"
+        "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+        f"pathlib.Path({str(marker)!r}).write_text(str(p.pid))\n"
+        "print('ready', flush=True)\n"
+        "time.sleep(60)\n"
+    )
+
+    def fail(_line):
+        raise RuntimeError("observer failed")
+
+    with pytest.raises(RuntimeError, match="observer failed"):
+        await SubprocessExec().run(
+            [PY, "-c", code], cwd=tmp_path, env=ENV, timeout=30, on_stdout_line=fail)
+    grandchild = int(marker.read_text())
+    await asyncio.sleep(.2)
+    with pytest.raises(ProcessLookupError):
+        os.kill(grandchild, 0)
+
+
 async def test_child_sees_only_the_declared_env(tmp_path):
     rc, out, _ = await SubprocessExec().run(
         [PY, "-c", "import os; print(sorted(os.environ))"],
@@ -35,10 +94,23 @@ async def test_child_sees_only_the_declared_env(tmp_path):
 async def test_stdin_path_is_the_childs_standard_input(tmp_path):
     prompt = tmp_path / "prompt.md"
     prompt.write_text("hello prompt")
+    seen = []
     _, out, _ = await SubprocessExec().run(
         [PY, "-c", "import sys; print(sys.stdin.read())"],
-        cwd=tmp_path, env=ENV, timeout=30, stdin_path=prompt)
+        cwd=tmp_path, env=ENV, timeout=30, stdin_path=prompt, on_stdout_line=seen.append)
     assert out == "hello prompt\n"
+    assert seen == ["hello prompt"]
+
+
+async def test_stdout_callback_does_not_change_inherited_stdio_mode(tmp_path, capfd):
+    seen = []
+    result = await SubprocessExec().run(
+        [PY, "-c", "import sys; print('out'); print('err', file=sys.stderr)"],
+        cwd=tmp_path, env=ENV, timeout=None, on_stdout_line=seen.append)
+    inherited = capfd.readouterr()
+    assert result == (0, "", "")
+    assert (inherited.out, inherited.err) == ("out\n", "err\n")
+    assert seen == []
 
 
 async def test_child_runs_in_its_own_process_group(tmp_path):
