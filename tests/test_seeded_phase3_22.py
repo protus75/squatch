@@ -33,18 +33,31 @@ OWNERSHIP = {
         "owns": ["tickets/soak-run/daemon-soak-report.json"], "hooks": [],
     },
     "phase3-continue-23": {
+        "owns": ["tickets", "tests/test_seeded_phase3_22.py",
+                 "tests/test_seeded_phase3_23.py"], "hooks": [],
+    },
+}
+PREDECESSOR_OWNERSHIP = {
+    "soak-run": {
+        "owns": ["tickets/soak-run/daemon-soak-report.json"], "hooks": [],
+    },
+    "phase3-continue-23": {
         "owns": ["tickets", "tests/test_seeded_phase3_23.py"], "hooks": [],
     },
 }
 CONTEXT = {
     "soak-run": ("eval/daemon_soak.py", "tests/test_daemon_soak_runner.py"),
-    "phase3-continue-23": ("tests/test_seeded_phase3_11.py", "tests/test_serve.py"),
+    "phase3-continue-23": (
+        "tests/test_seeded_phase3_11.py", "tests/test_seeded_phase3_22.py",
+        "tests/test_serve.py",
+    ),
 }
 ON_DEMAND = {"soak-run": (), "phase3-continue-23": ()}
 EXISTING_AT_AUTHORING = {
     "eval/daemon_soak.py": 25471,
     "tests/test_daemon_soak_runner.py": 12245,
     "tests/test_seeded_phase3_11.py": 9238,
+    "tests/test_seeded_phase3_22.py": 9154,
     "tests/test_serve.py": 9235,
     "squatch/stages.py": 52958,
 }
@@ -93,7 +106,7 @@ def test_exact_seeds_edges_tiers_budgets_cap_and_fences():
     assert len(BATCH) <= config.seeding.max_seeds_per_admission == 3
     [contract] = [block["ownership"] for block in _yaml("phase3-continue-22")
                   if isinstance(block, dict) and "ownership" in block]
-    assert contract == OWNERSHIP
+    assert contract == PREDECESSOR_OWNERSHIP
     for stem, depends in BATCH.items():
         ticket = _ticket(stem)
         assert (ticket.source, ticket.state, ticket.priority) == ("seed", "confirmed", "P1")
@@ -142,8 +155,9 @@ def test_context_partitions_predecessor_closure_and_new_path_owners():
     }
     assert {stem: tuple(paths) for stem, paths in contexts.items()} == {
         "phase3-exit": (
-            "tickets/soak-run/daemon-soak-report.json", "eval/daemon_soak.py",
-            "tests/test_daemon_soak_runner.py", "tests/test_seeded_phase3_11.py",
+            "tickets/soak-run/daemon-soak-report.json", "squatch/artifacts.py",
+            "eval/daemon_soak.py", "tests/test_daemon_soak_runner.py",
+            "tests/test_seeded_phase3_11.py",
         ),
     }
     for path in ownership["phase3-exit"]["owns"]:
