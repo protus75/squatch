@@ -28,11 +28,11 @@ Activate pause/resume and merge admission holds with their release.
 The constructed boundary needs a real production control path and releasable merge holds.
 
 ## Scope in
-Wire pause/resume through the actual in-process production composition in `squatch/__main__.py` and `squatch/daemon.py`, using the existing control inbox. A live lock holder alone journals decisions; the CLI publishes lifecycle-bound requests without becoming a second journal writer. With no engine running, take the lock and apply directly. Pause precedes all durable dispatch accounting through the predecessor boundary, including its drain hook. Only resume releases the current hold, latest-wins.
+Wire pause/resume through the actual in-process production composition in `squatch/__main__.py` and `squatch/daemon.py`, using the existing control inbox. Inspect the fenced `squatch/drain.py` from the worktree and extend its public injection path so the inbox can be constructed from the journal inside its lock-held session; do not route through private drain methods or create a second journal writer. A live lock holder alone journals decisions; the CLI publishes lifecycle-bound requests without becoming a second journal writer. With no engine running, take the lock and apply directly. Pause precedes all durable dispatch accounting through the predecessor boundary, including its drain hook. Only resume releases the current hold, latest-wins.
 
 Activate red-streak and tree-hash admission holds together with hold-instance-bound release. Inspect the fenced `squatch/merge.py` from the worktree, then inject the engine-owned hold through its production `compose_merge_queue` path; the merge queue must not construct a competing control inbox. A red-streak hold fires at three consecutive distinct tickets going integration-red (K=3), resetting the streak on green; a tree-hash mismatch holds immediately. Neither cancels in-flight work. Journal before governed mutation, reject stale lifecycle or pre-hold releases, and preserve queue serialization and post-unwind Rework publication.
 
-Migrate the construction dormancy contract in `tests/test_daemon_pause.py`, the literal no-pause/no-hold assertions in `tests/test_mergequeue.py`, and the production composition contracts in `tests/test_daemon_composition.py`. The daemon pause test is created by the dependency and is fenced but absent from authoring-time Context; read it after that dependency lands. Keep the no-serve contract: this ticket adds pause/resume, not serve. Own `tests/test_control_cli.py` for live-engine and no-engine CLI paths and use the real production composition harness to prove pause, release and both hold triggers. Preserve `tests/test_daemon_tasks.py` and `tests/test_control.py` unchanged as preservation-only suites, outside this fence and Context.
+Migrate the construction dormancy contract in `tests/test_daemon_pause.py`, the literal no-pause/no-hold assertions in `tests/test_mergequeue.py`, and the production composition contracts in `tests/test_daemon_composition.py`. The daemon pause test is created by the dependency and is fenced but absent from authoring-time Context; read it after that dependency lands. Keep the no-serve contract: this ticket adds pause/resume, not serve. Own and create the absent `tests/test_control_cli.py` before running Verification; it covers live-engine and no-engine CLI paths. Use the real production composition harness to prove pause, release and both hold triggers. Preserve `tests/test_daemon_tasks.py`, `tests/test_control.py`, and `tests/test_drain.py` unchanged as preservation-only suites, outside this fence and Context.
 
 ```yaml
 ownership:
@@ -44,6 +44,7 @@ ownership:
     - squatch/control.py
     - squatch/mergequeue.py
     - squatch/merge.py
+    - squatch/drain.py
     - squatch/__main__.py
     - tests/test_daemon_pause.py
     - tests/test_mergequeue.py
@@ -59,6 +60,7 @@ Do not add kill or serve, change scheduler/watcher policy, or edit preservation-
 - squatch/control.py
 - squatch/mergequeue.py
 - squatch/merge.py
+- squatch/drain.py
 - squatch/__main__.py
 - tests/test_daemon_pause.py
 - tests/test_mergequeue.py
@@ -72,7 +74,7 @@ Do not add kill or serve, change scheduler/watcher policy, or edit preservation-
 
 ## Verification
 ```
-uv run pytest tests/test_control_cli.py tests/test_daemon_pause.py tests/test_mergequeue.py tests/test_daemon_composition.py tests/test_daemon_tasks.py tests/test_control.py -q
+uv run pytest tests/test_control_cli.py tests/test_daemon_pause.py tests/test_mergequeue.py tests/test_daemon_composition.py tests/test_daemon_tasks.py tests/test_control.py tests/test_drain.py -q
 uv run pytest -q
 ```
 
