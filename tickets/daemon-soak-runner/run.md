@@ -2,14 +2,14 @@
 ok
 
 ## Surprises / judgment calls
-The `serve-merge-admission` prerequisite is now present: `Serve.compose` selects daemon admission, and settled deliveries reach `Merge.admit_daemon` and the composed `MergeQueue`. The runner uses three isolated local repositories so every report entry has its own journal, Box, and run identity. A matching Box record yields disposition `box`; otherwise an applied kill plus reconciled abandonment, or the run's production escalation signal, yields `alert`.
+Each production Serve lifecycle advances in 24 one-hour injected ticks and proves its own 24-hour span with lifecycle and applied-kill records; the worker member has two such lifecycles because the restart is part of the scenario. The age-triggered journal roll is checked per lifecycle rather than pooling timestamps across scenario repositories.
 
-The conflict member advances main during the scripted Implement provider call and lets the normal Check and Review stages finish before production admission. The semantic member fails only the third verification invocation: initial Check and post-rebase regate are green, while the queue's integration verification is red. Review approval is returned only through the scripted provider process and is lifted by the production Review stage.
+The worker's first run is killed during the production Implement provider call. Restart on the same state directory reconciles it to `abandoned`, production dispatch allocates run 1, and that rerun's harvested run record creates the Box disposition. Conflict health is derived from production Check/regate completions plus the local Git fact that only ticket-plane records changed on main after the planted green commit.
 
 ## Dead ends
-The prior approach called `MergeQueue.admit` from inside the Implement provider and wrote `review.md` from the harness. Both were removed. Report derivation also now constructs `Box` with the member's injected filesystem and clock rather than a fresh local filesystem and wall clock.
+Waking every blocked consumer together after publishing kill exposed a transient Git index-lock race before the worker restart. The final injected sleep releases only the production control cadence; production kill then cancels the still-blocked watcher, merge, and Box workers before the lifecycle exits.
 
-Verification completed on commit 84076c048a6c28ab244751238745bcaf8b867019: `uv run pytest tests/test_daemon_soak_runner.py -q` (2 passed), `uv run pytest tests/test_daemon_soak.py -q` (5 passed), and `uv run pytest -q` (1182 passed).
+Verification completed on commit 258ed22c363446cdf9c9dd67621553156b120111: `uv run pytest tests/test_daemon_soak_runner.py -q` (2 passed), `uv run pytest tests/test_daemon_soak.py -q` (5 passed), and `uv run pytest -q` (1182 passed).
 
 ## Second problems filed
 None.
@@ -18,4 +18,4 @@ None.
 OpenAI / Codex; exact serving model variant not exposed.
 
 ## Predicted vs actual
-Expected: 75 minutes. Actual: approximately 35 minutes, including prerequisite/path inspection, prior-attempt repair, and full verification.
+Expected: 75 minutes. Actual: approximately 45 minutes, including prior-attempt repair, race diagnosis, and full verification.
