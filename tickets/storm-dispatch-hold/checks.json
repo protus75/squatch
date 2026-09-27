@@ -1,0 +1,87 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "4f9b6ecd476b095ffbd6cd482d75e498394f70e9",
+  "stem": "storm-dispatch-hold",
+  "branch": "storm-dispatch-hold",
+  "base": "cc79ac51fd4009426c7c0ff5e7f93035b7191945",
+  "head": "4f9b6ecd476b095ffbd6cd482d75e498394f70e9",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/daemon.py",
+    "squatch/drain.py",
+    "squatch/storm.py",
+    "tests/test_storm.py",
+    "tests/test_storm_hold.py",
+    "tests/test_storm_notification_activation.py",
+    "tests/test_storm_producer.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_storm_hold.py",
+            "tests/test_storm.py",
+            "tests/test_storm_producer.py",
+            "tests/test_storm_notification_activation.py",
+            "tests/test_daemon_composition.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
