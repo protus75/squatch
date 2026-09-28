@@ -1,22 +1,29 @@
 ## Outcome
 
-implemented
+premise_failed
 
 ## Surprises / judgment calls
 
-Kept `tests/test_seeded_phase4_05.py` as the `phase5-continue-02` fixture: the
-new Phase 5 seeded test is sibling-new at this admission and cannot be Context.
+Section 20 names `scorecard-reporting` and its ownership fence but supplies no
+scorecard projection contract: no inputs, fields, or assertions. I did not
+invent that contract while both authored tickets must cite section 20 alone.
 
 ## Dead ends
 
+The prior-attempt paved road requires concrete scorecard assertions while
+restricting their authority to section 20. The cited section cannot supply
+them, so the requested scorecard ticket cannot be made falsifiable as written.
 
 ## Second problems filed
 
+Plan gap: add a section-20 scorecard derived-view/metrics contract with its
+inputs, exact projected fields, read-only behavior, and test assertions before
+retrying this admission.
 
 ## Resolved engine/model
 
-codex / gpt-5.6-terra
+codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 12m.
+Expected 75m; stopped during contract audit before implementation.
