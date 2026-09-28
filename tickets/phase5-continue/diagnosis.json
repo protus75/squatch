@@ -1,18 +1,9 @@
 {
-  "run_seq": 4,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Requisition review found plan gaps that no implementer can fix inside this fence (tickets + tests/test_seeded_phase5_01.py). Fix section 20 of the plan first, then re-author. Do not retry the ticket text as it stands.",
-    "Plan gap 1: section 20 gives only names, ownership and fences for status-projection and baseline-binding-reader. Their behavior lives in sections 19 and 13, which seeds may not cite. Section 20 must state that behavior before a seed can grant it.",
-    "Behavior section 20 must add for baseline-binding-reader: the ABSENT/NO_GO/GO/REVOKED precedence, never raising; torn-tail and empty-routing resolving to the supervised side; revocation on a spec-major change; and how registry and spec-major versions reach the reader.",
-    "Behavior section 20 must add for status-projection: its touchpoint-5 fields.",
-    "Plan gap 2: section 20 never states what status-projection and baseline-binding-reader depend on. Section 19 requires status to depend, at least transitively, on scorecard-reporting and retro-box-activation. Pin those edges in section 20.",
-    "The prior lesson naming squatch/policy.py as the starting-state caller was wrong: policy.py defines starting_state and go_binds. The only production caller is squatch/author.py:200 (go_binds at :204).",
-    "Tests monkeypatch squatch.author.go_binds (tests/test_author.py:324, tests/test_retro_box.py:375). The baseline-binding-reader fence must name squatch/author.py and those tests.",
-    "Keep what passed: scorecard-reporting ticket, registry rows, synthetic fixtures 16091/20072/8111, committing only tests/test_seeded_phase5_01.py, tickets left as uncommitted outbox files, run.md Outcome `ok`."
-  ],
-  "reason": "Requisition review showed that section 20, the only section these seeds may cite, lacks the behavior and dependency edges for the second-row seeds, so the plan must be fixed before this ticket can be satisfied.",
-  "detail": null
+  "run_seq": 5,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
