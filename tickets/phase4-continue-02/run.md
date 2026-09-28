@@ -1,27 +1,28 @@
 ## Outcome
 
-ok
+premise_failed
 
 ## Surprises / judgment calls
 
-The rendered max-effort prompt correctly refuses content over its hard bound, so the
-seed test temporarily lifts that bound only to measure and prove the on-demand
-exception exceeds requisition headroom. The engine delimiter is checked through
-`squatch.specs.DATA_MARKER`, allowing the established seeded-test Context to remain
-valid.
+The fixed ownership contract excludes the production composition and live-Timers
+lifetime seams that the provider behavior requires. I left the contract unchanged
+because the governing plan is outside this ticket's scope fence.
 
 ## Dead ends
 
-The initial ticket acceptance bullets did not all name their proving test, so ticket
-lint refused them; they were narrowed to name the relevant test artifact.
+The required focused verification cannot run on the untouched base because
+`tests/test_seeded_phase4_02.py` has not yet been authored. More importantly,
+`squatch/stages.py` and `squatch/merge.py` compose the pipeline registry, while
+`squatch/restart.py` and `squatch/daemon.py` own the live timers seam; none may be
+added to the required provider fence without changing the plan-owned contract.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity not exposed to the implementer).
+OpenAI Codex, model unknown.
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 15m.
+Expected 75m; actual approximately 5m.
