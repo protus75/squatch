@@ -1,15 +1,16 @@
 {
-  "run_seq": 6,
+  "run_seq": 8,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "reject",
   "lessons": [
-    "Requisition review rejected the authored provider ticket again. compose_pipeline gets a required shared payload with no dual path, which breaks callers outside the fence: tests/test_merge.py, tests/test_mergequeue.py, tests/test_daemon_composition.py, eval/shakeout/bench.py, eval/daemon_soak.py.",
-    "This ticket's Scope in pins the ownership contract verbatim from section 20. Widening the hooks to cover those callers is a plan edit. Retrying this ticket cannot fix it.",
-    "Plan fix, part 1: add every direct caller of compose_pipeline, Serve.compose and Session to provider-cooldown-failover's hooks, marked as measured on-demand exceptions. Then regenerate phase4-continue-02.",
-    "Plan fix, part 2: reword section 20 so bootstrap drain binds the single Timers created by restart_session/compose_daemon_timers. It must not construct a second one at the drain root, because test_restart_timers asserts exactly one owned Timers per session.",
-    "After the plan edit, keep the approved parts: registry suffix, edges, tiers, budgets, DATA_MARKER wording, measured headroom tests, and the phase3_01/phase3_08/phase4_01 migrations. Update the OWNERSHIP, ON_DEMAND and EXISTING_AT_AUTHORING tables in test_seeded_phase4_02.py."
+    "Requisition review rejected the authored provider ticket again. The test test_compose_builds_the_production_stages_from_config calls stages.compose directly with no shared payload, and its file is not in the fence.",
+    "A required payload on stages.compose breaks that unfenced test, which fails `uv run pytest -q`. A Registry(config) fallback (squatch/stages.py:1126) would be the forbidden dual path and a second registry.",
+    "Section 20 migrates only fenced callers of compose_pipeline, Serve and Session. It never names direct callers of stages.compose, so the author cannot widen the fence without breaking the plan.",
+    "Plan fix: add every direct caller of stages.compose to provider-cooldown-failover's hooks as measured on-demand exceptions. Also name stages.compose in the caller-migration sentence. Then regenerate phase4-continue-02.",
+    "Before the plan edit, grep for every direct caller of stages.compose, compose_pipeline, Serve.compose, Session and restart_session in tests/ and eval/. Close the whole caller set in one edit, not one caller per failed attempt.",
+    "Keep the approved parts: registry suffix, edges, tiers, budgets, DATA_MARKER wording, measured headroom tests, and the phase3_01, phase3_08 and phase4_01 migrations. Update OWNERSHIP, ON_DEMAND and ON_DEMAND_AT_AUTHORING in test_seeded_phase4_02.py."
   ],
-  "reason": "The ownership contract the ticket must preserve, taken from section 20, leaves out required compose_pipeline callers and implies a second Timers. Only a plan edit and regeneration can fix it.",
+  "reason": "The fence copies section 20 verbatim and leaves out direct callers of stages.compose, so the ticket cannot be met until the plan is fixed and the ticket re-authored.",
   "detail": null
 }
