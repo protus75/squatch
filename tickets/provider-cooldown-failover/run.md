@@ -2,24 +2,26 @@
 premise_failed
 
 ## Surprises / judgment calls
-The scope fence omits squatch/watchdog.py, the owner of the route lookup and cost-basis attribution that the prior review requires this attempt to fix. WatchdogLLM.call resolves before awaiting its initial workspace sample, then calls CliClient.call without passing that resolution. A cooldown reset across that await permits the client to choose another provider. Passing the chosen Resolved through that boundary requires changing squatch/watchdog.py; an implicit routing cache or replacement watchdog in a fenced module would be a shim around the unfenced owner. Stopped without changing implementation files or committing.
+The current plan section 20 and ticket include squatch/watchdog.py and explicitly require attempt-level failover, so neither prior blocker applies. The plan was checked before implementation edits. Reused the inspected prior shared-payload implementation on files proven unchanged since its base, retained the Registry-to-Refusal conversion, then added classified cost-free parking and a single Resolved handoff from WatchdogLLM to CliClient. The shakeout bench now uses the restart-owned payload too, rather than constructing per-pipeline Timers.
 
-The canonical plan already specifies attempt-granularity failover (section 6: "Failover granularity is the attempt, never mid-run"). The prior suggestion to retry another provider within the same call is not a new criterion and cannot override that rule. The plan's status was checked before any implementation edit; the concrete authoring defect is the missing watchdog owner in the fence.
+Committed implementation: 933abfd6075bcad44368062cf503e4b02c1ebaad. Production drain and serve tests prove single- and multi-candidate quota attempts harvest and retire without infra, retry, or diagnosis draws; repeated polls/restarts hold without redispatch; timer_fired precedes resumed dispatch. The watchdog boundary test proves the selected identity and cost remain consistent across an initial-sample cooldown expiry. Construction spies prove one Registry and one live journal-backed Timers instance per production session. Config refusal regressions cover triage, drain, and serve. No configured live providers were changed.
 
 ## Dead ends
-Reproduced the prior watchdog finding using the exact providers.py and timers.py sources from 9f2c01ac1818ec35316fb8a63f97fdecb1d84eea, loaded in memory through the Git seam, with the current WatchdogLLM. Armed Codex's cooldown, let the watchdog resolve Claude, advanced the injected clock through expiry during its initial sample, and invoked the client. The actual subprocess and result identity were codex/x-med, but watchdog._basis recorded {('claude', 'c-med'): 1.0}. The journal recorded timer_armed followed by timer_fired. No repository file was changed by this reproduction.
+Full verification cannot exit 0 inside the scope fence: tests/test_seeded_phase4_01.py:208, test_successor_provider_ownership_and_authoring_contract, expects the continuation ownership hooks without squatch/watchdog.py, while tickets/phase4-continue-02/ticket.md:48 already includes that owner. Both paths are outside this ticket's edit fence. The base assertion and its exact parsing helpers were loaded from base a5be2634814eff11607a00ddf6ae1f483ee83df7 through the Git seam and executed against the same base's ticket blob in memory, with file reads restricted to those immutable blobs. That reproduction exits 1 at the same ownership assertion; implementation code is not involved in the failing comparison. No base checkout or unfenced file was edited.
 
-Verification on untouched base 15569c195f478b5021fc7a3e856903de5c94da2c:
-- uv run pytest -q: exit 0; 1332 passed in 85.52 seconds.
-- uv run pytest tests/test_provider_cooldown_failover.py tests/test_providers.py tests/test_restart_timers.py tests/test_stages.py tests/test_serve.py tests/test_merge.py tests/test_mergequeue.py tests/test_daemon_composition.py -q: exit 4; the new test_provider_cooldown_failover.py does not exist on the base. No implementation was attempted after establishing the scope blocker.
+Final verification on the committed implementation's exact file contents:
+- uv run pytest tests/test_provider_cooldown_failover.py tests/test_providers.py tests/test_restart_timers.py tests/test_stages.py tests/test_serve.py tests/test_merge.py tests/test_mergequeue.py tests/test_daemon_composition.py -q: exit 0; 260 passed in 26.85 seconds.
+- uv run pytest -q: exit 1; 1346 passed, one failed in 90.58 seconds. The sole failure is the base ownership mismatch above.
 
-Paved road: include squatch/watchdog.py in the authoring fence so one resolved candidate can be shared explicitly by watchdog accounting and the CLI invocation, while preserving attempt-granularity failover and adding the cooldown-boundary regression in the already-fenced direct suite.
+During test development, corrected fixture serialization that emitted forbidden null config values and retained an absolute derived worktree root. A multi-candidate expiry test also exposed that a synchronous timer observation should fire all elapsed deadlines before selecting a candidate; Timers.pending now does so, with idempotent firing against its background tasks.
+
+Paved road: migrate tests/test_seeded_phase4_01.py's historical ownership expectation to include the already-authorized watchdog owner in a separately fenced change, then rerun full verification. Per the task's On-failure rule, the implementation is committed as far as it got; no tickets/ path was committed.
 
 ## Second problems filed
-None. The full untouched-base suite is green; the historical pre-existing failures do not reproduce on this base.
+Pre-existing failure in tests/test_seeded_phase4_01.py::test_successor_provider_ownership_and_authoring_contract, reproduced from base a5be2634814eff11607a00ddf6ae1f483ee83df7 blobs as detailed above. Left untouched because its owning path is outside the fence.
 
 ## Resolved engine/model
 OpenAI / GPT-6 (Codex); exact serving model identifier not exposed.
 
 ## Predicted vs actual
-Expected: 75 minutes. Actual: approximately 10 minutes for contract inspection, prior-finding reproduction, and untouched-base verification; stopped on the scope authoring defect.
+Expected: 75 minutes. Actual: approximately 12 minutes for inspection, implementation, focused and full verification, base-failure reproduction, and commit. Stopped on the out-of-fence verification blocker.
