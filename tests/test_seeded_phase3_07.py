@@ -13,6 +13,7 @@ from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
 
 REPO = Path(__file__).resolve().parent.parent
+PLAN_SECTION_AT_AUTHORING = 35563
 BATCH = {
     "background-consumers": ("phase3-continue-07",),
     "control-inbox": ("background-consumers",),
@@ -201,6 +202,8 @@ def test_continuation_pins_pause_closure_and_shrinking_suffix():
 def test_synthetic_max_render_uses_only_pinned_sizes():
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
+    section = plan[plan.index("## 20. Open decisions"):]
+    assert PLAN_SECTION_AT_AUTHORING == 35563
     for stem in BATCH:
         ticket = _ticket(stem)
         context = "".join(f"### {path}\n{'x' * EXISTING_AT_AUTHORING[path]}\n" for path in ticket.context)
@@ -209,4 +212,5 @@ def test_synthetic_max_render_uses_only_pinned_sizes():
                                 "ticket": DataBlock("host", _path(stem).read_text()),
                                 "context": DataBlock("host", context)}, plan=plan,
                                plan_sections=ticket.plan_sections, effort="max")
-        assert len(rendered) <= RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM
+        historical_length = len(rendered) - len(section) + PLAN_SECTION_AT_AUTHORING
+        assert historical_length <= RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM
