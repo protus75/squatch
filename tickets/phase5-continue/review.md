@@ -1,14 +1,15 @@
 ---
-verdict: approve
-reviewed_sha: 3220634d68a2f5a8bcbd447cbd3478751917bd3e
+verdict: snag
+reviewed_sha: 0c26b52c0fb1de32af5c6b3f2871c0e20d3af757
 produced_by_spec_version: '1.0'
-produced_at_sha: 3220634d68a2f5a8bcbd447cbd3478751917bd3e
+produced_at_sha: 0c26b52c0fb1de32af5c6b3f2871c0e20d3af757
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-The diff adds only the two first-row tickets and tests/test_seeded_phase5_01.py, all inside the fence. The scorecard ticket restates the section-20 projection contract from plan commit f400e2b field for field, and the pinned fixture sizes match the base commit (16091, 20072 and 8111 bytes). The test follows the merged Phase 4 seeded-test pattern, and every check in the report passed.
+Both authored tickets follow the ticket and section 20 exactly, and all checks are green. But `tests/test_seeded_phase5_01.py` leaves several required pins out: the owners of the later rows, and some of the closed scorecard model fields. It also stands in for them with assertions that compare a module constant to itself.
 
 ## Findings
-- none
+- correctness_review at tests/test_seeded_phase5_01.py:162: Acceptance criterion 4 requires the test to pin every later row's owner. Only baseline-binding-reader's Author caller/test fence is actually checked against the emitted continuation ticket. Nothing checks status-projection's `squatch/status.py`, `tests/test_status.py`, `squatch/box.py`, `tests/test_box.py`; retro-doctor-cli's `squatch/doctor.py`, `tests/test_doctor.py`, `squatch/retro.py`, `squatch/__main__.py`; phase5-continue-04's `tickets` + `tests/test_seeded_phase5_04.py`; phase5-exit's `tests/test_phase5_exit.py` and `tests/test_seeded_phase6_core.py`; or baseline's `squatch/journal.py`/`squatch/config.py`. A regenerated `phase5-continue-02` that dropped any of these owners would still pass. The `NEW_PATH_OWNERS == {...}` assert at line 162, and the matching `EXISTING_AT_AUTHORING == {...}` assert at line 104, compare a module constant to a copy of itself, so they prove nothing about any emitted ticket. (paved road: Assert each later row's ownership and fence text against `_section(CONTINUE, "Scope in")`: status-projection's status/box paths, baseline's journal/config paths, retro-doctor-cli's doctor/retro/__main__ paths, phase5-continue-04's `tickets` + `tests/test_seeded_phase5_04.py`, and phase5-exit's two test paths. Replace the self-equality asserts with checks that tie the constants to the emitted tickets, or delete them.)
+- correctness_review at tests/test_seeded_phase5_01.py:127: Acceptance criterion 3 requires the emitted scorecard ticket to pin section 20's closed model fields. The test only checks the prefixes `SurfaceScorecardRow(surface, evaluated_tickets, catches,` and `Scorecard(boundary, merged_ticket_count, spend_usd, tokens, signal_counts,`. As a result, `escapes`, `bypass_count`, `catch_rate`, `escape_rate`, `prune_candidate`, `gate_failure_count`, and `surfaces` could be dropped or renamed without failing the test. Several section-20 calculations are also never asserted: distinct-ticket counting for `evaluated_tickets`, non-bypassed `verdict: fail` catches, catch_rate as catches over all observations with zero when absent, and rows sorted by surface. The current ticket text is correct. What is missing is the guard against it changing. (paved road: Assert the full closed signatures against the ticket's Scope in, allowing for its line wrap: `SurfaceScorecardRow(surface, evaluated_tickets, catches,\nescapes, bypass_count, catch_rate, escape_rate, prune_candidate)` and the full `Scorecard(... gate_failure_count, surfaces)`. Add assertions for the distinct-ticket, non-bypassed-fail, catch_rate/zero-denominator, and sort-by-surface clauses.)
