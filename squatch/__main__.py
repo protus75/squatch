@@ -26,7 +26,7 @@ from typing import TextIO
 from uuid import UUID
 
 import squatch
-from squatch.box import Box, BoxCorruption
+from squatch.box import Box, BoxCorruption, journal_rereport_callback
 from squatch.config import ConfigError, load
 from squatch.control import ControlRequest, publish_control
 from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
@@ -206,7 +206,10 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
             retro = Retro(
                 repo=cwd, journal=session.journal, clock=clock, fs=fs, git=git,
                 effects=Effects(session.journal),
-                box=Box(cwd / config.state_dir, fs=fs, clock=clock), driver=driver,
+                box=Box(
+                    cwd / config.state_dir, fs=fs, clock=clock,
+                    rereport_callback=journal_rereport_callback(session.journal)),
+                driver=driver,
                 providers=session.providers, spec=spec, redact=redact)
 
             async def invoke(trigger, forced):

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Literal
 
 from squatch.artifacts import Finding
-from squatch.box import Box
+from squatch.box import Box, journal_rereport_callback
 from squatch.config import Config
 from squatch.control import ControlInbox
 from squatch.diagnose import Diagnoser, DiagnosisRecord
@@ -57,6 +57,9 @@ SEED_SAFETY_ROAD = ("re-run the stem: a lifted seed has no recorded approval for
                     "on main")
 REWORK_ROAD = ("let the daemon Rework consumer revise or split the ticket from the published "
                "conflict handoff, then dispatch the resulting ticket")
+RETRO_PROVENANCE = "retro_provenance"
+RETRO_PROVENANCE_ROAD = ("author the retro finding through Box so its unique journal bridge "
+                         "exists before merge")
 
 
 
@@ -173,7 +176,9 @@ class Merge:
         self._journal = journal
         self._log = log
         self._redact = redact
-        self._box = Box(self._repo / config.state_dir, fs=fs, clock=clock)
+        self._box = Box(
+            self._repo / config.state_dir, fs=fs, clock=clock,
+            rereport_callback=journal_rereport_callback(journal))
         # Inherit-minus-secrets: a verification command never sees a provider key.
         self._child_env = child_env(env, {p.auth for p in config.providers if p.auth})
 
@@ -196,12 +201,15 @@ class Merge:
             produced_by_spec_version=MERGE_VERSION, produced_at_sha=rebase["head"])
         invoice = await self._regate(ticket, candidate, worktree, run_seq)
         soft = list(invoice.soft_findings)
-        if not invoice.passed:
-            return self._blocked(stem, run_seq, list(invoice.hard_findings) + soft)
+        hard = list(invoice.hard_findings) + self._retro_provenance_findings(
+            ticket, invoice.changed_files)
+        if hard:
+            return self._blocked(stem, run_seq, hard + soft)
 
         commit = None
         if reviewed is not None and invoice.changed_files:
             commit = (await self._squash(ticket, invoice, reviewed, run_seq))["commit"]
+            self._record_retro_merge(ticket, commit, invoice.changed_files)
         await self._retire(stem, worktree, run_seq)
         self._journal.append("state_transition", {
             "to": "merged", "run_seq": run_seq, "commit": commit, "reviewed_sha": reviewed},
@@ -411,6 +419,60 @@ class Merge:
                         findings=[f.model_dump() for f in findings])
         return Admission("gate_failed", findings, None, None)
 
+    @staticmethod
+    def _changed_spec_paths(paths) -> tuple[str, ...]:
+        return tuple(sorted(path for path in paths
+                            if path.startswith("specs/") and path.endswith(".md")))
+
+    def _retro_bridges(self, stem: str):
+        return [event for event in self._journal.read()
+                if event.type == "signal"
+                and event.body.get("kind") == "retro_ticket_authored"
+                and event.body.get("ticket_stem") == stem]
+
+    def _retro_provenance_findings(self, ticket: Ticket, paths) -> list[Finding]:
+        if ticket.source != "box:retro_finding" or not self._changed_spec_paths(paths):
+            return []
+        bridges = self._retro_bridges(ticket.stem)
+        valid = (len(bridges) == 1
+                 and set(bridges[0].body) == {
+                     "kind", "box_id", "retro_report_key", "ticket_stem"}
+                 and all(isinstance(bridges[0].body.get(field), str)
+                         and bridges[0].body[field]
+                         for field in ("box_id", "retro_report_key", "ticket_stem")))
+        if valid:
+            return []
+        description = "missing" if not bridges else "ambiguous or malformed"
+        return [Finding(
+            code=RETRO_PROVENANCE, paved_road=RETRO_PROVENANCE_ROAD,
+            message=f"{description} retro provenance bridge for {ticket.stem}")]
+
+    def _record_retro_merge(self, ticket: Ticket, commit: str, paths) -> None:
+        changed = self._changed_spec_paths(paths)
+        if ticket.source != "box:retro_finding" or not changed:
+            return
+        findings = self._retro_provenance_findings(ticket, paths)
+        if findings:
+            raise ValueError(findings[0].message)
+        [bridge] = self._retro_bridges(ticket.stem)
+        key = f"retro-prompt-spec-change/{ticket.stem}/{commit}"
+        body = {"kind": "retro_prompt_spec_change_merged",
+                "box_id": bridge.body["box_id"],
+                "retro_report_key": bridge.body["retro_report_key"],
+                "ticket_stem": ticket.stem, "squash_sha": commit,
+                "changed_spec_paths": changed}
+        existing = [event for event in self._journal.read()
+                    if event.type == "signal" and event.key == key]
+        if existing:
+            persisted = dict(existing[0].body) if len(existing) == 1 else None
+            if persisted is not None and isinstance(
+                    persisted.get("changed_spec_paths"), list):
+                persisted["changed_spec_paths"] = tuple(persisted["changed_spec_paths"])
+            if persisted != body:
+                raise ValueError(f"conflicting retro merge signal {key}")
+            return
+        self._journal.append("signal", body, key=key)
+
 
 AdmissionMode = Literal["inline", "daemon"]
 
@@ -485,7 +547,9 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
             produced_by_spec_version=MERGE_VERSION, produced_at_sha=head)
         state.invoice = await merge._regate(
             state.ticket, state.slip, candidate.worktree, candidate.run_seq)
-        return state.invoice.hard_findings
+        return (list(state.invoice.hard_findings)
+                + merge._retro_provenance_findings(
+                    state.ticket, state.invoice.changed_files))
 
     async def integration_check(candidate: Candidate):
         state = queue.admission_state[candidate.stem, candidate.run_seq]
@@ -504,6 +568,8 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
         if state.reviewed_head is not None and state.invoice.changed_files:
             state.commit = (await merge._squash(
                 state.ticket, state.invoice, state.reviewed_head, candidate.run_seq))["commit"]
+            merge._record_retro_merge(
+                state.ticket, state.commit, state.invoice.changed_files)
 
     queue = compose_merge_queue(
         repo=repo, config=config, env=env, journal=journal, process=process, fs=fs, git=git,

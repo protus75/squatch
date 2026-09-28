@@ -8,7 +8,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from squatch.artifacts import Artifact
-from squatch.box import Box, Message
+from squatch.box import Box, Message, journal_rereport_callback
 from squatch.config import Config
 from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects
@@ -170,7 +170,9 @@ class Triage:
         self._log = log
         self._redact = redact
         self._report = report
-        self._box = Box(self._repo / config.state_dir, fs=fs, clock=clock)
+        self._box = Box(
+            self._repo / config.state_dir, fs=fs, clock=clock,
+            rereport_callback=journal_rereport_callback(journal))
 
     async def run(self, spec: Spec) -> None:
         # Local import avoids making the artifact type shared by these two
@@ -276,6 +278,14 @@ class Triage:
     async def _apply(self, message: Message, verdict: Artifact) -> None:
         record_id = f"{verdict.verdict}-{message.seq:06d}"
         if isinstance(verdict, TriageTombstone):
+            matched = next((record for record in load_records(self._repo)
+                            if record.id == verdict.link and record.kind == "tombstone"), None)
+            if matched is not None:
+                self._box.record_rereport(matched.message, incoming_id=message.id)
+                self._box.resolve(message.id, status="tombstoned", link=matched.id,
+                                  note=verdict.rationale)
+                self._report(f"triage: {message.id}: tombstoned as {matched.id}")
+                return
             record = Record(id=record_id, kind="tombstone", link=verdict.link,
                             reopen_after_days=verdict.reopen_after_days, message=message.id,
                             body=verdict.rationale)

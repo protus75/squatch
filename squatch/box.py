@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, 
 
 from squatch.config import ConfigError, load
 from squatch.git import Git, GitError
-from squatch.journal import render_ts
+from squatch.journal import Journal, render_ts
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.providers import child_env
 from squatch.seams import Clock, Filesystem, LocalFilesystem, SubprocessExec
@@ -35,6 +35,10 @@ MessageClass = Literal[
 Status = Literal["pending", "authored", "tombstoned", "decided"]
 BugOrigin = Literal["self_diagnosed", "player"]
 OccurrenceRecorder = Callable[..., bool]
+RereportCallback = Callable[["Message"], None]
+
+REREPORT_REOPEN_THRESHOLD = 3
+REREPORT_PAVED_ROAD = "rerun through a journal-backed Squatch command"
 
 _SIGNATURE = re.compile(r"\A[0-9a-f]{64}\Z")
 _BOX_ID = re.compile(r"\Abox-(\d{6})-([0-9a-f]{8})\Z")
@@ -45,6 +49,12 @@ _DIGITS = re.compile(r"\d+")
 
 class BoxCorruption(ValueError):
     """A malformed or unreadable durable box record; readers never skip it."""
+
+
+class RereportCallbackRequired(RuntimeError):
+    """A tombstone reached its reopen threshold without a journal writer."""
+
+    paved_road = REREPORT_PAVED_ROAD
 
 
 class Resolution(BaseModel):
@@ -76,6 +86,13 @@ class Message(BaseModel):
     resolution: Resolution | None = None
     triage: dict | None = None
     reports: int = Field(default=1, ge=1)
+    reopened_from_tombstone: StrictBool = False
+    pending_threshold_reopen: StrictBool = False
+    rereport_ids: tuple[str, ...] = ()
+    retro_report_key: str | None = None
+    fixed_failure: str | None = None
+    overcorrection_risk: str | None = None
+    proposed_spec_paths: tuple[str, ...] | None = None
 
     @field_validator("signature")
     @classmethod
@@ -99,6 +116,15 @@ class Message(BaseModel):
                 raise ValueError("bug_report requires bug_origin and has_repro")
         elif supplied:
             raise ValueError("bug_origin and has_repro are allowed only on bug_report")
+        retro = (self.retro_report_key, self.fixed_failure, self.overcorrection_risk,
+                 self.proposed_spec_paths)
+        if self.message_class == "retro_finding":
+            if (any(value is None for value in retro)
+                    or not all(isinstance(value, str) and value for value in retro[:3])
+                    or not self.proposed_spec_paths):
+                raise ValueError("retro_finding requires complete retro proposal provenance")
+        elif any(value is not None for value in retro):
+            raise ValueError("retro proposal provenance is allowed only on retro_finding")
         return self
 
 
@@ -148,12 +174,14 @@ def signature(message_class: str, origin: str, stage: str | None, outcome: str |
 
 class Box:
     def __init__(self, state_dir: Path, *, fs: Filesystem, clock: Clock,
-                 occurrence_recorder: OccurrenceRecorder | None = None):
+                 occurrence_recorder: OccurrenceRecorder | None = None,
+                 rereport_callback: RereportCallback | None = None):
         self._state_dir = Path(state_dir).resolve()
         self.dir = self._state_dir / "box"
         self._fs = fs
         self._clock = clock
         self._occurrence_recorder = occurrence_recorder
+        self._rereport_callback = rereport_callback
 
     def _records(self) -> list[tuple[Path, Message]]:
         if not self.dir.is_dir():
@@ -177,16 +205,16 @@ class Box:
     def enqueue(self, *, message_class: str, summary: str, detail: str, origin: str,
                 stage: str | None = None, outcome: str | None = None,
                 run_seq: int | None = None, bug_origin: BugOrigin | None = None,
-                has_repro: bool | None = None) -> Enqueued:
+                has_repro: bool | None = None, retro_report_key: str | None = None,
+                fixed_failure: str | None = None, overcorrection_risk: str | None = None,
+                proposed_spec_paths: tuple[str, ...] | None = None) -> Enqueued:
         sig = signature(message_class, origin, stage, outcome, detail)
         records = self._records()
         duplicate = next(((path, message) for path, message in records
                           if message.signature == sig), None)
         if duplicate is not None:
-            path, message = duplicate
-            message = message.model_copy(update={"reports": message.reports + 1})
-            self._replace(path, message)
-            self._record_occurrence(message)
+            _, message = duplicate
+            self.record_rereport(message.id)
             return Enqueued(message.id, True)
         seq = max((message.seq for _, message in records), default=0) + 1
         sig8 = sig[:8]
@@ -197,12 +225,62 @@ class Box:
             id=f"box-{seq:06d}-{sig8}", seq=seq, signature=sig,
             message_class=message_class, summary=summary, detail=detail, origin=origin,
             bug_origin=bug_origin, has_repro=has_repro,
+            retro_report_key=retro_report_key, fixed_failure=fixed_failure,
+            overcorrection_risk=overcorrection_risk,
+            proposed_spec_paths=proposed_spec_paths,
             stage=stage, outcome=outcome, run_seq=run_seq,
             enqueued_at=render_ts(self._clock()), status="pending", resolution=None,
             triage=None, reports=1)
         self._fs.write(path, message.model_dump_json(indent=2).encode())
         self._record_occurrence(message)
         return Enqueued(message.id, False)
+
+    def record_rereport(self, id: str, *, incoming_id: str | None = None) -> Message:
+        """Count one arrival and reopen a threshold tombstone write-ahead."""
+        for path, message in self._records():
+            if message.id != id:
+                continue
+            # Only an explicitly refused reopen retries without incrementing.
+            # A semantic arrival's receipt lives in the same atomic replacement
+            # as its count, so resolving the incoming message can safely retry.
+            if message.pending_threshold_reopen:
+                updated = message
+            elif incoming_id is not None and incoming_id in message.rereport_ids:
+                return message
+            else:
+                updated = message.model_copy(update={
+                    "reports": message.reports + 1,
+                    "rereport_ids": (message.rereport_ids + (incoming_id,)
+                                     if incoming_id is not None else message.rereport_ids),
+                })
+            if (message.pending_threshold_reopen
+                    or (message.status == "tombstoned"
+                        and not message.reopened_from_tombstone
+                        and updated.reports >= REREPORT_REOPEN_THRESHOLD)):
+                if self._rereport_callback is None:
+                    self._replace(path, updated.model_copy(update={
+                        "pending_threshold_reopen": True,
+                    }))
+                    self._record_occurrence(updated)
+                    raise RereportCallbackRequired(
+                        f"{id} reached the tombstone rereport threshold; "
+                        f"paved road: {REREPORT_PAVED_ROAD}")
+                self._rereport_callback(updated)
+                updated = updated.model_copy(update={
+                    "status": "pending", "resolution": None,
+                    "reopened_from_tombstone": True,
+                    "pending_threshold_reopen": False,
+                })
+                if (message.pending_threshold_reopen and incoming_id is not None
+                        and incoming_id not in message.rereport_ids):
+                    updated = updated.model_copy(update={
+                        "reports": updated.reports + 1,
+                        "rereport_ids": updated.rereport_ids + (incoming_id,),
+                    })
+            self._replace(path, updated)
+            self._record_occurrence(updated)
+            return updated
+        raise KeyError(id)
 
     def _record_occurrence(self, message: Message) -> None:
         if message.origin.startswith(STORM_BREAKER_ORIGIN):
@@ -244,6 +322,8 @@ class Box:
                 "status": status,
                 "resolution": Resolution(link=link, note=note,
                                          resolved_at=render_ts(self._clock())),
+                "reopened_from_tombstone": (
+                    False if status == "authored" else message.reopened_from_tombstone),
             })
             self._replace(path, resolved)
             return resolved
@@ -265,6 +345,22 @@ class Box:
         temp = path.with_name(f".{path.name}.replace")
         self._fs.write(temp, message.model_dump_json(indent=2).encode())
         self._fs.replace(temp, path)
+
+
+def journal_rereport_callback(journal: Journal) -> RereportCallback:
+    """Build the one write-ahead tombstone reopen callback."""
+    def record(message: Message) -> None:
+        key = f"tombstone-reopen/{message.id}/{message.reports}"
+        body = {"kind": "tombstone_auto_reopened", "box_id": message.id,
+                "signature": message.signature, "reports": message.reports}
+        existing = [event for event in journal.read()
+                    if event.type == "signal" and event.key == key]
+        if existing:
+            if any(event.body != body for event in existing):
+                raise BoxCorruption(f"journal key {key} conflicts with its rereport body")
+            return
+        journal.append("signal", body, key=key)
+    return record
 
 
 def enqueue_second_problems(box: Box, run_record: str | Path, *, stem: str, stage: str,
@@ -359,6 +455,10 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
         return 2
     try:
         result = ingest(Box(state_dir, fs=LocalFilesystem(), clock=_now), source)
+    except RereportCallbackRequired as e:
+        print(f"refused: cannot ingest into {state_dir / 'box'}: {e}", file=sys.stderr)
+        print(f"  paved road: {REREPORT_PAVED_ROAD}", file=sys.stderr)
+        return 2
     except (ValueError, OSError) as e:
         print(f"refused: cannot ingest into {state_dir / 'box'}: {e}", file=sys.stderr)
         print("  paved road: repair or remove the named corrupt box message, or fix the "

@@ -60,7 +60,8 @@ def review_reply(verdict, *messages, summary=None):
 
 
 def setup_author(repo, llm, *, message_class="suggestion", config_text=None,
-                 bug_origin=None, has_repro=None, message_update=None):
+                 bug_origin=None, has_repro=None, message_update=None,
+                 enqueue_kwargs=None):
     if config_text is not None:
         (repo / "config.yaml").write_text(config_text)
     config = load(None, cwd=repo)
@@ -69,7 +70,7 @@ def setup_author(repo, llm, *, message_class="suggestion", config_text=None,
     box = Box(repo / STATE, fs=fs, clock=lambda: T0)
     message_id = box.enqueue(message_class=message_class, summary="request parser",
                              detail="raw details", origin="test", bug_origin=bug_origin,
-                             has_repro=has_repro).id
+                             has_repro=has_repro, **(enqueue_kwargs or {})).id
     box.record_triage(message_id, verdict().model_dump(mode="json"))
     reports = []
 

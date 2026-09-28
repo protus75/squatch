@@ -9,7 +9,8 @@ from typing import Generic, TypeVar, cast
 from uuid import UUID, uuid4
 
 from squatch.config import Config, Tier, snapshot
-from squatch.box import Box, STORM_BREAKER_ORIGIN, scoped_occurrence_recorder
+from squatch.box import (Box, STORM_BREAKER_ORIGIN, journal_rereport_callback,
+                         scoped_occurrence_recorder)
 from squatch.checkpoint import Checkpoint
 from squatch.control import ControlInbox, ControlRequest, Mutation
 from squatch.driver import Driver
@@ -292,7 +293,8 @@ def compose_daemon_storm_producer(*, state_dir: Path, journal: Journal,
     """Temporarily bind the lock holder's occurrence producer to its Box."""
     ledger = StormLedger(journal=journal)
 
-    box = Box(state_dir, fs=fs, clock=clock)
+    box = Box(state_dir, fs=fs, clock=clock,
+              rereport_callback=journal_rereport_callback(journal))
 
     def repair() -> None:
         for crossing in ledger.crossings():

@@ -6,7 +6,7 @@ from pathlib import Path
 from pydantic import Field, field_validator
 
 from squatch.artifacts import Artifact
-from squatch.box import Box, Message
+from squatch.box import Box, Message, journal_rereport_callback
 from squatch.config import Config
 from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects
@@ -142,7 +142,9 @@ class Author:
         self._log = log
         self._redact = redact
         self._report = report
-        self._box = Box(self._repo / config.state_dir, fs=fs, clock=clock)
+        self._box = Box(
+            self._repo / config.state_dir, fs=fs, clock=clock,
+            rereport_callback=journal_rereport_callback(journal))
 
     async def run(self, spec: Spec, message: Message, verdict: TriageAuthor, *,
                   pass_number: int, sha: str) -> str | None:
@@ -197,7 +199,8 @@ class Author:
             events = tuple(self._journal.read())
             state = starting_state(
                 self._config, message_class=message.message_class, bug_origin=bug_origin,
-                has_repro=has_repro, fence=parsed.scope_fence, reopened=False,
+                has_repro=has_repro, fence=parsed.scope_fence,
+                reopened=message.reopened_from_tombstone,
                 bypass=bool(parsed.gate_bypass), go_binds=go_binds(self._config, events))
         except Exception as e:
             self._report_failure(message, e)
@@ -206,6 +209,8 @@ class Author:
         intake = Intake(repo=self._repo, git=self._git, journal=self._journal, fs=self._fs)
         try:
             self._fs.write(path, authored.ticket.encode())
+            if message.message_class == "retro_finding":
+                self._record_retro_bridge(message, authored.stem)
             await intake.commit(
                 authored.stem, source=f"box:{message.message_class}", state=state)
         except Exception as e:
@@ -221,6 +226,18 @@ class Author:
                           note=verdict.summary)
         self._report(f"author: {message.id}: authored as {authored.stem}")
         return authored.stem
+
+    def _record_retro_bridge(self, message: Message, stem: str) -> None:
+        key = f"retro-ticket/{stem}"
+        body = {"kind": "retro_ticket_authored", "box_id": message.id,
+                "retro_report_key": message.retro_report_key, "ticket_stem": stem}
+        existing = [event for event in self._journal.read()
+                    if event.type == "signal" and event.key == key]
+        if existing:
+            if len(existing) != 1 or existing[0].body != body:
+                raise ValueError(f"ambiguous retro provenance bridge {key}")
+            return
+        self._journal.append("signal", body, key=key)
 
     def _record_review(self, message: Message, verdict: RequisitionSnag | RequisitionRMA) -> None:
         triage = dict(message.triage or {})

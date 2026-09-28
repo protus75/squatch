@@ -5,6 +5,8 @@ ordinary Driver, rendered to Markdown, and committed straight to the reserved
 ticket-plane report lane. It is not an OUTBOX or a persisted JSON artifact.
 """
 
+import hashlib
+import json
 import re
 from collections import Counter
 from datetime import datetime, timedelta
@@ -271,7 +273,25 @@ class Retro:
                 self._repo, f"squatch(retro): {seq}", [rel.as_posix()])
             return {"commit": sha, "path": rel.as_posix()}
 
-        await self._effects.run(action, key=effect_key("retro", seq), ticket=None)
+        report_key = effect_key("retro", seq)
+        await self._effects.run(action, key=report_key, ticket=None)
+        for proposal in artifact.proposals:
+            identity = proposal_id(
+                report_key, proposal.fixed_failure, proposal.overcorrection_risk,
+                proposal.proposed_spec_paths)
+            detail = json.dumps({
+                "retro_report_key": report_key,
+                "fixed_failure": proposal.fixed_failure,
+                "overcorrection_risk": proposal.overcorrection_risk,
+                "proposed_spec_paths": proposal.proposed_spec_paths,
+            }, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+            self._box.enqueue(
+                message_class="retro_finding", summary=proposal.fixed_failure,
+                detail=detail, origin=f"retro-proposal/{report_key}/{identity}",
+                stage="retro", outcome="ok", retro_report_key=report_key,
+                fixed_failure=proposal.fixed_failure,
+                overcorrection_risk=proposal.overcorrection_risk,
+                proposed_spec_paths=proposal.proposed_spec_paths)
 
     def _failed(self, boundary: str, trigger: str, error_code: str,
                 detail: str | None) -> None:
@@ -301,6 +321,16 @@ class Retro:
             message_class="failure_report", summary=summary,
             detail=f"{identity}: {bounded}", origin=identity,
             stage="retro", outcome="infra_error")
+
+
+def proposal_id(retro_report_key: str, fixed_failure: str, overcorrection_risk: str,
+                proposed_spec_paths: tuple[str, ...]) -> str:
+    """Return the stable compact identity for one report proposal."""
+    encoded = json.dumps(
+        [retro_report_key, fixed_failure, overcorrection_risk,
+         sorted(proposed_spec_paths)],
+        ensure_ascii=False, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()[:16]
 
 
 def render_report(seq: str, trigger: str, window: RetroWindow,

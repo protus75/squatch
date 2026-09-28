@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Protocol
 
 from squatch.artifacts import OUTCOMES, Finding
-from squatch.box import Box
+from squatch.box import Box, journal_rereport_callback
 from squatch.caps import INFRA_CAP, PREMISE_BOUNCE_CAP, consume
 from squatch.config import Config
 from squatch.diagnose import DIAGNOSIS_FILE, DiagnosisRecord
@@ -295,7 +295,9 @@ class Runner:
     async def _dead_dependents(self, dead: str, journal: Journal,
                                events: tuple[Event, ...]) -> int:
         merged = merged_stems(events)
-        box = Box(self.state_dir, fs=self._fs, clock=self._clock)
+        box = Box(
+            self.state_dir, fs=self._fs, clock=self._clock,
+            rereport_callback=journal_rereport_callback(journal))
         count = 0
         for dependent in on_disk_stems(self._repo):
             if dependent == dead or dependent in merged:
@@ -358,7 +360,9 @@ class Runner:
                     outcome=outcome, stage=delivery.stage, reason=delivery.reason,
                     findings=delivery.findings, cost=delivery.cost,
                     wall_seconds=max(0.0, (self._clock() - started).total_seconds()),
-                    box=Box(self.state_dir, fs=self._fs, clock=self._clock),
+                    box=Box(
+                        self.state_dir, fs=self._fs, clock=self._clock,
+                        rereport_callback=journal_rereport_callback(journal)),
                     redact=self._log._redact)
                 await lift_ticket_files(
                     repo=self._repo, git=self._git, fs=self._fs, effects=Effects(journal),

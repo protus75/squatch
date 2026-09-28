@@ -42,7 +42,7 @@ import squatch
 from squatch.artifacts import (DAEMON_SOAK_REPORT, RELIABILITY_BATTERY_REPORT, OUTCOMES,
                                Artifact, ClosedModel, Cost, DaemonSoakReport, Finding,
                                ReliabilityBatteryReport, StageResult)
-from squatch.box import Box
+from squatch.box import Box, journal_rereport_callback
 from squatch.config import Config, Severity
 from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects, effect_key, latest_terminal
@@ -561,7 +561,9 @@ class Stages:
         self.implement_spec = load_spec(self._specs_dir / "implement.md")
         self.review_spec = load_spec(self._specs_dir / "review.md")
         state = self._repo / config.state_dir
-        self._box = Box(state, fs=fs, clock=clock)
+        self._box = Box(
+            state, fs=fs, clock=clock,
+            rereport_callback=journal_rereport_callback(self._effects.journal))
         self._spool = Spool(state, fs=fs, redact=redact)
         self._driver = Driver(llm=llm, spool=self._spool, log=log,
                               clock=clock, retry_cap=config.caps.retry,
