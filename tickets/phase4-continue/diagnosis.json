@@ -1,20 +1,17 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "watchdog-activation: state the drain notification contract. Either _drain builds the config.notify SubprocessNotifications transport and runs NotificationReconciler.reconcile at startup and after each dispatch, or drain trips stay status-only and the drain criterion says so.",
-    "watchdog-activation: name the journal signal the binding appends on a soft trip and on stuck. Give its kind and its body fields: ticket, spiral, run_seq.",
-    "watchdog-activation: say whether the new signal reuses kind: watchdog. Add the soft and stuck identities to NotificationReconciler._escalations, keyed ticket+spiral+run_seq and ticket+stuck.",
-    "watchdog-activation: make the migration of test_notify.py::test_unrelated_signals_and_hold_release_do_not_notify unconditional. Keep a proof that an unrecognized watchdog-kind body does not notify.",
-    "watchdog-detector: state the spend unit exactly. The cost basis is an injected USD float, and metered spend sums WatchdogEvent.usd. Token counts are kept but never compared. No token-to-USD conversion.",
-    "watchdog-detector: make the flat per-call estimate an explicit injected detector input, in USD.",
-    "watchdog-detector: define 'provider without metered usage' mechanically, e.g. an injected per-provider flag or 'no event of the invocation carries usd'. Add an acceptance assertion for a tokens-only stream.",
-    "Update tests/test_seeded_phase4_01.py phrase assertions to the revised wording.",
-    "Keep everything reviewers accepted: identities, edges, medium/medium tiers, budgets, fences, Context/on-demand partition, sizes, delimiter scanning, registry rows, successor removal, headroom.",
-    "Rerun requisition lint on a tree without this diff's files, then rerun both pytest commands."
+    "watchdog-activation: name the binding mechanism inside the fence. Use a watchdog-owned LLM wrapper in squatch/watchdog.py that forwards on_event to CliClient.call, installed where compose builds the Stages LLMEffect. Stages.run supplies the per-run ticket and run_seq.",
+    "watchdog-activation: LLMEffect._call passes no on_event, Driver.__init__ takes no callback, and LLMRequest has no run_seq. Either route around all three with the wrapper, or fence squatch/driver.py and squatch/llmeffect.py and state the exact change allowed.",
+    "watchdog-activation: add squatch/providers.py to the Scope fence as an on-demand exception and keep the Scope out ban on changing CliClient.call. Or drop the exception claim and call providers.py read-only preservation Context.",
+    "watchdog-activation criteria: replace 'the drain path' as a prover with a named test file. Put drain binding and per-dispatch reconciliation proofs in tests/test_watchdog_activation.py, or fence tests/test_drain.py as on-demand and cite it.",
+    "Commit all three authored ticket files with the test. diff_stat again shows tickets/watchdog-detector, watchdog-activation, and phase4-continue-02 as untracked, so they are lost from a clean branch.",
+    "Update tests/test_seeded_phase4_01.py OWNERSHIP, ON_DEMAND, and phrase assertions to the revised activation fence and wording. Rerun requisition lint on a tree without this diff's new files, then both pytest commands.",
+    "Keep everything reviewers accepted: identities, edges, medium/medium tiers, budgets, registry rows, successor-row removal, Context sizes, delimiter scanning, headroom, and the detector USD contract."
   ],
-  "reason": "Requisition review found fixable spec gaps in the authored watchdog tickets: the drain notify path, the trip signal shape, and the spend unit. A clarified retry closes them.",
+  "reason": "Sixth attempt; each medium-capability pass fixes the last findings and review then finds new buildability gaps in watchdog-activation's binding path. More capability should help it close the design in one pass.",
   "detail": null
 }
