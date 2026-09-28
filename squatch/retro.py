@@ -110,6 +110,7 @@ class RetroWindow(Artifact):
     gate_failures: tuple[str, ...]
     spend_usd: float = Field(ge=0)
     tokens: int = Field(ge=0)
+    check_observations: tuple[tuple[str, str, str, bool], ...] = ()
 
 
 def retro_stage(spec: Spec) -> LLMStage:
@@ -189,7 +190,35 @@ class Window:
             spend_usd=sum(float(cost.get("usd") or 0) for cost in costs),
             tokens=sum(int(cost.get("input_tokens") or 0) + int(cost.get("output_tokens") or 0)
                        for cost in costs),
+            check_observations=self._check_observations(),
             produced_by_spec_version=spec_version, produced_at_sha=sha)
+
+    def _check_observations(self) -> tuple[tuple[str, str, str, bool], ...]:
+        observations: list[tuple[str, str, str, bool]] = []
+        for event in self.events:
+            if event.type != "effect_completion":
+                continue
+            parts = (event.key or "").split("/")
+            if len(parts) != 3 or parts[0] != "check" or not all(parts[1:]):
+                continue
+            result = event.body.get("result")
+            invoice = result.get("invoice") if isinstance(result, dict) else None
+            checks = invoice.get("checks") if isinstance(invoice, dict) else None
+            if not isinstance(checks, list):
+                continue
+            invoice_observations: list[tuple[str, str, str, bool]] = []
+            for check in checks:
+                if (not isinstance(check, dict)
+                        or not isinstance(check.get("code"), str)
+                        or not check["code"]
+                        or check.get("verdict") not in {"pass", "fail"}
+                        or type(check.get("bypassed")) is not bool):
+                    invoice_observations = []
+                    break
+                invoice_observations.append(
+                    (parts[1], check["code"], check["verdict"], check["bypassed"]))
+            observations.extend(invoice_observations)
+        return tuple(observations)
 
     def _signal_counts(self) -> Counter[str]:
         counts: Counter[str] = Counter({
@@ -335,6 +364,8 @@ def proposal_id(retro_report_key: str, fixed_failure: str, overcorrection_risk: 
 
 def render_report(seq: str, trigger: str, window: RetroWindow,
                   artifact: RetroArtifact) -> str:
+    from squatch.scorecard import project_scorecard, render_report as render_scorecard
+
     counts = window.signal_counts
     lines = [
         f"# Retro {seq}", "", f"- Trigger: `{trigger}`",
@@ -348,6 +379,7 @@ def render_report(seq: str, trigger: str, window: RetroWindow,
         f"- Gate-failed terminals: {counts.get(TRIGGER_GATE_FAILURE, 0)}",
         f"- Integration-red admissions: {counts.get(TRIGGER_INTEGRATION_RED, 0)}",
         f"- Metered spend: ${window.spend_usd:.6f}; tokens: {window.tokens}", "",
+        render_scorecard(project_scorecard(window)).rstrip(), "",
         "## Summary", "", artifact.summary, "", "## Observations", "",
     ]
     lines.extend(f"- {item}" for item in artifact.observations)
