@@ -104,11 +104,12 @@ reorder, add, omit, or split a registry payload.
 - `tests/test_seeded_phase4_02.py` pins exactly the two authored identities, dependency edges, section-20-only contracts, high/high provider tier, medium/medium continuation tier, bounded budgets, and the ownership fences.
 - `tests/test_seeded_phase4_02.py` proves every existing fence path is existing Context or an explicitly measured on-demand exception, predecessor-test closure, new-path ownership, sibling-new and delimiter-bearing Context exclusion, authoring-time Context sizes, and max-effort render below REQ_RENDER_HEADROOM.
 - `tests/test_seeded_phase4_02.py` proves the complete finite ordered suffix, three-seed cap, numbered continuation sequence, removal of only the first row, and terminal phase4-exit-only admission without a successor.
-- The three corrective predecessor tests pass while preserving their non-render and non-ownership assertions; the Phase 3 checks use pinned authoring-time section-20 sizes rather than the later expanded plan.
+- `uv run pytest tests/test_seeded_phase3_01.py tests/test_seeded_phase3_08.py tests/test_seeded_phase4_01.py -q` passes while preserving the predecessor tests' non-render and non-ownership assertions; the Phase 3 checks use pinned authoring-time section-20 sizes rather than the later expanded plan.
 
 ## Verification
 ```
 uv run pytest tests/test_seeded_phase4_02.py -q
+uv run pytest tests/test_seeded_phase3_01.py tests/test_seeded_phase3_08.py tests/test_seeded_phase4_01.py -q
 uv run pytest -q
 ```
 
