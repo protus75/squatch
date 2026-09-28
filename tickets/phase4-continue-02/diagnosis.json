@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snagged only on test rigor; tickets, registry, edges, tiers, budgets and fences were approved. Keep both authored tickets and fix only tests/test_seeded_phase4_02.py.",
+    "Measure the ON_DEMAND exception: add authoring-time sizes for squatch/drain.py, serve.py, __main__.py to a table and assert the max-effort render of Context plus ON_DEMAND exceeds RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM.",
+    "Keep the existing assertion that the render with only Context fits under the headroom limit.",
+    "Check delimiter exclusion by content, following tests/test_seeded_phase4_01.py:148-150: read each Context file not owned or hooked by a sibling and assert specs.DATA_MARKER is not in it.",
+    "Keep the explicit squatch/specs.py exclusion. Remove the wrong comment claiming test_seeded_phase4_01.py contains DATA_MARKER. Check such facts in the file before writing them."
+  ],
+  "reason": "Two fixable test gaps; the reviewer gave concrete paved roads and the authored tickets were approved.",
+  "detail": null
+}
