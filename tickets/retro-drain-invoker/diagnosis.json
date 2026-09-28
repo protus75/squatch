@@ -1,17 +1,17 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "Review snagged on test coverage and a silent no-op, not on design. Keep retro.py, Window folding, suppression and the Drain hook points, and fix only the two findings.",
-    "Add tests in tests/test_retro.py that drive main([\"drain\"]) or _drain end to end: merge then quiescence gives exactly one tickets/retro/000001.md commit on main, effect key retro/000001, lockfile held during the commit.",
-    "Prove the rebind after self-upgrade: a handoff child running _drain must get a bound retro hook. Test it through the existing upgrade-handoff path, not a hand-built Drain.",
-    "retro_factory returns False silently when stages._driver is missing. That fails open. Expose the Driver through an explicit public accessor on the composed pipeline or Stages, and raise a construction error when it is absent.",
-    "Likely cause of the untouched regression suites: scripted test pipelines have no stages._driver, so the forced post-merge retro silently never fired. Once missing-driver fails closed, run each named suite and migrate only its listed assertion.",
-    "Drop the private runner attributes _retro_pipelines and _retro_prebuilt, which are probed from _drain. Pass the shared pipeline and Driver in through an explicit seam.",
-    "The run record must list each named regression suite and its migrated assertion. If a suite truly shows no change, give the concrete reason the forced retro does not fire there."
+    "Keep retro.py, the Window fold, suppression, the Drain hook points, specs/retro.md and the Driver capture. Review found no design defect in them. Fix only the two findings.",
+    "Remove the retro_enabled opt-in from _drain and from the main() docstring. Bind retro_factory unconditionally. A knob that only tests use is a second production path, and review rejects it.",
+    "An injected pipeline with no Driver must fail closed or be given a real Driver. Do not let it silently turn the retro off. That is how every named suite skipped the forced post-merge retro twice.",
+    "Run each named regression suite with the hook bound. Migrate only its listed assertion for the one forced post-merge retro: call count, Box count, journal sequence or main history. Leave all other assertions as they are.",
+    "Build Retro once in retro_factory and load specs/retro.md at bind time. invoke should only return await retro.run(trigger, forced=forced), so every attempt-time failure goes through Retro._failed.",
+    "Do not repeat the suppression and merge checks from Retro.run inside invoke. Add a test that a failure during an attempt writes one retro_failed signal and one failure_report, then suppresses the window.",
+    "The run record must name each regression suite and its migrated assertion. 'No change needed' is acceptable only if the forced retro really fires there and the listed assertion is unaffected."
   ],
-  "reason": "Reviewer findings are specific, fixable oversights (missing _drain-level tests, silent no-op driver lookup, unmigrated regression suites); design is otherwise sound and scope unchanged.",
+  "reason": "Two attempts in a row avoided the required hook binding and suite migration, despite explicit steering, so more capability is needed.",
   "detail": null
 }
