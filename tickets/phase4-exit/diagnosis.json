@@ -1,9 +1,14 @@
 {
-  "run_seq": 9,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 10,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Requisition review found only two fixable omissions in retro-drain-invoker. Its Scope in list of fenced measured on-demand exceptions leaves out tests/test_driver.py and tests/test_box.py. Add both by path to that exact list.",
+    "Keep retro-drain-invoker's Context exactly as it is: squatch/driver.py, squatch/git.py, squatch/box.py and tests/test_seeded_phase4_02.py. No plan edit is needed. The fix stays inside the tickets fence.",
+    "The seeded test passed even though the two paths were missing, because it only checks that each path appears somewhere in Scope in. Extract the on-demand exceptions sentence and assert every INVOKER_ON_DEMAND and ACTIVATION_ON_DEMAND path appears in that sentence.",
+    "Before you finish, check every fenced existing path in all three tickets. Each one must be either in Context or named individually in the on-demand exceptions list. This keeps review from finding the same gap in retro-box-activation."
+  ],
+  "reason": "The only findings are two missing path names in one ticket's on-demand exceptions list. Each has a clear fix inside the fence, so a retry at the same capability can fix it.",
+  "detail": null
 }
