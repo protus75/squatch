@@ -1,26 +1,16 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-The reliability battery has no writer callable. The no-code ticket therefore
-pins serialization of only `run()`'s returned closed model into its OUTBOX,
-and defines the forbidden direct write as hand-authored or edited content.
+Kept `squatch/stages.py` as a measured on-demand Context exception so the reliability-run render remains within headroom; the ticket names its ordinary-lane role.
 
 ## Dead ends
-
-The first focused test run exposed two acceptance criteria without an observable
-artifact. I bound them to the report path and existing battery test, then the
-ticket linter and focused seed test passed.
+The initial terminal continuation repeated its own admission row; the seeded proof exposed that the successor must retain only `phase4-exit`.
 
 ## Second problems filed
 
-
 ## Resolved engine/model
-
-OpenAI Codex / GPT-5
+OpenAI / Codex (model identifier unavailable)
 
 ## Predicted vs actual
-
-Expected 75m; actual about 20m.
+Expected 75m; actual approximately 20m.
