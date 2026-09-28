@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The established Phase 4 fixture contains delimiter literals while documenting their exclusion; the new historical fixture therefore proves exclusion by Context path, rather than treating its own assertions as a prompt source.
+The measured all-Context synthetic render exceeds the renderer's hard bound, so the test temporarily raises only that refusal ceiling to measure the max-effort payload and prove it exceeds the real headroom threshold.
 
 ## Dead ends
-The first ticket draft wrapped acceptance-criteria bullets across physical lines, which ticket lint rejects. The criteria were rewritten as single bullets before verification.
+Rendering the Context plus on-demand paths at the normal maximum bound refused before returning a size; the scoped synthetic measurement resolves that refusal.
 
 ## Second problems filed
 
 ## Resolved engine/model
-codex / GPT-5
+OpenAI Codex; serving model not exposed.
 
 ## Predicted vs actual
-Expected 75m; actual approximately 15m.
+Expected 75m; actual about 18m.
