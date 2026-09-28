@@ -1,16 +1,15 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "reject",
   "lessons": [
-    "Requisition review found the section 20 fence still too narrow, even after the plan edit that added stages.py and merge.py. The paved road is to fix the plan, then re-author the ticket. Retrying the authoring ticket alone cannot fix this.",
-    "compose_pipeline builds its own Registry(config) in stages.compose. A default that falls back to it is a forbidden dual path, so the shared payload must be a required parameter. That breaks unfenced callers in eval/shakeout/bench.py and eval/daemon_soak.py.",
-    "The required payload parameter also breaks unfenced test callers: tests/test_merge.py, tests/test_mergequeue.py and tests/test_daemon_composition.py.",
-    "Serve.compose and the Session/restart_session changes also reach unfenced callers: tests/test_serve.py and eval/daemon_soak.py. Only tests/test_restart_timers.py is fenced.",
-    "Plan fix: add every direct caller of compose_pipeline, Serve.compose and Session to section 20's provider-cooldown-failover hooks, as measured on-demand exceptions. The alternative is to choose a signature that forbids no existing caller. Then regenerate.",
-    "Keep the approved parts: registry suffix, edges, tiers, budgets, DATA_MARKER wording, measured headroom assertions, and the predecessor-test migrations in phase3_01, phase3_08 and phase4_01. Update the OWNERSHIP and ON_DEMAND tables to match the widened hooks."
+    "Requisition review rejected the authored provider ticket again. compose_pipeline gets a required shared payload with no dual path, which breaks callers outside the fence: tests/test_merge.py, tests/test_mergequeue.py, tests/test_daemon_composition.py, eval/shakeout/bench.py, eval/daemon_soak.py.",
+    "This ticket's Scope in pins the ownership contract verbatim from section 20. Widening the hooks to cover those callers is a plan edit. Retrying this ticket cannot fix it.",
+    "Plan fix, part 1: add every direct caller of compose_pipeline, Serve.compose and Session to provider-cooldown-failover's hooks, marked as measured on-demand exceptions. Then regenerate phase4-continue-02.",
+    "Plan fix, part 2: reword section 20 so bootstrap drain binds the single Timers created by restart_session/compose_daemon_timers. It must not construct a second one at the drain root, because test_restart_timers asserts exactly one owned Timers per session.",
+    "After the plan edit, keep the approved parts: registry suffix, edges, tiers, budgets, DATA_MARKER wording, measured headroom tests, and the phase3_01/phase3_08/phase4_01 migrations. Update the OWNERSHIP, ON_DEMAND and EXISTING_AT_AUTHORING tables in test_seeded_phase4_02.py."
   ],
-  "reason": "Section 20's fixed provider-cooldown-failover fence omits callers that the required shared-payload composition must change, so the ticket as written cannot be satisfied until the plan is fixed.",
+  "reason": "The ownership contract the ticket must preserve, taken from section 20, leaves out required compose_pipeline callers and implies a second Timers. Only a plan edit and regeneration can fix it.",
   "detail": null
 }
