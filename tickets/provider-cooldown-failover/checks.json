@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "7e71b0d86eb395ced1042fc45801027f148cb597",
+  "produced_at_sha": "9f2c01ac1818ec35316fb8a63f97fdecb1d84eea",
   "stem": "provider-cooldown-failover",
   "branch": "provider-cooldown-failover",
-  "base": "2eaa0a6d555b6b1068441fd7cb59941f35c0c442",
-  "head": "7e71b0d86eb395ced1042fc45801027f148cb597",
+  "base": "e4d3c85ace20f174d6f043baa95e82d57a047258",
+  "head": "9f2c01ac1818ec35316fb8a63f97fdecb1d84eea",
   "changed_files": [
     "eval/daemon_soak.py",
     "eval/shakeout/bench.py",
