@@ -1,14 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8587d154ee44aa3134e710bf1b0491a74c53c361",
+  "produced_at_sha": "8ebcab50b1331e0ab1c8138ad9c0d4ef7bbd6a22",
   "stem": "phase4-continue-02",
   "branch": "phase4-continue-02",
-  "base": "c6e2ee4bb0984e15cd2516133ad8e8a34f631ded",
-  "head": "8587d154ee44aa3134e710bf1b0491a74c53c361",
+  "base": "79c25083020bd8c8423bc6a1102aad1d15ad4331",
+  "head": "8ebcab50b1331e0ab1c8138ad9c0d4ef7bbd6a22",
   "changed_files": [
     "tests/test_seeded_phase3_01.py",
     "tests/test_seeded_phase3_08.py",
+    "tests/test_seeded_phase3_10.py",
     "tests/test_seeded_phase4_01.py",
     "tests/test_seeded_phase4_02.py"
   ],
@@ -18,7 +19,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-03/ticket.md",
-      "sha": "0181bb24c3ffa4824f7469731f72cc3a373e19a3",
+      "sha": "aef08f1cbc131e26513f9558881e328a59e321d2",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -28,14 +29,14 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/provider-cooldown-failover/ticket.md",
-      "sha": "5a703b12d0110f6e37b274758778354d90566d02",
+      "sha": "0db0d04fcb17cb4da297ddd1ef094ce7555fa290",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/provider-cooldown-failover/ticket.md",
-          "line": 1136,
-          "message": "`test_compose_builds_the_production_stages_from_config` calls `stages.compose(repo=..., config=..., env=..., journal=..., clock=..., process=..., fs=..., git=...)` with no shared payload. The ticket's Scope in requires `stages.compose` to receive the shared registry/cooldown payload instead of building its own Registry (squatch/stages.py:1126 does `Registry(config)` today). Making the payload required breaks this unfenced test, which fails the `uv run pytest -q` Verification. Making it optional with a Registry fallback would be the dual-path, second-registry construction the ticket's Definition of rejected forbids. Section 20 marks its Provider/failover ownership list as the sole core-fence authority and says only the fenced `compose_pipeline`/`Serve`/`Session` callers migrate. It never mentions direct `stages.compose` callers, so the author cannot add this file to the fence without departing from the plan.",
+          "line": null,
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"approve\", \"summary\": \"The fence exactly matches section 20\\'s provider-cooldown-failover ownership, and the scope and criteria are the machinery that section grants. A grep found every direct `compose_pipeline`, `stages.compose`, `Serve`, `Session`, and `_triage_pass` caller inside the fence; the unfenced tests only wrap those functions with pass-through kwargs, so the criteria can all be met together within render headroom.\", \"findings\": []}\\n```'",
           "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
@@ -78,6 +79,7 @@
             "pytest",
             "tests/test_seeded_phase3_01.py",
             "tests/test_seeded_phase3_08.py",
+            "tests/test_seeded_phase3_10.py",
             "tests/test_seeded_phase4_01.py",
             "-q"
           ],
@@ -91,8 +93,8 @@
             "pytest",
             "-q"
           ],
-          "attribution": "base",
-          "filed": "box-000269-42d1360c"
+          "attribution": null,
+          "filed": null
         }
       ]
     },
