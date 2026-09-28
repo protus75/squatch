@@ -42,22 +42,32 @@ Author exactly confirmed `retro-drain-invoker`, `retro-box-activation`, and
 expected/stuck budgets within `drain.max_ticket_minutes`. `retro-drain-invoker`
 depends on `phase4-exit`, is KNOWN-DEEP high/high, owns/fences new
 `squatch/retro.py`, `specs/retro.md`, and `tests/test_retro.py`, plus existing
-`squatch/drain.py`, `squatch/driver.py`, `squatch/artifacts.py`,
-`squatch/stages.py`, `tests/test_drain.py`, `tests/test_driver.py`, and
-`tests/test_stages.py`; its Context is `squatch/driver.py`,
-`squatch/artifacts.py`, and `tests/test_seeded_phase4_02.py`, with drain/stages
-modules and their tests measured on-demand exceptions. `retro-box-activation`
+`squatch/drain.py`, `squatch/driver.py`, `squatch/__main__.py`,
+`squatch/box.py`, `tests/test_drain.py`, `tests/test_driver.py`, and
+`tests/test_box.py`; its Context is `squatch/driver.py`, `squatch/git.py`,
+`squatch/box.py`, and `tests/test_seeded_phase4_02.py`, with the production
+roots and large suites measured on-demand. It writes
+`tickets/retro/<seq>.md` directly in main through the ticket-plane Git/Effects
+seam under the writer lock, never through the ordinary OUTBOX artifact lift;
+it binds the default-off hook in `squatch/__main__.py::_drain` and pins section
+20's exact N/M/S triggers, forced merge-since-report boundaries, and
+single-message window-suppressed failure route. `retro-box-activation`
 depends on `retro-drain-invoker`, is KNOWN-DEEP high/high, owns/fences
 predecessor-new `squatch/retro.py`, existing `squatch/box.py`,
 `squatch/merge.py`, `tests/test_box.py`, and `tests/test_merge.py`, plus new
 `tests/test_retro_box.py`; its Context is `squatch/box.py`,
 `tests/test_box.py`, and `tests/test_seeded_phase4_02.py`, with merge code/tests
 measured on demand and predecessor-new paths excluded from authoring-time Context.
+It pins section 20's exact `retro_prompt_spec_change_merged` key, body,
+provenance fields, `specs/*.md` predicate, and successful merge emit point.
 `phase5-continue` depends on `retro-box-activation`, is medium/medium, owns only
 `tickets` plus new `tests/test_seeded_phase5_01.py`, and embeds
 `tests/test_seeded_phase4_05.py`; sibling-new core paths are never Context.
-This regenerated revision follows the successful `phase4-continue-05` merge;
-that embedded predecessor Context now exists on main and must be preserved.
+It states that merged `squatch/retro.py` and `tests/test_retro.py` are Context
+for `scorecard-reporting` (or measured on-demand), while only scorecard code,
+its test, and the next seeded test are sibling-new. This regenerated revision
+follows the successful `phase4-continue-05` merge and section 20 runtime-contract
+repair; that embedded predecessor Context now exists on main and is preserved.
 
 Carry this complete finite ordered admission registry:
 ```yaml
@@ -82,6 +92,7 @@ or rename, reorder, add, omit, combine, or split the Phase 5 core or suffix.
 ## Acceptance criteria
 - `tests/test_phase4_exit.py` proves the committed report parses as `ReliabilityBatteryReport`, has the closed three-member order, and every member is green before Phase 5 core authoring.
 - `tests/test_seeded_phase5_core.py` pins the exact three core identities, edges, tiers, budgets, fences, Context partitions, predecessor-new and sibling-new exclusions, measured authoring-time sizes, bounded render, and fixed finite Phase 5 suffix.
+- `tests/test_seeded_phase5_core.py` proves the invoker's CLI binding, direct reserved report lane, exact trigger/forced/failure semantics, the activation signal contract, and the scorecard's then-merged Context partition from section 20.
 
 ## Verification
 ```
