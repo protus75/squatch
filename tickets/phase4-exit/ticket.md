@@ -58,6 +58,10 @@ single-message window-suppressed failure route. Its model dependency is the
 existing `Driver` running an `LLMStage` named `retro` from `specs/retro.md`
 through the session's shared provider/cooldown payload; the closed emitted
 artifact and Markdown renderer live locally in `squatch/retro.py`.
+The authored ticket enumerates every measured exception by path, including
+`squatch/drain.py`, `squatch/__main__.py`, `tests/test_drain.py`,
+`tests/test_driver.py`, `tests/test_box.py`, and each named regression suite;
+it never substitutes a category phrase such as "all production roots."
 
 `retro-box-activation`
 depends on `retro-drain-invoker`, is KNOWN-DEEP high/high, owns/fences
@@ -65,9 +69,10 @@ the complete section-20 activation fence across retro, Box, Merge, Author,
 triage, policy, stages/runner, daemon/drain/serve/CLI composition, their named
 tests, and new `tests/test_retro_box.py`. Its embedded Context is exactly
 `squatch/box.py`, `tests/test_box.py`, `squatch/author.py`,
-`tests/test_author.py`, and `tests/test_seeded_phase4_02.py`; the other existing
-fence paths are measured on-demand and predecessor-new retro paths are excluded
-at authoring. It pins the stable per-proposal SHA-256 identity and Box origin,
+and `tests/test_seeded_phase4_02.py`; `tests/test_author.py` and the other
+existing fence paths are individually named measured on-demand exceptions,
+and predecessor-new retro paths are excluded at authoring. It pins the stable
+per-proposal SHA-256 identity and Box origin,
 the shared enqueue/semantic-triage `record_rereport` path, journal-before-reopen
 callback wiring, one-shot draft override, the `retro_ticket_authored` Author
 bridge, and section 20's exact `retro_prompt_spec_change_merged` key, body,
