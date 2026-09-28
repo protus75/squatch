@@ -1,16 +1,15 @@
 {
-  "run_seq": 13,
+  "run_seq": 14,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review approved the tickets, registry, edges, tiers, budgets, fences, and the phase3_01, phase3_08, phase3_10 and phase4_01 migrations. Keep them unchanged. Fix only tests/test_seeded_phase4_02.py, and do not re-author the tickets.",
-    "Add a PREDECESSOR table for tests outside the fence: test_watchdog.py:101 and test_kill_cli_activation.py:259 (compose_pipeline), and test_storm_notification_activation.py:59 (compose_daemon_timers). Each wraps via original(**kwargs), a passthrough that survives the migration.",
-    "tests/test_seeded_phase3_06.py:273 pins the compose_pipeline signature text inside the merge-queue-activation ticket's Scope in, not live code. Classify it as ticket-text-only and safe. Assert every PREDECESSOR is either in the provider scope_fence or uses a kwargs passthrough.",
-    "Build PREDECESSOR from a grep of tests/ and eval/ for stages.compose, compose_pipeline, compose_daemon_timers, restart_session, Serve and Session. Assert the fenced callers (test_serve, test_merge, test_mergequeue, test_daemon_composition, test_restart_timers, test_stages) are in the provider fence.",
-    "Headroom proof: add SECTION_20_CHARS_AT_AUTHORING, measured from '## 20.' to the '\\n## ' at base adafe69. Substitute a same-size section 20 using the Phase 3 helper, and keep the final newline. Never shrink the pin to make the test pass.",
-    "DATA_MARKER scan: skip Context paths that any OWNERSHIP entry owns or hooks (providers.py, timers.py, test_providers.py, test_restart_timers.py), following test_seeded_phase4_01's mutable_paths exclusion. Keep the explicit squatch/specs.py exclusion."
+    "Review approved the tickets, registry, edges, tiers, budgets, fences, headroom proof, and the phase3_01/08/10 and phase4_01 migrations. Keep them unchanged. Fix only tests/test_seeded_phase4_02.py.",
+    "Delimiter scan: remove the `- mutable_paths` exclusion. Assert specs.DATA_MARKER (\"<<<squatch:\", squatch/specs.py:37) is absent from every Context path of both seeds. All five Context files contain no DATA_MARKER today, so the scan will pass.",
+    "This replaces the earlier lesson to skip mutable owned/hooked paths. That exclusion left the check running on nothing for provider-cooldown-failover.",
+    "Delete the no-op `assert PREDECESSOR == {...}` self-equality. Replace it with a real check: grep tests/ and eval/ for callers of compose_pipeline/compose_daemon_timers/stages.compose. Assert each caller is either in provider.scope_fence or is a PREDECESSOR key.",
+    "Keep the per-path classification checks (original(**kwargs) passthrough, ticket-text-only). Do not re-author tickets or widen anything else."
   ],
-  "reason": "Both review findings are fixable test-rigor oversights in one fenced file, and the paved roads are concrete and verified.",
+  "reason": "Review snagged only on two fixable test-rigor defects in tests/test_seeded_phase4_02.py: a delimiter scan that skips all provider Context, and a self-equality no-op.",
   "detail": null
 }
