@@ -1,9 +1,15 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review found exactly one issue: the diff removed the `try/except ConfigError -> Refusal(\"config: ...\", \"fix the named provider or routing row in config.yaml\")` around `Registry(config)` in `__main__._triage_pass`. Put it back at the new construction site.",
+    "`Registry(config)` now runs inside the `compose_daemon_restart` providers lambda, which executes when the restart session is entered under the lock. `_locked` only converts GitError, so a bad routing or provider row now crashes `triage`, `drain`, and `serve` with an uncaught traceback.",
+    "Fix: build `Registry(config)` once before the restart session is entered, for example in `_locked` or `_RestartRunner.session`. Convert ConfigError to the same Refusal there, then pass the prebuilt Registry into `compose_daemon_restart` so there is still only one registry payload.",
+    "Add a test to tests/test_provider_cooldown_failover.py: `triage` given a routing row that passes `load()` but fails Registry validation returns the Refusal with its paved road. Consider the same test for drain and serve session entry.",
+    "Everything else passed review and checks. Keep the ProviderRuntime design, the single Timers lifetime, and the shared-payload caller migration unchanged; change only the error handling."
+  ],
+  "reason": "The only blocker is one review finding (a lost ConfigError-to-Refusal handler) with a clear fix inside the fence; all mechanical checks passed.",
+  "detail": null
 }
