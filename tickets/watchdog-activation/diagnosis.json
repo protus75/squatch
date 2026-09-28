@@ -1,17 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "escalate",
+  "verdict": "retry",
   "lessons": [
-    "Tests must drive main(['drain']) and main(['serve']) with a fake ProcessExec that emits stream-json events and an injected clock. Calling compose_pipeline(watchdog=True) directly does not prove the roots bind the wrapper.",
-    "Assert that Implement and Review calls both reach the detector through the roots, with the correct ticket stem and run_seq in the signal body.",
-    "Add drain reconciliation tests. Reconcile must run before the first dispatch and after every dispatch. A configured notify must use SubprocessNotifications with no provider auth keys in its env. Unset notify must warn once and send nothing.",
-    "Stuck proof: a process hangs past ticket.stuck_minutes under the injected clock. LLMEffect's stuck_seconds aborts through WatchdogLLM.abort_current into CliClient.abort_current, the process group is cleaned up, the stuck signal is appended once, and the run unwinds as before.",
-    "Git status in _call's finally misses committed work. Diff base...HEAD plus the worktree instead, or use the filesystem seam, so committed edits count as progress.",
-    "Never let the mutation observation raise out of a finally block; it would replace the driver's original exception.",
-    "Keep what already passed: the notify identities, the Drain reconcile_notifications wiring, WatchdogLLM without a detector abort, and the Stages bind/clear. Most of the remaining work is root-level tests plus the mutation fix."
+    "Keep what passed review: drain/serve root binding via compose_pipeline(watchdog=...), Stages bind/clear, notify soft/stuck identities, Drain reconcile_notifications at startup and after each dispatch, root-level activation tests. Fix only the two review findings.",
+    "Stuck signal can be dropped: _call_started is set after resolve/slot, and LLMEffect's timer can fire slightly early. Start the clock at WatchdogLLM.call entry, or write the stuck signal whenever abort_current runs on a bound in-flight call. Don't gate it on exact elapsed >= budget.",
+    "Add a stuck test that uses LLMEffect's real clock/sleep pairing, or a sleep that advances slightly under the budget. A fake sleep that advances exactly the budget hides the early-fire shortfall.",
+    "Remove Registry.slot and its asyncio.Semaphore from providers.py. A new concurrency gate is forbidden reliability machinery, and providers.py is fenced for binding support only.",
+    "Cap waits: supply an empty interval list when no real provider-cap wait happens in the Stages call path. If no production wait source exists in the fence (thresh.py owns concurrency and is unfenced), file that gap to the Suggestion Box. Don't build a gate."
   ],
-  "reason": "A second attempt missed the same root-level drain/serve, reconciliation and stuck-unwind proofs even though prior lessons named them, so more capability is needed rather than another same-tier retry.",
+  "reason": "Two concrete, fixable review snags (stuck-signal timing tolerance, a forbidden new semaphore gate) on an otherwise green, correctly bound implementation; the same capability can fix them.",
   "detail": null
 }
