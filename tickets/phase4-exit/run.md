@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The required `phase5-continue` Context path `tests/test_seeded_phase4_05.py` is absent from both HEAD and the worktree. I treated the ticket's requirement that Context name existing files, and the validator's fail-closed enforcement of that requirement, as controlling rather than emitting a ticket that intake must reject.
+The prior attempt's missing `tests/test_seeded_phase4_05.py` premise is now resolved on this branch. I treated all existing fenced paths omitted from the exact embedded Context as measured on-demand exceptions, including `tests/test_driver.py`, and kept predecessor-new `squatch/retro.py` out of `retro-box-activation` Context while retaining it in that activation's fence.
 
 ## Dead ends
-Implementing the required Phase 5 core would require either naming a nonexistent Context path or adding `tests/test_seeded_phase4_05.py`. The former fails `squatch.tickets._lint_context`; the latter is outside this ticket's scope fence.
+The first read-only committed-blob check encoded the Git blob header separator as a literal backslash-zero and failed its checksum assertion. Replacing it with the actual zero byte proved the report is committed and all three typed entries are green before ticket authoring.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ Implementing the required Phase 5 core would require either naming a nonexistent
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 10m before the authoring premise was disproved.
+Expected 75m; actual approximately 25m.
