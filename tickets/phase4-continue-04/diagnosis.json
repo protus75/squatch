@@ -1,17 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "phase4-exit fence: `tickets` plus new `tests/test_phase4_exit.py` and `tests/test_seeded_phase5_core.py`, both in NEW_PATH_OWNERS under phase4-exit. Never let phase4-exit own `tests/test_seeded_phase4_05.py`; that file belongs only to phase4-continue-05.",
-    "Name phase4-exit's exact Context in phase4-continue-05 Scope in: committed `tickets/reliability-run/reliability-battery-report.json`, `squatch/artifacts.py`, `eval/reliability_battery.py`, `tests/test_reliability_battery.py`, and one merged seeded test such as `tests/test_seeded_phase4_02.py`.",
-    "Record authoring-time sizes for the phase4-exit Context paths that exist now. The report is sibling-new, so treat it as a new-path, not measured Context.",
-    "reliability-run has no canonical writer; `eval/reliability_battery.py` exposes only `run()`. Specify: call `eval.reliability_battery.run(repo=<worktree>)`, write `model_dump_json()` of the returned report to the OUTBOX path, uncommitted, for the stage-terminal lift.",
-    "In reliability-run, define a forbidden 'direct write' as hand-authored or edited report content, or any content not returned by `run()`. Update Scope in, the criteria, Definition of rejected, and the test's phrase pins to match.",
-    "Add `squatch/artifacts.py` (RELIABILITY_BATTERY_REPORT schema) to reliability-run Context. Add `squatch/stages.py` (KNOWN_ARTIFACTS, OUTBOX lift) too, or name it as a measured on-demand exception. Render was 54,825 of 120,000, so there is room.",
-    "Update `tests/test_seeded_phase4_04.py` CONTEXT, EXISTING_AT_AUTHORING, OWNERSHIP, and NEW_PATH_OWNERS to match the revised tickets. Re-run ticket lint and the max-effort render headroom check."
+    "Merge re-gate failed only because tickets/reliability-run/ticket.md and tickets/phase4-continue-05/ticket.md were committed on the branch. tickets/** never rides the code lane: write both files but leave them uncommitted in the OUTBOX, and the driver lifts them.",
+    "Commit only tests/test_seeded_phase4_04.py (plus the run record). Before finishing, run git status and confirm the two new ticket files are untracked or unstaged.",
+    "Review approved the content, and scope_fence, verification, run_record and diff_budget all passed. Reuse the prior diff for both ticket bodies and the test as-is. Do not redesign anything.",
+    "The test reads the ticket files from the working tree, so it still passes locally while they stay uncommitted. Keep those reads working-tree-relative and do not require the files to be in git."
   ],
-  "reason": "Requisition review found fixable authoring gaps (phase4-exit fence and Context, unclear writer wording, missing lift evidence), and each has a concrete paved road at the same capability.",
+  "reason": "Every check passed and review approved. The only failure was a fixable commit-lane oversight: the outbox ticket files were committed instead of being left for the driver to lift.",
   "detail": null
 }
