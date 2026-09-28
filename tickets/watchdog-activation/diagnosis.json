@@ -1,0 +1,16 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "tests/test_watchdog_activation.py must build through the real drain/serve roots via compose_pipeline(watchdog=True), with a fake ProcessExec emitting stream events and an injected clock/fs. Run Stages.run so implement AND review pass through Driver/LLMEffect. Direct wrapper calls are rejected.",
+    "Add activation tests for: healthy/no-page; one soft signal and one page per run, with abort count 0; a fresh run_seq pages again; stuck keeps the LLMEffect hard-timeout unwind with a spiral: stuck body; drain reconciles at startup and after each dispatch; unset notify warns once and sends nothing.",
+    "Supply provider-cap waits in production. Nothing calls WatchdogLLM.observe_cap_wait. Route the registry/provider cap-wait interval into it without changing CliClient.call, then test that the wait is subtracted from elapsed.",
+    "Remove the detector-driven abort_current in WatchdogLLM._assess, or prove it. Leave the kill to LLMEffect's existing stuck_seconds path and record only the stuck signal, so there is no second hard-kill path.",
+    "In test_notify.py, prove replay: a fresh reconciler over the same journal sends nothing. Prove retry: a failing transport, then a later reconcile, delivers once. Two stuck signals with different run_seq give one page; two soft signals give two.",
+    "Replace the source-grep dormancy migration in test_watchdog.py. Compose the drain/serve pipeline and assert the Stages LLMEffect.llm is a WatchdogLLM wrapping the CliClient. Also assert default compose_pipeline leaves Stages._watchdog as None."
+  ],
+  "reason": "The production wiring is mostly in place and scoped correctly. The failures are missing proofs, an unwired cap-wait feed, and a duplicate abort path: fixable oversights the review findings steer precisely.",
+  "detail": null
+}
