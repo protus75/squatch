@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "5fef99aa558aa746e647a2fce6b5d1f97fbb7ee8",
+  "produced_at_sha": "2efea39042b6ec73b5b1cbecf4fd23c24acdc6d8",
   "stem": "phase4-continue-05",
   "branch": "phase4-continue-05",
-  "base": "f8833877d25f7326f14e848a6a8ed337f668b021",
-  "head": "5fef99aa558aa746e647a2fce6b5d1f97fbb7ee8",
+  "base": "b606fba3e368c2eda6b567101e03979e89421c7b",
+  "head": "2efea39042b6ec73b5b1cbecf4fd23c24acdc6d8",
   "changed_files": [
     "tests/test_seeded_phase4_05.py"
   ],
