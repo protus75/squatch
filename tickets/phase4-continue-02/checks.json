@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8ebcab50b1331e0ab1c8138ad9c0d4ef7bbd6a22",
+  "produced_at_sha": "e8f59787207bbdb20eb8e1d404a7287e70d73db1",
   "stem": "phase4-continue-02",
   "branch": "phase4-continue-02",
-  "base": "79c25083020bd8c8423bc6a1102aad1d15ad4331",
-  "head": "8ebcab50b1331e0ab1c8138ad9c0d4ef7bbd6a22",
+  "base": "c5b2e9d2843c732f474045dfae9db58f456b51a3",
+  "head": "e8f59787207bbdb20eb8e1d404a7287e70d73db1",
   "changed_files": [
     "tests/test_seeded_phase3_01.py",
     "tests/test_seeded_phase3_08.py",
@@ -19,27 +19,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-03/ticket.md",
-      "sha": "aef08f1cbc131e26513f9558881e328a59e321d2",
+      "sha": "1055bb82cee89a614193b5889139a8665d401b26",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/provider-cooldown-failover/ticket.md",
-      "sha": "0db0d04fcb17cb4da297ddd1ef094ce7555fa290",
+      "sha": "f960e8711de21e51f4bec94a87f69d00c0f9a836",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/provider-cooldown-failover/ticket.md",
-          "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"approve\", \"summary\": \"The fence exactly matches section 20\\'s provider-cooldown-failover ownership, and the scope and criteria are the machinery that section grants. A grep found every direct `compose_pipeline`, `stages.compose`, `Serve`, `Session`, and `_triage_pass` caller inside the fence; the unfenced tests only wrap those functions with pass-through kwargs, so the criteria can all be met together within render headroom.\", \"findings\": []}\\n```'",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
