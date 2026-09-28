@@ -1,15 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "run.md `## Outcome` must be exactly one Outcome value (e.g. `ok`), never `implemented`; keep all six required sections.",
-    "scorecard-reporting criteria must be falsifiable: name the scorecard function in squatch/scorecard.py, the exact fields it projects from retro/journal evidence, that it is a pure read-only projection, and what tests/test_scorecard.py asserts.",
-    "Say explicitly in scorecard-reporting whether squatch/retro.py and tests/test_retro.py may change. If not, mark them preservation-only and require tests/test_retro.py to pass unchanged as regression evidence.",
-    "Both tickets must still cite section 20 alone. Base the scorecard criteria on section 20 text. If section 20 does not define scorecard content, record premise_failed and file a plan-gap item; do not cite another section.",
-    "Update tests/test_seeded_phase5_01.py to pin the new concrete criteria and the retro preservation statement. Keep the registry, edges, fences, Context partition and synthetic size fixtures, which passed."
-  ],
-  "reason": "The check gate failed on ticket wording that can be fixed (vague criteria, unclear retro edit rights) and on a run.md Outcome value outside the allowed list. Nothing shows the ticket is impossible to satisfy.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
