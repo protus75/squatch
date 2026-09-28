@@ -1,16 +1,27 @@
 ## Outcome
+
 ok
 
 ## Surprises / judgment calls
-The measured all-Context synthetic render exceeds the renderer's hard bound, so the test temporarily raises only that refusal ceiling to measure the max-effort payload and prove it exceeds the real headroom threshold.
+
+The rendered max-effort prompt correctly refuses content over its hard bound, so the
+seed test temporarily lifts that bound only to measure and prove the on-demand
+exception exceeds requisition headroom. The engine delimiter is checked through
+`squatch.specs.DATA_MARKER`, allowing the established seeded-test Context to remain
+valid.
 
 ## Dead ends
-Rendering the Context plus on-demand paths at the normal maximum bound refused before returning a size; the scoped synthetic measurement resolves that refusal.
+
+The initial ticket acceptance bullets did not all name their proving test, so ticket
+lint refused them; they were narrowed to name the relevant test artifact.
 
 ## Second problems filed
 
+
 ## Resolved engine/model
-OpenAI Codex; serving model not exposed.
+
+OpenAI Codex (model identity not exposed to the implementer).
 
 ## Predicted vs actual
-Expected 75m; actual about 18m.
+
+Expected: 75m. Actual: about 15m.
