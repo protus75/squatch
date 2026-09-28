@@ -1,15 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Requisition review of the authored phase4-exit ticket failed on plan gaps, not on implementer error. Retrying against the current plan would force the implementer to invent Phase 5 seeds.",
-    "Section 20 has no Phase 5 core registry (seed stems, owners, fences, tiers, depends, Context). The only partition is in section 19's Phase 4 Emits, which phase4-exit does not cite. Fix the plan first.",
-    "The Phase 4 exit evidence in section 19 (failover, a soft-band notification, a hard-timeout kill, a cooldown Timer, reliability-report.json) does not match the merged RELIABILITY_BATTERY_MEMBERS or its report name.",
-    "The plan must decide whether the merged battery schema satisfies the Phase 4 exit or needs more members. Then re-author phase4-continue-05 and phase4-exit from the corrected plan.",
-    "Keep the parts of this attempt that are sound: the phase4-exit fence (tickets, tests/test_phase4_exit.py, tests/test_seeded_phase5_core.py), its four-path Context with authoring sizes, and the [[phase4-exit]] terminal registry."
-  ],
-  "reason": "The authored phase4-exit ticket cannot pass requisition because section 20 has no Phase 5 core registry and the Phase 4 exit report schema conflicts with section 19; the plan must be fixed before re-authoring.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
