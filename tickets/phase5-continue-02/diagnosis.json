@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Context lists only files that already exist on the base commit. `tests/test_seeded_phase5_02.py` is created by this ticket, so the phase5-continue-03 seed must not list it as Context; requisition review rejects it as a missing path.",
+    "For phase5-continue-03, embed an already-merged seeded-test pattern (the latest merged `tests/test_seeded_phase*.py` on base) as its continuation Context, and update the CONTEXT/SIZES pins in `tests/test_seeded_phase5_02.py` to match.",
+    "Treat every file this admission creates as sibling-new or new-in-admission, never Context. That includes the author ticket's own seeded test, `tests/test_seeded_phase5_02.py`. Pin that exclusion in the test.",
+    "Before finishing, run the requisition/lint check on each authored seed against base-existing paths, not only pytest. Tests can pass while the check stage fails."
+  ],
+  "reason": "Fixable authoring oversight: the phase5-continue-03 seed listed as Context a file this same admission creates, which does not exist on base.",
+  "detail": null
+}
