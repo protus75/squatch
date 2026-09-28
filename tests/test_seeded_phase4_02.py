@@ -21,7 +21,7 @@ BATCH = {
 OWNERSHIP = {
     "provider-cooldown-failover": {
         "owns": ["tests/test_provider_cooldown_failover.py"],
-        "hooks": ["squatch/providers.py", "squatch/timers.py", "squatch/runner.py",
+        "hooks": ["squatch/providers.py", "squatch/watchdog.py", "squatch/timers.py", "squatch/runner.py",
                   "squatch/restart.py", "squatch/daemon.py", "squatch/stages.py",
                   "squatch/merge.py", "tests/test_providers.py",
                   "tests/test_restart_timers.py", "tests/test_stages.py",
@@ -42,7 +42,7 @@ CONTEXT = {
     "phase4-continue-03": ("tests/test_seeded_phase4_01.py",),
 }
 ON_DEMAND = {
-    "squatch/runner.py", "squatch/restart.py", "squatch/daemon.py", "squatch/stages.py",
+    "squatch/watchdog.py", "squatch/runner.py", "squatch/restart.py", "squatch/daemon.py", "squatch/stages.py",
     "squatch/merge.py", "squatch/drain.py", "squatch/serve.py", "squatch/__main__.py",
     "eval/shakeout/bench.py", "eval/daemon_soak.py", "tests/test_serve.py",
     "tests/test_merge.py", "tests/test_mergequeue.py", "tests/test_daemon_composition.py",
@@ -54,7 +54,7 @@ EXISTING_AT_AUTHORING = {
     "tests/test_seeded_phase4_01.py": 12352,
 }
 ON_DEMAND_AT_AUTHORING = {
-    "squatch/runner.py": 23428, "squatch/restart.py": 909, "squatch/daemon.py": 20691,
+    "squatch/watchdog.py": 11980, "squatch/runner.py": 23428, "squatch/restart.py": 909, "squatch/daemon.py": 20691,
     "squatch/stages.py": 55886, "squatch/merge.py": 29250, "squatch/drain.py": 26170,
     "squatch/serve.py": 11768, "squatch/__main__.py": 20298,
     "eval/shakeout/bench.py": 8372, "eval/daemon_soak.py": 25471,
