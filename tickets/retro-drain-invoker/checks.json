@@ -1,18 +1,25 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "97580e6bebab319210923fbd24b53dcd1bf71e43",
+  "produced_at_sha": "c4fc4efdb6597465eb1c24c1f12c7a78a60ab726",
   "stem": "retro-drain-invoker",
   "branch": "retro-drain-invoker",
-  "base": "b9a471736aa25f94ff603264403258d23c6efef3",
-  "head": "97580e6bebab319210923fbd24b53dcd1bf71e43",
+  "base": "5b9ee994ea42cb01ef80f177602b21e7f3488afa",
+  "head": "c4fc4efdb6597465eb1c24c1f12c7a78a60ab726",
   "changed_files": [
     "specs/retro.md",
     "squatch/__main__.py",
     "squatch/drain.py",
     "squatch/driver.py",
     "squatch/retro.py",
-    "tests/test_retro.py"
+    "tests/test_daemon_composition.py",
+    "tests/test_drain.py",
+    "tests/test_drain_upgrade.py",
+    "tests/test_restart_timers.py",
+    "tests/test_retro.py",
+    "tests/test_storm_hold.py",
+    "tests/test_storm_notification_activation.py",
+    "tests/test_watchdog_activation.py"
   ],
   "checks": [
     {
@@ -44,7 +51,6 @@
             "tests/test_driver.py",
             "tests/test_box.py",
             "tests/test_drain_reentry.py",
-            "tests/test_seed_successor.py",
             "tests/test_drain_upgrade.py",
             "tests/test_daemon_composition.py",
             "tests/test_kill_cli_activation.py",
