@@ -1,15 +1,16 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep what passed review: drain/serve root binding via compose_pipeline(watchdog=...), Stages bind/clear, notify soft/stuck identities, Drain reconcile_notifications at startup and after each dispatch, root-level activation tests. Fix only the two review findings.",
-    "Stuck signal can be dropped: _call_started is set after resolve/slot, and LLMEffect's timer can fire slightly early. Start the clock at WatchdogLLM.call entry, or write the stuck signal whenever abort_current runs on a bound in-flight call. Don't gate it on exact elapsed >= budget.",
-    "Add a stuck test that uses LLMEffect's real clock/sleep pairing, or a sleep that advances slightly under the budget. A fake sleep that advances exactly the budget hides the early-fire shortfall.",
-    "Remove Registry.slot and its asyncio.Semaphore from providers.py. A new concurrency gate is forbidden reliability machinery, and providers.py is fenced for binding support only.",
-    "Cap waits: supply an empty interval list when no real provider-cap wait happens in the Stages call path. If no production wait source exists in the fence (thresh.py owns concurrency and is unfenced), file that gap to the Suggestion Box. Don't build a gate."
+    "Keep what passed review: drain/serve root binding via compose_pipeline(watchdog=...), Stages bind/clear, notify soft/stuck identities, Drain reconcile at startup and after each dispatch, abort_current stuck signal, and the root-level activation tests. Fix only the sampling-cost finding.",
+    "Remove self._sample() from WatchdogLLM.call's per-line on_event callback. on_event runs synchronously inside CliClient's on_stdout_line, so a full fence walk there blocks the event loop on every streamed line.",
+    "Sample only at call boundaries (worktree bind and after the call returns) and on the _observe tick. Run the tick on the injected Sleep seam at a coarser interval than 1s.",
+    "Compare cheap metadata (size/mtime through the filesystem seam, or worktree status/HEAD through git.py) instead of reading and sha256-hashing every file under each fence prefix. Fences like `tickets` hold 1000+ files (about 9 MB).",
+    "Before choosing a metadata source, read squatch/seams.py Filesystem. Don't invent a seam method: if it exposes no stat, use git.py status/diff for the worktree and keep observation failures from raising out of finally.",
+    "Add an activation test whose fence is a directory holding many files. Drive many stream events and assert that filesystem reads per event stay bounded (zero from on_event), while a real mutation is still detected at the tick or call boundary."
   ],
-  "reason": "Two concrete, fixable review snags (stuck-signal timing tolerance, a forbidden new semaphore gate) on an otherwise green, correctly bound implementation; the same capability can fix them.",
+  "reason": "Checks green and binding approved; single review snag is a fixable unbounded per-event fence re-hash in WatchdogLLM._sample.",
   "detail": null
 }
