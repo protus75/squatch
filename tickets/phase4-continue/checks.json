@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "470b34eae602c45029f586273dc0869d9794916b",
+  "produced_at_sha": "10319c888e1da70ea8fe4ebae8f6226e2c900029",
   "stem": "phase4-continue",
   "branch": "phase4-continue",
-  "base": "50bd67caf286c0be7eb1e83bdd62e58a44240997",
-  "head": "470b34eae602c45029f586273dc0869d9794916b",
+  "base": "7c78ddfa9bf9884433ef9fd0f04733979b9104d2",
+  "head": "10319c888e1da70ea8fe4ebae8f6226e2c900029",
   "changed_files": [
     "tests/test_seeded_phase4_01.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-02/ticket.md",
-      "sha": "65a4310608368c4521ad0b76587e247a2769e805",
+      "sha": "0b687560e4f7ce32aa3a4cf1e08bf21664938942",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,29 +25,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/watchdog-activation/ticket.md",
-      "sha": "b3e4d3a9210187103918798d7909806f95069cd3",
+      "sha": "2e8ef0a50c6023175ad02194536bb98707e60515",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/watchdog-activation/ticket.md",
-          "line": 562,
-          "message": "Stages builds its Driver over an injected LLMEffect. LLMEffect._call (squatch/llmeffect.py) calls self._llm.call(req) with no on_event, and Driver.__init__ (squatch/driver.py:72) takes no event callback. LLMRequest carries ticket but not run_seq. The ticket forbids changing LLMEffect._call but fences neither llmeffect.py nor driver.py, and it never names the mechanism that routes on_event and run_seq to the detector. As written, 'bind at construction' plus a signal body with `run_seq` has no stated buildable path inside the fence.",
-          "paved_road": "Name the binding mechanism inside the fence. For example: a watchdog-owned LLM wrapper in squatch/watchdog.py that forwards on_event to CliClient.call, installed where compose builds the Stages LLMEffect, with Stages.run (fenced) supplying the per-run ticket/run_seq context. Otherwise fence squatch/driver.py and squatch/llmeffect.py and state the exact change allowed there."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/watchdog-activation/ticket.md",
           "line": null,
-          "message": "Scope in calls squatch/providers.py a 'fenced on-demand inspection exception', but it is not in the Scope fence. The binding also consumes the CliClient.call on_event seam that providers.py owns, so ownership needs the owner fenced or the exception claim removed.",
-          "paved_road": "Add squatch/providers.py to the Scope fence as an on-demand exception, keeping the Scope out prohibition on changing CliClient.call. Or remove it from the exception list and state that it is read-only preservation Context."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/watchdog-activation/ticket.md",
-          "line": null,
-          "message": "Acceptance criteria 1 and 3 name 'the drain path' as a prover, but it is not a test file. tests/test_drain.py is not fenced, so the drain-dispatch reconciliation and drain-driver binding proofs have no named, fenced home.",
-          "paved_road": "Name tests/test_watchdog_activation.py as the file that proves bootstrap-drain binding and per-dispatch reconciliation. Or fence tests/test_drain.py as an on-demand exception and cite it explicitly."
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"approve\", \"summary\": \"The ticket can be built: the fence covers the stages.compose LLMEffect install point, the compose_pipeline keyword, the _drain and Serve roots, the notify escalation fold, and the dormancy and notify tests it migrates. Existing compose_pipeline callers (eval/daemon_soak.py, eval/shakeout/bench.py, test_daemon_composition, test_kill_cli_activation, test_seeded_phase3_06) keep working because the new keyword defaults to unbound. The on-demand Context exce'",
+          "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
       "commands": []
@@ -57,7 +43,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/watchdog-detector/ticket.md",
-      "sha": "ce52d5ba19e638bf1cd89c66763da4b802fb76ad",
+      "sha": "b3f666351de1792255dbb5c50e0492c0d74cda32",
       "bypassed": false,
       "findings": [],
       "commands": []
