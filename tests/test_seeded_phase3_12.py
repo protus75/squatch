@@ -46,6 +46,8 @@ EXISTING_AT_AUTHORING = {
     "tests/test_control_cli.py": 9688,
     "tests/test_daemon_composition.py": 21280,
 }
+# Measured from section 20 through its final newline when this batch was authored.
+SECTION_20_CHARS_AT_AUTHORING = 16402
 NEW_PATH_OWNERS = {
     "squatch/heartbeat.py": "heartbeat",
     "tests/test_heartbeat.py": "heartbeat",
@@ -90,6 +92,15 @@ def _yaml(stem):
 def _admissions(stem):
     [rows] = [block for block in _yaml(stem) if isinstance(block, list)]
     return tuple(tuple(row) for row in rows)
+
+
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
 
 
 def test_exact_seeds_edges_tiers_budgets_cap_fences_and_new_path_owners():
@@ -164,7 +175,7 @@ def test_successor_uses_registry_roots_without_ungranted_inspection_exceptions()
 
 def test_authoring_sizes_and_max_effort_headroom():
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
         ticket = _ticket(stem)

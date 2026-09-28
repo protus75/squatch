@@ -37,11 +37,13 @@ CONTEXT = {
     "phase4-continue-05": ("tests/test_seeded_phase4_03.py",),
 }
 EXIT_CONTEXT = (
+    "tickets/reliability-run/reliability-battery-report.json",
     "squatch/artifacts.py", "eval/reliability_battery.py",
     "tests/test_reliability_battery.py", "tests/test_seeded_phase4_02.py",
 )
 ON_DEMAND = {"squatch/stages.py"}
 EXISTING_AT_AUTHORING = {
+    "tickets/reliability-run/reliability-battery-report.json": 1161,
     "eval/reliability_battery.py": 8811,
     "squatch/artifacts.py": 7056,
     "squatch/stages.py": 56079,
@@ -149,7 +151,7 @@ def test_context_closure_predecessor_preservation_and_delimiter_exclusion():
         assert f"`{path}`" in continuation_scope
         assert DATA_MARKER not in (REPO / path).read_text()
     assert "committed\n`tickets/reliability-run/reliability-battery-report.json`" in continuation_scope
-    assert "the report is sibling-new and is not Context" in continuation_scope
+    assert "the report is existing Context owned by `reliability-run`, never exit output" in continuation_scope
 
 
 def test_authoring_sizes_and_max_effort_render_headroom():
@@ -166,7 +168,10 @@ def test_authoring_sizes_and_max_effort_render_headroom():
         }, plan=plan, plan_sections=ticket.plan_sections, effort="max")
         assert len(rendered) <= limit, (stem, len(rendered), limit)
     assert set(EXIT_CONTEXT) <= set(EXISTING_AT_AUTHORING)
-    assert set(EXIT_CONTEXT).isdisjoint(NEW_PATH_OWNERS)
+    assert (set(EXIT_CONTEXT) - {
+        "tickets/reliability-run/reliability-battery-report.json"
+    }).isdisjoint(NEW_PATH_OWNERS)
+    assert NEW_PATH_OWNERS["tickets/reliability-run/reliability-battery-report.json"] == "reliability-run"
 
 
 def test_complete_finite_suffix_and_successor_removes_only_first_row():
