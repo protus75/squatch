@@ -4,11 +4,15 @@ ok
 
 ## Surprises / judgment calls
 
-The section-20 render fixtures end before section 21's appendix; the historical
-fixtures pin those section bytes rather than later plan growth.
+Historical Phase 3 section-20 fixtures are 8,911 and 11,661 characters. The
+provider ticket embeds the compact provider/timer predecessor surface and measures
+the remaining fenced composition roots as on-demand exceptions; their combined
+max-effort render exceeds the requisition headroom while Context alone fits.
 
 ## Dead ends
 
+The first authored tickets failed lint because their acceptance criteria did not
+name their observable test artifacts; the criteria were made explicit.
 
 
 ## Second problems filed
@@ -21,4 +25,4 @@ OpenAI Codex, model unknown.
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 25m.
+Expected 75m; actual approximately 35m.
