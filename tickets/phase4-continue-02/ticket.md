@@ -27,6 +27,14 @@ tests/test_seeded_phase4_02.py. Use the established Context pattern and inspect 
 then-existing tests/test_seeded_phase4_01.py after it has merged; it is not embedded
 Context in this admission because this admission creates it.
 
+Apply section 20's corrective predecessor-test migration in this same admission.
+Update tests/test_seeded_phase4_01.py to assert the expanded provider ownership
+contract. Update only the historical render checks in tests/test_seeded_phase3_01.py
+and tests/test_seeded_phase3_08.py so they pin the section-20 size at their respective
+authoring time, alongside their existing authoring-time Context sizes; later
+append-only plan growth must not retroactively fail those historical seeds. Preserve
+every other assertion in those predecessor tests.
+
 provider-cooldown-failover depends on watchdog-activation and starts KNOWN-DEEP
 high/high. phase4-continue-03 depends on provider-cooldown-failover and starts
 medium/medium. Both cite section 20 alone, use expected/stuck budgets within
@@ -88,11 +96,15 @@ reorder, add, omit, or split a registry payload.
 ## Scope fence
 - tickets
 - tests/test_seeded_phase4_02.py
+- tests/test_seeded_phase4_01.py
+- tests/test_seeded_phase3_01.py
+- tests/test_seeded_phase3_08.py
 
 ## Acceptance criteria
 - `tests/test_seeded_phase4_02.py` pins exactly the two authored identities, dependency edges, section-20-only contracts, high/high provider tier, medium/medium continuation tier, bounded budgets, and the ownership fences.
 - `tests/test_seeded_phase4_02.py` proves every existing fence path is existing Context or an explicitly measured on-demand exception, predecessor-test closure, new-path ownership, sibling-new and delimiter-bearing Context exclusion, authoring-time Context sizes, and max-effort render below REQ_RENDER_HEADROOM.
 - `tests/test_seeded_phase4_02.py` proves the complete finite ordered suffix, three-seed cap, numbered continuation sequence, removal of only the first row, and terminal phase4-exit-only admission without a successor.
+- The three corrective predecessor tests pass while preserving their non-render and non-ownership assertions; the Phase 3 checks use pinned authoring-time section-20 sizes rather than the later expanded plan.
 
 ## Verification
 ```
