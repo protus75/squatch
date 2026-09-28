@@ -1,0 +1,100 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "7e71b0d86eb395ced1042fc45801027f148cb597",
+  "stem": "provider-cooldown-failover",
+  "branch": "provider-cooldown-failover",
+  "base": "2eaa0a6d555b6b1068441fd7cb59941f35c0c442",
+  "head": "7e71b0d86eb395ced1042fc45801027f148cb597",
+  "changed_files": [
+    "eval/daemon_soak.py",
+    "eval/shakeout/bench.py",
+    "squatch/__main__.py",
+    "squatch/daemon.py",
+    "squatch/merge.py",
+    "squatch/providers.py",
+    "squatch/restart.py",
+    "squatch/runner.py",
+    "squatch/serve.py",
+    "squatch/stages.py",
+    "squatch/timers.py",
+    "tests/test_daemon_composition.py",
+    "tests/test_merge.py",
+    "tests/test_mergequeue.py",
+    "tests/test_provider_cooldown_failover.py",
+    "tests/test_providers.py",
+    "tests/test_restart_timers.py",
+    "tests/test_stages.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_provider_cooldown_failover.py",
+            "tests/test_providers.py",
+            "tests/test_restart_timers.py",
+            "tests/test_stages.py",
+            "tests/test_serve.py",
+            "tests/test_merge.py",
+            "tests/test_mergequeue.py",
+            "tests/test_daemon_composition.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
