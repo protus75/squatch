@@ -1,17 +1,16 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Checks were green and scope was fine. Review snagged on crash and replay ordering, not on missing wiring. Keep the existing wiring and fix only the write order.",
-    "author.py: append the idempotent `retro-ticket/<stem>` bridge signal BEFORE `intake.commit`. A bridge written after the commit can leave an orphan committed retro ticket that Merge blocks forever.",
-    "box.py record_rereport: build the incremented message in memory, call the callback first, then persist the count and the reopen in ONE `_replace`. Persisting reports before the callback makes the `/3` key unstable when the callback fails or the process crashes.",
-    "Fire the reopen at exactly the threshold crossing, not `>=`, so a re-tombstoned record does not reopen on its next arrival. A reviewer also flagged lifetime vs tombstone-scoped counting; state your reading in the run record.",
-    "Add tests: the callback raises once and the retry journals exactly `tombstone-reopen/<id>/3`; a bridge-append failure leaves no committed ticket; a re-tombstoned record does not reopen immediately.",
-    "triage.py semantic tombstone match: make the rereport count idempotent for each incoming message (resolve the incoming message first, or skip on retry), so replaying one arrival never counts twice.",
-    "Strengthen the constructor-coverage test: one callback per `Box(` call per file (runner.py has two), plus a Merge test that Verification/base-failure is unchanged and never reads Box provenance."
+    "Checks, scope, and wiring are green. Review snagged only on record_rereport state logic and the order of triage's semantic-match steps. Keep everything else as it is.",
+    "box.py: the retry branch keyed on `reports == 3 and not reopened_from_tombstone` also catches a record that reached 3 while pending and was then tombstoned. It skips the increment, journals /3 instead of /4, and never reopens records above 3.",
+    "box.py fix: persist an explicit marker such as `pending_threshold_reopen` when a callback-free K=3 write is refused. The retry branch checks only that marker. Every other arrival increments first and uses the post-increment count in the key and body.",
+    "Add a test that tombstones a record already at reports=3. The next arrival must count to 4 and use the post-increment count. Also test the callback-free K=3 refusal followed by a callback retry that journals exactly `tombstone-reopen/<id>/3`.",
+    "triage.py semantic match: resolve(incoming) before record_rereport loses the count if the rereport or callback raises. Make the count idempotent per incoming box id, or resolve only after record_rereport succeeds with a replay guard against double counting.",
+    "Add a triage test where the reopen callback raises once. The incoming message must stay retryable, and the retry must count the rereport exactly once. State the chosen idempotence mechanism in the run record."
   ],
-  "reason": "Fixable write-ordering and threshold defects named by review with concrete paved roads; capability was sufficient.",
+  "reason": "Review found two concrete, fixable state and ordering defects with explicit fixes. Checks passed and nothing indicates a capability or environment limit.",
   "detail": null
 }
