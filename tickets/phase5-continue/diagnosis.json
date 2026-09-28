@@ -1,9 +1,14 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The content passed every check and review. Only the merge gate failed: tickets/scorecard-reporting/ticket.md and tickets/phase5-continue-02/ticket.md were committed on the branch. tickets/** never rides the code lane.",
+    "Author both new ticket files in the working tree but leave them uncommitted, because the driver lifts outbox files. Commit only tests/test_seeded_phase5_01.py on the branch.",
+    "Keep the ticket text, the registry, the edges, the fences, the Context partition, the synthetic size fixtures (16091/20072/8111) and the test assertions as they are. Review approved them against section 20.",
+    "Keep run.md `## Outcome` to exactly one Outcome value such as `ok`, with all six required sections. Before finishing, check that `git diff --name-only base..HEAD` lists no tickets/** path."
+  ],
+  "reason": "A fixable process mistake: correct content was blocked only because tickets/** files were committed on the branch instead of being left as uncommitted outbox files.",
+  "detail": null
 }
