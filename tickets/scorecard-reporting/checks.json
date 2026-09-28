@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "78ea56c02f5f5abf33c36dfd570edad8c7571b34",
+  "produced_at_sha": "fc066b7b6bf3c6e0cb8d97714b0e7444cda406ca",
   "stem": "scorecard-reporting",
   "branch": "scorecard-reporting",
-  "base": "2e396188e4ad767a440e04f57dda01a67a6df3da",
-  "head": "78ea56c02f5f5abf33c36dfd570edad8c7571b34",
+  "base": "bcabf161756ca5f6dadbff551885a0a764148d22",
+  "head": "fc066b7b6bf3c6e0cb8d97714b0e7444cda406ca",
   "changed_files": [
     "squatch/retro.py",
     "squatch/scorecard.py",
