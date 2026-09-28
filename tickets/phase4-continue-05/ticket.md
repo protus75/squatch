@@ -72,7 +72,7 @@ Do not implement reliability behavior, run the battery, author beyond
 - `tests/test_seeded_phase4_05.py` pins the terminal admission's identity, dependency edge, section-20-only contract, high/high tier, bounded budget, ownership fence, new-path owners, and committed-report-only input.
 - `tests/test_seeded_phase4_05.py` proves Context closure, predecessor-test preservation, sibling-new exclusion, `specs.DATA_MARKER` absence from Context content, measured authoring-time Context sizes, and max-effort render headroom.
 - `tests/test_seeded_phase4_05.py` proves the complete finite ordered terminal suffix, three-seed cap, removal of only the first row, and `phase4-exit` alone without a successor.
-- The authored `phase4-exit` ticket and `tests/test_seeded_phase5_core.py` pin section 20's exact three-member committed-report read and exact three-seed Phase 5 core registry; no obsolete report name/member or off-registry Phase 5 payload is admitted.
+- `uv run pytest tests/test_seeded_phase4_05.py -q` proves the authored `phase4-exit` ticket and `tests/test_seeded_phase5_core.py` pin section 20's exact three-member committed-report read and exact three-seed Phase 5 core registry; no obsolete report name/member or off-registry Phase 5 payload is admitted.
 
 ## Verification
 ```
