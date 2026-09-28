@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "aab138665d9120d0fc4c6541d82592f6c03673d7",
+  "produced_at_sha": "bdf022e960de2b9d5229eec47b99d473c33d546c",
   "stem": "reliability-battery",
   "branch": "reliability-battery",
-  "base": "8bd5f2141afc4ce4600152b38e12a1c319054553",
-  "head": "aab138665d9120d0fc4c6541d82592f6c03673d7",
+  "base": "305902abeea76cedaf479ad274e2a752983af082",
+  "head": "bdf022e960de2b9d5229eec47b99d473c33d546c",
   "changed_files": [
     "eval/reliability_battery.py",
     "squatch/artifacts.py",
