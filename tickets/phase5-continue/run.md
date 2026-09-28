@@ -4,10 +4,9 @@ ok
 
 ## Surprises / judgment calls
 
-Section 20 now explicitly grants the status and baseline contracts and their
-direct dependencies. The authored continuation therefore names
-`squatch/author.py`, `tests/test_author.py`, and `tests/test_retro_box.py` as
-the baseline caller fence; `squatch/policy.py` remains the policy callee.
+The branch lacked the seeded Phase 5 proof while the authored outbox tickets
+were present. I restored the proof and made the continuation spell out the
+status folds and baseline resolution states so its assertions are falsifiable.
 
 ## Dead ends
 
@@ -23,4 +22,4 @@ OpenAI / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 20m.
+Expected 75m; actual about 10m.
