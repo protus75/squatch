@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "10319c888e1da70ea8fe4ebae8f6226e2c900029",
+  "produced_at_sha": "236276c04a8351d37a2fb0052b3b20e372af2eac",
   "stem": "phase4-continue",
   "branch": "phase4-continue",
-  "base": "7c78ddfa9bf9884433ef9fd0f04733979b9104d2",
-  "head": "10319c888e1da70ea8fe4ebae8f6226e2c900029",
+  "base": "3d19da5c08cc6e82d4bc7e034c5193a95dc368f1",
+  "head": "236276c04a8351d37a2fb0052b3b20e372af2eac",
   "changed_files": [
     "tests/test_seeded_phase4_01.py"
   ],
@@ -15,27 +15,19 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-02/ticket.md",
-      "sha": "0b687560e4f7ce32aa3a4cf1e08bf21664938942",
+      "sha": "ae48989811a2df6e4d18d0c53c236b3b973ab900",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/watchdog-activation/ticket.md",
-      "sha": "2e8ef0a50c6023175ad02194536bb98707e60515",
+      "sha": "1e322ad76c8a112d8274a20afdfb365842ddf2bd",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/watchdog-activation/ticket.md",
-          "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"approve\", \"summary\": \"The ticket can be built: the fence covers the stages.compose LLMEffect install point, the compose_pipeline keyword, the _drain and Serve roots, the notify escalation fold, and the dormancy and notify tests it migrates. Existing compose_pipeline callers (eval/daemon_soak.py, eval/shakeout/bench.py, test_daemon_composition, test_kill_cli_activation, test_seeded_phase3_06) keep working because the new keyword defaults to unbound. The on-demand Context exce'",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -43,7 +35,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/watchdog-detector/ticket.md",
-      "sha": "b3f666351de1792255dbb5c50e0492c0d74cda32",
+      "sha": "b8986688ebf3d04f055269f25ce32fb4b2366a83",
       "bypassed": false,
       "findings": [],
       "commands": []
