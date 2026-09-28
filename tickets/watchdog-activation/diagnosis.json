@@ -1,18 +1,17 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "Remove the synthetic post-call 'start' event in WatchdogLLM.call. CliClient.call already emits start with the flat estimate. Add a metered result.usd only when the row reports cost and the stream did not already report it.",
-    "Derive the metered flag from ADAPTERS[name].reports_cost, not provider.name == 'claude'. Take the USD basis from the serving row through a public Registry/config accessor. Drop the invented 1.0 default and the private Registry._providers read.",
-    "Wire production callers: Stages filesystem-seam output writes go to WatchdogLLM.observe_mutation, and provider-cap wait intervals go to observe_cap_wait (empty when no wait). Do not change CliClient.call. Prove both reach the detector.",
-    "Do not add a detector-driven abort. Leave the hard kill to LLMEffect's existing stuck_seconds unwind and record only the spiral: stuck signal. Soft trips never abort; assert the abort count is 0.",
-    "Build test_watchdog_activation.py through the real __main__ drain and serve roots, using a fake ProcessExec that emits stream events and an injected clock/fs. Run Stages.run so implement AND review pass through the wrapper. Direct WatchdogLLM calls are rejected.",
-    "Activation tests must cover: healthy/no-page; one soft signal and one page per run; a fresh run_seq pages again; stuck unwind with its body; drain reconciles at startup and after each dispatch; private notify transport; unset notify warns once and sends nothing.",
-    "Edit test_unrelated_signals_and_hold_release_do_not_notify in place. Keep the bare {'kind': 'watchdog'} exclusion and add soft/stuck delivery. Also add a failing transport followed by a later reconcile that delivers exactly once.",
-    "In test_watchdog.py, update the 'dormant' module docstring. Make the positive proof go through the __main__ drain/serve root binding. Assert that default compose_pipeline leaves Stages._watchdog as None."
+    "Tests must drive main(['drain']) and main(['serve']) with a fake ProcessExec that emits stream-json events and an injected clock. Calling compose_pipeline(watchdog=True) directly does not prove the roots bind the wrapper.",
+    "Assert that Implement and Review calls both reach the detector through the roots, with the correct ticket stem and run_seq in the signal body.",
+    "Add drain reconciliation tests. Reconcile must run before the first dispatch and after every dispatch. A configured notify must use SubprocessNotifications with no provider auth keys in its env. Unset notify must warn once and send nothing.",
+    "Stuck proof: a process hangs past ticket.stuck_minutes under the injected clock. LLMEffect's stuck_seconds aborts through WatchdogLLM.abort_current into CliClient.abort_current, the process group is cleaned up, the stuck signal is appended once, and the run unwinds as before.",
+    "Git status in _call's finally misses committed work. Diff base...HEAD plus the worktree instead, or use the filesystem seam, so committed edits count as progress.",
+    "Never let the mutation observation raise out of a finally block; it would replace the driver's original exception.",
+    "Keep what already passed: the notify identities, the Drain reconcile_notifications wiring, WatchdogLLM without a detector abort, and the Stages bind/clear. Most of the remaining work is root-level tests plus the mutation fix."
   ],
-  "reason": "Review snagged on concrete, steerable gaps: double-counted spend, guessed metering, mutations and cap waits never wired in, and missing or unmigrated tests. The findings give a paved road for each, so another attempt at the same capability can fix them.",
+  "reason": "A second attempt missed the same root-level drain/serve, reconciliation and stuck-unwind proofs even though prior lessons named them, so more capability is needed rather than another same-tier retry.",
   "detail": null
 }
