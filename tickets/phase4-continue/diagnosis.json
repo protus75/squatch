@@ -1,16 +1,16 @@
 {
-  "run_seq": 7,
+  "run_seq": 8,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "The only finding is a requisition_review reply that could not be parsed: the reviewer wrapped valid JSON in a ```json fence. Its content was verdict approve for watchdog-activation. The ticket content was not rejected, so change nothing in substance.",
-    "Keep everything the reviewers accepted, unchanged: identities, edges, medium/medium tiers, budgets, fences, the Context/on-demand partition, measured sizes, delimiter scanning, registry rows, successor-row removal, headroom, the detector USD contract, and the activation wrapper binding.",
-    "Commit all three authored ticket files with the test. diff_stat again shows tickets/watchdog-detector, watchdog-activation, and phase4-continue-02 as untracked. Untracked files are lost from a clean branch.",
-    "The reviewer reply is truncated in the finding, so there is no evidence on the other two tickets' review verdicts. If the next attempt shows a substantive finding, address only that finding.",
-    "If the requisition_review reply fails to parse again for code-fence wrapping alone, that is an engine reply-parser defect. File it to the Suggestion Box; do not change the tickets to work around it.",
-    "Before claiming done, rerun requisition lint on a tree without this diff's new files, then both Verification pytest commands."
+    "Delete the live-size loop in test_authoring_sizes_and_max_effort_headroom (`assert len((REPO / path).read_text()) == size`). Once watchdog-detector or watchdog-activation edits a fenced file, it breaks `uv run pytest -q`, and this test is outside their fences.",
+    "Keep EXISTING_AT_AUTHORING only as the synthetic render fixture that builds `context`. Add a why-comment like the one in tests/test_seeded_phase3_11.py saying the sizes are historical authoring-time fixtures and must never be compared with live files.",
+    "Check every test for reads of files the sibling tickets may edit (squatch/watchdog.py, notify.py, serve.py, providers.py and their tests). Pin only facts those allowed edits cannot change, and don't pin live content or sizes.",
+    "The delimiter scan in test_context_closure_delimiters_and_new_path_ownership reads live Context files. Either scope it to files outside every sibling fence, or state in a comment why a sibling edit can never add squatch:data or squatch:end there.",
+    "Don't commit the three ticket files. The current spec forbids it, and the engine lifts untracked tickets: requisition_review passed on all three. Change nothing else in the tickets.",
+    "Keep everything reviewers accepted: identities, edges, medium/medium tiers, budgets, fences, the Context/on-demand partition, delimiter exclusion, registry rows, successor-row removal and render headroom. Rerun both Verification pytest commands."
   ],
-  "reason": "The check failed only because the reviewer's code-fenced reply could not be parsed. The visible verdict approved the ticket, so a retry at the same capability, with the ticket files committed, should pass.",
+  "reason": "Every check passed. Review found one fixable test defect: it compares against live file sizes, which will go red after sibling merges. The fix is mechanical and needs no more capability.",
   "detail": null
 }
