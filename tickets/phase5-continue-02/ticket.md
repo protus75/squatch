@@ -47,6 +47,15 @@ merged `squatch/scorecard.py`, `tests/test_scorecard.py`, `squatch/box.py`, and
 `merged`, `in_flight`, `blocked`, `spend_usd`, `box_activity`,
 `tombstone_digest`, and `scorecard`, with section 20's deterministic folds for
 each field and no journal, Box, ticket, or filesystem write.
+`merged` is the sorted set of stems whose latest terminal transition is
+`merged`; `in_flight` is sorted `(stem, run_seq)` for latest unmatched
+`running` transitions; and `blocked` is sorted `(stem, unmet_dependencies)`
+for confirmed unmerged tickets with an unmerged declared dependency.
+`spend_usd` sums numeric `effect_completion.body.cost.usd`; `box_activity`
+counts Box records by current status; `tombstone_digest` is sorted `(box_id,
+signature, reports, reopened)` for tombstone-resolved records; and `scorecard`
+is the current-window `project_scorecard` result. Malformed optional metric
+bodies are excluded while journal-envelope corruption remains fail-closed.
 
 `baseline-binding-reader` depends directly on `retro-box-activation`; it
 owns/fences new `squatch/baseline.py` and `tests/test_baseline.py`, plus existing
@@ -62,6 +71,13 @@ tiers, and unreadable specs resolve to the supervised side without raising.
 `Journal.read()` events, and `<repo>/specs`, then passes `resolution.binds` to
 `policy.starting_state`; `squatch/policy.py` is not the binding reader or its
 caller.
+No review-baseline record resolves `ABSENT`; a latest verdict other than `GO`
+resolves `NO_GO`; and a `GO` resolves `GO` only when every recorded review and
+author tier identity matches the current `Registry(config)` and recorded
+`spec_major` values match the review and author specs. Otherwise it resolves
+`REVOKED`; only `GO` sets `binds=true`. A torn tail or malformed identity/spec
+input is `REVOKED` for a selected `GO`, otherwise the applicable `ABSENT` or
+`NO_GO`.
 
 `phase5-continue-03` depends on both feature stems, owns only `tickets` and new
 `tests/test_seeded_phase5_03.py`, and embeds the immediately preceding merged
