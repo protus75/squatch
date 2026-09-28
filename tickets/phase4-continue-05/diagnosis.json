@@ -1,15 +1,16 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Checks were green and the fence held. Review snagged only on test strength in tests/test_seeded_phase4_05.py. Keep the authored phase4-exit ticket and the existing tests, and tighten the assertions.",
-    "Add negative assertions over the phase4-exit Scope in and Context: `reliability-report.json` is absent, and no spiral-notification or hard-timeout member appears. This satisfies the 'no obsolete report name/member' part of criterion 4.",
-    "Pin the exact ordered three-member read. Extract the backticked member tokens from the member-order sentence and assert the tuple equals REPORT_MEMBERS. Do not use `all(member in scope)`, which admits reordered or added members.",
-    "Bind the seed cap to config: assert config.seeding.max_seeds_per_admission == 3, as test_seeded_phase4_04.py does. Check every row in FULL and in _admissions(STEM) against that value instead of the literal 3.",
-    "Before submitting, reread each acceptance criterion and make sure every 'exact', 'no obsolete', and 'cap' word has a negative or equality assertion, not just a presence check."
+    "Checks were green, the fence held, and the committed phase4-exit ticket matches section 20. Review failed only because tests/test_seeded_phase4_05.py tests the continuation ticket and not the authored phase4-exit ticket. Keep the ticket and the existing assertions, and retarget the proofs.",
+    "Context closure must use the parsed exit ticket. Assert _ticket(EXIT).context == EXIT_CONTEXT. For each path, assert it is in EXISTING_AT_AUTHORING, not in NEW_PATH_OWNERS, not squatch/specs.py or specs/implement.md, and that its file content lacks DATA_MARKER.",
+    "For each phase4-exit fence path other than 'tickets', assert it is either owned by EXIT in NEW_PATH_OWNERS or present in its Context. This mirrors tests/test_seeded_phase4_04.py, which runs the checks on the authored tickets and not on the continuation.",
+    "Render tickets/phase4-exit/ticket.md at effort='max' with a context block built from its five EXIT_CONTEXT paths at their EXISTING_AT_AUTHORING sizes, plan=_authoring_plan() and plan_sections=('20',). Assert len <= int(RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM).",
+    "Replace the NEW_PATH_OWNERS self-comparison. For each (path, owner), assert path is in _ticket(owner).scope_fence and absent from the other stem's fence. The exit-owned paths must not exist on disk yet.",
+    "Before submitting, map each acceptance-criterion noun to an assertion on a parsed ticket (_ticket(EXIT) or _ticket(STEM)). Prose-substring checks on Scope in and constant-vs-literal checks do not count as proof."
   ],
-  "reason": "Review found fixable weak assertions in the test file, and the findings name concrete fixes, so a retry at the same capability should pass.",
+  "reason": "Review snagged on fixable test-targeting gaps, and each has a concrete paved road. Checks passed and the ticket is satisfiable at the current capability.",
   "detail": null
 }
