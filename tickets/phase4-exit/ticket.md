@@ -67,11 +67,12 @@ it never substitutes a category phrase such as "all production roots."
 depends on `retro-drain-invoker`, is KNOWN-DEEP high/high, owns/fences
 the complete section-20 activation fence across retro, Box, Merge, Author,
 triage, policy, stages/runner, daemon/drain/serve/status/CLI composition, their
-named tests, and new `tests/test_retro_box.py`; this explicitly includes
-existing `squatch/status.py` and `tests/test_status.py`. Its embedded Context is exactly
+named existing tests, and new `tests/test_retro_box.py`; this explicitly includes
+existing `squatch/status.py`, while the not-yet-existing `tests/test_status.py`
+is excluded from this activation fence. Its embedded Context is exactly
 `squatch/box.py`, `tests/test_box.py`, `squatch/author.py`,
 and `tests/test_seeded_phase4_02.py`; `tests/test_author.py`,
-`squatch/status.py`, `tests/test_status.py`, and the other
+`squatch/status.py`, and the other
 existing fence paths are individually named measured on-demand exceptions,
 and predecessor-new retro paths are excluded at authoring. It pins the stable
 per-proposal SHA-256 identity and Box origin,
