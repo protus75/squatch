@@ -1,0 +1,95 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "c64687e6468a1168be4b8595ad8505932b5fdade",
+  "stem": "retro-box-activation",
+  "branch": "retro-box-activation",
+  "base": "e483e735a15f42b7d10cf7a85285f16990032dcd",
+  "head": "c64687e6468a1168be4b8595ad8505932b5fdade",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/author.py",
+    "squatch/box.py",
+    "squatch/daemon.py",
+    "squatch/merge.py",
+    "squatch/retro.py",
+    "squatch/runner.py",
+    "squatch/stages.py",
+    "squatch/triage.py",
+    "tests/test_author.py",
+    "tests/test_retro_box.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_retro_box.py",
+            "tests/test_box.py",
+            "tests/test_merge.py",
+            "tests/test_author.py",
+            "tests/test_triage.py",
+            "tests/test_policy.py",
+            "tests/test_stages.py",
+            "tests/test_daemon_composition.py",
+            "tests/test_drain.py",
+            "tests/test_serve.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
