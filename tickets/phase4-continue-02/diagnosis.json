@@ -1,15 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snagged only on test rigor; tickets, registry, edges, tiers, budgets and fences were approved. Keep both authored tickets and fix only tests/test_seeded_phase4_02.py.",
-    "Measure the ON_DEMAND exception: add authoring-time sizes for squatch/drain.py, serve.py, __main__.py to a table and assert the max-effort render of Context plus ON_DEMAND exceeds RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM.",
-    "Keep the existing assertion that the render with only Context fits under the headroom limit.",
-    "Check delimiter exclusion by content, following tests/test_seeded_phase4_01.py:148-150: read each Context file not owned or hooked by a sibling and assert specs.DATA_MARKER is not in it.",
-    "Keep the explicit squatch/specs.py exclusion. Remove the wrong comment claiming test_seeded_phase4_01.py contains DATA_MARKER. Check such facts in the file before writing them."
+    "Review approved the registry, edges, tiers, budgets, and fences. Keep both authored tickets and tests/test_seeded_phase4_02.py. Fix only the delimiter wording in tickets/phase4-continue-03/ticket.md and pin that wording in the test.",
+    "tests/test_seeded_phase4_01.py:150 checks for the bare substrings \"squatch:data\" and \"squatch:end\", and that same line contains both. Copying that check makes the file's own required Context look delimiter-bearing. Do not tell phase4-continue-03 to copy it.",
+    "The real marker is specs.DATA_MARKER = \"<<<squatch:\" (squatch/specs.py:37). The finding's paved road wrote it as \"[squatch-data:\", but that is the renderer's escaped form. Use specs.DATA_MARKER, not a hand-typed prefix.",
+    "In the phase4-continue-03 Scope in and criteria, state that delimiter exclusion means specs.DATA_MARKER is absent from Context content. Keep tests/test_seeded_phase4_01.py as its Context and require tests/test_seeded_phase4_03.py to prove it passes that check.",
+    "Have test_seeded_phase4_02.py assert that the phase4-continue-03 ticket names DATA_MARKER and does not require the bare-substring check. Keep the existing measured on-demand headroom and Context-fit assertions unchanged."
   ],
-  "reason": "Two fixable test gaps; the reviewer gave concrete paved roads and the authored tickets were approved.",
+  "reason": "The gate failure is fixable ticket wording that makes phase4-continue-03's Context criterion contradict its exclusion criterion, and the finding steers the fix.",
   "detail": null
 }
