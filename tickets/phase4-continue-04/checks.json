@@ -1,0 +1,126 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "0e97970aefb923998e6a6b919ede3266f1fce5ad",
+  "stem": "phase4-continue-04",
+  "branch": "phase4-continue-04",
+  "base": "25e9fa3173579ff1f0f20f6ad4968b24f95e9180",
+  "head": "0e97970aefb923998e6a6b919ede3266f1fce5ad",
+  "changed_files": [
+    "tests/test_seeded_phase4_04.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase4-continue-05/ticket.md",
+      "sha": "b4d602e3cb5c24be2776ef778ecde45ad3a47501",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase4-continue-05/ticket.md",
+          "line": null,
+          "message": "The `phase4-exit` ownership block fences `tickets` plus `tests/test_seeded_phase4_05.py`. That file is this continuation's own new seeded test, the one that pins `phase4-exit`. By the time `phase4-exit` dispatches, that file will already be merged. Letting the exit ticket own it lets the exit rewrite the test that pins its own identity, dependency, fence and admission, which amounts to self-attestation. The fence also has no path for the exit's own proof, namely a test that validates the committed `reliability-battery-report.json` through `squatch/artifacts.py`'s schema, or for its seeded test of Phase 5 core. The established terminal pattern (`phase3-exit` fences `tickets`, `tests/test_phase3_exit.py`, and `tests/test_seeded_phase4_core.py`) confirms both are needed.",
+          "paved_road": "Fence `phase4-exit` as `tickets` plus two new paths it alone owns: `tests/test_phase4_exit.py`, which validates the committed report, and `tests/test_seeded_phase5_core.py`, which pins the Phase 5 core seeds. Add both to the new-path-owner map under `phase4-exit`. Keep `tests/test_seeded_phase4_05.py` owned only by `phase4-continue-05`."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase4-continue-05/ticket.md",
+          "line": null,
+          "message": "The Scope in and the criteria require the new test to pin `phase4-exit`'s Context closure and its authoring-time Context sizes. They also require every existing fence path to be existing Context. Yet the ticket never names `phase4-exit`'s exact Context. There is no CONTEXT or EXISTING_AT_AUTHORING entry for it, and no statement of which established seeded-test pattern and which report-reading evidence it embeds. `phase3-exit`'s Context shows what is needed: the committed report, `squatch/artifacts.py`, the runner/battery module and test, and one seeded-test pattern. Because the ticket never names a Context, the implementer cannot pin one, and the Context closure and size criteria cannot be checked.",
+          "paved_road": "Name `phase4-exit`'s exact Context in Scope in: the committed `tickets/reliability-run/reliability-battery-report.json`, `squatch/artifacts.py`, the merged reliability battery's module and test, and one merged seeded-test pattern such as `tests/test_seeded_phase4_02.py` (never a sibling-new path and never `squatch/specs.py`). Record authoring-time sizes for the paths that exist on main now, and have the test pin that partition and the max-effort render within headroom."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/reliability-run/ticket.md",
+      "sha": "07dc98ee85323e6f40ea5f90519d018bbf61562a",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/reliability-run/ticket.md",
+          "line": null,
+          "message": "Scope in says to invoke 'the canonical ordinary-lane writer', but no such callable exists for this report. `eval/reliability_battery.py` has only `run()` and no `dumps`/`write_report`, unlike `eval/daemon_soak.py:596`. The reliability-battery ticket also barred adding 'an independent writer'. The merged docstring says 'the ordinary lane remains the only report writer', meaning the stage-terminal OUTBOX lift, which Implement cannot invoke. Meanwhile Definition of rejected forbids a 'direct report write'. The only feasible path is to serialize `run(repo=<worktree>)`'s returned report into the uncommitted OUTBOX file for the lift to validate, and that path reads as a rejected direct write. The criteria can't clearly be satisfied together.",
+          "paved_road": "Restate Scope in, the criteria, and Definition of rejected concretely. Call `eval.reliability_battery.run(repo=<this worktree>)` and write only its returned `ReliabilityBatteryReport`, serialized with `model_dump_json()`, to `tickets/reliability-run/reliability-battery-report.json`. Leave the file uncommitted in the OUTBOX. The stage-terminal lift then validates it against `KNOWN_ARTIFACTS` and commits it. Define 'direct write' as hand-authored or edited report content, or any content not returned by `run()`."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/reliability-run/ticket.md",
+          "line": 87,
+          "message": "The fence covers the tickets plane, and the Phase 4 exit reads this committed report. The ticket names the ordinary lane as the machinery, but its Context embeds no evidence of that lane. `KNOWN_ARTIFACTS` registration of `RELIABILITY_BATTERY_REPORT` (`squatch/stages.py:87-90`) and the OUTBOX lift/validation (`squatch/stages.py:1074-1089`) are absent. Exit-read closure therefore names the producer (this ticket plus the battery) but not the machinery that lifts and validates the report.",
+          "paved_road": "Add `squatch/artifacts.py` to Context, which defines `RELIABILITY_BATTERY_REPORT` and the schema. Also add `squatch/stages.py`, or, if headroom requires it, list it as a named on-demand inspection exception, so the lift machinery that turns the OUTBOX file into the committed report is evidenced. Current render is 54,825 of 120,000 headroom."
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase4_04.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
