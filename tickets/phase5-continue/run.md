@@ -4,14 +4,16 @@ ok
 
 ## Surprises / judgment calls
 
-The merged retro module and its test are compact enough to embed as scorecard
-Context, so no on-demand exception was needed. Their authoring-time sizes are
-pinned only as synthetic fixtures.
+Recovered the previously approved admission draft from dangling repository
+history, then applied the recorded requisition correction: the second
+continuation names its own sibling-new partition, concrete policy caller, and
+its Context/headroom requirements.
 
 ## Dead ends
 
-The ticket linter required each acceptance criterion to name its observable
-focused test, so the authored criteria were tightened before verification.
+The initial targeted verification could not run because the ticket-required
+seeded test did not yet exist on the base commit. After authoring it, one
+line-wrapping-sensitive assertion was corrected.
 
 ## Second problems filed
 
@@ -22,4 +24,4 @@ codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 35m.
+Expected 75m; actual about 20m.
