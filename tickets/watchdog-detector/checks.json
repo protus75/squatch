@@ -1,0 +1,78 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "b83af7ac498073b5d290ab3015cf6dc4c1e7674e",
+  "stem": "watchdog-detector",
+  "branch": "watchdog-detector",
+  "base": "dd7470efa234ee194115859cf3f659c8f6533559",
+  "head": "b83af7ac498073b5d290ab3015cf6dc4c1e7674e",
+  "changed_files": [
+    "squatch/watchdog.py",
+    "tests/test_watchdog.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_watchdog.py",
+            "tests/test_providers.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
