@@ -5,13 +5,14 @@ ok
 ## Surprises / judgment calls
 
 The authored ticket files were already present from the engine's prior lift, so this
-attempt committed only the required test contract. The new Phase 4 seed excludes
-mutable owned Context from its live delimiter scan and renders a same-size,
-authoring-time section 20.
+attempt committed only the required test contract. The Phase 4 seed scans every
+Context file for `DATA_MARKER`, including provider-owned paths, and renders the
+authoring-time section-20 fixture.
 
 ## Dead ends
 
-None.
+The first caller-closure scan matched this new seed test itself; it was excluded
+because it is the contract checker, not a migrated provider caller.
 
 ## Second problems filed
 
@@ -23,4 +24,4 @@ OpenAI Codex (exact serving model not exposed).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 25m in this attempt.
+Expected 75m; actual approximately 35m in this attempt.
