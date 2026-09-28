@@ -2,24 +2,27 @@
 ok
 
 ## Surprises / judgment calls
-The current base contained only the dormant detector; the prior attempt's implementation was not present. The plan supports this activation, so no plan defect or fence expansion was needed.
+Plan status: section 20 calls for this activation; no plan change is needed. Reused the inspected implementation from prior commit 942f3a484cbae99f3b27b921b7ac6647291d361a, correcting both review findings before verification.
 
-Committed 942f3a484cbae99f3b27b921b7ac6647291d361a. Drain and serve construct the watchdog around the Stages-owned CliClient. Generic LLM, Driver, LLMEffect, FakeLLM, and CliClient.call interfaces remain unchanged. Stages binds and clears ticket/run identity on every exit. Filesystem content snapshots at events, periodic observations, and call completion count committed fence edits as progress without awaiting git in an exception handler. Metered calls use reported USD as their serving-row basis; unmetered calls charge the configured estimate at the client's existing start event. Registry slots report actual cap waits; uncontended calls report none. LLMEffect remains the sole hard-timeout abort owner.
+The Stages wrapper observes implement and review through real drain/serve construction, with filesystem mutation sampling, serving-row USD accounting, and durable run-bound signals. Notifications use the existing Effect replay/retry contract; drain reconciles at startup and after every dispatch with a private, key-stripped transport.
 
-Both required commands exited 0 on the committed source contents:
-- uv run pytest tests/test_watchdog_activation.py tests/test_watchdog.py tests/test_providers.py tests/test_notify.py tests/test_serve.py tests/test_daemon_soak.py tests/test_merge.py tests/test_mergequeue.py -q — 229 passed.
-- uv run pytest -q — 1322 passed.
+LLMEffect owns timeout decisions. The wrapper records stuck on an in-flight timeout abort without another elapsed-time threshold; cancellation of the Driver task still aborts without a false stuck signal. Regression coverage includes a timer 1ms under budget, the real clock/sleep pairing, actual process-group cleanup, and explicit cancellation.
 
-The activation tests enter main(['drain']) and main(['serve']), exercise actual Implement and Review calls, and cover soft/no-page behavior, fresh identities, committed progress, cap waits, exception preservation, notification reconciliation, private transport, and real process-group timeout cleanup. Existing serve worker/kill, provider stream/spool/redaction, merge, mergequeue, and soak tests remain green.
+ThresholdRuntime in squatch/thresh.py remains dormant and no production Stages cap wait occurs. Kept empty wait observations and left providers.py unchanged; no semaphore or new admission gate was added.
+
+Verification, both exit 0 on the committed source contents:
+- `uv run pytest tests/test_watchdog_activation.py tests/test_watchdog.py tests/test_providers.py tests/test_notify.py tests/test_serve.py tests/test_daemon_soak.py tests/test_merge.py tests/test_mergequeue.py -q`: 231 passed in 29.48s.
+- `uv run pytest -q`: 1324 passed in 79.35s.
 
 ## Dead ends
-Eager semaphore construction changed Registry validation behavior for existing synthetic API-row fixtures; lazy slot construction preserves that behavior. Reading args.verb directly broke the existing internal composition harness, which omits a CLI verb; using the root's established optional-verb lookup preserves default unbound composition. Both regressions were corrected and both required commands rerun green.
+Discarded the prior attempt's Registry.slot concurrency gate and fabricated competitor test: they added forbidden admission machinery and did not observe an existing production wait.
 
 ## Second problems filed
-- Follow-up: bind watchdogs for requisition review, author/triage/requisition roots, standalone diagnosis, and Serve's separate Rework driver. These roots are explicitly outside this ticket's fence and were left unchanged; this entry is for the engine's run-record Suggestion Box ingestion.
+- Connect the existing ThresholdRuntime provider-concurrency admission owner to production dispatch and supply its actual wait intervals to watchdog accounting when that owner is activated. Currently thresh.py is dormant, outside this ticket's fence, and Stages has no cap wait to report.
+- Activate watchdog binding for the excluded author/triage/requisition roots, standalone diagnosis, and Serve's separate Rework driver in a follow-up with their owning paths fenced and production tests. This change covers only the Stages-owned Driver on drain and serve.
 
 ## Resolved engine/model
-OpenAI / GPT-6 (Codex).
+OpenAI / GPT-6 (Codex), as identified by the session instructions.
 
 ## Predicted vs actual
-Expected: 75 minutes. Actual: approximately 15 minutes, including implementation, regression fixes, both verification commands, and commit.
+Expected: 75 minutes. Actual: approximately 5 minutes, including inspection, reuse and correction of the prior implementation, both verification suites, and commit preparation.
