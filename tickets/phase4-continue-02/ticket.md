@@ -44,7 +44,7 @@ Context and exact fences, preserving the following nonempty ownership contract:
 ownership:
   provider-cooldown-failover:
     owns: [tests/test_provider_cooldown_failover.py]
-    hooks: [squatch/providers.py, squatch/timers.py, squatch/runner.py, squatch/restart.py, squatch/daemon.py, squatch/stages.py, squatch/merge.py, tests/test_providers.py, tests/test_restart_timers.py, squatch/drain.py, squatch/serve.py, squatch/__main__.py, eval/shakeout/bench.py, eval/daemon_soak.py, tests/test_serve.py, tests/test_merge.py, tests/test_mergequeue.py, tests/test_daemon_composition.py]
+    hooks: [squatch/providers.py, squatch/timers.py, squatch/runner.py, squatch/restart.py, squatch/daemon.py, squatch/stages.py, squatch/merge.py, tests/test_providers.py, tests/test_restart_timers.py, tests/test_stages.py, squatch/drain.py, squatch/serve.py, squatch/__main__.py, eval/shakeout/bench.py, eval/daemon_soak.py, tests/test_serve.py, tests/test_merge.py, tests/test_mergequeue.py, tests/test_daemon_composition.py]
   phase4-continue-03:
     owns: [tickets, tests/test_seeded_phase4_03.py]
     hooks: []
@@ -60,7 +60,8 @@ Serve.compose, and drain never creates a second Timers instance at its root.
 stages.compose/compose_pipeline, Serve's rework and
 triage clients, and __main__._triage_pass must receive the shared payload rather than
 construct independent registries. Migrate every fenced direct caller of
-compose_pipeline, Serve, and Session with the required shared-payload signature.
+stages.compose, compose_pipeline, Serve, and Session with the required shared-payload
+signature.
 Treat the newly fenced composition modules, callers, and large entry roots as
 measured on-demand Context exceptions where embedding their authoring-time bytes
 would breach requisition headroom.
