@@ -1,16 +1,9 @@
 {
-  "run_seq": 3,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Requisition review found plan defects in the section 20 registry. Scope out forbids changing that registry, and the ticket copies it verbatim, so fix section 20 first, then regenerate phase4-exit and its seeds.",
-    "retro-box-activation's fence is too narrow. Triage tombstone dedup lives in __main__._triage_pass, the draft-state override in policy.py and the Author stage, and Box journal wiring in the composition roots (__main__, serve, drain). None of these is fenced.",
-    "The retro-box-activation merge signal needs a stated way for merge.py to reach the source Box record (box_id, retro_report_key). Merge has no Box dependency and no lookup by authored stem, and the stages/compose/Serve injection paths are unfenced.",
-    "One retro_finding per proposal conflicts with Box signature(): it drops digits and paths from detail and ignores summary, so two proposals differing only in numbers or spec paths collapse into one record. Section 20 must define a per-proposal dedup identity.",
-    "The live retro hook in __main__._drain forces a retro in every main(['drain']) test suite that merges before quiescence, including test_drain_reentry, test_seed_successor, and test_daemon_*. Section 20 must fence those suites or specify a mechanism that leaves them unchanged.",
-    "retro-drain-invoker must name its model dependency, e.g. Driver running a 'retro' LLMStage from specs/retro.md over the session's provider payload. It must also say the artifact type is defined locally in retro.py and the Markdown receipt is rendered from it."
-  ],
-  "reason": "Every blocking finding is a section 20 registry defect that the ticket forbids changing, so no retry can pass review until the plan is fixed and the seeds are regenerated.",
-  "detail": null
+  "run_seq": 4,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
