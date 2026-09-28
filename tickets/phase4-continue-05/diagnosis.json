@@ -1,16 +1,15 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Checks were green, the fence held, and the committed phase4-exit ticket matches section 20. Review failed only because tests/test_seeded_phase4_05.py tests the continuation ticket and not the authored phase4-exit ticket. Keep the ticket and the existing assertions, and retarget the proofs.",
-    "Context closure must use the parsed exit ticket. Assert _ticket(EXIT).context == EXIT_CONTEXT. For each path, assert it is in EXISTING_AT_AUTHORING, not in NEW_PATH_OWNERS, not squatch/specs.py or specs/implement.md, and that its file content lacks DATA_MARKER.",
-    "For each phase4-exit fence path other than 'tickets', assert it is either owned by EXIT in NEW_PATH_OWNERS or present in its Context. This mirrors tests/test_seeded_phase4_04.py, which runs the checks on the authored tickets and not on the continuation.",
-    "Render tickets/phase4-exit/ticket.md at effort='max' with a context block built from its five EXIT_CONTEXT paths at their EXISTING_AT_AUTHORING sizes, plan=_authoring_plan() and plan_sections=('20',). Assert len <= int(RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM).",
-    "Replace the NEW_PATH_OWNERS self-comparison. For each (path, owner), assert path is in _ticket(owner).scope_fence and absent from the other stem's fence. The exit-owned paths must not exist on disk yet.",
-    "Before submitting, map each acceptance-criterion noun to an assertion on a parsed ticket (_ticket(EXIT) or _ticket(STEM)). Prose-substring checks on Scope in and constant-vs-literal checks do not count as proof."
+    "Checks were green and the fence held. Review snagged on one assertion only: tests/test_seeded_phase4_05.py:108 asserts `not (REPO / path).exists()` for phase4-exit's new paths. Keep the rest of the diff and the authored phase4-exit ticket.",
+    "Delete the live-repo exists() check. phase4-exit creates tests/test_phase4_exit.py and tests/test_seeded_phase5_core.py, and its fence cannot edit this file, so the check turns the full suite red for the successor.",
+    "Prove new-path ownership through fences and Context alone: the path is in the owner's scope_fence, absent from the other stem's fence, and absent from every Context. If you want a non-existence proof, use tmp_path built from EXISTING_AT_AUTHORING, as in test_seeded_phase4_01.py:177.",
+    "Before submitting, look for any other assertion that must stay true after phase4-exit merges its outputs. Checks against live REPO state that phase4-exit will change (new files, a new ticket dir) must be pinned to authoring-time fixtures instead.",
+    "This supersedes the earlier lesson 'The exit-owned paths must not exist on disk yet.' Prove that invariant only through a fixture, never through the live repo."
   ],
-  "reason": "Review snagged on fixable test-targeting gaps, and each has a concrete paved road. Checks passed and the ticket is satisfiable at the current capability.",
+  "reason": "One fixable oversight: a live-repo non-existence assertion that the successor would break. The reviewer gave a concrete paved road, so retry at the same capability.",
   "detail": null
 }
