@@ -1,15 +1,16 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review found exactly one issue: the diff removed the `try/except ConfigError -> Refusal(\"config: ...\", \"fix the named provider or routing row in config.yaml\")` around `Registry(config)` in `__main__._triage_pass`. Put it back at the new construction site.",
-    "`Registry(config)` now runs inside the `compose_daemon_restart` providers lambda, which executes when the restart session is entered under the lock. `_locked` only converts GitError, so a bad routing or provider row now crashes `triage`, `drain`, and `serve` with an uncaught traceback.",
-    "Fix: build `Registry(config)` once before the restart session is entered, for example in `_locked` or `_RestartRunner.session`. Convert ConfigError to the same Refusal there, then pass the prebuilt Registry into `compose_daemon_restart` so there is still only one registry payload.",
-    "Add a test to tests/test_provider_cooldown_failover.py: `triage` given a routing row that passes `load()` but fails Registry validation returns the Refusal with its paved road. Consider the same test for drain and serve session entry.",
-    "Everything else passed review and checks. Keep the ProviderRuntime design, the single Timers lifetime, and the shared-payload caller migration unchanged; change only the error handling."
+    "Keep the ProviderRuntime design, the single Timers lifetime, the shared-payload caller migration, and the Registry-built-once-in-_locked Refusal fix. Review accepted all of them. Change only what the findings below name.",
+    "Single-candidate cooldown must truly park. Right now ProviderRuntime.resolve raises a bare RoutingError, which Driver turns into infra_error, and runner.py:359 then consumes INFRA_CAP on every dispatch during the cooldown. That can reject the ticket before timer_fired.",
+    "Fix the park: raise a classified ProviderError (failure_class quota_exhausted, with a paved_road naming the cooldown deadline). Outcome routing should treat it as a hold, not an INFRA_CAP draw. Or skip dispatch until the cooldown Timer fires. Do not reuse RoutingError, which means a config refusal.",
+    "Fail over within the same call. After cool_down(provider) in CliClient.call, retry the next eligible configured candidate in order. Raise only when no candidate is eligible, so a quota hit does not waste an attempt or INFRA_CAP while another candidate is free.",
+    "Resolve once per call. WatchdogLLM (watchdog.py:228) and the inner CliClient each call resolve, so a cooldown firing between the two can make the watchdog record the wrong served identity and cost basis. Pass the chosen Resolved down, or read identity from the client's result.",
+    "Add runner-level tests to tests/test_provider_cooldown_failover.py. A single-candidate quota hit consumes no INFRA_CAP while the cooldown is live and becomes dispatchable after timer_fired. The first quota-hit request is served by the later candidate."
   ],
-  "reason": "The only blocker is one review finding (a lost ConfigError-to-Refusal handler) with a clear fix inside the fence; all mechanical checks passed.",
+  "reason": "Review found fixable wiring gaps (a non-parking single-candidate cooldown, failover only on the next call, a double resolve) inside the existing fence, and it gave clear paved roads.",
   "detail": null
 }
