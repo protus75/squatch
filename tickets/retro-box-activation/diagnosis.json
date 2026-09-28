@@ -1,0 +1,17 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Checks were green and scope was fine. Review snagged on crash and replay ordering, not on missing wiring. Keep the existing wiring and fix only the write order.",
+    "author.py: append the idempotent `retro-ticket/<stem>` bridge signal BEFORE `intake.commit`. A bridge written after the commit can leave an orphan committed retro ticket that Merge blocks forever.",
+    "box.py record_rereport: build the incremented message in memory, call the callback first, then persist the count and the reopen in ONE `_replace`. Persisting reports before the callback makes the `/3` key unstable when the callback fails or the process crashes.",
+    "Fire the reopen at exactly the threshold crossing, not `>=`, so a re-tombstoned record does not reopen on its next arrival. A reviewer also flagged lifetime vs tombstone-scoped counting; state your reading in the run record.",
+    "Add tests: the callback raises once and the retry journals exactly `tombstone-reopen/<id>/3`; a bridge-append failure leaves no committed ticket; a re-tombstoned record does not reopen immediately.",
+    "triage.py semantic tombstone match: make the rereport count idempotent for each incoming message (resolve the incoming message first, or skip on retry), so replaying one arrival never counts twice.",
+    "Strengthen the constructor-coverage test: one callback per `Box(` call per file (runner.py has two), plus a Merge test that Verification/base-failure is unchanged and never reads Box provenance."
+  ],
+  "reason": "Fixable write-ordering and threshold defects named by review with concrete paved roads; capability was sufficient.",
+  "detail": null
+}
