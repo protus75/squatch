@@ -1,15 +1,16 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "2fa85e7c1ae7db814607421c991096c5052c1899",
+  "produced_at_sha": "97580e6bebab319210923fbd24b53dcd1bf71e43",
   "stem": "retro-drain-invoker",
   "branch": "retro-drain-invoker",
-  "base": "fecc7c0ec9746878c28b0a42af7340af94996ac8",
-  "head": "2fa85e7c1ae7db814607421c991096c5052c1899",
+  "base": "b9a471736aa25f94ff603264403258d23c6efef3",
+  "head": "97580e6bebab319210923fbd24b53dcd1bf71e43",
   "changed_files": [
     "specs/retro.md",
     "squatch/__main__.py",
     "squatch/drain.py",
+    "squatch/driver.py",
     "squatch/retro.py",
     "tests/test_retro.py"
   ],
