@@ -1,0 +1,80 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "harvest-1.0",
+  "produced_at_sha": "28c829e52983faf928e79f924fd1a19f1c959242",
+  "outcome": "gate_failed",
+  "stage": "check",
+  "reason": null,
+  "findings": [
+    {
+      "code": "requisition_review",
+      "path": "tickets/baseline-binding-reader/ticket.md",
+      "line": 39,
+      "message": "`policy.py` already has the binding reader: `go_binds(config, events)` plus `_identity`/`_major`. `_identity` builds the spec path from `Path(__file__)...parent / \"specs\"`, a global lookup, not an explicit `specs_dir`. The ticket requires that 'policy remains only the starting-state policy' and that `squatch/policy.py` is 'neither the binding reader nor its caller'. Section 20 fixes this seed's fence without `squatch/policy.py`, so the new `squatch/baseline.py` would sit next to the old `policy.go_binds` as two production binding readers. That breaks the no-dual-path rule, and the third acceptance criterion cannot be met.",
+      "paved_road": "fix the plan, then re-author the ticket"
+    },
+    {
+      "code": "requisition_review",
+      "path": "tickets/baseline-binding-reader/ticket.md",
+      "line": 10,
+      "message": "`tests/test_policy.py` imports `go_binds` from `squatch.policy` and checks its GO, NO-GO, and malformed-identity results (lines 28, 53, 69, 81). If the reader moves out of policy, this suite fails on import. It is outside the plan-fixed fence and is not in Context, so the ticket cannot migrate it.",
+      "paved_road": "fix the plan, then re-author the ticket"
+    },
+    {
+      "code": "requisition_review",
+      "path": "tickets/baseline-binding-reader/ticket.md",
+      "line": 18,
+      "message": "`author.py` imports `go_binds` from `squatch.policy` and calls it at line 204. The fenced tests `tests/test_author.py:324` and `tests/test_retro_box.py:375` monkeypatch `squatch.author.go_binds`. Context does not include the owning module `squatch/policy.py`, so the author cannot see the reader being replaced or confirm that its supervised-side behavior (catching ConfigError/RoutingError/TypeError/ValueError) is preserved.",
+      "paved_road": "fix the plan, then re-author the ticket"
+    },
+    {
+      "code": "requisition_review",
+      "path": "tickets/phase5-continue-03/ticket.md",
+      "line": null,
+      "message": "Section 20 says each numbered Phase 5 continuation embeds the immediately preceding merged seeded-test pattern. The only exception is the explicit phase5-continue-02 fixture rule. phase5-continue has merged, so tests/test_seeded_phase5_01.py is the immediately preceding merged seeded test when phase5-continue-03 is authored. This ticket's Context and Scope in instead reuse tests/test_seeded_phase4_05.py, which extends the continue-02-only exception to continue-03.",
+      "paved_road": "Replace the Context entry and the Scope in pattern reference with tests/test_seeded_phase5_01.py, the immediately preceding merged seeded test. Keep tests/test_seeded_phase5_02.py, tests/test_seeded_phase5_03.py, and tests/test_seeded_phase5_04.py out of Context wherever they are new in the same admission."
+    },
+    {
+      "code": "requisition_review",
+      "path": "tickets/phase5-continue-03/ticket.md",
+      "line": null,
+      "message": "The criteria require tests/test_seeded_phase5_03.py to pin exact ownership fences and the Context partition. Scope in says only that retro-doctor-cli fences squatch/retro.py, squatch/__main__.py, and 'their focused tests'. It does not name those test paths or say which existing fence paths are embedded Context and which are named on-demand exceptions. It also says phase5-continue-04 embeds 'the immediately preceding merged seeded-test pattern when it is authored' without naming it. The seeded test therefore has no fixed values to pin.",
+      "paved_road": "Name the exact existing focused test paths in the retro-doctor-cli fence, for example tests/test_retro.py and the existing __main__/CLI test file, after confirming each exists on main. State the exact embedded-Context set and each named measured on-demand exception with its authoring-time byte size. State that phase5-continue-04's Context is exactly tests/test_seeded_phase5_02.py, which will have merged by then, and that it excludes sibling-new tests/test_seeded_phase5_03.py and tests/test_seeded_phase5_04.py."
+    },
+    {
+      "code": "requisition_review",
+      "path": "tickets/status-projection/ticket.md",
+      "line": 121,
+      "message": "`_status` calls `squatch.status.project(events, repo=, state_dir=)` and writes `render(status)`, so it is the touchpoint-5 CLI rendering that the ticket and section 20 say must consume the new projection. Section 20 fixes the fence to status/scorecard/box and their tests only, and forbids adding to it. So either the CLI is not rewired, which breaks the 'every CLI/file/slash rendering consumes the same value' criterion, or it is rewired outside the fence.",
+      "paved_road": "fix the plan, then re-author the ticket"
+    },
+    {
+      "code": "requisition_review",
+      "path": "tickets/status-projection/ticket.md",
+      "line": 265,
+      "message": "The existing status render pins categories that the 'exactly merged, in_flight, blocked, spend_usd, box_activity, tombstone_digest, scorecard' field set and the 'reject an extra projection field' rule remove. tests/test_cli.py:265-372 pin 'unparsed tickets (failed intake lint)', 'pending intake', 'reject queue', and 'spend ... over N metered calls'. tests/test_verbs.py:208, tests/test_drain.py:264-681, and tests/test_drain_upgrade.py:253-284 pin 'reject queue' and 'pending intake' output. The reject-queue and suggestion-box deliverables require status to list the Reject queue and unparsed tickets. Replacing `Status` with the exact seven-field value contradicts these unfenced merged tests and laws.",
+      "paved_road": "fix the plan, then re-author the ticket"
+    },
+    {
+      "code": "requisition_review",
+      "path": "tickets/status-projection/ticket.md",
+      "line": null,
+      "message": "The `scorecard` field is 'the current-window `project_scorecard` result'. Building that `RetroWindow` needs `squatch.retro.Window(events, now).projection(sha=..., spec_version=...)`, which needs a clock value and a SHA/spec version that `status.project` does not receive today. `squatch/retro.py` is neither Context nor named as an on-demand exception, and section 20 does not say where status gets `now`, `sha`, or `spec_version` without a Git or clock seam.",
+      "paved_road": "fix the plan, then re-author the ticket"
+    }
+  ],
+  "cost": {
+    "usd": 1.0,
+    "tokens": 2015341,
+    "provider": "codex",
+    "model": "gpt-5.6-terra"
+  },
+  "wall_seconds": 759.025449,
+  "run_seq": 1,
+  "diff_stat": " tests/test_seeded_phase5_02.py    | 224 ++++++++++++++++++++++++++++++++++++++\n tickets/phase5-continue-02/run.md |  10 +-\n 2 files changed, 231 insertions(+), 3 deletions(-)\n tickets/baseline-binding-reader/ticket.md | untracked\n tickets/phase5-continue-03/ticket.md | untracked\n tickets/status-projection/ticket.md | untracked\n",
+  "spool_tails": {
+    "001-prompt.md": "inferred from the stem.\n\n`phase5-continue` depends on `retro-box-activation`, starts medium/medium, owns only `tickets` plus new `tests/test_seeded_phase5_01.py`, and embeds `tests/test_seeded_phase4_05.py` as its continuation pattern; sibling-new core paths are never Context. When it authors `scorecard-reporting`, `squatch/retro.py` and `tests/test_retro.py` are merged existing paths, not predecessor-new exclusions: both are embedded Context with authoring-time byte sizes pinned as synthetic render fixtures (or individually named as measured on-demand exceptions if headroom requires); later live-file growth never changes those fixture values. Only new `squatch/scorecard.py`, new `tests/test_scorecard.py`, and new `tests/test_seeded_phase5_02.py` are sibling-new in that admission and excluded from Context. When `phase5-continue-02` is authored, its embedded continuation pattern is the already-merged `tests/test_seeded_phase4_05.py`; new-in-admission `tests/test_seeded_phase5_01.py` is excluded from Context.\n\nThe `scorecard-reporting` contract is concrete and read-only. `RetroWindow` gains `check_observations`, a deterministically ordered tuple containing exactly `(ticket, code, verdict, bypassed)` for every check in each completed `check/<ticket>/<run>` invoice in the current `Window`; malformed completions contribute no observation. New `squatch/scorecard.py` defines immutable `SurfaceScorecardRow(surface, evaluated_tickets, catches, escapes, bypass_count, catch_rate, escape_rate, prune_candidate)` and `Scorecard(boundary, merged_ticket_count, spend_usd, tokens, signal_counts, gate_failure_count, surfaces)`. Here `surface` is the check code; `evaluated_tickets` counts distinct observed tickets for that code, `catches` counts non-bypassed `verdict: fail` observations, `bypass_count` counts observations whose `bypassed` flag is true, and `catch_rate` is catches divided by all observations for that code (zero when absent). Phase 5 has no bug-report producer, so `escapes` and `escape_rate` are exactly zero until the Phase 6 escape-column ticket extends them. `prune_candidate` is true only when `evaluated_tickets >= 25` and both catches and escapes are zero. The pure `project_scorecard(RetroWindow) -> Scorecard` sorts rows by surface, performs no filesystem, journal, Git, Box, or provider operation, and `render_report` snapshots its fields into a deterministic `## Surface scorecard` table. Focused tests cover invoice folding, malformed-input exclusion, distinct-ticket counting, bypass-versus-catch semantics, zero-denominator rates, the 25-ticket prune threshold, row ordering, report rendering, and prove projection leaves its input unchanged. Existing `tests/test_retro.py` assertions are preservation-only and remain byte-for-byte unchanged; new behavior is tested only in `tests/test_scorecard.py`.\n\nThe `status-projection` contract is the read-only touchpoint-5 view. It depends directly on both `scorecard-reporting` and `retro-box-activation` and returns one immutable projection with exactly `merged`, `in_flight`, `blocked`, `spend_usd`, `box_activity`, `tombstone_digest`, and `scorecard`. `merged` is the sorted set of stems whose latest terminal transition is `merged`; `in_flight` is sorted `(stem, run_seq)` for latest unmatched `running` transitions; `blocked` is sorted `(stem, unmet_dependencies)` for confirmed unmerged tickets whose declared dependency is not merged; `spend_usd` sums numeric `effect_completion.body.cost.usd`; `box_activity` counts Box records by current status; `tombstone_digest` is sorted `(box_id, signature, reports, reopened)` for tombstone-resolved records; and `scorecard` is the current-window `project_scorecard` result. Malformed optional metric bodies are excluded, while journal-envelope corruption retains the journal reader's fail-closed behavior. Projection and every CLI/file/slash rendering consume the same value, are deterministic, and perform no journal, Box, ticket, or filesystem write.\n\nThe `baseline-binding-reader` contract is also closed and never raises. It depends directly on `retro-box-activation`; new `squatch/baseline.py` exposes immutable `BaselineResolution(state, binds)` where `state` is exactly `ABSENT | NO_GO | GO | REVOKED`. `resolve_baseline(config, events, *, specs_dir)` selects the latest complete `signal` whose kind is `review_baseline`: no record is `ABSENT`; any latest verdict other than `GO` is `NO_GO`; a `GO` record is `GO` only when its recorded identity equals the current `Registry(config)` resolution for every recorded tier on both `review` and `author` and its recorded `spec_major` equals the major versions loaded from `specs_dir/review.md` and `specs_dir/author.md`; otherwise it is `REVOKED`. Only `GO` sets `binds=true`. Missing/empty routing, unresolved placeholders, unknown tiers, malformed identity/spec fields, unreadable specs, and a torn journal tail all resolve to the supervised side (`REVOKED` for a selected GO, otherwise the applicable `ABSENT`/`NO_GO`) without escaping. Existing `squatch/author.py` is the sole production caller: it passes its current config, `Journal.read()` events, and `<repo>/specs`, then passes `resolution.binds` into `policy.starting_state`; registry and spec-major identity therefore reach the reader explicitly, never through globals. Its fence is new `squatch/baseline.py`/`tests/test_baseline.py` plus existing `squatch/journal.py`, `squatch/config.py`, `squatch/author.py`, `tests/test_author.py`, and `tests/test_retro_box.py`; `policy.py` remains the starting-state policy, not the binding reader or its caller.\n\nThe finite Phase 5 suffix is fixed now, not invented by a continuation: `phase5-continue` authors `scorecard-reporting` plus `phase5-continue-02`; `phase5-continue-02` depends on `scorecard-reporting` and authors `status-projection`, `baseline-binding-reader`, plus `phase5-continue-03`; `status-projection` depends on `scorecard-reporting` and `retro-box-activation`, while `baseline-binding-reader` depends on `retro-box-activation`; `phase5-continue-03` depends on both feature stems and authors `retro-doctor-cli` plus `phase5-continue-04`; `phase5-continue-04` depends on `retro-doctor-cli` and authors only `phase5-exit`, with no successor. `scorecard-reporting` owns/fences new `squatch/scorecard.py` and `tests/test_scorecard.py` plus `squatch/retro.py`/`tests/test_retro.py`; `status-projection` owns/fences existing `squatch/status.py`, new `tests/test_status.py`, and the merged scorecard and box seams/tests; `baseline-binding-reader` owns/fences new `squatch/baseline.py` and `tests/test_baseline.py` plus `squatch/journal.py`, `squatch/config.py`, `squatch/author.py`, `tests/test_author.py`, and `tests/test_retro_box.py`; `retro-doctor-cli` owns/fences new `squatch/doctor.py` and `tests/test_doctor.py` plus `squatch/retro.py`, `squatch/__main__.py`, and their focused tests. These feature seeds start medium/medium; any production root or predecessor suite whose embedding breaches headroom is a named measured on-demand exception. `phase5-exit` is KNOWN-HARD high/high, depends transitively on every Phase 5 stem, owns/fences `tickets`, new `tests/test_phase5_exit.py`, and new `tests/test_seeded_phase6_core.py`, and performs section 19's committed-artifact exit reads before authoring the section 19 Phase 6 core. Each numbered continuation owns only `tickets` and its matching new `tests/test_seeded_phase5_<nn>.py`, embeds the immediately preceding merged seeded-test pattern except for the explicit `phase5-continue-02` fixture rule above, carries the remaining rows verbatim, and stays medium/medium. This paragraph and the preceding core paragraphs are the sole Phase 5 naming, ordering, tier, dependency, behavior, ownership, fence, and Context-partition authority; no seed may rename, reorder, add, omit, combine, or split these payloads.\n\n`phase3-continue-23` fences: the settled fixture migration remains recorded in section 19.\n\n<<<squatch:end name=\"plan_contract\">>>\n",
+    "001-response.md": "{\"verdict\":\"implemented\",\"summary\":\"Authored the three second-row Phase 5 seeds and committed the focused admission-contract test in 038c566. Required verification passed: 4 focused tests and 1,435 full-suite tests.\"}"
+  },
+  "filed": []
+}
