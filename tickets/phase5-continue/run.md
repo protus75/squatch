@@ -4,9 +4,9 @@ ok
 
 ## Surprises / judgment calls
 
-The branch lacked the seeded Phase 5 proof while the authored outbox tickets
-were present. I restored the proof and made the continuation spell out the
-status folds and baseline resolution states so its assertions are falsifiable.
+The authored ticket outbox had already been lifted into the current base, while
+the prior attempt's seeded proof was absent. I restored the reviewed proof and
+added only the missing assertions identified by the prior review.
 
 ## Dead ends
 
@@ -22,4 +22,4 @@ OpenAI / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 10m.
+Expected 75m; actual about 15m.
