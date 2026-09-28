@@ -13,6 +13,7 @@ from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
 
 REPO = Path(__file__).resolve().parent.parent
+SECTION_20_CHARS_AT_AUTHORING = 16401
 BATCH = {
     "kill-cli-activation": ("phase3-continue-11",),
     "phase3-continue-12": ("kill-cli-activation",),
@@ -102,6 +103,15 @@ def _admissions(stem):
     return tuple(tuple(row) for row in rows)
 
 
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
+
+
 def test_exact_seeds_edges_tiers_budgets_cap_fences_and_new_path_owners():
     config = load(REPO / "config.yaml", cwd=REPO)
     assert tuple(BATCH) == ("kill-cli-activation", "phase3-continue-12")
@@ -162,7 +172,7 @@ def test_authoring_sizes_and_max_effort_headroom():
     # These are permanent authoring-time render fixtures, not live-file size
     # invariants: the activation ticket is required to edit four of the paths.
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
         ticket = _ticket(stem)

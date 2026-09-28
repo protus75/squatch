@@ -13,6 +13,7 @@ from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
 
 REPO = Path(__file__).resolve().parent.parent
+SECTION_20_CHARS_AT_AUTHORING = 34773
 BATCH = {
     "watchdog-detector": ("watchdog-event-stream", "notify-transport"),
     "watchdog-activation": ("watchdog-detector",),
@@ -116,6 +117,15 @@ def _section(stem, name):
 def _yaml(stem):
     return [yaml.safe_load(block) for block in re.findall(
         r"```yaml\n(.*?)\n```", _section(stem, "Scope in"), re.S)]
+
+
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
 
 
 def _admissions(stem):
@@ -257,7 +267,7 @@ def test_authoring_sizes_and_max_effort_headroom():
     # Permanent historical render fixtures: sibling tickets must edit these
     # files, so never compare the authoring-time sizes with later live sizes.
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
         ticket = _ticket(stem)
