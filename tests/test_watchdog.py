@@ -1,6 +1,5 @@
-"""watchdog.py: dormant normalized event construction only."""
+"""Normalized collection, direct detector behavior, and production binding."""
 
-from pathlib import Path
 
 import pytest
 
@@ -89,10 +88,39 @@ def test_detector_soft_trip_is_once_per_ticket_run_and_has_no_action_hook():
     assert subject.assess(ticket="t", run_seq=2).decision == "soft_trip"
 
 
-def test_watchdog_construction_has_no_production_callback_consumer():
-    package = Path(__file__).resolve().parent.parent / "squatch"
-    sources = {path.name: path.read_text() for path in package.glob("*.py")}
-    assert {name for name, source in sources.items() if "on_event" in source} == {"providers.py"}
-    assert {name for name, source in sources.items() if "on_stdout_line" in source} == {
-        "providers.py", "seams.py"}
-    assert {name for name, source in sources.items() if "EventCollector" in source} == {"watchdog.py"}
+@pytest.mark.parametrize("verb", ["drain", "serve"])
+def test_watchdog_has_a_production_callback_consumer(checkout, monkeypatch, verb):
+    from io import StringIO
+    import squatch.__main__ as main_module
+    from squatch.providers import CliClient
+    from squatch.serve import ServeGraph
+    from squatch.watchdog import WatchdogLLM
+    from test_cli import T0, author, git_env
+
+    seen = []
+    original = main_module.compose_pipeline
+
+    def compose(**kwargs):
+        pipeline = original(**kwargs)
+        wrapper = pipeline.stages._watchdog
+        assert isinstance(wrapper, WatchdogLLM)
+        assert isinstance(wrapper.client, CliClient)
+        assert pipeline.stages._driver._llm._llm is wrapper
+        unbound = original(**{k: v for k, v in kwargs.items() if k != "watchdog"})
+        assert unbound.stages._watchdog is None
+        seen.append(pipeline)
+        return pipeline
+
+    async def stop(self):
+        return 0
+
+    monkeypatch.setattr(main_module, "compose_pipeline", compose)
+    monkeypatch.setattr(ServeGraph, "run", stop)
+    if verb == "drain":
+        author(checkout, "candidate")
+    assert main_module.main([verb], cwd=checkout, env=git_env(checkout.parent),
+                            out=StringIO(), clock=lambda: T0) == 0
+    assert seen
+
+
+from test_cli import checkout  # noqa: E402, F401

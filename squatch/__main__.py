@@ -37,6 +37,7 @@ from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
 from squatch.journal import Journal, JournalCorruption, read_events
 from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
+from squatch.notify import NotificationReconciler
 from squatch.providers import CliClient, Registry, child_env
 from squatch.redact import Redactor
 from squatch.merge import compose_pipeline
@@ -158,13 +159,31 @@ def _reject(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
 
 
 def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
-    return _locked(args, cwd, env, out, pipeline, clock, process,
-                   lambda runner, config, git, control: Drain(
-                       runner=runner, repo=cwd, config=config, git=git, clock=clock,
-                       process=process, env=env, config_path=args.config,
-                       carried=args.parked,
-                       control_factory=control,
-                       report=lambda line: print(line, file=out)).run())
+    def run(runner, config, git, control):
+        report = lambda line: print(line, file=out)
+        notifications = SubprocessNotifications(
+            cwd=cwd, env=child_env(env, {p.auth for p in config.providers if p.auth}))
+        reconciler = None
+
+        async def reconcile(journal):
+            nonlocal reconciler
+            if config.notify is None:
+                return
+            if reconciler is None:
+                reconciler = NotificationReconciler(
+                    journal=journal, notifications=notifications,
+                    argv=config.notify, report=report)
+            await reconciler.reconcile()
+
+        if config.notify is None:
+            report("warning: push notifications are off; escalations remain status-only")
+        return Drain(
+            runner=runner, repo=cwd, config=config, git=git, clock=clock,
+            process=process, env=env, config_path=args.config, carried=args.parked,
+            control_factory=control, report=report,
+            reconcile_notifications=reconcile).run()
+
+    return _locked(args, cwd, env, out, pipeline, clock, process, run)
 
 
 def _serve(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
@@ -385,7 +404,8 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
             composed = compose_pipeline(repo=cwd, config=config, env=env, journal=journal,
                                         clock=clock, process=process, fs=LocalFilesystem(), git=git,
                                         control_inbox=pause.inbox,
-                                        admission_hold=pause.admission_hold)
+                                        admission_hold=pause.admission_hold,
+                                        watchdog=getattr(args, "verb", None) in {"drain", "serve"})
             if getattr(args, "verb", None) == "drain":
                 pause.bind_abort(composed.stages.abort_active)
         if getattr(args, "verb", None) == "serve":

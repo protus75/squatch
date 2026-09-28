@@ -74,3 +74,14 @@ class NotificationReconciler:
                 yield event.ticket, "integration_red_streak", identity, (
                     f"integration-red streak: merge admissions paused; ticket: {event.ticket}\n"
                     f"After inspection: squatch resume --hold-id {identity}")
+
+            if (event.type == "signal" and body.get("kind") == "watchdog"
+                    and body.get("spiral") in ("spend_without_progress", "stuck")
+                    and isinstance(body.get("ticket"), str) and body["ticket"]
+                    and event.ticket == body["ticket"]
+                    and type(body.get("run_seq")) is int):
+                spiral = body["spiral"]
+                identity = str(body["run_seq"]) if spiral == "spend_without_progress" else "stuck"
+                yield event.ticket, spiral, identity, (
+                    f"watchdog {spiral}: ticket {event.ticket}; run {body['run_seq']}\n"
+                    "Inspect the run artifacts; squatch kill stops active work.")

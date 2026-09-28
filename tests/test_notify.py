@@ -206,3 +206,39 @@ async def test_unrelated_signals_and_hold_release_do_not_notify(tmp_path):
                                   "hold_id": str(uuid4())})
         await reconciler(journal, notifications, lambda line: None).reconcile()
         assert notifications.calls == []
+
+        for seq in (0, 1):
+            for spiral in ("spend_without_progress", "stuck"):
+                journal.append("signal", {"kind": "watchdog", "ticket": "candidate",
+                                          "spiral": spiral, "run_seq": seq}, ticket="candidate")
+        await reconciler(journal, notifications, lambda line: None).reconcile()
+        assert len(notifications.calls) == 3
+        assert sum("spend_without_progress" in c[-1] for c in notifications.calls) == 2
+        assert sum("stuck" in c[-1] for c in notifications.calls) == 1
+    with Journal(tmp_path, clock=lambda: T0) as journal:
+        await reconciler(journal, notifications, lambda line: None).reconcile()
+        assert len(notifications.calls) == 3
+
+
+@pytest.mark.parametrize("spiral", ["spend_without_progress", "stuck"])
+async def test_watchdog_unmatched_intent_retries_after_restart(tmp_path, spiral):
+    notifications, reports = RecordingNotifications(), []
+    original = notifications.notify
+
+    async def broken(argv):
+        raise RuntimeError("not delivered")
+
+    notifications.notify = broken
+    with Journal(tmp_path, clock=lambda: T0) as journal:
+        journal.append("signal", {"kind": "watchdog", "ticket": "candidate",
+                                  "spiral": spiral, "run_seq": 7}, ticket="candidate")
+        await reconciler(journal, notifications, reports.append).reconcile()
+        assert len(reports) == 1 and "notification failed" in reports[0]
+        assert not any(e.type == "effect_completion" for e in journal.read())
+    notifications.notify = original
+    with Journal(tmp_path, clock=lambda: T0) as journal:
+        await reconciler(journal, notifications, reports.append).reconcile()
+        await reconciler(journal, notifications, reports.append).reconcile()
+        assert len(notifications.calls) == 1
+        assert [e.type for e in journal.read() if e.key and e.key.startswith("notify/")] == [
+            "effect_intent", "effect_intent", "effect_completion"]

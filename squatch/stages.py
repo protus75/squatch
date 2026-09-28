@@ -59,6 +59,7 @@ from squatch.shakeout import REPORT_NAME, ShakeoutReport
 from squatch.specs import DATA_MARKER, DataBlock, RenderRefused, Spec, load_spec
 from squatch.seeds import (SEED_LIFT_SIGNAL, Seed, authored_seeds, blob_sha, reviewed_seeds,
                            validate_batch)
+from squatch.watchdog import WatchdogLLM
 from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, Ticket,
                              lint_ticket, parse_frontmatter, stamp)
 
@@ -547,6 +548,7 @@ class Stages:
         self._process = process
         self._fs = fs
         self._llm = llm
+        self._watchdog = llm._llm if isinstance(llm._llm, WatchdogLLM) else None
         self._effects: Effects = llm.effects
         self._log = log
         self._redact = redact
@@ -568,6 +570,15 @@ class Stages:
         await self._driver.abort_active()
 
     async def run(self, ticket: Ticket, *, run_seq: int) -> Delivery:
+        if self._watchdog is not None:
+            self._watchdog.bind(ticket, run_seq)
+        try:
+            return await self._run(ticket, run_seq=run_seq)
+        finally:
+            if self._watchdog is not None:
+                self._watchdog.clear()
+
+    async def _run(self, ticket: Ticket, *, run_seq: int) -> Delivery:
         stem = ticket.stem
         self._llm.stuck_seconds = ticket.stuck_minutes * 60
         ws = await self._workspace(stem, run_seq)
@@ -1105,14 +1116,18 @@ async def lift_ticket_files(*, repo: Path, git: Git, fs: Filesystem, effects: Ef
 
 
 def compose(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
-            clock: Clock, process: ProcessExec, fs: Filesystem, git: Git) -> Stages:
+            clock: Clock, process: ProcessExec, fs: Filesystem, git: Git,
+            watchdog: bool = False) -> Stages:
     """The production composition: the routed `cli` client behind the LLM
     effect, the redactor wired into every captured-stream writer."""
     repo = Path(repo)
     state = repo / config.state_dir
     redact = Redactor.from_config(config, env)
-    client = CliClient(Registry(config), process=process, fs=fs, env=env, redact=redact,
+    registry = Registry(config)
+    client = CliClient(registry, process=process, fs=fs, env=env, redact=redact,
                        state_dir=state, cwd=repo)
+    if watchdog:
+        client = WatchdogLLM(client, registry=registry, journal=journal, clock=clock, git=git)
     llm = LLMEffect(llm=client, effects=Effects(journal), redact=redact, clock=clock)
     return Stages(repo=repo, config=config, git=git, process=process, fs=fs, llm=llm,
                   log=EngineLog(state, clock=clock, redact=redact), redact=redact, clock=clock,

@@ -54,7 +54,7 @@ child unions the carried set into its own parked set: it runs UPGRADED code
 whose fold may read the record differently, and the parent's verdicts hold.
 """
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -169,7 +169,8 @@ class Drain:
                  config_path: Path | None = None, carried: Sequence[str] = (),
                  pause: DispatchPause | None = None,
                  wait_for_control: ConsumerCallback | None = None,
-                 control_factory: ControlFactory | None = None):
+                 control_factory: ControlFactory | None = None,
+                 reconcile_notifications: Callable[[Journal], Awaitable[None]] | None = None):
         if control_factory is not None and (pause is not None or wait_for_control is not None):
             raise ValueError("control_factory replaces pause and wait_for_control")
         if pause is not None and wait_for_control is None:
@@ -177,6 +178,7 @@ class Drain:
         self._pause = pause
         self._wait_for_control = wait_for_control
         self._control_factory = control_factory
+        self._reconcile_notifications = reconcile_notifications
         self._runner = runner
         self._repo = Path(repo)
         self._config = config
@@ -199,6 +201,8 @@ class Drain:
 
     async def _drain(self, session: Session) -> int | Handoff:
         journal = session.journal
+        if self._reconcile_notifications is not None:
+            await self._reconcile_notifications(journal)
         if self._control_factory is not None and self._pause is None:
             self._pause, self._wait_for_control = self._control_factory(journal)
         started = self._clock()
@@ -231,14 +235,18 @@ class Drain:
                     return self._halted(plane, facts, merged_now, ticket)
                 if self._stopping:
                     return self._killed()
-            if isinstance(self._pause, DrainControl):
-                assert self._wait_for_control is not None
-                run = await self._pause.run_dispatch(
-                    self._runner.dispatch(ticket, journal), self._wait_for_control)
-                if run is None:
-                    return self._killed()
-            else:
-                run = await self._runner.dispatch(ticket, journal)
+            try:
+                if isinstance(self._pause, DrainControl):
+                    assert self._wait_for_control is not None
+                    run = await self._pause.run_dispatch(
+                        self._runner.dispatch(ticket, journal), self._wait_for_control)
+                else:
+                    run = await self._runner.dispatch(ticket, journal)
+            finally:
+                if self._reconcile_notifications is not None:
+                    await self._reconcile_notifications(journal)
+            if run is None:
+                return self._killed()
             if run.settled:
                 merged_now.append(ticket.stem)
                 facts = fold(journal.read())
