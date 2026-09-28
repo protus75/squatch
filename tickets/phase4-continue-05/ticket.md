@@ -42,6 +42,9 @@ sole authority for the report member set and the exact three-seed core. Author
 only `retro-drain-invoker`, `retro-box-activation`, and `phase5-continue`, with
 the names, edges, tiers, fences, Context partitions, and finite suffix stated
 there; do not infer the obsolete section-19 report name or member list.
+This regenerated revision follows the committed boundary repair and historical
+authoring-time render-fixture migration; `uv run pytest -q` is green on its
+merge base and must remain green on the authored branch.
 
 Both tickets cite section 20 alone, use expected/stuck budgets within
 `drain.max_ticket_minutes`, and name only existing Context. Every existing fence
