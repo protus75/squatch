@@ -38,6 +38,10 @@ this independently provable reliability boundary.
 ## Scope out
 Do not run the battery for a ticket-plane report, alter provider behavior, add an
 independent writer or schema, implement `reliability-run`, or author Phase 4 exit.
+Do not call `stages.compose`, `compose_pipeline`, `compose_daemon_timers`,
+`restart_session`, `Serve`, or `Session` from either new battery path: those
+constructors would invalidate the predecessor caller-closure assertion, which this
+ticket cannot edit.
 
 ## Scope fence
 - eval/reliability_battery.py
