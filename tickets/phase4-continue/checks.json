@@ -1,45 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "236276c04a8351d37a2fb0052b3b20e372af2eac",
+  "produced_at_sha": "f19010dfb0b6bbaeff85570f4fa066af29225c52",
   "stem": "phase4-continue",
   "branch": "phase4-continue",
-  "base": "3d19da5c08cc6e82d4bc7e034c5193a95dc368f1",
-  "head": "236276c04a8351d37a2fb0052b3b20e372af2eac",
+  "base": "4ee03d180b1749bfe3469d84172b0071edafce9c",
+  "head": "f19010dfb0b6bbaeff85570f4fa066af29225c52",
   "changed_files": [
     "tests/test_seeded_phase4_01.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase4-continue-02/ticket.md",
-      "sha": "ae48989811a2df6e4d18d0c53c236b3b973ab900",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/watchdog-activation/ticket.md",
-      "sha": "1e322ad76c8a112d8274a20afdfb365842ddf2bd",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/watchdog-detector/ticket.md",
-      "sha": "b8986688ebf3d04f055269f25ce32fb4b2366a83",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
