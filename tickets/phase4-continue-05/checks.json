@@ -1,25 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "fe81de12f2d145bc4f147d444e2fd6ff7899d476",
+  "produced_at_sha": "5fef99aa558aa746e647a2fce6b5d1f97fbb7ee8",
   "stem": "phase4-continue-05",
   "branch": "phase4-continue-05",
-  "base": "0cd367d8fd32365f38fab6bfaef0f2037df15a21",
-  "head": "fe81de12f2d145bc4f147d444e2fd6ff7899d476",
+  "base": "f8833877d25f7326f14e848a6a8ed337f668b021",
+  "head": "5fef99aa558aa746e647a2fce6b5d1f97fbb7ee8",
   "changed_files": [
     "tests/test_seeded_phase4_05.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase4-exit/ticket.md",
-      "sha": "fb0f547fbabeed38b534151cb3c0a8b5dbca3caf",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
