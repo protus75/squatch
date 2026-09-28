@@ -1,18 +1,21 @@
 ## Outcome
 
-ok
+premise_failed
 
 ## Surprises / judgment calls
 
-Used `tests/test_seeded_phase4_05.py` as the already-merged continuation fixture
-for `phase5-continue-03`; the newly authored Phase 5 seeded test is not Context.
-Used bounded synthetic authoring-size fixtures and named the large baseline
-preservation tests as on-demand exceptions.
+The baseline-binding-reader contract requires `squatch/policy.py` to stop being
+the binding reader and `squatch/author.py` to be its sole caller, but this
+ticket fences neither `squatch/policy.py` nor `tests/test_policy.py`.
 
 ## Dead ends
 
-The first focused run exposed wrapped acceptance-criteria bullets, which the
-ticket linter rejects; converted each criterion to one bullet line.
+On the base commit, `squatch.policy.go_binds` remains the production binding
+reader and `squatch.author` imports and calls it. `tests/test_policy.py` imports
+that function directly. Adding `squatch/baseline.py` within the proposed seed
+would leave two production readers; removing or migrating the old reader would
+require edits outside this ticket's scope fence. The plan and seed fence must
+be repaired before this admission can be authored.
 
 ## Second problems filed
 
@@ -23,4 +26,4 @@ OpenAI Codex, GPT-5.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 20m.
+Expected 75m; actual about 5m before the premise failure.
