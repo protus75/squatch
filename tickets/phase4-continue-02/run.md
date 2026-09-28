@@ -17,11 +17,12 @@ were bound to the fenced failover and composition suites.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI Codex, GPT-5.
+OpenAI Codex, GPT-5 (exact serving variant not exposed).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 20m in this attempt.
+Expected 75m; actual approximately 10m in this attempt.
