@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The implementation is sound and stays inside the fence. Keep squatch/retro.py and squatch/scorecard.py as they are; only tests/test_scorecard.py needs more cases. Do not touch tests/test_retro.py.",
+    "Prune threshold boundary: next to the existing 25-ticket True case, add 24 distinct tickets with only passing checks for one code and assert prune_candidate is False. Also add 25 tickets where one check is a non-bypassed fail and assert False.",
+    "No-effects proof: run project_scorecard (and render_report) while builtins.open, pathlib.Path.write_text/write_bytes/open, and subprocess.run/Popen are monkeypatched to raise, then assert the Scorecard still returns. Keep the model_dump before/after immutability check.",
+    "Map each acceptance criterion to a named test that would fail if its boundary were moved. Review rejects coverage that a mutated constant, such as >= 2 instead of >= 25, would still pass."
+  ],
+  "reason": "Review snagged only on two fixable test-coverage gaps: the below-threshold prune case and the no-effects proof. The code itself was judged correct, so a same-capability retry steered by these findings should pass.",
+  "detail": null
+}
