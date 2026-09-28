@@ -1,15 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Review approved the registry, edges, tiers, budgets, and fences. Keep both authored tickets and tests/test_seeded_phase4_02.py. Fix only the delimiter wording in tickets/phase4-continue-03/ticket.md and pin that wording in the test.",
-    "tests/test_seeded_phase4_01.py:150 checks for the bare substrings \"squatch:data\" and \"squatch:end\", and that same line contains both. Copying that check makes the file's own required Context look delimiter-bearing. Do not tell phase4-continue-03 to copy it.",
-    "The real marker is specs.DATA_MARKER = \"<<<squatch:\" (squatch/specs.py:37). The finding's paved road wrote it as \"[squatch-data:\", but that is the renderer's escaped form. Use specs.DATA_MARKER, not a hand-typed prefix.",
-    "In the phase4-continue-03 Scope in and criteria, state that delimiter exclusion means specs.DATA_MARKER is absent from Context content. Keep tests/test_seeded_phase4_01.py as its Context and require tests/test_seeded_phase4_03.py to prove it passes that check.",
-    "Have test_seeded_phase4_02.py assert that the phase4-continue-03 ticket names DATA_MARKER and does not require the bare-substring check. Keep the existing measured on-demand headroom and Context-fit assertions unchanged."
+    "Requisition review found that production drain/serve build Registry and CliClient in squatch/stages.py compose, which merge.py compose_pipeline reaches. Neither file is in the fixed ownership hooks, and the ticket pins the fence to exactly owns+hooks.",
+    "The live Timers instance is local to restart_session, composed by daemon.py compose_daemon_restart. restart.py and daemon.py are unfenced, so a journaled cooldown Timer has no sanctioned seam to reach the provider client.",
+    "Serve.compose builds its own Registry plus rework/triage CliClients, and __main__._triage_pass builds another. The ownership contract does not say which construction sites share one registry/cooldown payload.",
+    "Fixing this needs a plan edit to section 20's provider-cooldown-failover ownership. Add stages.py and merge.py (and restart/daemon, or journal-fold re-derivation) as measured on-demand hooks, name every client construction site, then regenerate.",
+    "Keep the approved parts: registry suffix, edges, tiers, budgets, the DATA_MARKER wording and the measured headroom assertions. Update tests/test_seeded_phase4_02.py OWNERSHIP and ON_DEMAND tables to match the revised contract."
   ],
-  "reason": "The gate failure is fixable ticket wording that makes phase4-continue-03's Context criterion contradict its exclusion criterion, and the finding steers the fix.",
+  "reason": "The fixed ownership contract omits the production composition owners (stages/merge, Timers lifetime seam) that requisition review requires, so the ticket as written cannot pass.",
   "detail": null
 }
