@@ -28,6 +28,8 @@ EXISTING_AT_AUTHORING = {
     "squatch/tickets.py": 38775,
     "tests/test_seeded_phase3_core.py": 5877,
 }
+# Measured from ``## 20.`` to the next section at 64b1f83.
+SECTION_20_CHARS_AT_AUTHORING = 8911
 AUTHORING_TEST_PATHS = (
     "tests/test_audit.py", "tests/test_author.py", "tests/test_box.py", "tests/test_caps.py",
     "tests/test_cli.py", "tests/test_config.py", "tests/test_diagnose.py", "tests/test_drain.py",
@@ -68,6 +70,15 @@ def _text(stem):
 def _ticket(stem):
     return lint_ticket(_text(stem), stem=stem, repo=REPO, plan=(REPO / PLAN_FILE).read_text(),
                        resolve_stem=lambda candidate: _path(candidate).is_file())
+
+
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
 
 
 def _yaml_after(text, marker):
@@ -127,7 +138,7 @@ def test_mergequeue_additions_are_additive_and_predecessor_tests_are_closed():
 
 def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in PHASE3_01:
         ticket = _ticket(stem)

@@ -54,6 +54,12 @@ ON_DEMAND = {
         "tests/test_merge.py", "tests/test_mergequeue.py",
     },
 }
+MIGRATION_FENCE = {
+    "phase4-continue-02": [
+        "tests/test_seeded_phase4_01.py", "tests/test_seeded_phase3_01.py",
+        "tests/test_seeded_phase3_08.py", "tests/test_seeded_phase3_10.py",
+    ],
+}
 EXISTING_AT_AUTHORING = {
     "squatch/watchdog.py": 1008,
     "squatch/providers.py": 18687,
@@ -128,7 +134,8 @@ def test_exact_seeds_edges_tiers_budgets_fences_and_owners():
         assert (ticket.agent_tier, ticket.agent_effort) == ("medium", "medium")
         assert (ticket.expected_minutes, ticket.stuck_minutes) == (75, 150)
         assert ticket.stuck_minutes <= config.drain.max_ticket_minutes
-        assert ticket.scope_fence == tuple(OWNERSHIP[stem]["owns"] + OWNERSHIP[stem]["hooks"])
+        assert ticket.scope_fence == tuple(
+            OWNERSHIP[stem]["owns"] + OWNERSHIP[stem]["hooks"] + MIGRATION_FENCE.get(stem, []))
     assert NEW_PATH_OWNERS["tests/test_watchdog_activation.py"] == "watchdog-activation"
     assert NEW_PATH_OWNERS["tests/test_seeded_phase4_02.py"] == "phase4-continue-02"
 
@@ -151,7 +158,8 @@ def test_context_closure_delimiters_and_new_path_ownership():
         for path in ticket.scope_fence:
             if path in NEW_PATH_OWNERS:
                 assert NEW_PATH_OWNERS[path] == stem
-            elif path != "tickets" and path not in ON_DEMAND.get(stem, set()):
+            elif (path != "tickets" and path not in ON_DEMAND.get(stem, set())
+                  and path not in MIGRATION_FENCE.get(stem, [])):
                 assert path in ticket.context, (stem, path)
     assert "squatch/specs.py" not in set().union(*map(set, CONTEXT.values()))
     activation = _ticket("watchdog-activation")
@@ -200,9 +208,14 @@ def test_successor_provider_ownership_and_authoring_contract():
     assert ownership == {
         "provider-cooldown-failover": {
             "owns": ["tests/test_provider_cooldown_failover.py"],
-            "hooks": ["squatch/providers.py", "squatch/timers.py",
-                      "tests/test_providers.py", "tests/test_restart_timers.py",
-                      "squatch/drain.py", "squatch/serve.py", "squatch/__main__.py"],
+            "hooks": ["squatch/providers.py", "squatch/timers.py", "squatch/runner.py",
+                      "squatch/restart.py", "squatch/daemon.py", "squatch/stages.py",
+                      "squatch/merge.py", "tests/test_providers.py",
+                      "tests/test_restart_timers.py", "tests/test_stages.py",
+                      "squatch/drain.py", "squatch/serve.py", "squatch/__main__.py",
+                      "eval/shakeout/bench.py", "eval/daemon_soak.py", "tests/test_serve.py",
+                      "tests/test_merge.py", "tests/test_mergequeue.py",
+                      "tests/test_daemon_composition.py"],
         },
         "phase4-continue-03": {
             "owns": ["tickets", "tests/test_seeded_phase4_03.py"], "hooks": [],

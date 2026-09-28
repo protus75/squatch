@@ -53,6 +53,8 @@ EXISTING_AT_AUTHORING = {
     "tests/test_control_cli.py": 9688,
     "tests/test_daemon_composition.py": 21280,
 }
+# Measured from ``## 20.`` to the next section at 4fe624e.
+SECTION_20_CHARS_AT_AUTHORING = 12826
 NEW_PATH_OWNERS = {
     "tests/test_kill_worker_stop.py": "kill-worker-stop",
     "tests/test_kill_failure_suppression.py": "kill-failure-suppression",
@@ -85,6 +87,15 @@ def _ticket(stem):
     return lint_ticket(_path(stem).read_text(), stem=stem, repo=REPO,
                        plan=(REPO / PLAN_FILE).read_text(),
                        resolve_stem=lambda candidate: _path(candidate).is_file())
+
+
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
 
 
 def _section(stem, name):
@@ -193,7 +204,7 @@ def test_successor_removes_only_the_head_admission():
 
 def test_max_effort_renders_fit_with_pinned_authoring_material():
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
         ticket = _ticket(stem)

@@ -50,6 +50,8 @@ EXISTING_AT_AUTHORING = {
     "tests/test_mergequeue.py": 34441, "tests/test_daemon_composition.py": 7625,
     "tests/test_merge.py": 21750,
 }
+# Measured from ``## 20.`` to the next section at d4961ff.
+SECTION_20_CHARS_AT_AUTHORING = 11661
 NEW_PATH_OWNERS = {
     "tests/test_daemon_pause.py": "dispatch-pause-boundary",
     "tests/test_control_cli.py": "pause-resume-activation",
@@ -81,6 +83,15 @@ def _ticket(stem):
     return lint_ticket(_path(stem).read_text(), stem=stem, repo=REPO,
                        plan=(REPO / PLAN_FILE).read_text(),
                        resolve_stem=lambda candidate: _path(candidate).is_file())
+
+
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
 
 
 def _ownership(stem):
@@ -191,7 +202,7 @@ def test_successor_is_shrinking_and_synthetic_renders_fit_headroom():
     block = _section("phase3-continue-09", "Scope in").split("```yaml\n", 1)[1].split("\n```", 1)[0]
     assert tuple(tuple(row) for row in yaml.safe_load(block)) == SUCCESSOR
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM
     for stem, paths in CONTEXT.items():
         context = "".join(f"### {path}\n{'x' * EXISTING_AT_AUTHORING[path]}\n" for path in paths)
