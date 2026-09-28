@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Don't hardcode auditor=\"green\". Derive each member's auditor from audit_journal(root / member) after its journal closes, as eval/daemon_soak.py:542 and eval/shakeout/__main__.py:87 do. Add a test showing that a corrupted or empty member journal gives auditor=\"red\" and green=False.",
+    "produced_at_sha must be a real commit SHA, not Path(repo).resolve().name. Resolve HEAD with Git(process, ...).rev_parse(repo, \"HEAD\") through the injected process seam, as eval/daemon_soak.py:565 does. In the test, inject a process that returns a known SHA and assert that SHA, not \"base\".",
+    "For classified_quota_exhaustion, read the cooldown state after the call from the ProviderRuntime/Registry, the timer, or the journal event, and build the cooldown= part from it. Don't emit the literal 'cooldown=armed'. Add a test where no cooldown is armed and the member goes red.",
+    "In all_candidates_cooling_recovery, remove the bare assert (python -O strips it). Record the all-cooling error class in observed (e.g. all_cooling=<class>), and make a missing raise produce a mismatched observed value. Check the ProviderError class on the first two calls instead of swallowing it.",
+    "Everything else passed review: schema registration in KNOWN_ARTIFACTS, the closed member list, the fence, and no direct write. Keep that design and change only the evidence derivation and its tests."
+  ],
+  "reason": "Review found four in-place fixes, each with a paved road; checks passed and the ticket is satisfiable.",
+  "detail": null
+}
