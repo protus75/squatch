@@ -1,9 +1,14 @@
 {
-  "run_seq": 10,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 11,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "This attempt's content was approved. The only finding is that the engine rejected the requisition_review reply because the reviewer wrapped its approving JSON in a ```json code fence. The ticket, plan and tests did not cause the failure.",
+    "Keep both authored tickets and all test changes exactly as they are: phase4_02, the phase4_01 ownership update, and the phase3_01/08/10 section-20 pins. Retry and let review run again. Do not re-author or widen anything in response to this finding.",
+    "The finding's paved road 'fix the plan, then re-author the ticket' is the generic road for requisition_review and does not apply here. The reviewer's summary confirms the fence covers every direct caller of stages.compose, compose_pipeline, Serve, Session and _triage_pass.",
+    "Engine cause to file separately: the requisition_review reply parser is strict and rejects a code-fenced JSON object. Either the review spec must state the no-fence rule more forcefully or the parse seam must be fixed. Otherwise approved work fails at random."
+  ],
+  "reason": "Review approved the work, but the engine's strict parser rejected the reply because it was wrapped in a code fence; a fresh review pass should clear it.",
+  "detail": null
 }
