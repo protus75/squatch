@@ -1,14 +1,15 @@
 {
-  "run_seq": 10,
+  "run_seq": 11,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Requisition review found only two fixable omissions in retro-drain-invoker. Its Scope in list of fenced measured on-demand exceptions leaves out tests/test_driver.py and tests/test_box.py. Add both by path to that exact list.",
-    "Keep retro-drain-invoker's Context exactly as it is: squatch/driver.py, squatch/git.py, squatch/box.py and tests/test_seeded_phase4_02.py. No plan edit is needed. The fix stays inside the tickets fence.",
-    "The seeded test passed even though the two paths were missing, because it only checks that each path appears somewhere in Scope in. Extract the on-demand exceptions sentence and assert every INVOKER_ON_DEMAND and ACTIVATION_ON_DEMAND path appears in that sentence.",
-    "Before you finish, check every fenced existing path in all three tickets. Each one must be either in Context or named individually in the on-demand exceptions list. This keeps review from finding the same gap in retro-box-activation."
+    "Section 20 contradicts itself. It says Merge's pre-existing Box 'remains unchanged', but also requires every production Box that reaches record_rereport to get the journal callback. Fix section 20 so Merge's Box gets the callback, keep its Verification/base-failure role, then regenerate.",
+    "Section 20 must say how K=3 works for a Box built without a callback, such as `python -m squatch.box ingest`. Fail closed: count the rereport but refuse to clear the tombstone and raise a named error with a paved road. Or wire that entry to a journal-backed callback.",
+    "Section 20 must define tombstone_auto_reopened exactly: a `signal` event with a replay-stable key, e.g. `tombstone-reopen/<box_id>/<reports>`, and an exact body. journal.py's closed EVENT_TYPES is unfenced, so no new event type is possible.",
+    "Once section 20 is fixed, re-author retro-box-activation to carry these rules and extend tests/test_seeded_phase5_core.py to pin the Merge callback, the no-callback fail-closed behavior, and the reopen signal key and body.",
+    "The retro-drain-invoker and phase5-continue tickets and tests/test_phase4_exit.py drew no findings in this attempt. Keep their shape and the four-file Context partitions when regenerating."
   ],
-  "reason": "The only findings are two missing path names in one ticket's on-demand exceptions list. Each has a clear fix inside the fence, so a retry at the same capability can fix it.",
+  "reason": "Review found section 20 defects: Merge's Box must stay unchanged yet get the callback, the no-callback K=3 case is unspecified, and the reopen record's shape is undefined. The tickets fence cannot fix these, so the plan must change first.",
   "detail": null
 }
