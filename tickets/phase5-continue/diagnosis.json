@@ -1,9 +1,17 @@
 {
-  "run_seq": 5,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 6,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review approved both authored tickets and all checks passed. The only snag is weak asserts in tests/test_seeded_phase5_01.py. Keep the ticket text, registry, edges, fences, fixtures (16091/20072/8111), outbox handling and run.md Outcome `ok` as they are.",
+    "In the phase5-continue-02 Scope in, assert each later row's owner/fence text: status-projection's squatch/status.py, tests/test_status.py and the Box seam/test paths; baseline's squatch/journal.py and squatch/config.py.",
+    "Also assert retro-doctor-cli's squatch/doctor.py, tests/test_doctor.py, squatch/retro.py and squatch/__main__.py; phase5-continue-04's tickets and tests/test_seeded_phase5_04.py; phase5-exit's tests/test_phase5_exit.py and tests/test_seeded_phase6_core.py.",
+    "Delete the self-equality asserts on EXISTING_AT_AUTHORING and NEW_PATH_OWNERS, or tie those constants to text in the emitted tickets. Comparing a constant to a copy of itself proves nothing.",
+    "In the scorecard Scope in, assert the full closed signatures, allowing for line wraps. That means SurfaceScorecardRow through prune_candidate and Scorecard through gate_failure_count, surfaces.",
+    "Assert the calculation clauses: distinct-ticket evaluated_tickets, non-bypassed verdict-fail catches, catch_rate over all observations with zero when there are none, and rows sorted by surface.",
+    "Copy each asserted substring verbatim from the ticket file you authored, keeping its real line breaks. Run uv run pytest -q before finishing. Commit only tests/test_seeded_phase5_01.py."
+  ],
+  "reason": "Review snagged only on missing test asserts, and it named each one to add. A same-capability retry can fix that.",
+  "detail": null
 }
