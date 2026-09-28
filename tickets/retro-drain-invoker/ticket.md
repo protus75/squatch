@@ -45,7 +45,13 @@ artifact lift. The commit effect key is exactly `retro/<seq>` and its
 Add a default-off retro hook to `Drain`. Bind it in
 `squatch/__main__.py::_drain` with the main repo, journal, injected clock and
 filesystem, Git/Effects, Box, existing Driver, and shared session payload. Every
-self-upgraded CLI child rebinds the hook. At the top of every dispatch iteration,
+self-upgraded CLI child rebinds the hook. Expose the Driver through an explicit
+public read-only accessor on the composed production pipeline or Stages and pass
+the pipeline and Driver through an explicit construction seam; do not probe
+private `_retro_pipelines`, `_retro_prebuilt`, or `_driver` attributes. If
+production hook construction is requested without a Driver, raise named
+`RetroConstructionError` with a paved road rather than returning `False` or
+silently disabling retro. At the top of every dispatch iteration,
 before the next ticket dispatch, perform an UNFORCED due check. Run only when
 the current window has N=25 merged tickets, is M=7 days old, or one exact signal
 kind reaches S=5: a used non-empty `gate_bypass`, a Rework invocation/order, a
@@ -65,17 +71,16 @@ later `retro/<seq>` effect completion releases suppression.
 The fenced measured on-demand inspection exceptions are `squatch/drain.py`,
 `squatch/__main__.py`, `tests/test_drain.py`, `tests/test_driver.py`,
 `tests/test_box.py`, `tests/test_drain_reentry.py`,
-`tests/test_seed_successor.py`, `tests/test_drain_upgrade.py`,
+`tests/test_drain_upgrade.py`,
 `tests/test_daemon_composition.py`, `tests/test_kill_cli_activation.py`,
 `tests/test_storm_hold.py`, `tests/test_storm_notification_activation.py`,
 `tests/test_restart_timers.py`, `tests/test_provider_cooldown_failover.py`,
 `tests/test_watchdog_activation.py`, `tests/test_daemon_pause.py`, and
 `tests/test_control_cli.py`.
 
-Migrate only the forced post-merge retro fallout in those suites: the scripted
-model-answer count in `tests/test_drain_reentry.py`; the ticket-path main-history
-assertion in `tests/test_seed_successor.py`; the ancestry-history assertion in
-`tests/test_drain_upgrade.py`; the fake-call and spawned-main history assertions
+Treat those suites as a transition-risk fence, not as a claim that each existing
+scenario fires retro. Migrate only actual forced post-merge fallout: the
+ancestry-history assertion in `tests/test_drain_upgrade.py`; the fake-call and spawned-main history assertions
 in `tests/test_daemon_composition.py` and `tests/test_kill_cli_activation.py`;
 the ordered pipeline-call and control-journal assertions in
 `tests/test_storm_hold.py`; the trip/report Box-count assertions in
@@ -87,6 +92,12 @@ pause-journal assertions in `tests/test_daemon_pause.py`; and the drain result
 and control-journal assertions in `tests/test_control_cli.py`. Preserve every
 unrelated dispatch, re-entry, upgrade, control, storm, provider, watchdog, and
 daemon assertion.
+Record a concrete non-firing reason when a fenced scenario does not cross the
+forced boundary: `tests/test_drain_reentry.py` uses `NoHandoff`;
+`tests/test_drain_upgrade.py` has a stubbed handoff; kill scenarios stop first;
+provider cooldown ends `premise_failed`; and daemon-pause/control scenarios have
+no tickets. Keep `tests/test_seed_successor.py` unchanged and outside the fence
+because it calls `Bench.drain()` directly, for which the hook remains default-off.
 
 ## Scope out
 Do not add an artifact registry entry, a second provider client, an OUTBOX
@@ -105,7 +116,6 @@ change behavior of direct `Drain` constructions that omit the hook.
 - tests/test_driver.py
 - tests/test_box.py
 - tests/test_drain_reentry.py
-- tests/test_seed_successor.py
 - tests/test_drain_upgrade.py
 - tests/test_daemon_composition.py
 - tests/test_kill_cli_activation.py
@@ -119,14 +129,15 @@ change behavior of direct `Drain` constructions that omit the hook.
 
 ## Acceptance criteria
 - `tests/test_retro.py` proves the closed local artifact, `retro` LLMStage and prompt, shared Driver/provider path, validated Markdown rendering, and absence of artifact-registry or second-client behavior.
-- `tests/test_retro.py` proves the direct reserved main-checkout write, zero-padded sequence, exact `retro/<seq>` effect, writer-lock custody, and default-off Drain hook bound by `_drain` and rebound after self-upgrade.
+- `tests/test_retro.py` drives the production `_drain` path end to end and proves merge then quiescence commits exactly one `tickets/retro/000001.md` on main with effect key `retro/000001` while the writer lock is held.
+- `tests/test_retro.py` proves the public Driver accessor, explicit construction seam, named fail-closed `RetroConstructionError`, default-off direct Drain hook, and rebinding through the existing self-upgrade handoff path with an executing child.
 - `tests/test_retro.py` proves the exact N=25, M=7-day, and S=5 unforced checks, both forced boundaries with merge-since-report gating, one-report window advancement, and exact window-suppressed failure signal and Box route with no unbounded retry.
-- `tests/test_drain_reentry.py` and every named regression suite change only their listed scripted-call, Box, journal, or main-history assertion for the one forced post-merge retro and retain all other behavior.
+- `tests/test_retro.py` and every named regression suite prove that an actually reached forced retro changes only its listed scripted-call, Box, journal, or main-history assertion, while a non-firing scenario stays unchanged for its concrete reason and retains all other behavior.
 - `uv run pytest -q` proves the full predecessor suite remains green.
 
 ## Verification
 ```
-uv run pytest tests/test_retro.py tests/test_drain.py tests/test_driver.py tests/test_box.py tests/test_drain_reentry.py tests/test_seed_successor.py tests/test_drain_upgrade.py tests/test_daemon_composition.py tests/test_kill_cli_activation.py tests/test_storm_hold.py tests/test_storm_notification_activation.py tests/test_restart_timers.py tests/test_provider_cooldown_failover.py tests/test_watchdog_activation.py tests/test_daemon_pause.py tests/test_control_cli.py -q
+uv run pytest tests/test_retro.py tests/test_drain.py tests/test_driver.py tests/test_box.py tests/test_drain_reentry.py tests/test_drain_upgrade.py tests/test_daemon_composition.py tests/test_kill_cli_activation.py tests/test_storm_hold.py tests/test_storm_notification_activation.py tests/test_restart_timers.py tests/test_provider_cooldown_failover.py tests/test_watchdog_activation.py tests/test_daemon_pause.py tests/test_control_cli.py -q
 uv run pytest -q
 ```
 
