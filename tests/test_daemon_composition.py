@@ -38,6 +38,7 @@ from squatch.timers import Timers
 from squatch.watcher import Watcher
 from test_mergequeue import divergent_candidate, fixture_repo, shared_control
 from test_cli import FakePipeline, STATE, author, checkout, git_env  # noqa: F401
+from test_drain import retro_stages
 from test_stages import PLAN, TICKET
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -298,9 +299,14 @@ def test_main_drain_routes_control_after_inflight_work_and_before_the_next_offer
             return delivery
 
     pipeline = Pipeline("premise_failed", "premise_failed")
+
+    def pipeline_factory(journal):
+        pipeline.stages, _llm = retro_stages(journal)
+        return pipeline
+
     result = main_module.main(
         ["drain"], cwd=checkout, env=git_env(checkout.parent), out=out,
-        pipeline=lambda _journal: pipeline, clock=clock)
+        pipeline=pipeline_factory, clock=clock)
 
     assert result == 0, out.getvalue()
     assert [stem for stem, _run_seq in pipeline.calls] == ["first", "second"]

@@ -208,6 +208,7 @@ def test_live_root_skips_matching_stem_before_accounting_then_resumes(
 
     assert rc == 0, out.getvalue()
     assert [stem for stem, _ in pipeline.calls] == ["unrelated", "candidate"]
+    assert [request.surface for request in pipeline.retro_llm.requests] == ["retro"]
     assert len(resumed) == 1
     events = tuple(read_events(state))
     hold_index = next(i for i, event in enumerate(events)
@@ -262,6 +263,7 @@ def test_matching_reoffer_is_held_before_its_retry_draw(checkout, monkeypatch):
     assert main_module.main(
         ["drain"], cwd=checkout, env=git_env(checkout.parent), out=StringIO(),
         pipeline=pipeline, clock=lambda: NOW) == 0
+    assert [request.surface for request in pipeline.retro_llm.requests] == ["retro"]
 
     events = tuple(read_events(state))
     hold_index = next(i for i, event in enumerate(events)

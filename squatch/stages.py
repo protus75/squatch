@@ -567,6 +567,11 @@ class Stages:
                               clock=clock, retry_cap=config.caps.retry,
                               severity=config.review.gate_severity)
 
+    @property
+    def driver(self) -> Driver:
+        """The governed Driver shared by every stage in this composition."""
+        return self._driver
+
     async def abort_active(self) -> None:
         """Abort and observe the Driver invocation currently owned by these stages."""
         await self._driver.abort_active()

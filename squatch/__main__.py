@@ -26,14 +26,16 @@ from typing import TextIO
 from uuid import UUID
 
 import squatch
-from squatch.box import BoxCorruption
+from squatch.box import Box, BoxCorruption
 from squatch.config import ConfigError, load
 from squatch.control import ControlRequest, publish_control
 from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
                             compose_daemon_restart, compose_daemon_storm_producer,
                             StormDispatchHold)
 from squatch.drain import Drain
+from squatch.driver import Driver
 from squatch.enginelog import EngineLog
+from squatch.effects import Effects
 from squatch.git import Git, GitError
 from squatch.journal import Journal, JournalCorruption, read_events
 from squatch.ladder import effective, rungs
@@ -41,6 +43,7 @@ from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
 from squatch.notify import NotificationReconciler
 from squatch.providers import CliClient, ProviderError, ProviderRuntime, Registry, RoutingError, child_env
 from squatch.redact import Redactor
+from squatch.retro import Retro, RetroConstructionError
 from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
 from squatch.runner import EXIT_OK, EXIT_REFUSED, PipelineFactory, Refusal, Runner
@@ -94,7 +97,8 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
     """`pipeline`, `clock`, and `process` are the test seams: a scripted
     stage-dispatch factory over the lock-held journal, the clock every verb
     reads, and the process-exec seam git, the stages, and the drain's
-    self-upgrade handoff spawn through."""
+    self-upgrade handoff spawn through. Scripted drain pipelines expose the
+    same public ``stages.driver`` shape as the production pipeline."""
     out = out if out is not None else sys.stdout
     cwd = Path(cwd) if cwd is not None else Path.cwd()
     env = dict(env if env is not None else os.environ)
@@ -178,11 +182,43 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
 
         if config.notify is None:
             report("warning: push notifications are off; escalations remain status-only")
+        fs = LocalFilesystem()
+        redact = Redactor.from_config(config, env)
+
+        def retro_factory(session):
+            pipeline = runner.retro_pipeline(session.journal)
+            try:
+                driver = pipeline.stages.driver
+            except (AttributeError, TypeError) as error:
+                raise RetroConstructionError(
+                    "production retro requires pipeline.stages.driver; "
+                    f"paved road: {RetroConstructionError.paved_road}") from error
+            if not isinstance(driver, Driver):
+                raise RetroConstructionError(
+                    "production retro requires pipeline.stages.driver to be a Driver; "
+                    f"paved road: {RetroConstructionError.paved_road}")
+            try:
+                spec = load_spec(ENGINE_ROOT / "specs" / "retro.md")
+            except Exception as error:
+                raise RetroConstructionError(
+                    f"cannot construct production retro: {error}; "
+                    f"paved road: {RetroConstructionError.paved_road}") from error
+            retro = Retro(
+                repo=cwd, journal=session.journal, clock=clock, fs=fs, git=git,
+                effects=Effects(session.journal),
+                box=Box(cwd / config.state_dir, fs=fs, clock=clock), driver=driver,
+                providers=session.providers, spec=spec, redact=redact)
+
+            async def invoke(trigger, forced):
+                return await retro.run(trigger, forced=forced)
+
+            return invoke
+
         return Drain(
             runner=runner, repo=cwd, config=config, git=git, clock=clock,
             process=process, env=env, config_path=args.config, carried=args.parked,
             control_factory=control, report=report,
-            reconcile_notifications=reconcile).run()
+            reconcile_notifications=reconcile, retro_factory=retro_factory).run()
 
     return _locked(args, cwd, env, out, pipeline, clock, process, run)
 
@@ -362,9 +398,18 @@ async def _triage_pass(runner: Runner, config, git: Git, cwd: Path, env,
 class _RestartRunner(Runner):
     providers: ProviderRuntime
 
-    def __init__(self, *, provider_registry: Registry, **kwargs):
+    def __init__(self, *, provider_registry: Registry, retro_pipeline=None, **kwargs):
         super().__init__(**kwargs)
         self._provider_registry = provider_registry
+        self._retro_pipeline = retro_pipeline
+
+    def retro_pipeline(self, journal: Journal):
+        """Compose the explicit one-per-session pipeline used by retro."""
+        if self._retro_pipeline is None:
+            raise RetroConstructionError(
+                "production retro requires an explicit pipeline construction seam; "
+                f"paved road: {RetroConstructionError.paved_road}")
+        return self._retro_pipeline(journal)
 
     def provider_hold(self, ticket, journal):
         events = tuple(journal.read())
@@ -428,25 +473,33 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
     serve_pipelines = {}
     runner: _RestartRunner | None = None
 
-    def factory(journal):
-        if getattr(args, "verb", None) == "serve" and journal in serve_pipelines:
-            return serve_pipelines[journal]
+    def compose(journal, *, bind_abort):
         if pipeline is not None:  # a scripted stand-in (tests)
             composed = pipeline(journal)
         else:
             assert runner is not None
             pause, _wait = control(journal)
-            composed = compose_pipeline(repo=cwd, config=config, env=env, journal=journal,
-                                        clock=clock, process=process, fs=LocalFilesystem(), git=git,
-                                        control_inbox=pause.inbox,
-                                        admission_hold=pause.admission_hold,
-                                        providers=runner.providers,
-                                        watchdog=getattr(args, "verb", None) in {"drain", "serve"})
-            if getattr(args, "verb", None) == "drain":
+            composed = compose_pipeline(
+                repo=cwd, config=config, env=env, journal=journal,
+                clock=clock, process=process, fs=LocalFilesystem(), git=git,
+                control_inbox=pause.inbox, admission_hold=pause.admission_hold,
+                providers=runner.providers,
+                watchdog=getattr(args, "verb", None) in {"drain", "serve"})
+            if bind_abort:
                 pause.bind_abort(composed.stages.abort_active)
+        return composed
+
+    def factory(journal):
+        if getattr(args, "verb", None) == "serve" and journal in serve_pipelines:
+            return serve_pipelines[journal]
+        composed = compose(
+            journal, bind_abort=getattr(args, "verb", None) == "drain")
         if getattr(args, "verb", None) == "serve":
             serve_pipelines[journal] = composed
         return composed
+
+    def retro_pipeline(journal):
+        return compose(journal, bind_abort=False)
 
     async def go() -> int:
         nonlocal runner
@@ -458,7 +511,8 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         log = EngineLog(cwd / config.state_dir, clock=clock,
                         redact=Redactor.from_config(config, env))
         runner = _RestartRunner(
-            provider_registry=provider_registry, repo=cwd, config=config, git=git,
+            provider_registry=provider_registry, retro_pipeline=retro_pipeline,
+            repo=cwd, config=config, git=git,
             fs=LocalFilesystem(), clock=clock,
             instance_id=instance_id, pipeline=factory, log=log,
             report=lambda line: print(line, file=out))

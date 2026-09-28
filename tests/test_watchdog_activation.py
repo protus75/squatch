@@ -20,6 +20,7 @@ from squatch.watchdog import WatchdogDetector, WatchdogLLM
 from test_cli import STATE, T0, author, checkout, git_env  # noqa: F401
 from test_notify import RecordingNotifications
 from test_providers import claude_stream, codex_stream
+from test_drain import RETRO_ANSWER
 from test_stages import CONFIG, TICKET, answer, review, run_record
 
 
@@ -79,7 +80,9 @@ class StageProcess:
             return 0, "verified", ""
         assert argv[0] == self.provider
         prompt = Path(kwargs["stdin_path"]).read_text()
-        surface = "implement" if "surface=implement" in prompt else "review"
+        surface = next(
+            value for value in ("implement", "review", "retro")
+            if f"surface={value}" in prompt)
         assert f"surface={surface}" in prompt
         self.calls.append(surface)
         self.counts[surface] += 1
@@ -94,7 +97,7 @@ class StageProcess:
             await git.add(self.worktree, [self.output])
             await git.commit(self.worktree, "implement output", [self.output])
             text = answer("implemented")
-        else:
+        elif surface == "review":
             if self.soft:
                 self.clock.advance(25)
             if self.mutate_review:
@@ -104,6 +107,8 @@ class StageProcess:
                 await git.add(self.worktree, [self.output])
                 await git.commit(self.worktree, "progress", [self.output])
             text = "invalid" if self.counts["review"] < 4 else review("approve")
+        else:
+            text = RETRO_ANSWER
         line = (json.dumps({"type": "item.started", "item": {"type": "command_execution"}})
                 if self.provider == "codex" else json.dumps({"type": "assistant", "message": {
                     "content": [{"type": "tool_use"}], "usage": {"input_tokens": 10}}}))
@@ -165,7 +170,8 @@ def test_roots_watch_implement_and_review_and_deliver_one_soft_page(
     out = StringIO()
     assert main_module.main([verb], cwd=checkout, env=env, process=process,
                             clock=clock, out=out) == 0, out.getvalue()
-    assert process.calls == ["implement", "review", "review", "review", "review"]
+    expected = ["implement", "review", "review", "review", "review"]
+    assert process.calls == expected + (["retro"] if verb == "drain" else [])
     assert len([e for e, _, _ in observed if e.kind == "tool_call"]) >= 5
     assert all(basis == 2.0 and fence == (("output.txt",),) for _, basis, fence in observed)
     assert "output.txt" in mutations
@@ -199,6 +205,7 @@ def test_drain_reconciles_startup_and_every_dispatch_before_next_offer(checkout,
     out = StringIO()
     assert main_module.main(["drain"], cwd=checkout, env=env, process=process,
                             clock=clock, out=out) == 0, out.getvalue()
+    assert process.calls[-1] == "retro"
     assert process.pages_at_implement == [1, 2]
     assert len(notifications.calls) == 3
     assert "second-ticket" in notifications.calls[-1][-1]
@@ -235,6 +242,7 @@ def test_drain_unset_notify_warns_once_and_keeps_signals_status_only(checkout, m
     out = StringIO()
     assert main_module.main(["drain"], cwd=checkout, env=env, process=process,
                             clock=clock, out=out) == 0, out.getvalue()
+    assert process.calls[-1] == "retro"
     assert out.getvalue().count("push notifications are off") == 1
     assert notifications.calls == []
     events = tuple(read_events(checkout / STATE))
@@ -493,7 +501,9 @@ def test_directory_fence_stream_cost_is_constant_and_mutations_are_observed(
                 counts["git"] += 1
             if argv[0] != "codex":
                 return await super().run(argv, **kwargs)
-            callback = kwargs["on_stdout_line"]
+            callback = kwargs.get("on_stdout_line")
+            if callback is None:
+                return await super().run(argv, **kwargs)
 
             def stream(line):
                 for _ in range(1000):
@@ -523,7 +533,8 @@ def test_directory_fence_stream_cost_is_constant_and_mutations_are_observed(
     out = StringIO()
     assert main_module.main([verb], cwd=checkout, env=env, process=process,
                             clock=clock, out=out) == 0, out.getvalue()
-    assert process.calls == ["implement", "review", "review", "review", "review"]
+    expected = ["implement", "review", "review", "review", "review"]
+    assert process.calls == expected + (["retro"] if verb == "drain" else [])
     assert counts["events"] >= 5000
     assert counts["fence_reads"] == counts["fence_walks"] == 0
     assert sorted(mutations) == ["outputs/pending.txt", "outputs/result.txt"]

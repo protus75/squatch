@@ -319,5 +319,6 @@ def test_real_drain_dispatches_after_a_non_ticket_origin_trip_without_a_hold(che
     events = tuple(read_events(state))
     assert rc == 0, out.getvalue()
     assert pipeline.calls == [("candidate", 0)]
+    assert [request.surface for request in pipeline.retro_llm.requests] == ["retro"]
     assert len(trips(events)) == 1 and len(reports(box)) == 1
     assert not any(event.body.get("kind") == "control_hold" for event in events)

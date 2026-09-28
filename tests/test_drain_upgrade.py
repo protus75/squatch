@@ -25,7 +25,7 @@ from test_cli import (  # noqa: F401 -- `checkout` is a fixture
     checkout,
     git_env,
 )
-from test_drain import FakeClock, committed, configure, draws, git, states
+from test_drain import FakeClock, committed, configure, draws, git, retro_stages, states
 
 from squatch.__main__ import main
 from squatch.artifacts import Cost
@@ -55,9 +55,11 @@ class Landing:
         self._on_run = on_run
         self.calls: list[tuple[str, int]] = []
         self.journal: Journal | None = None
+        self.stages = None
 
     def __call__(self, journal: Journal):
         self.journal = journal
+        self.stages, _llm = retro_stages(journal)
         return self
 
     async def run(self, ticket, *, run_seq: int) -> Delivery:

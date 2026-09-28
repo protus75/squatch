@@ -10,10 +10,12 @@ codes. The fake settles `ok` exactly as the admission does: it journals the
 `to: merged` transition.
 """
 
+import json
 import subprocess
 from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -31,13 +33,41 @@ from squatch.__main__ import main
 from squatch.artifacts import Cost
 from squatch.box import Box
 from squatch.diagnose import DiagnosisRecord
+from squatch.driver import Driver, Spool
+from squatch.effects import Effects
+from squatch.enginelog import EngineLog
 from squatch.git import Git
 from squatch.journal import Journal, read_events
+from squatch.llm import FakeLLM
+from squatch.llmeffect import LLMEffect
 from squatch.lockfile import Lockfile
+from squatch.redact import Redactor
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.stages import Delivery
 from squatch.tickets import INTAKE_SIGNAL, Intake, stamp
+
+
+RETRO_ANSWER = json.dumps({
+    "summary": "The scripted drain window completed.",
+    "observations": [],
+    "proposals": [],
+})
+
+
+def retro_stages(journal: Journal):
+    """The public stages.driver shape required by production `_drain` fixtures."""
+    state = journal.dir.parent
+    fs = LocalFilesystem()
+    redact = Redactor({})
+    llm = FakeLLM(*([RETRO_ANSWER] * 10))
+    clock = lambda: T0
+    driver = Driver(
+        llm=LLMEffect(llm=llm, effects=Effects(journal), redact=redact),
+        spool=Spool(state, fs=fs, redact=redact),
+        log=EngineLog(state, clock=clock, redact=redact),
+        clock=clock, retry_cap=0)
+    return SimpleNamespace(driver=driver), llm
 
 
 class FakeClock:
@@ -63,9 +93,14 @@ class Scripted:
         self.calls: list[tuple[str, int]] = []
         self.capabilities: list[tuple[str, str, str]] = []
         self.journal: Journal | None = None
+        self.stages = None
+        self.retro_llm = None
 
     def __call__(self, journal: Journal):
         self.journal = journal
+        self.stages, llm = retro_stages(journal)
+        if self.retro_llm is None:
+            self.retro_llm = llm
         return self
 
     async def run(self, ticket, *, run_seq: int) -> Delivery:

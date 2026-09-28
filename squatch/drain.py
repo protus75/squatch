@@ -83,6 +83,14 @@ HANDOFF_SIGNAL = "drain_handoff"
 UPGRADE_PREFIXES = ("squatch/", "specs/")
 UV_FORM = ("uv", "run", "python", "-m", "squatch")
 ControlFactory = Callable[[Journal], tuple[DispatchPause, ConsumerCallback]]
+RetroHook = Callable[[str | None, bool], Awaitable[bool]]
+RetroFactory = Callable[[Session], RetroHook | None]
+
+
+def _is_phase_exit(stem: str) -> bool:
+    prefix, separator, suffix = stem.partition("-")
+    return (separator == "-" and prefix.startswith("phase")
+            and prefix[5:].isdigit() and suffix == "exit")
 
 
 @dataclass(frozen=True)
@@ -170,7 +178,8 @@ class Drain:
                  pause: DispatchPause | None = None,
                  wait_for_control: ConsumerCallback | None = None,
                  control_factory: ControlFactory | None = None,
-                 reconcile_notifications: Callable[[Journal], Awaitable[None]] | None = None):
+                 reconcile_notifications: Callable[[Journal], Awaitable[None]] | None = None,
+                 retro_factory: RetroFactory | None = None):
         if control_factory is not None and (pause is not None or wait_for_control is not None):
             raise ValueError("control_factory replaces pause and wait_for_control")
         if pause is not None and wait_for_control is None:
@@ -179,6 +188,7 @@ class Drain:
         self._wait_for_control = wait_for_control
         self._control_factory = control_factory
         self._reconcile_notifications = reconcile_notifications
+        self._retro_factory = retro_factory
         self._runner = runner
         self._repo = Path(repo)
         self._config = config
@@ -205,12 +215,15 @@ class Drain:
             await self._reconcile_notifications(journal)
         if self._control_factory is not None and self._pause is None:
             self._pause, self._wait_for_control = self._control_factory(journal)
+        retro = self._retro_factory(session) if self._retro_factory is not None else None
         started = self._clock()
         ceiling = timedelta(hours=self._config.drain.max_runtime_hours)
         journal.append("timer_armed", {"kind": CEILING_TIMER,
                                        "deadline": (started + ceiling).isoformat()})
         merged_now: list[str] = []
         while True:
+            if retro is not None:
+                await retro(None, False)
             facts = fold(journal.read())
             plane = await self._scan(facts)
             plane = self._provider_holds(plane, journal)
@@ -223,6 +236,8 @@ class Drain:
             ticket = self._select_offer(candidates)
             offer = ticket if offers else None
             if ticket is None:
+                if retro is not None:
+                    await retro("quiescence", True)
                 return self._quiescent(plane, facts, merged_now)
             if not await self._wait_for_offer(started + ceiling, ticket.stem):
                 journal.append("timer_fired", {"kind": CEILING_TIMER, "next": ticket.stem})
@@ -238,6 +253,8 @@ class Drain:
                     return self._halted(plane, facts, merged_now, ticket)
                 if self._stopping:
                     return self._killed()
+            if retro is not None and _is_phase_exit(ticket.stem):
+                await retro("phase-exit", True)
             try:
                 if isinstance(self._pause, DrainControl):
                     assert self._wait_for_control is not None

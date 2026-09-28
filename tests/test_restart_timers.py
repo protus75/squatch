@@ -19,6 +19,7 @@ from squatch.providers import Registry
 from squatch.runner import RecoveredSession
 from squatch.timers import fold_deadlines
 from test_cli import FakePipeline, STATE, T0, author, checkout, git_env  # noqa: F401
+from test_drain import retro_stages
 
 
 class Clock:
@@ -122,8 +123,14 @@ def test_main_restart_delegates_real_reconcile_once_before_first_offer(
     pipeline = FakePipeline("premise_failed")
     out = StringIO()
     args = ["run", "candidate"] if verb == "run" else ["drain"]
+
+    def pipeline_factory(journal):
+        if verb == "drain":
+            pipeline.stages, _llm = retro_stages(journal)
+        return pipeline
+
     result = main_module.main(args, cwd=checkout, env=git_env(checkout.parent), out=out,
-                              pipeline=lambda journal: pipeline, clock=clock)
+                              pipeline=pipeline_factory, clock=clock)
 
     assert result == (1 if verb == "run" else 0), out.getvalue()
     assert trace == ["restart", "reconcile", "reaped", "timers", "offer", "timers stopped"]
