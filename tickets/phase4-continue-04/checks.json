@@ -1,17 +1,35 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "5ebda23549e11853217b13288c26d532691f7b79",
+  "produced_at_sha": "0f0638beb88092696a734c0dee407a7281cdd2b1",
   "stem": "phase4-continue-04",
   "branch": "phase4-continue-04",
-  "base": "73f7ab2d3df023710df3012371daf5b466df54a9",
-  "head": "5ebda23549e11853217b13288c26d532691f7b79",
+  "base": "ef5d5bef1d14efaef52cfd6798763de86057503b",
+  "head": "0f0638beb88092696a734c0dee407a7281cdd2b1",
   "changed_files": [
-    "tests/test_seeded_phase4_04.py",
-    "tickets/phase4-continue-05/ticket.md",
-    "tickets/reliability-run/ticket.md"
+    "tests/test_seeded_phase4_04.py"
   ],
   "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase4-continue-05/ticket.md",
+      "sha": "b5faeb83c865ea1abb8092811e3faf98e5d245e6",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/reliability-run/ticket.md",
+      "sha": "dae41c711245be93b93583372cdf0b793a58c229",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
     {
       "code": "scope_fence",
       "verdict": "pass",
