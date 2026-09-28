@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "a203f25a6b5d72c3cdf50be8e7ee09c33258bfb4",
+  "produced_at_sha": "942f3a484cbae99f3b27b921b7ac6647291d361a",
   "stem": "watchdog-activation",
   "branch": "watchdog-activation",
-  "base": "b9c32def720dcdfae913ed4bc3a8f63d36c57bae",
-  "head": "a203f25a6b5d72c3cdf50be8e7ee09c33258bfb4",
+  "base": "b37cfa70db27aa62ad59a724ba5af8292d310607",
+  "head": "942f3a484cbae99f3b27b921b7ac6647291d361a",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/drain.py",
