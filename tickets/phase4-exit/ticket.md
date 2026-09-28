@@ -56,6 +56,8 @@ measured on demand and predecessor-new paths excluded from authoring-time Contex
 `phase5-continue` depends on `retro-box-activation`, is medium/medium, owns only
 `tickets` plus new `tests/test_seeded_phase5_01.py`, and embeds
 `tests/test_seeded_phase4_05.py`; sibling-new core paths are never Context.
+This regenerated revision follows the successful `phase4-continue-05` merge;
+that embedded predecessor Context now exists on main and must be preserved.
 
 Carry this complete finite ordered admission registry:
 ```yaml
