@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Predecessor-test preservation needs a real invariant check. Asserting that tests/test_seeded_phase4_02.py contains two strings does not satisfy AC2.",
+    "phase4_02's caller-closure scan covers every tests/ and eval/ .py file for stages.compose|compose_pipeline|compose_daemon_timers|restart_session|Serve(|Session(. reliability-battery's new files (eval/reliability_battery.py, tests/test_reliability_battery.py) could trip it.",
+    "Pick one binding and pin it in test_seeded_phase4_03.py. Option 1: add tests/test_seeded_phase4_02.py to reliability-battery's fence and Context as the editing owner. Option 2: have reliability-battery's Scope out forbid those constructors in its new files.",
+    "If the fence/Context changes, re-measure EXISTING_AT_AUTHORING sizes and re-prove that the max-effort render stays under the headroom limit and that DATA_MARKER is absent.",
+    "Everything else passed checks and review: identities, edges, budgets, suffix registry, and render headroom. Keep them unchanged and fix only the preservation binding."
+  ],
+  "reason": "A single fixable review finding (string-presence stands in for predecessor-invariant binding), and the reviewer's paved road steers the fix; all mechanical checks passed.",
+  "detail": null
+}
