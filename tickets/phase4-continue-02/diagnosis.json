@@ -1,14 +1,16 @@
 {
-  "run_seq": 12,
+  "run_seq": 13,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review approved the phase4_02 test, the phase4_01 ownership update, and both authored tickets. Keep them unchanged. Fix only the SECTION_20_CHARS_AT_AUTHORING pins in tests/test_seeded_phase3_01.py, phase3_08.py and phase3_10.py.",
-    "Pin the measured section-20 sizes, counted from '## 20.' to the start of '## 21.': 8911 at 64b1f83 for phase3_01, 11661 at d4961ff for phase3_08, and 12826 at 4fe624e for phase3_10. Never round down or invent a smaller value.",
-    "Measure each value yourself with git show <sha>:SQUATCH_PLAN.md, slicing the same way the test does, before writing it. Fix each comment so it states the measured value and the commit it came from.",
-    "If a real pin breaks REQ_RENDER_HEADROOM, do not shrink the pin to pass. Check whether live inputs (the ticket files or specs/implement.md) grew after authoring. If so, pin those too, or report it in the run record. Never mask the breach."
+    "Review approved the tickets, registry, edges, tiers, budgets, fences, and the phase3_01, phase3_08, phase3_10 and phase4_01 migrations. Keep them unchanged. Fix only tests/test_seeded_phase4_02.py, and do not re-author the tickets.",
+    "Add a PREDECESSOR table for tests outside the fence: test_watchdog.py:101 and test_kill_cli_activation.py:259 (compose_pipeline), and test_storm_notification_activation.py:59 (compose_daemon_timers). Each wraps via original(**kwargs), a passthrough that survives the migration.",
+    "tests/test_seeded_phase3_06.py:273 pins the compose_pipeline signature text inside the merge-queue-activation ticket's Scope in, not live code. Classify it as ticket-text-only and safe. Assert every PREDECESSOR is either in the provider scope_fence or uses a kwargs passthrough.",
+    "Build PREDECESSOR from a grep of tests/ and eval/ for stages.compose, compose_pipeline, compose_daemon_timers, restart_session, Serve and Session. Assert the fenced callers (test_serve, test_merge, test_mergequeue, test_daemon_composition, test_restart_timers, test_stages) are in the provider fence.",
+    "Headroom proof: add SECTION_20_CHARS_AT_AUTHORING, measured from '## 20.' to the '\\n## ' at base adafe69. Substitute a same-size section 20 using the Phase 3 helper, and keep the final newline. Never shrink the pin to make the test pass.",
+    "DATA_MARKER scan: skip Context paths that any OWNERSHIP entry owns or hooks (providers.py, timers.py, test_providers.py, test_restart_timers.py), following test_seeded_phase4_01's mutable_paths exclusion. Keep the explicit squatch/specs.py exclusion."
   ],
-  "reason": "The only review findings are three historical section-20 pins set below the measured sizes at their authoring commits, and the reviewer gave the exact values to use.",
+  "reason": "Both review findings are fixable test-rigor oversights in one fenced file, and the paved roads are concrete and verified.",
   "detail": null
 }
