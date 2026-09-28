@@ -42,6 +42,14 @@ that exhausts quota arms its cooldown and parks; it does not invent a
 candidate. After the cooldown window resets, its journal records `timer_fired` and
 it is eligible again.
 
+Failover granularity is the attempt, never mid-call: a classified quota hit ends
+that call without drawing the stem's infra cap, and a subsequent call selects the
+next eligible configured candidate. When every candidate is cooling down, hold the
+ticket without consuming `INFRA_CAP` until the journaled cooldown Timer fires.
+Resolve each call exactly once across `WatchdogLLM` and its inner provider client;
+both execution and watchdog cost/identity evidence use the same `Resolved` value,
+including when a cooldown expires during the initial watchdog sample.
+
 Each lock-held session has exactly one live journal-backed Timers instance. Both
 bootstrap drain and daemon serve use the instance `_RestartRunner.session` creates
 through `restart_session`/`compose_daemon_timers`; `Session` carries that same
@@ -69,6 +77,7 @@ callers.
 ## Scope fence
 - tests/test_provider_cooldown_failover.py
 - squatch/providers.py
+- squatch/watchdog.py
 - squatch/timers.py
 - squatch/runner.py
 - squatch/restart.py
@@ -91,6 +100,8 @@ callers.
 ## Acceptance criteria
 - `tests/test_provider_cooldown_failover.py` proves classified quota exhaustion arms and journals a cooldown Timer, unrelated and unclassified CLI failures keep their existing outcomes, restart re-arms the live deadline, and the injected Clock governs the window.
 - `tests/test_provider_cooldown_failover.py` proves ordered multi-candidate failover with served-identity evidence, no change to the configured provider set, single-candidate parking without an invented candidate, and `timer_fired` on reset before renewed eligibility.
+- `tests/test_provider_cooldown_failover.py` proves a quota-hit call draws no stem infra cap, later calls select the next eligible configured candidate without mid-call retry, all-candidates-cooling holds without repeated dispatch or `INFRA_CAP` consumption, and the ticket becomes dispatchable after `timer_fired`.
+- `tests/test_provider_cooldown_failover.py` proves watchdog accounting and the inner client share one resolved served identity even when the selected candidate's cooldown expires during the initial watchdog sample.
 - `tests/test_provider_cooldown_failover.py` proves one registry/cooldown payload and exactly one live journal-backed `Timers` instance exist per lock-held session; both drain and serve use the instance created by `_RestartRunner.session` through `restart_session`/`compose_daemon_timers`, `Session` carries it into `Serve.compose`, and drain creates no second instance at its root.
 - `tests/test_provider_cooldown_failover.py` proves `stages.compose`, `compose_pipeline`, Serve's rework and triage clients, and `_triage_pass` receive the shared payload; every fenced direct caller of `stages.compose`, `compose_pipeline`, `Serve`, and `Session` supplies the required signature, with no independent registry fallback.
 - `uv run pytest -q` proves all predecessor assertions remain valid except those explicitly migrated to the shared-payload contract, and production failover/cooldown covers implement, review, rework, and triage calls.
@@ -102,7 +113,8 @@ uv run pytest -q
 ```
 
 ## Definition of rejected
-Reject an unclassified failover, a second registry payload or Timers lifetime, a
+Reject an unclassified or mid-call failover, infra-cap consumption while a classified
+cooldown is live, inconsistent watchdog/client served identity, a second registry payload or Timers lifetime, a
 changed configured provider set, a fabricated single-candidate fallback, an
 independent-registry compatibility path, or a cooldown reset without journaled
 `timer_fired` evidence.
