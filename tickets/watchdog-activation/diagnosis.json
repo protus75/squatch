@@ -1,16 +1,18 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "tests/test_watchdog_activation.py must build through the real drain/serve roots via compose_pipeline(watchdog=True), with a fake ProcessExec emitting stream events and an injected clock/fs. Run Stages.run so implement AND review pass through Driver/LLMEffect. Direct wrapper calls are rejected.",
-    "Add activation tests for: healthy/no-page; one soft signal and one page per run, with abort count 0; a fresh run_seq pages again; stuck keeps the LLMEffect hard-timeout unwind with a spiral: stuck body; drain reconciles at startup and after each dispatch; unset notify warns once and sends nothing.",
-    "Supply provider-cap waits in production. Nothing calls WatchdogLLM.observe_cap_wait. Route the registry/provider cap-wait interval into it without changing CliClient.call, then test that the wait is subtracted from elapsed.",
-    "Remove the detector-driven abort_current in WatchdogLLM._assess, or prove it. Leave the kill to LLMEffect's existing stuck_seconds path and record only the stuck signal, so there is no second hard-kill path.",
-    "In test_notify.py, prove replay: a fresh reconciler over the same journal sends nothing. Prove retry: a failing transport, then a later reconcile, delivers once. Two stuck signals with different run_seq give one page; two soft signals give two.",
-    "Replace the source-grep dormancy migration in test_watchdog.py. Compose the drain/serve pipeline and assert the Stages LLMEffect.llm is a WatchdogLLM wrapping the CliClient. Also assert default compose_pipeline leaves Stages._watchdog as None."
+    "Remove the synthetic post-call 'start' event in WatchdogLLM.call. CliClient.call already emits start with the flat estimate. Add a metered result.usd only when the row reports cost and the stream did not already report it.",
+    "Derive the metered flag from ADAPTERS[name].reports_cost, not provider.name == 'claude'. Take the USD basis from the serving row through a public Registry/config accessor. Drop the invented 1.0 default and the private Registry._providers read.",
+    "Wire production callers: Stages filesystem-seam output writes go to WatchdogLLM.observe_mutation, and provider-cap wait intervals go to observe_cap_wait (empty when no wait). Do not change CliClient.call. Prove both reach the detector.",
+    "Do not add a detector-driven abort. Leave the hard kill to LLMEffect's existing stuck_seconds unwind and record only the spiral: stuck signal. Soft trips never abort; assert the abort count is 0.",
+    "Build test_watchdog_activation.py through the real __main__ drain and serve roots, using a fake ProcessExec that emits stream events and an injected clock/fs. Run Stages.run so implement AND review pass through the wrapper. Direct WatchdogLLM calls are rejected.",
+    "Activation tests must cover: healthy/no-page; one soft signal and one page per run; a fresh run_seq pages again; stuck unwind with its body; drain reconciles at startup and after each dispatch; private notify transport; unset notify warns once and sends nothing.",
+    "Edit test_unrelated_signals_and_hold_release_do_not_notify in place. Keep the bare {'kind': 'watchdog'} exclusion and add soft/stuck delivery. Also add a failing transport followed by a later reconcile that delivers exactly once.",
+    "In test_watchdog.py, update the 'dormant' module docstring. Make the positive proof go through the __main__ drain/serve root binding. Assert that default compose_pipeline leaves Stages._watchdog as None."
   ],
-  "reason": "The production wiring is mostly in place and scoped correctly. The failures are missing proofs, an unwired cap-wait feed, and a duplicate abort path: fixable oversights the review findings steer precisely.",
+  "reason": "Review snagged on concrete, steerable gaps: double-counted spend, guessed metering, mutations and cap waits never wired in, and missing or unmigrated tests. The findings give a paved road for each, so another attempt at the same capability can fix them.",
   "detail": null
 }
