@@ -1,16 +1,17 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "watchdog-activation: bind the detector when CliClient is constructed in the drain/serve composition roots, so LLM.call(req), FakeLLM.call, and the LLMEffect._call signature stay unchanged. No squatch/llm.py edit, no conditional kwarg.",
-    "watchdog-activation: narrow the Goal and criteria to the Stages-owned Driver on bootstrap drain and serve, review stage included. Drop the 'every production CliClient.call' wording and update the seeded test's phrase assertions to match.",
-    "watchdog-activation: state explicitly that requisition review and the author/triage roots (squatch/author.py, triage.py, requisition.py) are out of scope. File them to the Suggestion Box as a follow-up; do not fence them.",
-    "watchdog-activation: name the eval/ composers (diagnose, harness, shakeout bench, providers_group) as non-production callers that keep the optional on_event behavior unchanged.",
-    "Commit all three authored ticket files with the test. diff_stat shows tickets/watchdog-detector, watchdog-activation, and phase4-continue-02 as untracked; untracked files are lost from a clean branch.",
-    "Keep everything reviewers already accepted: identities, edges, medium/medium tiers, budgets, fences, ON_DEMAND, measured sizes, delimiter scanning, registry rows, successor-row removal, and headroom. Rerun requisition lint and both pytest commands."
+    "watchdog-activation: add squatch/merge.py to the Scope fence as an on-demand exception (29,186 chars). compose_pipeline gains only an optional keyword, defaulting to unbound, that it forwards to stages.compose. Add tests/test_merge.py and tests/test_mergequeue.py to Verification.",
+    "watchdog-activation: leave all eval, merge, mergequeue and daemon-composition callers of compose_pipeline unchanged. Bind at construction; never patch the Pipeline after it is built.",
+    "watchdog-activation: embed squatch/serve.py (11,768 chars) in Context; it fits in the ~19,878 chars left. Keep stages.py, drain.py, __main__.py and tests/test_providers.py on-demand, and record each one's measured size against REQ_RENDER_HEADROOM in Scope in.",
+    "watchdog-detector: state the soft-band rule exactly. Declare the band empty when expected x 1.5 >= stuck, and stuck wins at elapsed >= stuck. Name the boundary values the test asserts for expected==stuck and expected x 1.5 > stuck. Drop the undefined 'floor' wording.",
+    "watchdog-detector: add a separate injected observation of provider-cap wait intervals as a detector input, not a new WatchdogEvent kind or spiral signal. State that watchdog-activation supplies it later. Otherwise the cap-wait exclusion has no source.",
+    "Update tests/test_seeded_phase4_01.py to the revised tickets: CONTEXT and ON_DEMAND for serve.py, the activation fence for merge.py, the serve.py size in EXISTING_AT_AUTHORING, and phrase assertions. Re-measure the renders.",
+    "Keep everything reviewers accepted: identities, edges, medium/medium tiers, budgets, registry rows, successor-row removal, delimiter scanning, headroom and the excluded roots. Rerun requisition lint on a tree without this diff's files, then both pytest commands."
   ],
-  "reason": "Only requisition-review findings on watchdog-activation's callback plumbing and scope remain; an in-fence construction-time binding plus a narrowed scope fixes them.",
+  "reason": "Requisition review found four specific ticket-authoring gaps, each with a paved road; this attempt proved nothing unsatisfiable.",
   "detail": null
 }
