@@ -4,19 +4,18 @@ ok
 
 ## Surprises / judgment calls
 
-Soft time-region classification is independent of USD spend; the soft-trip decision additionally requires the strict spend threshold.
+Restored the detector construction from the prior attempt's recorded diff and made mutation and scope-fence paths fail closed for absolute or dot-segmented paths, preventing traversal outside a declared fence.
 
 ## Dead ends
 
-The initial focused test run conflated soft-region classification with the USD-gated decision; corrected before verification.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-Codex / GPT-5
+OpenAI Codex / GPT-5.
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 15m.
+Expected 75m; actual approximately 15m.
