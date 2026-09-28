@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "b5a020cce0637842d88245a517489f56a0686ec3",
+  "produced_at_sha": "1cb6df6ed0451c38436b203f8f87736342221178",
   "stem": "phase4-continue",
   "branch": "phase4-continue",
-  "base": "da21cb79fb29532abf10e9a836ff2d6497c84686",
-  "head": "b5a020cce0637842d88245a517489f56a0686ec3",
+  "base": "03e5f90ac511794666b186ba3ebbef6a63e7b512",
+  "head": "1cb6df6ed0451c38436b203f8f87736342221178",
   "changed_files": [
     "tests/test_seeded_phase4_01.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-02/ticket.md",
-      "sha": "3ad522ed49e1686c8a9109f4822b8897c2a3d548",
+      "sha": "dc10759634440ac7449c851fe4014c74290eca51",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,22 +25,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/watchdog-activation/ticket.md",
-      "sha": "9a6e5011552daa894289e2a005639f25addd6d1f",
+      "sha": "021177f97f79239781ab6945dab77afc13ac0243",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/watchdog-activation/ticket.md",
-          "line": 450,
-          "message": "Fence closure gap. Scope-in binds the detector \"at CliClient construction for the Stages-owned Driver on bootstrap drain and serve\" and needs notifications, the drain/serve selection and invocation metadata at that binding. The only production client construction is `squatch/stages.py::compose` (line 1114). Its only caller is `squatch/merge.py::compose_pipeline` (line 456), and `squatch/__main__.py:385` calls that for both drain and serve. `compose_pipeline` takes no notifications or watchdog binding argument, so both roots cannot reach the construction-time binding without editing `merge.py`, which is outside the fence. The alternative is to patch the Pipeline after construction, which contradicts both 'bind at CliClient construction' and 'Reject activation before detector construction'. `compose_pipeline` has other callers: `eval/daemon_soak.py:387`, `eval/shakeout/bench.py:82`, `tests/test_merge.py:92/739`, `tests/test_mergequeue.py:717/780/939/1000` and `tests/test_daemon_composition.py:342`. Adding a mandatory parameter would force all of them to change.",
-          "paved_road": "Add `squatch/merge.py` to the Scope fence as a fenced on-demand inspection exception (29,186 chars exceeds remaining headroom). State in Scope in that `compose_pipeline` gains only an optional keyword defaulting to the unbound behavior and forwards it to `stages.compose`. This keeps the listed eval, merge, mergequeue and daemon-composition callers unchanged. Add `tests/test_merge.py` and `tests/test_mergequeue.py` to Verification as unchanged preservation suites."
+          "line": 160,
+          "message": "The ticket requires soft-spiral and stuck trips to page through 'the existing notification transport as an Effect' on both bootstrap drain and serve, with 'Configured transport, unset status-only behavior and notification replay' green. On main only `_serve` builds `SubprocessNotifications`. Only `Serve.compose` builds the `NotificationReconciler`, and it runs at startup and on each watcher poll. `_drain` and `Drain` build neither, and `NotificationReconciler._escalations` only knows storm_trip and integration_red_streak signals. The ticket also forbids sending from the provider callback. So on drain a journaled watchdog trip signal is never delivered, and the ticket does not say whether drain gains a transport and reconcile point, or whether drain trips stay status-only.",
+          "paved_road": "State the drain notification contract explicitly. Either (a) `_drain` builds the same `SubprocessNotifications`/config.notify transport and drain runs `NotificationReconciler.reconcile` at a named point (for example after each dispatch and at startup), with its unset warning; or (b) drain trips are journaled as signals and are status-only until serve, with the drain criterion changed to match. In either case, say that `NotificationReconciler._escalations` gains the watchdog soft and stuck identities, keyed ticket+spiral+run_seq and ticket+stuck."
         },
         {
           "code": "requisition_review",
           "path": "tickets/watchdog-activation/ticket.md",
           "line": null,
-          "message": "Fenced existing files omitted from Context: `squatch/stages.py`, `squatch/drain.py`, `squatch/serve.py`, `squatch/__main__.py` and `tests/test_providers.py`. The measured render is 100,122 chars against the 120,000-char headroom, leaving about 19,878 chars. That justifies keeping stages.py (55,260), drain.py (25,709), __main__.py (19,480) and test_providers.py (32,667) as on-demand exceptions. It does not justify omitting `squatch/serve.py` (11,768 chars), which fits. serve.py is also where the rework Driver's separate client is constructed (serve.py:214) and the Triage client (serve.py:229), both of which the ticket excludes. Its Scope in names `Serve.compose` and cites no measurement for omitting it.",
-          "paved_road": "Embed `squatch/serve.py` in Context and keep the other four as fenced on-demand inspection exceptions. Alternatively, record the per-file sizes against `REQ_RENDER_HEADROOM` that justify each exception."
+          "message": "Nothing says how a soft or stuck trip reaches the reconciler. The only escalation producer the reconciler reads is a journal signal, and the ticket forbids a synchronous send from the callback, yet it never names the signal kind or body the binding appends. That makes the migration of `tests/test_notify.py::test_unrelated_signals_and_hold_release_do_not_notify` conditional ('if the new recognized signal uses it') and leaves no pinned interface for the notify criteria.",
+          "paved_road": "Name the journal signal the binding appends on a soft trip and on stuck (kind and body fields: ticket, spiral, run_seq), and say whether it reuses `kind: watchdog`. If it does, make the notify-test migration unconditional, and still prove that an unrecognized watchdog-kind body does not notify."
         }
       ],
       "commands": []
@@ -50,22 +50,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/watchdog-detector/ticket.md",
-      "sha": "e531a3931def612522c5637d577061c58f7a8f4f",
+      "sha": "fed61eaa40ea4e993b318766490dabd6bda0cd72",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/watchdog-detector/ticket.md",
           "line": null,
-          "message": "Scope in requires guarding expected==stuck 'with the expected-to-stuck floor', and acceptance criterion 1 requires proving 'expected==stuck handling'. Neither section 20 nor the Context defines that floor. The ticket also does not say what happens whenever expected x 1.5 >= stuck: the soft band is then empty or inverted. The implementer would have to invent the region boundaries, so no test can pin an expected value and a form-only guess cannot be told apart from a correct one.",
-          "paved_road": "State the rule in Scope in. Give the soft-band lower bound as an exact formula, for example min(expected x 1.5, max(expected, stuck - <explicit floor>)), or declare the soft band empty whenever expected x 1.5 >= stuck, with stuck always winning at elapsed >= stuck. Name the exact boundary values the test must assert for expected==stuck and for expected x 1.5 > stuck."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/watchdog-detector/ticket.md",
-          "line": null,
-          "message": "Scope in and criterion 1 require excluding provider-cap wait time from elapsed time. The enumerated detector inputs are WatchdogEvent observations, an injected clock, Scope fence prefixes and the cost basis, and none of them carries a cap-wait interval: WatchdogEventKind is only 'start' | 'tool_call'. The ticket also forbids new signal shapes and provider event changes. That leaves no sanctioned source for the wait time the criterion must exclude.",
-          "paved_road": "Add a separate injected observation of provider-cap wait intervals to the enumerated detector inputs, as is already done for declared-output mutations. Say explicitly that this is a detector input and not a new WatchdogEvent kind or spiral signal, and that watchdog-activation supplies it later."
+          "message": "Scope in compares 'normalized metered spend' against '3 x the serving-row per-call cost basis' but never says what unit either side is in. WatchdogEvent carries both `usd` and `input_tokens`/`output_tokens`, and the ticket forbids a token-to-USD conversion. It does not say whether a tokens-only event counts as metered spend, whether the cost basis is USD or tokens, or how an event carrying both is normalized. The 'flat estimate' charged at a non-metered provider's start event is also not among the enumerated injected inputs, and 'provider without metered usage' is not defined in terms of WatchdogEvent fields. An implementer must pick a unit and a metered/flat classification, and the Definition of rejected already rejects 'invented cost conversion'.",
+          "paved_road": "State the spend unit and its source field exactly. For example: the cost basis is an injected USD float; metered spend sums `WatchdogEvent.usd` when present; token counts are retained but never compared. Name the flat per-call estimate as an explicit injected detector input with the same unit. Define 'provider without metered usage' mechanically, for example an injected per-provider flag, or 'no event of the invocation carries usd'. Add an acceptance assertion for a tokens-only stream under that definition."
         }
       ],
       "commands": []
