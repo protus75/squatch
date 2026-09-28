@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "112186c6281da49cb4a5f7e8a23d125aac4cf77a",
+  "produced_at_sha": "8b99b4eae2fcb77302864a3dcfcc2daa75c41589",
   "stem": "phase4-continue-03",
   "branch": "phase4-continue-03",
-  "base": "71ec460e31585e33ded78e3ec05d47743abc1709",
-  "head": "112186c6281da49cb4a5f7e8a23d125aac4cf77a",
+  "base": "2c2c5195dbc839e7dc83fb70c6816fe1a03d87a7",
+  "head": "8b99b4eae2fcb77302864a3dcfcc2daa75c41589",
   "changed_files": [
     "tests/test_seeded_phase4_03.py"
   ],
@@ -14,18 +14,8 @@
       "code": "requisition_review",
       "verdict": "pass",
       "severity": "hard",
-      "path": "tickets/phase4-continue-04/ticket.md",
-      "sha": "c3e52de374915b95e9daf892b241284db95764cc",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
       "path": "tickets/reliability-battery/ticket.md",
-      "sha": "cedcbd30a9ee1a4b9795713296d9e17e95830492",
+      "sha": "2d293dd62f91a976702ddd23490ef16578628e44",
       "bypassed": false,
       "findings": [],
       "commands": []
