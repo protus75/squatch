@@ -24,7 +24,7 @@ OWNERSHIP = {
         "squatch/drain.py", "squatch/driver.py", "squatch/__main__.py",
         "squatch/box.py", "tests/test_drain.py", "tests/test_driver.py",
         "tests/test_box.py", "tests/test_drain_reentry.py",
-        "tests/test_seed_successor.py", "tests/test_drain_upgrade.py",
+        "tests/test_drain_upgrade.py",
         "tests/test_daemon_composition.py", "tests/test_kill_cli_activation.py",
         "tests/test_storm_hold.py", "tests/test_storm_notification_activation.py",
         "tests/test_restart_timers.py", "tests/test_provider_cooldown_failover.py",
@@ -57,7 +57,7 @@ CONTEXT = {
 INVOKER_ON_DEMAND = (
     "squatch/drain.py", "squatch/__main__.py", "tests/test_drain.py",
     "tests/test_driver.py", "tests/test_box.py", "tests/test_drain_reentry.py",
-    "tests/test_seed_successor.py", "tests/test_drain_upgrade.py",
+    "tests/test_drain_upgrade.py",
     "tests/test_daemon_composition.py", "tests/test_kill_cli_activation.py",
     "tests/test_storm_hold.py", "tests/test_storm_notification_activation.py",
     "tests/test_restart_timers.py", "tests/test_provider_cooldown_failover.py",
@@ -73,8 +73,8 @@ ACTIVATION_ON_DEMAND = (
     "tests/test_daemon_composition.py", "tests/test_drain.py", "tests/test_serve.py",
 )
 REGRESSION_SUITES = (
-    "tests/test_drain_reentry.py", "tests/test_seed_successor.py",
-    "tests/test_drain_upgrade.py", "tests/test_daemon_composition.py",
+    "tests/test_drain_reentry.py", "tests/test_drain_upgrade.py",
+    "tests/test_daemon_composition.py",
     "tests/test_kill_cli_activation.py", "tests/test_storm_hold.py",
     "tests/test_storm_notification_activation.py", "tests/test_restart_timers.py",
     "tests/test_provider_cooldown_failover.py", "tests/test_watchdog_activation.py",
@@ -242,6 +242,8 @@ def test_invoker_governed_path_direct_lane_and_exact_trigger_contract():
         "`{kind: retro_failed, window_boundary, trigger, error_code}`",
         "signature-deduped `failure_report`", "bounded redacted",
         "Only a later `retro/<seq>` effect completion releases suppression",
+        "public read-only accessor", "explicit construction seam",
+        "`RetroConstructionError`", "`Bench.drain()` directly",
     ):
         assert phrase in scope
     assert "zero-padded" in scope and "reserved `retro` directory" in scope
@@ -250,7 +252,7 @@ def test_invoker_governed_path_direct_lane_and_exact_trigger_contract():
         assert suite in OWNERSHIP["retro-drain-invoker"]
         assert f"`{suite}`" in scope
     for assertion_kind in (
-        "scripted model-answer count", "ticket-path main-history",
+        "transition-risk fence", "concrete non-firing reason",
         "ancestry-history assertion", "fake-call and spawned-main history assertions",
         "ordered pipeline-call and control-journal", "trip/report Box-count assertions",
         "process-call and cooldown-journal sequences", "provider/notification call lists",
