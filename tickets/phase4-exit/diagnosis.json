@@ -1,15 +1,9 @@
 {
-  "run_seq": 7,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Section 20 conflicts with merged code: Merge.__init__ builds a Box (merge.py:176) and passes it to Verification in _regate (merge.py:347) for base-failure filing. The spec says 'Merge never receives or constructs Box'. Fix section 20 first, then regenerate this ticket.",
-    "Section 20's rule that every production Box gets the rereport callback leaves out squatch/status.py, which also constructs a Box. The plan must fence or exempt that constructor, and should check that status.py exists on main.",
-    "retro-box-activation says 'On hit K' but gives no K. K=3 is defined in section 12, and the ticket cites section 20 only. Section 20 must state K=3 inline.",
-    "Inside the tickets fence: phase5-continue-02 must embed an already-merged seeded test (tests/test_seeded_phase4_05.py), not test_seeded_phase5_01.py. It must also list test_seeded_phase5_01.py as new-in-admission and excluded from Context.",
-    "Inside the tickets fence: say that the authoring-time sizes for retro.py and test_retro.py are synthetic render fixtures (the EXISTING_AT_AUTHORING pattern) and are never compared with live file sizes. Otherwise the check goes red once scorecard-reporting merges."
-  ],
-  "reason": "Three of the five review findings are section 20 plan defects that no implementer can fix inside the tickets fence: the Merge-owned Box, the unfenced status.py Box, and the missing K; the plan must be fixed and the tickets regenerated.",
-  "detail": null
+  "run_seq": 8,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
