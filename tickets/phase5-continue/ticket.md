@@ -34,6 +34,20 @@ individually named measured on-demand exceptions if headroom requires. Pin their
 authoring-time byte sizes as synthetic render fixtures only and never compare
 those fixture values with later live file sizes.
 
+The authored `scorecard-reporting` ticket must state the section-20 projection
+contract without inference. It extends `RetroWindow` with the deterministically
+ordered `(ticket, code, verdict, bypassed)` observations from well-formed
+completed check invoices and adds immutable `SurfaceScorecardRow` and
+`Scorecard` models plus pure `project_scorecard(RetroWindow)`. It pins every
+field and calculation exactly as section 20 does: distinct evaluated tickets,
+non-bypassed failing catches, bypass count, zero Phase 5 escapes, rates, the
+25-ticket prune threshold, surface ordering, and boundary/spend/token/signal/
+gate-failure summary fields. It requires a deterministic `## Surface scorecard`
+report table and forbids projection writes or effects. New
+`tests/test_scorecard.py` owns all new assertions, including malformed invoice
+exclusion and input immutability; merged `tests/test_retro.py` is
+preservation-only and remains byte-for-byte unchanged.
+
 `phase5-continue-02` depends on `scorecard-reporting`, owns only `tickets` and
 new `tests/test_seeded_phase5_02.py`, and embeds the already-merged
 `tests/test_seeded_phase4_05.py` continuation pattern. The
@@ -82,6 +96,7 @@ historical fixture sizes to later live files, or change the fixed suffix.
 ## Acceptance criteria
 - `tests/test_seeded_phase5_01.py` pins the exact first-row identities, edges, tiers, budgets, ownership fences, section-20-only contracts, and two-seed admission cap.
 - `tests/test_seeded_phase5_01.py` pins the then-merged retro Context or named on-demand partition, synthetic authoring-size fixtures, sibling-new exclusions, and max-effort render headroom.
+- The emitted scorecard ticket pins section 20's exact observation tuple, closed model fields, calculations, Phase 5 zero-escape rule, pure read-only projection, deterministic report table, focused test cases, and byte-for-byte preservation of `tests/test_retro.py`.
 - `tests/test_seeded_phase5_01.py` pins the already-merged Phase 4 continuation fixture for `phase5-continue-02`, excludes the new Phase 5 seeded test from Context, and carries every later row, dependency, owner, and terminal without a successor.
 - `uv run pytest -q` proves the established seeded-test and ticket contracts remain green.
 
