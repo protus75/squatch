@@ -2,9 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-Normalized the persisted JSON array for `changed_spec_paths` back to a tuple during replay comparison so the append boundary keeps the specified tuple while durable-key replay remains idempotent.
+Kept `reports` as a lifetime count. A callback-free tombstone stalled at K=3 retries the stable `/3` journal key, while an already reopened record that is tombstoned again does not reopen on its next report. Moved the retro bridge ahead of ticket commit and made semantic tombstone arrivals resolve before their shared rereport count.
 
 ## Dead ends
+An initial K=3 retry branch could not distinguish a callback-free stalled tombstone from an already reopened record tombstoned again; the one-shot reopen marker supplies that distinction without adding state.
 
 ## Second problems filed
 
@@ -12,4 +13,4 @@ Normalized the persisted JSON array for `changed_spec_paths` back to a tuple dur
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 30m.
+Expected 75m; actual approximately 20m for this retry.
