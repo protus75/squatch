@@ -1,0 +1,95 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "2fa85e7c1ae7db814607421c991096c5052c1899",
+  "stem": "retro-drain-invoker",
+  "branch": "retro-drain-invoker",
+  "base": "fecc7c0ec9746878c28b0a42af7340af94996ac8",
+  "head": "2fa85e7c1ae7db814607421c991096c5052c1899",
+  "changed_files": [
+    "specs/retro.md",
+    "squatch/__main__.py",
+    "squatch/drain.py",
+    "squatch/retro.py",
+    "tests/test_retro.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_retro.py",
+            "tests/test_drain.py",
+            "tests/test_driver.py",
+            "tests/test_box.py",
+            "tests/test_drain_reentry.py",
+            "tests/test_seed_successor.py",
+            "tests/test_drain_upgrade.py",
+            "tests/test_daemon_composition.py",
+            "tests/test_kill_cli_activation.py",
+            "tests/test_storm_hold.py",
+            "tests/test_storm_notification_activation.py",
+            "tests/test_restart_timers.py",
+            "tests/test_provider_cooldown_failover.py",
+            "tests/test_watchdog_activation.py",
+            "tests/test_daemon_pause.py",
+            "tests/test_control_cli.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
