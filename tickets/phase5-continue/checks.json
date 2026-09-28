@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "0c26b52c0fb1de32af5c6b3f2871c0e20d3af757",
+  "produced_at_sha": "057db06f9b8ac7dada4009c56df35e811a5535a9",
   "stem": "phase5-continue",
   "branch": "phase5-continue",
-  "base": "5ad0d5be52f49ed815fa06dd5732818076c88ab9",
-  "head": "0c26b52c0fb1de32af5c6b3f2871c0e20d3af757",
+  "base": "7df2aa0b563cf82dc34ba2fd4e21fb29a98dacbc",
+  "head": "057db06f9b8ac7dada4009c56df35e811a5535a9",
   "changed_files": [
     "tests/test_seeded_phase5_01.py"
   ],
@@ -15,17 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase5-continue-02/ticket.md",
-      "sha": "b394adbcb805adaa6f0e283e02eb46c09b98cc64",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/scorecard-reporting/ticket.md",
-      "sha": "dc4678f313b57bdbe98560d84763dcdf41e5f13e",
+      "sha": "ebd819381d41db892f6b7338ecbc91e7d5851029",
       "bypassed": false,
       "findings": [],
       "commands": []
