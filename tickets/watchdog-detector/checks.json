@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "b83af7ac498073b5d290ab3015cf6dc4c1e7674e",
+  "produced_at_sha": "2805d534c837a5e90a9f43e4e4c4a79a9c41cd1e",
   "stem": "watchdog-detector",
   "branch": "watchdog-detector",
-  "base": "dd7470efa234ee194115859cf3f659c8f6533559",
-  "head": "b83af7ac498073b5d290ab3015cf6dc4c1e7674e",
+  "base": "a60210b5a2793f4e1a17d1bf0cc240f285a2cb5d",
+  "head": "2805d534c837a5e90a9f43e4e4c4a79a9c41cd1e",
   "changed_files": [
     "squatch/watchdog.py",
     "tests/test_watchdog.py"
