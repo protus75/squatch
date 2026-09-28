@@ -1,14 +1,9 @@
 {
-  "run_seq": 5,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "retro-box-activation's real requisition render was 125729 chars, over the 120000 limit (160000 max-effort at 75% headroom). Trim that ticket's Scope in prose until the render fits. Keep its five-file Context exactly as it is.",
-    "The render-bound test disagrees with requisition, which rejected the render the test passed. Make _context and _authoring_plan measure the render the same way requisition does, so the test fails whenever the requisition check would.",
-    "In retro-drain-invoker's Scope in, name each measured on-demand exception by path: squatch/drain.py, squatch/__main__.py, tests/test_drain.py, tests/test_driver.py, tests/test_box.py, and every regression suite. Never use the phrase 'All production roots'.",
-    "Context stays exactly squatch/driver.py, squatch/git.py, squatch/box.py and tests/test_seeded_phase4_02.py. Section 20 now carries the earlier plan fixes, so every finding in this attempt can be fixed inside the tickets fence without a plan edit."
-  ],
-  "reason": "All three findings are ticket-authoring defects inside the fence: one render size overrun and two vague on-demand exception lists. The same capability can fix them with these findings as guidance.",
-  "detail": null
+  "run_seq": 6,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
