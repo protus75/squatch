@@ -1,31 +1,65 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "3e95f6077b0db11e7397f2eae9f0b0b53be783cf",
+  "produced_at_sha": "bc5b379a0bd71addc7ca56a2af6313752518342a",
   "stem": "phase4-continue",
   "branch": "phase4-continue",
-  "base": "1464e82f9b61895e9ec914435fbeb3e89a82121c",
-  "head": "3e95f6077b0db11e7397f2eae9f0b0b53be783cf",
+  "base": "bc328764198c133869bc43fd33850aa768ed6683",
+  "head": "bc5b379a0bd71addc7ca56a2af6313752518342a",
   "changed_files": [
     "tests/test_seeded_phase4_01.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase4-continue-02/ticket.md",
+      "sha": "0ba270d7fc880b40a059ab950b57c9363af28ea2",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": null,
-      "sha": null,
+      "path": "tickets/watchdog-activation/ticket.md",
+      "sha": "470bd741437bee390c0437e4cb785c5779576318",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
-          "path": "tickets/phase4-continue-02/ticket.md",
-          "line": 4,
-          "message": "Context path 'tests/test_seeded_phase4_01.py' does not exist",
-          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
+          "path": "tickets/watchdog-activation/ticket.md",
+          "line": 62,
+          "message": "`CliClient.call` accepts `on_event` (providers.py:336), but the driver reaches it only through `LLMEffect._call`, which invokes `self._llm.call(req)` against the `LLM` Protocol. That Protocol (llm.py:62) and `FakeLLM.call` (llm.py:95) take only `req`. Passing the detector through the effect means changing the Protocol and the fake, and squatch/llm.py is neither fenced nor in Context. The only in-fence alternative is a conditional kwarg, which is the dual-path code CLAUDE.md forbids.",
+          "paved_road": "Add squatch/llm.py to both the fence and Context, and state the single callback contract for the `LLM` Protocol and `FakeLLM`. Otherwise, bind the detector at `CliClient` construction in the composition roots so `LLM.call(req)` stays unchanged, and rewrite the scope and criteria to say so."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-activation/ticket.md",
+          "line": 161,
+          "message": "`_RequisitionEffect.call` calls `LLMEffect._call.__wrapped__` directly with a fixed keyword set. Any change the ticket makes to `LLMEffect._call`'s signature to carry the callback breaks this module, which is outside the fence. Requisition review is also a production LLM call path, so leaving it out contradicts 'every production driver call, including review'.",
+          "paved_road": "Fence squatch/requisition.py and add it to Context. Alternatively, choose a construction-time binding that leaves the `LLMEffect._call` signature untouched, and say explicitly whether requisition review is in or out of scope."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-activation/ticket.md",
+          "line": null,
+          "message": "`LLMEffect`/`CliClient` are also composed in squatch/author.py, squatch/triage.py, squatch/requisition.py, and eval/ (diagnose, harness, shakeout bench, providers_group). The fence covers only stages/drain/serve/__main__. The criterion 'every production driver call ... is watched' therefore either forces edits to the unfenced author, triage, and requisition roots, or cannot be met.",
+          "paved_road": "Either fence squatch/author.py, squatch/triage.py, and squatch/requisition.py as production composition roots and list them as on-demand exceptions, or narrow the Goal and criteria to the Stages-owned Driver on the drain and serve paths and file the remaining production roots as a follow-up. Name the eval/ composers explicitly as non-production callers that keep the optional-callback behavior."
         }
       ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/watchdog-detector/ticket.md",
+      "sha": "160aaa0d28e2450fbc7931a8c3435dd0d6b2e82c",
+      "bypassed": false,
+      "findings": [],
       "commands": []
     },
     {
