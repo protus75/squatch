@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "ba5f7715d71a05514e8e2147f012fb8d6e5b8de2",
+  "produced_at_sha": "e4f621e7b8a0289cc7e4a3780f4360738ccc1751",
   "stem": "phase5-continue",
   "branch": "phase5-continue",
-  "base": "1715b146e3c42dfc6a30c174579e0030b141576e",
-  "head": "ba5f7715d71a05514e8e2147f012fb8d6e5b8de2",
+  "base": "f6d139d0e96b1c705e2594156f1fc181a275c662",
+  "head": "e4f621e7b8a0289cc7e4a3780f4360738ccc1751",
   "changed_files": [
     "tests/test_seeded_phase5_01.py"
   ],
@@ -15,29 +15,29 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase5-continue-02/ticket.md",
-      "sha": "17a1bf6c88f230d5982a6221ad56bae7ce390522",
+      "sha": "8ca74a5b812da344b334f5a4c0f67d0a2a1a987d",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase5-continue-02/ticket.md",
           "line": null,
-          "message": "Scope in says only `squatch/scorecard.py`, `tests/test_scorecard.py`, and `tests/test_seeded_phase5_02.py` are sibling-new in this admission and are never Context. Section 20 gives that set for the `phase5-continue` admission. This ticket depends on `scorecard-reporting`, so `squatch/scorecard.py` and `tests/test_scorecard.py` are already merged when it runs. `status-projection` must fence the merged scorecard seams/tests and embed them as existing Context (or name them as measured on-demand exceptions). The ticket as written would forbid that. It also never names the real sibling-new paths of this admission: `tests/test_status.py`, `squatch/baseline.py`, `tests/test_baseline.py`, and `tests/test_seeded_phase5_03.py`.",
-          "paved_road": "Replace the sibling-new sentence with the set for this admission: `tests/test_status.py`, `squatch/baseline.py`, `tests/test_baseline.py`, and `tests/test_seeded_phase5_03.py`. State that merged `squatch/scorecard.py` and `tests/test_scorecard.py` are existing Context for `status-projection`, pinned at authoring-time sizes or named as measured on-demand exceptions. Add a criterion that `tests/test_seeded_phase5_02.py` pins that partition."
+          "message": "Section 20 is the only contract a Phase 5 seed cites: `tests/test_seeded_phase5_core.py:173` pins `plan_sections == (\"20\",)`, and this ticket requires the same. Section 20 gives `scorecard-reporting` a concrete behavior paragraph, but for `status-projection` and `baseline-binding-reader` it gives only names, ownership, and fences. The binding reader's behavior lives only in section 19, which these seeds do not cite and which is too large to add within headroom. That behavior is the closed, never-raising ABSENT/NO_GO/GO/REVOKED precedence; the torn-tail and empty-routing cases resolving to the supervised side; revocation on a spec-major change; and the rule that the reader's deliverable must name how the registry and spec-major versions reach it. The same gap applies to the status projection's touchpoint-5 fields from sections 13 and 19. So an authored seed either gets no granted behavior or claims machinery that its cited section does not grant.",
+          "paved_road": "fix the plan, then re-author the ticket"
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase5-continue-02/ticket.md",
           "line": null,
-          "message": "The acceptance criteria never require a max-effort synthetic render within `REQ_RENDER_HEADROOM` for the authored seeds. They also never require every existing fence path to be embedded Context or an individually named measured on-demand exception. The embedded continuation pattern (`test_authoring_sizes_and_max_effort_render_headroom`, `test_context_closure_predecessor_preservation_and_sibling_exclusion`) and section 20's Phase 5 rule both require this. Without it, `status-projection` or `baseline-binding-reader` could be authored in a form that cannot render.",
-          "paved_road": "Add criteria that `tests/test_seeded_phase5_02.py` pins authoring-time Context sizes as synthetic fixtures and proves a max-effort `specs/implement.md` render of each authored seed is within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`. The test must also assert that each existing fence path is embedded Context or a named on-demand exception, following `tests/test_seeded_phase4_05.py`."
+          "message": "Scope in gives the dependency edges only for `phase5-continue-03`, which depends on both feature stems. It never states what `status-projection` and `baseline-binding-reader` depend on. Yet the criteria require the seeded test to pin \"the exact second-row identities, edges\". Section 19 also requires the status seed to depend, at least transitively, on the scorecard and retro-to-box seeds.",
+          "paved_road": "fix the plan, then re-author the ticket"
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase5-continue-02/ticket.md",
-          "line": null,
-          "message": "`baseline-binding-reader` ownership is given only as 'the machine-ticket starting-state caller named by its requisition'. This continuation is that requisition's author, so it must resolve that caller to a concrete path. Otherwise the seeded test cannot pin the exact fence the criteria require.",
-          "paved_road": "Name the concrete starting-state caller path in Scope in, for example `squatch/policy.py` (owner of `policy.starting_state`), together with its focused test. Pin that exact fence in `tests/test_seeded_phase5_02.py`."
+          "line": 81,
+          "message": "The ticket calls `squatch/policy.py` the concrete caller of `policy.starting_state`. That is wrong: `policy.py` defines both `starting_state` and `go_binds`. The only production caller is `squatch/author.py:200`, which also calls `go_binds` at line 204. `tests/test_author.py:324` and `tests/test_retro_box.py:375` monkeypatch `squatch.author.go_binds`, so any change to how the reader reaches that call site forces edits outside the planned fence.",
+          "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
       "commands": []
@@ -47,7 +47,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/scorecard-reporting/ticket.md",
-      "sha": "e36ff46e9a7d93d1a72f6ee64c9cfbeeb7a58d8c",
+      "sha": "045d8e894c7d058caafc79002d54e28088572287",
       "bypassed": false,
       "findings": [],
       "commands": []
