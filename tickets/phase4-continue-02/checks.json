@@ -1,12 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "47a46e70e2c49e143c9d633167b1b004d1f9d139",
+  "produced_at_sha": "add81da4bc2d63972deedbf7561386f188fb9dec",
   "stem": "phase4-continue-02",
   "branch": "phase4-continue-02",
-  "base": "8e06f35be559e623747df68fb12242f5421d56ce",
-  "head": "47a46e70e2c49e143c9d633167b1b004d1f9d139",
+  "base": "5ed10887c916dad99652d100937bc9812acc2fc0",
+  "head": "add81da4bc2d63972deedbf7561386f188fb9dec",
   "changed_files": [
+    "tests/test_seeded_phase3_01.py",
+    "tests/test_seeded_phase3_08.py",
+    "tests/test_seeded_phase4_01.py",
     "tests/test_seeded_phase4_02.py"
   ],
   "checks": [
@@ -15,7 +18,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-03/ticket.md",
-      "sha": "93d64df4868d635e17e46d3d647a685e8ceb428c",
+      "sha": "2cf6a1ac18e4fcfa4e2d31c706c0c5ddec6f0afa",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,29 +28,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/provider-cooldown-failover/ticket.md",
-      "sha": "8299b525ff633ab48a406603d602dbf5620f636e",
+      "sha": "077e397ced7e23c00ca9c62cd9f601bbfddc2db6",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/provider-cooldown-failover/ticket.md",
-          "line": 1126,
-          "message": "The production drain and serve pipeline build their routed CliClient and Registry in `squatch.stages.compose` (`registry = Registry(config)`; `CliClient(registry, ...)`; `WatchdogLLM` wrapping). `squatch/merge.py:457` `compose_pipeline` reaches it. Cooldown-aware candidate selection and quota-cooldown arming on the real implement/review calls must be wired here. The criterion that drain and serve use the same provider registry payload at their composition roots also forces this file. Neither `squatch/stages.py` nor `squatch/merge.py` is in the fence.",
-          "paved_road": "Add `squatch/stages.py` and `squatch/merge.py` to the Scope fence as the production client composition owners. Because embedding them would breach headroom, list them as measured on-demand inspection exceptions with their authoring-time sizes."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/provider-cooldown-failover/ticket.md",
-          "line": 17,
-          "message": "The live Timers instance exists only as a local variable inside `restart_session` (`deadlines = timers(recovered.journal)`), which `squatch/daemon.py:363` `compose_daemon_restart` composes. It is not exposed on `Session` or to any composition root. A provider cooldown cannot arm a journaled Timer on the lock holder's single Timers instance without changing that seam. Arming a second Timers instance over the same journal would break the re-arm-exactly-once contract that `tests/test_restart_timers.py` pins. `squatch/restart.py` and `squatch/daemon.py` are unfenced.",
-          "paved_road": "Fence the module owning the Timers lifetime seam (`squatch/restart.py` and/or `squatch/daemon.py`, plus `squatch/runner.py` if `Session` carries it), and state how the session-owned Timers instance reaches the provider client. Alternatively, have Scope in state explicitly that cooldown is re-derived from the journal's `timer_armed` records through the existing fold, without a second live Timers owner."
+          "line": 450,
+          "message": "`compose_pipeline` is keyword-only and currently builds its own registry via `stages.compose` (`squatch/stages.py:1126`, `Registry(config)`). The criteria say every construction site must receive the one shared payload, and the Definition of rejected forbids a second registry payload. That means the payload has to become a required parameter; a default that falls back to `Registry(config)` would be exactly the forbidden dual path. Five existing direct callers outside the fence would then break: `eval/shakeout/bench.py:82`, `eval/daemon_soak.py:387`, `tests/test_merge.py:92,739`, `tests/test_mergequeue.py:717,780,939,1000`, `tests/test_daemon_composition.py:342`.",
+          "paved_road": "fix the plan, then re-author the ticket"
         },
         {
           "code": "requisition_review",
           "path": "tickets/provider-cooldown-failover/ticket.md",
           "line": 213,
-          "message": "`Serve.compose` builds its own separate `Registry(config)` and two more `CliClient`s, for the rework Driver and Triage. Its pipeline's client comes from `stages.compose` through the pipeline factory. The ticket does not say which of these construction sites the single-registry criterion covers, or whether Triage/rework calls also fail over. Without that, the Definition-of-rejected line 'separate drain and serve registry payloads' is ambiguous.",
-          "paved_road": "Name every provider-client construction site in scope (`stages.compose`, `Serve.compose` rework/triage, `__main__._triage_pass`). State that the acceptance test asserts they share one registry/cooldown payload, or scope the non-pipeline sites out explicitly."
+          "message": "`Serve.compose` builds its own `Registry(config)`, and `restart_session`/`Session` must now carry the Timers/payload instance. `tests/test_serve.py` and `eval/daemon_soak.py` drive `Serve`, and `tests/test_restart_timers.py` constructs `Session(journal, None)` directly. Of these, only `tests/test_restart_timers.py` is fenced. Because the plan's core fence is fixed ('sole Phase 4 ... core-fence authority; later tails may refine then-existing Context'), the author cannot add the missing callers.",
+          "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
       "commands": []
@@ -77,6 +73,19 @@
             "run",
             "pytest",
             "tests/test_seeded_phase4_02.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase3_01.py",
+            "tests/test_seeded_phase3_08.py",
+            "tests/test_seeded_phase4_01.py",
             "-q"
           ],
           "attribution": null,
