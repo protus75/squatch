@@ -1,16 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Review found plan defects in the section 20 registry. The ticket copies that registry verbatim and Scope out forbids changing it, so no implementer can satisfy review without a plan edit.",
-    "retro-drain-invoker's fence omits squatch/__main__.py, where Drain is built. A default-off hook with no production binding breaks section 19's rule that retro is wired from the drain entrypoint.",
-    "Section 20 says the retro report goes through the ordinary artifacts/stages writer. Sections 14/19 require tickets/retro/<seq>.md via the ticket-plane lane in MAIN under the writer lock, and retro is a reserved stem.",
-    "The retro trigger must follow section 19: an unforced check of N/M/S thresholds each iteration, a forced run at quiescence and before phase-exit dispatch only if a merge landed since the last report, and a designed failure path.",
-    "retro-box-activation's merge signal is 'stated in section 19' but its ticket cites section 20 only. Section 20 must carry the signal's event kind, key, provenance fields and merge.py emit point.",
-    "phase5-continue: retro.py and test_retro.py are merged by then, so scorecard-reporting must embed them or name them as measured on-demand Context. Only scorecard.py, test_scorecard.py and test_seeded_phase5_02.py are sibling-new."
-  ],
-  "reason": "Review findings are section 20 registry defects (fence, writer lane, trigger, failure path, merge-signal source) that the ticket forbids changing; fix the plan and regenerate phase4-exit.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
