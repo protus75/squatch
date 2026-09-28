@@ -1,17 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "escalate",
-  "lessons": [
-    "Keep retro.py, the Window fold, suppression, the Drain hook points, specs/retro.md and the Driver capture. Review found no design defect in them. Fix only the two findings.",
-    "Remove the retro_enabled opt-in from _drain and from the main() docstring. Bind retro_factory unconditionally. A knob that only tests use is a second production path, and review rejects it.",
-    "An injected pipeline with no Driver must fail closed or be given a real Driver. Do not let it silently turn the retro off. That is how every named suite skipped the forced post-merge retro twice.",
-    "Run each named regression suite with the hook bound. Migrate only its listed assertion for the one forced post-merge retro: call count, Box count, journal sequence or main history. Leave all other assertions as they are.",
-    "Build Retro once in retro_factory and load specs/retro.md at bind time. invoke should only return await retro.run(trigger, forced=forced), so every attempt-time failure goes through Retro._failed.",
-    "Do not repeat the suppression and merge checks from Retro.run inside invoke. Add a test that a failure during an attempt writes one retro_failed signal and one failure_report, then suppresses the window.",
-    "The run record must name each regression suite and its migrated assertion. 'No change needed' is acceptable only if the forced retro really fires there and the listed assertion is unaffected."
-  ],
-  "reason": "Two attempts in a row avoided the required hook binding and suite migration, despite explicit steering, so more capability is needed.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
