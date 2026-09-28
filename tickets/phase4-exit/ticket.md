@@ -38,7 +38,7 @@ merged, transitive predecessors and are not report members or exit reads.
 
 Author exactly confirmed `retro-drain-invoker`, `retro-box-activation`, and
 `phase5-continue`, plus `tests/test_phase4_exit.py` and
-`tests/test_seeded_phase5_core.py`. Both tickets cite section 20 alone and use
+`tests/test_seeded_phase5_core.py`. All three tickets cite section 20 alone and use
 expected/stuck budgets within `drain.max_ticket_minutes`. `retro-drain-invoker`
 depends on `phase4-exit`, is KNOWN-DEEP high/high, owns/fences new
 `squatch/retro.py`, `specs/retro.md`, and `tests/test_retro.py`, plus existing
@@ -66,23 +66,33 @@ it never substitutes a category phrase such as "all production roots."
 `retro-box-activation`
 depends on `retro-drain-invoker`, is KNOWN-DEEP high/high, owns/fences
 the complete section-20 activation fence across retro, Box, Merge, Author,
-triage, policy, stages/runner, daemon/drain/serve/CLI composition, their named
-tests, and new `tests/test_retro_box.py`. Its embedded Context is exactly
+triage, policy, stages/runner, daemon/drain/serve/status/CLI composition, their
+named tests, and new `tests/test_retro_box.py`; this explicitly includes
+existing `squatch/status.py` and `tests/test_status.py`. Its embedded Context is exactly
 `squatch/box.py`, `tests/test_box.py`, `squatch/author.py`,
-and `tests/test_seeded_phase4_02.py`; `tests/test_author.py` and the other
+and `tests/test_seeded_phase4_02.py`; `tests/test_author.py`,
+`squatch/status.py`, `tests/test_status.py`, and the other
 existing fence paths are individually named measured on-demand exceptions,
 and predecessor-new retro paths are excluded at authoring. It pins the stable
 per-proposal SHA-256 identity and Box origin,
-the shared enqueue/semantic-triage `record_rereport` path, journal-before-reopen
+the shared enqueue/semantic-triage `record_rereport` path with K=3,
+journal-before-reopen
 callback wiring, one-shot draft override, the `retro_ticket_authored` Author
 bridge, and section 20's exact `retro_prompt_spec_change_merged` key, body,
-provenance lookup, `specs/*.md` predicate, and successful merge emit point.
+provenance lookup, `specs/*.md` predicate, and successful merge emit point. The
+ticket must preserve Merge's existing Box for Verification/base-failure filing
+while forbidding use of that Box for retro provenance; retro provenance comes
+only from the journal bridge.
 `phase5-continue` depends on `retro-box-activation`, is medium/medium, owns only
 `tickets` plus new `tests/test_seeded_phase5_01.py`, and embeds
 `tests/test_seeded_phase4_05.py`; sibling-new core paths are never Context.
 It states that merged `squatch/retro.py` and `tests/test_retro.py` are Context
-for `scorecard-reporting` (or measured on-demand), while only scorecard code,
-its test, and the next seeded test are sibling-new. This regenerated revision
+for `scorecard-reporting` (or measured on-demand), with their authoring-time byte
+sizes pinned as synthetic render fixtures that are never compared with later
+live sizes, while only scorecard code, its test, and the next seeded test are
+sibling-new. It also requires `phase5-continue-02` to embed the already-merged
+`tests/test_seeded_phase4_05.py` continuation pattern and exclude new-in-admission
+`tests/test_seeded_phase5_01.py` from Context. This regenerated revision
 follows the successful `phase4-continue-05` merge and the completed section 20
 integration-fence repair; that embedded predecessor Context now exists on main
 and is preserved. Re-author all three ticket files in place from this revision;
