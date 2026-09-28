@@ -2,9 +2,10 @@
 ok
 
 ## Surprises / judgment calls
-The battery returns evidence only; the later reliability-run ticket owns outbox production and ordinary-lane lift.
+The prior attempt's closed schema shape was retained, while cooldown, all-cooling, audit, and SHA fields are now read from execution evidence and injected seams.
 
 ## Dead ends
+None.
 
 ## Second problems filed
 
@@ -12,4 +13,4 @@ The battery returns evidence only; the later reliability-run ticket owns outbox 
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-75m expected / approximately 15m actual
+75m / approximately 25m
