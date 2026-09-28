@@ -1,15 +1,14 @@
 ---
-verdict: snag
-reviewed_sha: 6f5b1f3174f56235d723cd569287542bbffd945d
+verdict: approve
+reviewed_sha: 067333c1a8a8e86c1c222ba18b17ebadd3b671e1
 produced_by_spec_version: '1.0'
-produced_at_sha: 6f5b1f3174f56235d723cd569287542bbffd945d
+produced_at_sha: 067333c1a8a8e86c1c222ba18b17ebadd3b671e1
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-Most of the diff meets the ticket: proposal identity, the Author bridge, journal-only Merge lookup, callback wiring, and green checks. The problem is Box.record_rereport. Its retry branch treats any tombstone already at reports==3 as a pending K=3 reopen, so it can drop an arrival and journal a reports value that is not the post-increment count. Separately, the triage semantic-match route resolves the incoming message before counting the rereport, which is not crash/replay-stable.
+The diff adds stable retro proposal identities, one shared record_rereport route that journals before reopening, and a callback on every production Box that has journal access. It also adds the one-shot draft override, the Author bridge written before intake commit, and a Merge signal that looks up provenance only in the journal and fires only on the exact success predicate. Every changed path is inside the fence and all checks pass.
 
 ## Findings
-- correctness_review at squatch/box.py:244: The retry branch (status == 'tombstoned' and reports == 3 and not reopened_from_tombstone) cannot tell apart two cases. Case one: a callback-free K=3 write waiting to be retried. Case two: a message that collected 3 reports while still pending and was then tombstoned by triage. In case two, the next arrival skips the increment. It reopens with reports still 3 and journals `tombstone-reopen/<id>/3` with reports=3, but the ticket requires the post-increment count (4), so that arrival is never counted. Without a callback, the same record raises RereportCallbackRequired even though this arrival did not cross the threshold. It also skips _record_occurrence. A record tombstoned with reports > 3 can never reach the `== 3` check, so it never reopens. The tests cover only the tombstone-at-1 path. (paved road: Persist an explicit marker for a pending threshold reopen, set only when the callback-free K=3 write is refused, and have the retry branch check that marker instead of reports == 3. Every other arrival should increment first and use the post-increment count in both the key and the body. Add a test that tombstones a record already at reports=3 and asserts the next arrival counts to 4 and journals the post-increment count.)
-- correctness_review at squatch/triage.py:286: On a semantic tombstone match, _apply calls resolve(message.id, status='tombstoned') before self._box.record_rereport(matched.message). If record_rereport raises, the incoming message is already resolved and stays non-pending, so replay never retries and the rereport is lost. That includes a journal failure in the write-ahead reopen callback, or a KeyError when the matched record's box message is missing. Losing the count can suppress a K=3 reopen, which goes against the ticket's replay-stable, write-ahead requirement. I am fairly but not fully sure this is in scope; the test only covers the successful order. (paved road: Count the rereport before resolving the incoming message. To keep replay from counting twice, make the count idempotent per incoming message, for example by keying it on the incoming box id. Otherwise, resolve only after record_rereport succeeds and add a test where the callback fails, showing the incoming message stays pending and a retry counts exactly once.)
+- none
