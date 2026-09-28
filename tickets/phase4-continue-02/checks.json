@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "cfadd05c7e2c4e040145a7a268dfc0bc31dc983f",
+  "produced_at_sha": "8587d154ee44aa3134e710bf1b0491a74c53c361",
   "stem": "phase4-continue-02",
   "branch": "phase4-continue-02",
-  "base": "0f27350d635ecd59e7ee0e99215339db985d31cf",
-  "head": "cfadd05c7e2c4e040145a7a268dfc0bc31dc983f",
+  "base": "c6e2ee4bb0984e15cd2516133ad8e8a34f631ded",
+  "head": "8587d154ee44aa3134e710bf1b0491a74c53c361",
   "changed_files": [
     "tests/test_seeded_phase3_01.py",
     "tests/test_seeded_phase3_08.py",
@@ -18,7 +18,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-03/ticket.md",
-      "sha": "d504de4eae39185060cf741c08a38e78b27554a4",
+      "sha": "0181bb24c3ffa4824f7469731f72cc3a373e19a3",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -28,22 +28,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/provider-cooldown-failover/ticket.md",
-      "sha": "2f5ee9673aefd0f793cad81561df5a73e791862b",
+      "sha": "5a703b12d0110f6e37b274758778354d90566d02",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/provider-cooldown-failover/ticket.md",
-          "line": 450,
-          "message": "Scope-in requires `compose_pipeline` (squatch/merge.py:450) to receive the one shared registry/cooldown payload and live Timers instead of constructing an independent registry. Under the no-dual-path rule that makes the payload a required argument. Several existing direct callers are outside the fence and would break the `uv run pytest -q` Verification command: tests/test_merge.py (lines 92, 739), tests/test_mergequeue.py (lines 717, 780, 939, 1000), tests/test_daemon_composition.py (line 342), eval/shakeout/bench.py (line 82) and eval/daemon_soak.py (line 387).",
-          "paved_road": "Add every direct `compose_pipeline` caller to the fence and the ownership hooks: tests/test_merge.py, tests/test_mergequeue.py, tests/test_daemon_composition.py, eval/shakeout/bench.py and eval/daemon_soak.py. Each supplies one payload and Timers built over its existing journal and clock, following the admission-holds-activation precedent for the mandatory inbox. List the large ones as measured on-demand inspection exceptions. Add a criterion that the listed callers pass the shared payload and keep their existing assertions."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/provider-cooldown-failover/ticket.md",
-          "line": 110,
-          "message": "The existing `test_main_restart_delegates_real_reconcile_once_before_first_offer` asserts `len(owned) == 1` Timers for both the `run` and `drain` verbs, with the restart-composed Timers already created inside the drain session. The scope-in line 'Bootstrap drain creates and shuts it down at its root' reads as a second, root-level Timers construction. That would contradict the preserved assertion and double-fire expired deadlines on rearm.",
-          "paved_road": "State that the bootstrap drain's payload binds the single Timers instance created by `restart_session` / `compose_daemon_timers` for that lock-held session (no second construction). Keep the criterion that `test_restart_timers.py` preserves exactly one owned Timers per session."
+          "line": 1136,
+          "message": "`test_compose_builds_the_production_stages_from_config` calls `stages.compose(repo=..., config=..., env=..., journal=..., clock=..., process=..., fs=..., git=...)` with no shared payload. The ticket's Scope in requires `stages.compose` to receive the shared registry/cooldown payload instead of building its own Registry (squatch/stages.py:1126 does `Registry(config)` today). Making the payload required breaks this unfenced test, which fails the `uv run pytest -q` Verification. Making it optional with a Registry fallback would be the dual-path, second-registry construction the ticket's Definition of rejected forbids. Section 20 marks its Provider/failover ownership list as the sole core-fence authority and says only the fenced `compose_pipeline`/`Serve`/`Session` callers migrate. It never mentions direct `stages.compose` callers, so the author cannot add this file to the fence without departing from the plan.",
+          "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
       "commands": []
@@ -98,8 +91,8 @@
             "pytest",
             "-q"
           ],
-          "attribution": null,
-          "filed": null
+          "attribution": "base",
+          "filed": "box-000269-42d1360c"
         }
       ]
     },
