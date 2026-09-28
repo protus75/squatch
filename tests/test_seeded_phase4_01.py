@@ -208,7 +208,7 @@ def test_successor_provider_ownership_and_authoring_contract():
     assert ownership == {
         "provider-cooldown-failover": {
             "owns": ["tests/test_provider_cooldown_failover.py"],
-            "hooks": ["squatch/providers.py", "squatch/timers.py", "squatch/runner.py",
+            "hooks": ["squatch/providers.py", "squatch/watchdog.py", "squatch/timers.py", "squatch/runner.py",
                       "squatch/restart.py", "squatch/daemon.py", "squatch/stages.py",
                       "squatch/merge.py", "tests/test_providers.py",
                       "tests/test_restart_timers.py", "tests/test_stages.py",
