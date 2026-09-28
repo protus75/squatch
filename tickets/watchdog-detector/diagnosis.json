@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag: observe_mutation matches PurePath(path).parts against fence prefixes without normalizing, so 'squatch/../README.md' matches prefix ('squatch',) and wrongly resets spend. That is fail-open.",
+    "Fix: fail closed. observe_mutation returns False and leaves spend unchanged for an absolute path or a path containing '..' or '.'. Validate fence entries the same way, or normalize both sides with posixpath.normpath before comparing parts.",
+    "Add a test: assert not subject.observe_mutation('squatch/../README.md') and that spend_usd is unchanged. Keep the existing near-prefix tests ('squatchery', 'tests/unitish') and the dormancy test.",
+    "Everything else passed: checks green, strict >3x USD, one flat estimate per invocation, all time boundaries, one soft trip per ticket/run_seq. Change only the path handling and its test, within the fence."
+  ],
+  "reason": "One small, well-specified correctness fix remains, and the review finding gives the exact fix; no extra capability is needed.",
+  "detail": null
+}
