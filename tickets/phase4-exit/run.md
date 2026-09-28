@@ -2,18 +2,20 @@
 ok
 
 ## Surprises / judgment calls
-The prior requisition findings were limited to two paths omitted from the
-invoker's explicit measured-on-demand list. I kept the four-file Context exact,
-added `tests/test_driver.py` and `tests/test_box.py` to that list, and changed the
-seeded regression to inspect the list itself rather than the whole Scope in.
+The regenerated section 20 resolved the prior contradictory callback contract.
+I kept Merge's existing Box and base-failure route, required its journal-backed
+rereport callback, and pinned the standalone no-callback ingest failure and exact
+replay-stable reopen signal. All ticket Context partitions stayed exact.
 
 ## Dead ends
-No implementation path was abandoned.
+The first focused run exposed one ticket-lint wording defect and two overly
+line-sensitive seeded assertions; I corrected the criterion and normalized
+whitespace in prose-contract checks before rerunning both verification commands.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5 family
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 20m.
+Expected 75m; actual approximately 25m.
