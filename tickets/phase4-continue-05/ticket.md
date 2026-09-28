@@ -27,13 +27,21 @@ Author only confirmed `phase4-exit` plus `tests/test_seeded_phase4_05.py`.
 Use the established seeded Phase 4 pattern. `phase4-exit` is KNOWN-HARD
 high/high, depends on `reliability-run`, reads only the committed
 `tickets/reliability-run/reliability-battery-report.json` before authoring Phase
-5 core, and owns the terminal Phase 4 exit boundary. Its exact Context is
+5 core, and owns the terminal Phase 4 exit boundary. Its exact Context is the
+now-committed `tickets/reliability-run/reliability-battery-report.json`,
 `squatch/artifacts.py`, `eval/reliability_battery.py`,
 `tests/test_reliability_battery.py`, and `tests/test_seeded_phase4_02.py`;
-the report is sibling-new and is not Context. Its fence is `tickets`, new
+the report is existing Context owned by `reliability-run`, never exit output.
+Its fence is `tickets`, new
 `tests/test_phase4_exit.py`, and new `tests/test_seeded_phase5_core.py`; those
 two new paths belong to `phase4-exit`, while
 `tests/test_seeded_phase4_05.py` belongs only to this continuation.
+
+Section 20's Phase 4 evidence disposition and Phase 5 boundary registry are the
+sole authority for the report member set and the exact three-seed core. Author
+only `retro-drain-invoker`, `retro-box-activation`, and `phase5-continue`, with
+the names, edges, tiers, fences, Context partitions, and finite suffix stated
+there; do not infer the obsolete section-19 report name or member list.
 
 Both tickets cite section 20 alone, use expected/stuck budgets within
 `drain.max_ticket_minutes`, and name only existing Context. Every existing fence
@@ -64,6 +72,7 @@ Do not implement reliability behavior, run the battery, author beyond
 - `tests/test_seeded_phase4_05.py` pins the terminal admission's identity, dependency edge, section-20-only contract, high/high tier, bounded budget, ownership fence, new-path owners, and committed-report-only input.
 - `tests/test_seeded_phase4_05.py` proves Context closure, predecessor-test preservation, sibling-new exclusion, `specs.DATA_MARKER` absence from Context content, measured authoring-time Context sizes, and max-effort render headroom.
 - `tests/test_seeded_phase4_05.py` proves the complete finite ordered terminal suffix, three-seed cap, removal of only the first row, and `phase4-exit` alone without a successor.
+- The authored `phase4-exit` ticket and `tests/test_seeded_phase5_core.py` pin section 20's exact three-member committed-report read and exact three-seed Phase 5 core registry; no obsolete report name/member or off-registry Phase 5 payload is admitted.
 
 ## Verification
 ```
