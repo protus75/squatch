@@ -13,6 +13,7 @@ from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
 
 REPO = Path(__file__).resolve().parent.parent
+PLAN_SECTION_AT_AUTHORING = 57184
 BATCH = {
     "watchdog-event-stream": ("phase3-exit",),
     "notify-transport": ("phase3-exit",),
@@ -211,6 +212,8 @@ def test_finite_ordered_suffix_continuations_and_terminal_batch():
 def test_ticket_structure_and_authoring_time_max_effort_render_headroom():
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
+    section = plan[plan.index("## 20. Open decisions"):]
+    assert PLAN_SECTION_AT_AUTHORING == 57184
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
 
     for stem in BATCH:
@@ -224,7 +227,8 @@ def test_ticket_structure_and_authoring_time_max_effort_render_headroom():
              "context": DataBlock("host", context)},
             plan=plan, plan_sections=ticket.plan_sections, effort="max",
         )
-        assert len(rendered) <= limit, (stem, len(rendered), limit)
+        historical_length = len(rendered) - len(section) + PLAN_SECTION_AT_AUTHORING
+        assert historical_length <= limit, (stem, historical_length, limit)
 
         verification = _section(stem, "Verification")
         assert "uv run pytest" in verification

@@ -23,7 +23,8 @@ OWNERSHIP = {
         "squatch/retro.py", "specs/retro.md", "tests/test_retro.py",
         "squatch/drain.py", "squatch/driver.py", "squatch/__main__.py",
         "squatch/box.py", "tests/test_drain.py", "tests/test_driver.py",
-        "tests/test_box.py", "tests/test_drain_reentry.py",
+        "tests/test_box.py", "squatch/stages.py", "tests/test_stages.py",
+        "tests/test_drain_reentry.py",
         "tests/test_drain_upgrade.py",
         "tests/test_daemon_composition.py", "tests/test_kill_cli_activation.py",
         "tests/test_storm_hold.py", "tests/test_storm_notification_activation.py",
@@ -56,7 +57,8 @@ CONTEXT = {
 }
 INVOKER_ON_DEMAND = (
     "squatch/drain.py", "squatch/__main__.py", "tests/test_drain.py",
-    "tests/test_driver.py", "tests/test_box.py", "tests/test_drain_reentry.py",
+    "tests/test_driver.py", "tests/test_box.py", "squatch/stages.py",
+    "tests/test_stages.py", "tests/test_drain_reentry.py",
     "tests/test_drain_upgrade.py",
     "tests/test_daemon_composition.py", "tests/test_kill_cli_activation.py",
     "tests/test_storm_hold.py", "tests/test_storm_notification_activation.py",
@@ -244,6 +246,8 @@ def test_invoker_governed_path_direct_lane_and_exact_trigger_contract():
         "Only a later `retro/<seq>` effect completion releases suppression",
         "public read-only accessor", "explicit construction seam",
         "`RetroConstructionError`", "`Bench.drain()` directly",
+        "Keep Runner's existing fresh pipeline", "context variable",
+        "never emit `unforced` as a trigger identity",
     ):
         assert phrase in scope
     assert "zero-padded" in scope and "reserved `retro` directory" in scope
