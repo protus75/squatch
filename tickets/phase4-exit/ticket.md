@@ -46,28 +46,43 @@ depends on `phase4-exit`, is KNOWN-DEEP high/high, owns/fences new
 `squatch/box.py`, `tests/test_drain.py`, `tests/test_driver.py`, and
 `tests/test_box.py`; its Context is `squatch/driver.py`, `squatch/git.py`,
 `squatch/box.py`, and `tests/test_seeded_phase4_02.py`, with the production
-roots and large suites measured on-demand. It writes
+roots and large suites measured on-demand. Its fence also includes every
+section-20-listed `main(["drain"])` merge/quiescence regression suite and names
+the exact scripted-call, Box, journal, or main-history assertion migrated in
+each. It writes
 `tickets/retro/<seq>.md` directly in main through the ticket-plane Git/Effects
 seam under the writer lock, never through the ordinary OUTBOX artifact lift;
 it binds the default-off hook in `squatch/__main__.py::_drain` and pins section
 20's exact N/M/S triggers, forced merge-since-report boundaries, and
-single-message window-suppressed failure route. `retro-box-activation`
+single-message window-suppressed failure route. Its model dependency is the
+existing `Driver` running an `LLMStage` named `retro` from `specs/retro.md`
+through the session's shared provider/cooldown payload; the closed emitted
+artifact and Markdown renderer live locally in `squatch/retro.py`.
+
+`retro-box-activation`
 depends on `retro-drain-invoker`, is KNOWN-DEEP high/high, owns/fences
-predecessor-new `squatch/retro.py`, existing `squatch/box.py`,
-`squatch/merge.py`, `tests/test_box.py`, and `tests/test_merge.py`, plus new
-`tests/test_retro_box.py`; its Context is `squatch/box.py`,
-`tests/test_box.py`, and `tests/test_seeded_phase4_02.py`, with merge code/tests
-measured on demand and predecessor-new paths excluded from authoring-time Context.
-It pins section 20's exact `retro_prompt_spec_change_merged` key, body,
-provenance fields, `specs/*.md` predicate, and successful merge emit point.
+the complete section-20 activation fence across retro, Box, Merge, Author,
+triage, policy, stages/runner, daemon/drain/serve/CLI composition, their named
+tests, and new `tests/test_retro_box.py`. Its embedded Context is exactly
+`squatch/box.py`, `tests/test_box.py`, `squatch/author.py`,
+`tests/test_author.py`, and `tests/test_seeded_phase4_02.py`; the other existing
+fence paths are measured on-demand and predecessor-new retro paths are excluded
+at authoring. It pins the stable per-proposal SHA-256 identity and Box origin,
+the shared enqueue/semantic-triage `record_rereport` path, journal-before-reopen
+callback wiring, one-shot draft override, the `retro_ticket_authored` Author
+bridge, and section 20's exact `retro_prompt_spec_change_merged` key, body,
+provenance lookup, `specs/*.md` predicate, and successful merge emit point.
 `phase5-continue` depends on `retro-box-activation`, is medium/medium, owns only
 `tickets` plus new `tests/test_seeded_phase5_01.py`, and embeds
 `tests/test_seeded_phase4_05.py`; sibling-new core paths are never Context.
 It states that merged `squatch/retro.py` and `tests/test_retro.py` are Context
 for `scorecard-reporting` (or measured on-demand), while only scorecard code,
 its test, and the next seeded test are sibling-new. This regenerated revision
-follows the successful `phase4-continue-05` merge and section 20 runtime-contract
-repair; that embedded predecessor Context now exists on main and is preserved.
+follows the successful `phase4-continue-05` merge and the completed section 20
+integration-fence repair; that embedded predecessor Context now exists on main
+and is preserved. Re-author all three ticket files in place from this revision;
+the stem-owned outputs lifted by prior failed exit attempts are replaceable
+outputs, not foreign collisions.
 
 Carry this complete finite ordered admission registry:
 ```yaml
@@ -93,6 +108,7 @@ or rename, reorder, add, omit, combine, or split the Phase 5 core or suffix.
 - `tests/test_phase4_exit.py` proves the committed report parses as `ReliabilityBatteryReport`, has the closed three-member order, and every member is green before Phase 5 core authoring.
 - `tests/test_seeded_phase5_core.py` pins the exact three core identities, edges, tiers, budgets, fences, Context partitions, predecessor-new and sibling-new exclusions, measured authoring-time sizes, bounded render, and fixed finite Phase 5 suffix.
 - `tests/test_seeded_phase5_core.py` proves the invoker's CLI binding, direct reserved report lane, exact trigger/forced/failure semantics, the activation signal contract, and the scorecard's then-merged Context partition from section 20.
+- `tests/test_seeded_phase5_core.py` proves the governed retro model/artifact path, all named CLI regression migrations, the complete activation fence, per-proposal identity, journaled reopen/draft route, and Author-to-Merge provenance bridge.
 
 ## Verification
 ```
