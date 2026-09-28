@@ -76,14 +76,19 @@ and `tests/test_seeded_phase4_02.py`; `tests/test_author.py`,
 existing fence paths are individually named measured on-demand exceptions,
 and predecessor-new retro paths are excluded at authoring. It pins the stable
 per-proposal SHA-256 identity and Box origin,
-the shared enqueue/semantic-triage `record_rereport` path with K=3,
-journal-before-reopen
-callback wiring, one-shot draft override, the `retro_ticket_authored` Author
+the shared enqueue/semantic-triage `record_rereport` path with K=3 and the exact
+`signal` event key `tombstone-reopen/<box_id>/<reports>` and body
+`{kind: tombstone_auto_reopened, box_id, signature, reports}` before clearing,
+plus journal-before-reopen callback wiring, one-shot draft override, the `retro_ticket_authored` Author
 bridge, and section 20's exact `retro_prompt_spec_change_merged` key, body,
 provenance lookup, `specs/*.md` predicate, and successful merge emit point. The
-ticket must preserve Merge's existing Box for Verification/base-failure filing
-while forbidding use of that Box for retro provenance; retro provenance comes
-only from the journal bridge.
+ticket must wire the callback into Merge's existing Box while preserving its
+Verification/base-failure filing behavior and forbidding use of that Box for
+retro provenance; retro provenance comes only from the journal bridge. It also
+pins the standalone `python -m squatch.box ingest` no-callback behavior: count
+the rereport, refuse to clear a K=3 tombstone, and raise
+`RereportCallbackRequired` with paved road
+`rerun through a journal-backed Squatch command`.
 `phase5-continue` depends on `retro-box-activation`, is medium/medium, owns only
 `tickets` plus new `tests/test_seeded_phase5_01.py`, and embeds
 `tests/test_seeded_phase4_05.py`; sibling-new core paths are never Context.
@@ -125,6 +130,7 @@ or rename, reorder, add, omit, combine, or split the Phase 5 core or suffix.
 - `tests/test_seeded_phase5_core.py` pins the exact three core identities, edges, tiers, budgets, fences, Context partitions, predecessor-new and sibling-new exclusions, measured authoring-time sizes, bounded render, and fixed finite Phase 5 suffix.
 - `tests/test_seeded_phase5_core.py` proves the invoker's CLI binding, direct reserved report lane, exact trigger/forced/failure semantics, the activation signal contract, and the scorecard's then-merged Context partition from section 20.
 - `tests/test_seeded_phase5_core.py` proves the governed retro model/artifact path, all named CLI regression migrations, the complete activation fence, per-proposal identity, journaled reopen/draft route, and Author-to-Merge provenance bridge.
+- `tests/test_seeded_phase5_core.py` pins Merge callback wiring, the no-callback fail-closed error and paved road, and the exact replay-stable tombstone-reopen signal key and body in the generated activation contract.
 
 ## Verification
 ```
