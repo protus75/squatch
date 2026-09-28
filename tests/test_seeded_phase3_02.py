@@ -86,6 +86,15 @@ def _yaml_blocks(stem):
     return [yaml.safe_load(block) for block in re.findall(r"```yaml\n(.*?)\n```", section, re.S)]
 
 
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (PLAN_SECTION_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
+
+
 def test_emitted_batch_is_exact_linted_and_capped():
     config = load(REPO / "config.yaml", cwd=REPO)
     assert tuple(PHASE3_02) == ("rework-stage", "phase3-continue-03")
@@ -162,7 +171,7 @@ def test_continuation_carries_exactly_the_shrinking_ordered_suffix():
 
 def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in PHASE3_02:
         ticket = _ticket(stem)
@@ -174,6 +183,4 @@ def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
             "ticket": DataBlock("host", _path(stem).read_text()),
             "context": DataBlock("host", context),
         }, plan=plan, plan_sections=ticket.plan_sections, effort="max")
-        section = plan.split("## 20. Open decisions", 1)[1].split("## 21.", 1)[0]
-        historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING)
-        assert historical_length <= limit, (stem, historical_length, limit)
+        assert len(rendered) <= limit, (stem, len(rendered), limit)

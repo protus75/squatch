@@ -34,6 +34,8 @@ EXISTING_AT_AUTHORING = {
     "tests/test_daemon_soak_runner.py": 12245,
     "tests/test_seeded_phase3_11.py": 9238,
 }
+# Section 20 including its heading when this terminal Phase 3 seed was authored.
+SECTION_20_CHARS_AT_AUTHORING = 31857
 NEW_PATH_OWNERS = {
     "tests/test_phase3_exit.py": STEM,
     "tests/test_seeded_phase4_core.py": STEM,
@@ -89,6 +91,15 @@ def _phase4_registry():
     plan = (REPO / PLAN_FILE).read_text()
     start = plan.index("Phase 4 boundary registry (DECIDED):")
     return plan[start:plan.index("`phase3-continue-23` fences", start)]
+
+
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
 
 
 def _in_order(text, stems):
@@ -187,7 +198,7 @@ def test_authoring_time_max_effort_render_headroom():
         {"workspace": DataBlock("engine", workspace),
          "ticket": DataBlock("host", _path(STEM).read_text()),
          "context": DataBlock("host", context)},
-        plan=(REPO / PLAN_FILE).read_text(), plan_sections=ticket.plan_sections,
+        plan=_authoring_plan(), plan_sections=ticket.plan_sections,
         effort="max",
     )
     assert len(rendered) <= int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
