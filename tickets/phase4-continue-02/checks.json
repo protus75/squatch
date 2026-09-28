@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e8f59787207bbdb20eb8e1d404a7287e70d73db1",
+  "produced_at_sha": "e0df10f15dc1527b6f872478d1ff19866231c609",
   "stem": "phase4-continue-02",
   "branch": "phase4-continue-02",
-  "base": "c5b2e9d2843c732f474045dfae9db58f456b51a3",
-  "head": "e8f59787207bbdb20eb8e1d404a7287e70d73db1",
+  "base": "adafe69b682156fa39e4a901ad3a62c6675b9a5f",
+  "head": "e0df10f15dc1527b6f872478d1ff19866231c609",
   "changed_files": [
     "tests/test_seeded_phase3_01.py",
     "tests/test_seeded_phase3_08.py",
@@ -14,26 +14,6 @@
     "tests/test_seeded_phase4_02.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase4-continue-03/ticket.md",
-      "sha": "1055bb82cee89a614193b5889139a8665d401b26",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/provider-cooldown-failover/ticket.md",
-      "sha": "f960e8711de21e51f4bec94a87f69d00c0f9a836",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
