@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e5c9cc29ba6ab48b6a9017c4d211fc6445c4d176",
+  "produced_at_sha": "d0eaa408d4e4339001a44bf86da9bfaae5a2cfed",
   "stem": "phase4-exit",
   "branch": "phase4-exit",
-  "base": "13d42521dfddfd7672f757fd69c0ce2cb2ffae1d",
-  "head": "e5c9cc29ba6ab48b6a9017c4d211fc6445c4d176",
+  "base": "c363f304413a69562c0b5fa1b7e962de44dc0618",
+  "head": "d0eaa408d4e4339001a44bf86da9bfaae5a2cfed",
   "changed_files": [
     "tests/test_phase4_exit.py",
     "tests/test_seeded_phase5_core.py"
@@ -16,17 +16,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase5-continue/ticket.md",
-      "sha": "4b0f15eaa2a5c90bc7e0bbef9a9ebaf1f22f4581",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/retro-box-activation/ticket.md",
-      "sha": "dc9d9820bdaf77b5250895e74f344571601493f2",
+      "sha": "550d01d28915c0a4d90ac6739b6329669a5f9c0c",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -35,25 +25,42 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/retro-drain-invoker/ticket.md",
-      "sha": "2f4fc5e86be181f8e18877de5c3dca5f7abfe731",
+      "path": "tickets/retro-box-activation/ticket.md",
+      "sha": "a47b6ef4fdc8e3356c744fc2e9f84a3a6fee346d",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
-          "path": "tickets/retro-drain-invoker/ticket.md",
-          "line": null,
-          "message": "The fence includes existing tests/test_driver.py, but it is not in Context and is missing from the Scope in list of fenced measured on-demand exceptions. Section 20 requires the embedded Context to be exactly squatch/driver.py, squatch/git.py, squatch/box.py and tests/test_seeded_phase4_02.py, with every other existing fenced path named as a measured on-demand exception.",
-          "paved_road": "Add tests/test_driver.py to the Scope in paragraph that lists the fenced measured on-demand exceptions. Leave the four-file Context unchanged."
+          "path": "tickets/retro-box-activation/ticket.md",
+          "line": 176,
+          "message": "Merge builds a production `Box(...)` with no callback and passes it as `box=self._box` to the verification gate (line 347), which enqueues base-failure `failure_report` messages. Once every enqueue signature hit goes through `record_rereport`, a repeated base failure matching a tombstoned report can reach K=3 through this Box. The ticket says 'Preserve Merge's existing Box construction', so that would be a reopen with no journal record, which the Definition of rejected forbids. It also contradicts the criterion that 'every production Box gets the callback'. The two instructions cannot both be satisfied as written.",
+          "paved_road": "Re-author the Scope in so that Merge's Box constructor also receives the journal-backed rereport callback. Merge already holds `self._journal`, so this is only a constructor argument. Keep its Verification and base-failure filing behavior unchanged, and still forbid reading it for retro provenance. Name this in the criterion that covers every production Box."
         },
         {
           "code": "requisition_review",
-          "path": "tickets/retro-drain-invoker/ticket.md",
+          "path": "tickets/retro-box-activation/ticket.md",
+          "line": 361,
+          "message": "The `python -m squatch.box ingest` module entry is a production CLI Box constructor (`Box(state_dir, fs=LocalFilesystem(), clock=_now)`) with no journal. Its enqueue duplicates will go through `record_rereport`. The ticket does not say how K=3 behaves there, or for any Box built without a callback, so it leaves open a reopen that is never journaled.",
+          "paved_road": "State the no-callback behavior explicitly and fail closed. For example: a Box with no rereport callback counts the report but refuses to clear a tombstone, raising a named error with a paved road. Otherwise wire this entry to a journal-backed callback. Add a criterion in `tests/test_retro_box.py` that proves it."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/retro-box-activation/ticket.md",
           "line": null,
-          "message": "The fence includes existing tests/test_box.py, but it is not in Context and is missing from the Scope in list of fenced measured on-demand exceptions. This leaves the fence-to-Context closure open, which the section 20 partition does not allow.",
-          "paved_road": "Add tests/test_box.py to the same Scope in list of fenced measured on-demand exceptions. Leave the four-file Context unchanged."
+          "message": "The ticket says the callback appends `tombstone_auto_reopened` but gives no event type, key, or body. `squatch/journal.py` validates against the closed `EVENT_TYPES` vocabulary, and `journal.py` is not in the fence. A new event type therefore cannot be added, and the record's shape is unspecified, so its replay stability is unknown.",
+          "paved_road": "Specify the record as a `signal` event with an exact, replay-stable key, for example `tombstone-reopen/<box_id>/<reports>`, and an exact body, for example `{kind: tombstone_auto_reopened, box_id, signature, reports}`. Assert that key and body in `tests/test_retro_box.py`."
         }
       ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/retro-drain-invoker/ticket.md",
+      "sha": "312765a3cf4026c720c4a6aac94d722b4118c72f",
+      "bypassed": false,
+      "findings": [],
       "commands": []
     },
     {
