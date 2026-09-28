@@ -1,0 +1,91 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "d4724b908489413023310be442996d9274f54d7f",
+  "stem": "watchdog-activation",
+  "branch": "watchdog-activation",
+  "base": "c5f16f2ead2b2d14c592861584aed5609fe5da1a",
+  "head": "d4724b908489413023310be442996d9274f54d7f",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/drain.py",
+    "squatch/merge.py",
+    "squatch/notify.py",
+    "squatch/stages.py",
+    "squatch/watchdog.py",
+    "tests/test_notify.py",
+    "tests/test_watchdog.py",
+    "tests/test_watchdog_activation.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_watchdog_activation.py",
+            "tests/test_watchdog.py",
+            "tests/test_providers.py",
+            "tests/test_notify.py",
+            "tests/test_serve.py",
+            "tests/test_daemon_soak.py",
+            "tests/test_merge.py",
+            "tests/test_mergequeue.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
