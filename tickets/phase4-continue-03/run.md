@@ -4,21 +4,24 @@ ok
 
 ## Surprises / judgment calls
 
-The reliability battery is bounded as the fault-injection/report-schema owner;
-`reliability-run` remains the later no-code ordinary-lane producer.
+The predecessor caller-closure scan also examines this seeded proof. Constructor
+names are assembled in the proof so its assertion does not itself look like a
+production caller; the reliability ticket explicitly prohibits those constructors
+in its new paths, and the proof applies the predecessor pattern once they exist.
 
 ## Dead ends
 
-None.
+The first full-suite run exposed that the proof's literal constructor names were
+included by the predecessor's all-tests caller scan. The focused proof passed, but
+the full suite failed until the proof stopped resembling a caller.
 
 ## Second problems filed
 
-None.
 
 ## Resolved engine/model
 
-Codex / GPT-5.
+Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 12m.
+Expected 75m; actual about 25m.
