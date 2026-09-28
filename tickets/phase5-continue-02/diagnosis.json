@@ -1,15 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Plan defect: the baseline-binding-reader fence leaves out squatch/policy.py and tests/test_policy.py, yet policy.go_binds is already the binding reader. A new baseline.py would be a second reader, and that dual path can't be removed within the fence.",
-    "Plan defect: status-projection's exact seven-field value conflicts with merged status renders pinned in unfenced tests (test_cli, test_verbs, test_drain, test_drain_upgrade), and the _status CLI caller sits outside the fence.",
-    "Plan defect: the status scorecard field needs retro.Window(events, now).projection(sha, spec_version), but status.project gets no clock, sha or spec_version, and squatch/retro.py is not in Context. Section 20 must name that source.",
-    "When re-authoring, phase5-continue-03 must embed tests/test_seeded_phase5_01.py, the immediately preceding merged seeded test. The phase4_05 fixture is an exception that applies only to phase5-continue-02.",
-    "The retro-doctor-cli fence must name exact existing test paths (checked on main), not 'their focused tests'. List embedded Context, named on-demand exceptions with byte sizes, and phase5-continue-04's exact Context and exclusions."
-  ],
-  "reason": "Section 20 fixes fences and contracts that contradict merged code (policy.go_binds, pinned status renders, scorecard inputs), so the ticket can't be met until the plan is fixed and the ticket re-authored.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
