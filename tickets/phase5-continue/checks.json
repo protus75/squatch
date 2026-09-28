@@ -1,45 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e4f621e7b8a0289cc7e4a3780f4360738ccc1751",
+  "produced_at_sha": "0c26b52c0fb1de32af5c6b3f2871c0e20d3af757",
   "stem": "phase5-continue",
   "branch": "phase5-continue",
-  "base": "f6d139d0e96b1c705e2594156f1fc181a275c662",
-  "head": "e4f621e7b8a0289cc7e4a3780f4360738ccc1751",
+  "base": "5ad0d5be52f49ed815fa06dd5732818076c88ab9",
+  "head": "0c26b52c0fb1de32af5c6b3f2871c0e20d3af757",
   "changed_files": [
     "tests/test_seeded_phase5_01.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase5-continue-02/ticket.md",
-      "sha": "8ca74a5b812da344b334f5a4c0f67d0a2a1a987d",
+      "sha": "b394adbcb805adaa6f0e283e02eb46c09b98cc64",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-02/ticket.md",
-          "line": null,
-          "message": "Section 20 is the only contract a Phase 5 seed cites: `tests/test_seeded_phase5_core.py:173` pins `plan_sections == (\"20\",)`, and this ticket requires the same. Section 20 gives `scorecard-reporting` a concrete behavior paragraph, but for `status-projection` and `baseline-binding-reader` it gives only names, ownership, and fences. The binding reader's behavior lives only in section 19, which these seeds do not cite and which is too large to add within headroom. That behavior is the closed, never-raising ABSENT/NO_GO/GO/REVOKED precedence; the torn-tail and empty-routing cases resolving to the supervised side; revocation on a spec-major change; and the rule that the reader's deliverable must name how the registry and spec-major versions reach it. The same gap applies to the status projection's touchpoint-5 fields from sections 13 and 19. So an authored seed either gets no granted behavior or claims machinery that its cited section does not grant.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-02/ticket.md",
-          "line": null,
-          "message": "Scope in gives the dependency edges only for `phase5-continue-03`, which depends on both feature stems. It never states what `status-projection` and `baseline-binding-reader` depend on. Yet the criteria require the seeded test to pin \"the exact second-row identities, edges\". Section 19 also requires the status seed to depend, at least transitively, on the scorecard and retro-to-box seeds.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-02/ticket.md",
-          "line": 81,
-          "message": "The ticket calls `squatch/policy.py` the concrete caller of `policy.starting_state`. That is wrong: `policy.py` defines both `starting_state` and `go_binds`. The only production caller is `squatch/author.py:200`, which also calls `go_binds` at line 204. `tests/test_author.py:324` and `tests/test_retro_box.py:375` monkeypatch `squatch.author.go_binds`, so any change to how the reader reaches that call site forces edits outside the planned fence.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -47,7 +25,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/scorecard-reporting/ticket.md",
-      "sha": "045d8e894c7d058caafc79002d54e28088572287",
+      "sha": "dc4678f313b57bdbe98560d84763dcdf41e5f13e",
       "bypassed": false,
       "findings": [],
       "commands": []
