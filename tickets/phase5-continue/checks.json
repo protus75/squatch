@@ -1,50 +1,17 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "5787b7971e186c97941ca7514acbe05509219f8a",
+  "produced_at_sha": "3220634d68a2f5a8bcbd447cbd3478751917bd3e",
   "stem": "phase5-continue",
   "branch": "phase5-continue",
-  "base": "fa223e169b6f0d112e66f712e429ce23b471bdba",
-  "head": "5787b7971e186c97941ca7514acbe05509219f8a",
+  "base": "b05b5a70c904f492f3da0bb2f385e9de2e8296b3",
+  "head": "3220634d68a2f5a8bcbd447cbd3478751917bd3e",
   "changed_files": [
-    "tests/test_seeded_phase5_01.py"
+    "tests/test_seeded_phase5_01.py",
+    "tickets/phase5-continue-02/ticket.md",
+    "tickets/scorecard-reporting/ticket.md"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase5-continue-02/ticket.md",
-      "sha": "266099be2c388ca2bb5f262cbab0edc7c116319d",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/scorecard-reporting/ticket.md",
-      "sha": "f5332fd6f3581d6067616e57513e63be8566aa37",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/scorecard-reporting/ticket.md",
-          "line": null,
-          "message": "Both acceptance criteria are unfalsifiable. 'proves the scorecard reporting boundary over the merged retro evidence' does not say which scorecard fields or projection are computed, from which RetroWindow/journal inputs, or what output the new test must assert. 'remains the focused preservation evidence' names no behavior either. Section 20, the only cited section, grants scorecard-reporting only its name, ownership, and fence. It does not specify what the scorecard contains, so an implementer and a reviewer have no shared contract.",
-          "paved_road": "Add the plan section that defines the scorecard's content (the scorecard derived-view/metrics law) to Plan contract. Rewrite the criteria as concrete assertions: the scorecard function or model name in squatch/scorecard.py, the exact fields it projects from Window/RetroWindow journal evidence (e.g. merged count, signal counts, spend/tokens per window), that it is a pure projection that never writes, and that tests/test_retro.py passes unchanged."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/scorecard-reporting/ticket.md",
-          "line": null,
-          "message": "squatch/retro.py and tests/test_retro.py are fenced as writable, but Scope in says the scorecard stays local to its new module and names no change to either file. Nothing states whether the retro module may be edited (e.g. to expose a projection seam) or must stay byte-unchanged.",
-          "paved_road": "State explicitly either the exact retro.py change the scorecard needs (and the matching test_retro.py migration), or that both retro paths are preservation-only and must stay unchanged while tests/test_retro.py runs as regression evidence."
-        }
-      ],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
@@ -89,20 +56,12 @@
     },
     {
       "code": "run_record",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "run_record",
-          "path": "tickets/phase5-continue/run.md",
-          "line": null,
-          "message": "tickets/phase5-continue/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
-          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
