@@ -51,14 +51,22 @@ the pipeline and Driver through an explicit construction seam; do not probe
 private `_retro_pipelines`, `_retro_prebuilt`, or `_driver` attributes. If
 production hook construction is requested without a Driver, raise named
 `RetroConstructionError` with a paved road rather than returning `False` or
-silently disabling retro. At the top of every dispatch iteration,
+silently disabling retro. Add the read-only `driver` property to `Stages` and
+read it through the already-public `Pipeline.stages`; the retro factory composes
+its own pipeline once for this purpose. Keep Runner's existing fresh pipeline
+composition on every dispatch: do not cache a pipeline across drain tickets, and
+do not capture Drivers globally or through a context variable. Scripted pipeline
+fixtures that exercise production `_drain` expose this same explicit
+`stages.driver` shape. At the top of every dispatch iteration,
 before the next ticket dispatch, perform an UNFORCED due check. Run only when
 the current window has N=25 merged tickets, is M=7 days old, or one exact signal
 kind reaches S=5: a used non-empty `gate_bypass`, a Rework invocation/order, a
 terminal `state_transition` with `to: gate_failed`, or an admission whose conflict
 facts include integration-red implicated paths.
 
-Run one FORCED retro at quiescence and immediately before dispatching any
+Select an UNFORCED N/M/S due trigger before entering the failure-capturing model
+execution block; when none is due, return `False` without a failure signal or Box
+message, and never emit `unforced` as a trigger identity. Run one FORCED retro at quiescence and immediately before dispatching any
 phase-exit ticket, only if a merge landed after the latest completed
 `retro/<seq>` report. Success commits exactly one report and advances the
 window boundary. On failure append one `signal` keyed
@@ -70,7 +78,8 @@ later `retro/<seq>` effect completion releases suppression.
 
 The fenced measured on-demand inspection exceptions are `squatch/drain.py`,
 `squatch/__main__.py`, `tests/test_drain.py`, `tests/test_driver.py`,
-`tests/test_box.py`, `tests/test_drain_reentry.py`,
+`tests/test_box.py`, `squatch/stages.py`, `tests/test_stages.py`,
+`tests/test_drain_reentry.py`,
 `tests/test_drain_upgrade.py`,
 `tests/test_daemon_composition.py`, `tests/test_kill_cli_activation.py`,
 `tests/test_storm_hold.py`, `tests/test_storm_notification_activation.py`,
@@ -98,6 +107,12 @@ forced boundary: `tests/test_drain_reentry.py` uses `NoHandoff`;
 provider cooldown ends `premise_failed`; and daemon-pause/control scenarios have
 no tickets. Keep `tests/test_seed_successor.py` unchanged and outside the fence
 because it calls `Bench.drain()` directly, for which the hook remains default-off.
+Fixture-only explicit `stages.driver` plumbing is allowed where `_drain` is under
+test, but all new end-to-end retro/report assertions belong in
+`tests/test_retro.py`. Keep the existing parent/child ordering test and assertions
+in `tests/test_drain.py` unchanged. Keep the premise-failed scenario in
+`tests/test_drain_upgrade.py` unchanged; only its named ancestry-history case may
+migrate when it reaches a forced boundary.
 
 ## Scope out
 Do not add an artifact registry entry, a second provider client, an OUTBOX
@@ -115,6 +130,8 @@ change behavior of direct `Drain` constructions that omit the hook.
 - tests/test_drain.py
 - tests/test_driver.py
 - tests/test_box.py
+- squatch/stages.py
+- tests/test_stages.py
 - tests/test_drain_reentry.py
 - tests/test_drain_upgrade.py
 - tests/test_daemon_composition.py
@@ -131,13 +148,14 @@ change behavior of direct `Drain` constructions that omit the hook.
 - `tests/test_retro.py` proves the closed local artifact, `retro` LLMStage and prompt, shared Driver/provider path, validated Markdown rendering, and absence of artifact-registry or second-client behavior.
 - `tests/test_retro.py` drives the production `_drain` path end to end and proves merge then quiescence commits exactly one `tickets/retro/000001.md` on main with effect key `retro/000001` while the writer lock is held.
 - `tests/test_retro.py` proves the public Driver accessor, explicit construction seam, named fail-closed `RetroConstructionError`, default-off direct Drain hook, and rebinding through the existing self-upgrade handoff path with an executing child.
+- `tests/test_retro.py` proves Runner retains fresh per-dispatch pipeline composition, no global/context-variable Driver capture exists, and an unforced not-due check returns `False` without emitting an `unforced` failure identity.
 - `tests/test_retro.py` proves the exact N=25, M=7-day, and S=5 unforced checks, both forced boundaries with merge-since-report gating, one-report window advancement, and exact window-suppressed failure signal and Box route with no unbounded retry.
 - `tests/test_retro.py` and every named regression suite prove that an actually reached forced retro changes only its listed scripted-call, Box, journal, or main-history assertion, while a non-firing scenario stays unchanged for its concrete reason and retains all other behavior.
 - `uv run pytest -q` proves the full predecessor suite remains green.
 
 ## Verification
 ```
-uv run pytest tests/test_retro.py tests/test_drain.py tests/test_driver.py tests/test_box.py tests/test_drain_reentry.py tests/test_drain_upgrade.py tests/test_daemon_composition.py tests/test_kill_cli_activation.py tests/test_storm_hold.py tests/test_storm_notification_activation.py tests/test_restart_timers.py tests/test_provider_cooldown_failover.py tests/test_watchdog_activation.py tests/test_daemon_pause.py tests/test_control_cli.py -q
+uv run pytest tests/test_retro.py tests/test_drain.py tests/test_driver.py tests/test_box.py tests/test_stages.py tests/test_drain_reentry.py tests/test_drain_upgrade.py tests/test_daemon_composition.py tests/test_kill_cli_activation.py tests/test_storm_hold.py tests/test_storm_notification_activation.py tests/test_restart_timers.py tests/test_provider_cooldown_failover.py tests/test_watchdog_activation.py tests/test_daemon_pause.py tests/test_control_cli.py -q
 uv run pytest -q
 ```
 
