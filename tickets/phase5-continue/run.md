@@ -1,24 +1,20 @@
 ## Outcome
 
-premise_failed
+ok
 
 ## Surprises / judgment calls
 
-Section 20 names `scorecard-reporting` and its ownership fence but supplies no
-scorecard projection contract: no inputs, fields, or assertions. I did not
-invent that contract while both authored tickets must cite section 20 alone.
+The merged retro module and its test are compact enough to embed as scorecard
+Context, so no on-demand exception was needed. Their authoring-time sizes are
+pinned only as synthetic fixtures.
 
 ## Dead ends
 
-The prior-attempt paved road requires concrete scorecard assertions while
-restricting their authority to section 20. The cited section cannot supply
-them, so the requested scorecard ticket cannot be made falsifiable as written.
+The first focused test found that the scorecard ticket's acceptance criteria did
+not repeat its focused test-case list; I made those criteria explicit.
 
 ## Second problems filed
 
-Plan gap: add a section-20 scorecard derived-view/metrics contract with its
-inputs, exact projected fields, read-only behavior, and test assertions before
-retrying this admission.
 
 ## Resolved engine/model
 
@@ -26,4 +22,4 @@ codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; stopped during contract audit before implementation.
+Expected 75m; actual about 25m.
