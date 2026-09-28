@@ -52,7 +52,7 @@ from squatch.harvest import HARVEST_FILE, HARVEST_RENDER_CHARS, Harvest
 from squatch.journal import Journal
 from squatch.llm import Effort
 from squatch.llmeffect import LLMEffect
-from squatch.providers import CliClient, Registry, child_env
+from squatch.providers import CliClient, ProviderRuntime, child_env
 from squatch.redact import Redactor
 from squatch.seams import Clock, Filesystem, ProcessExec
 from squatch.shakeout import REPORT_NAME, ShakeoutReport
@@ -1117,17 +1117,18 @@ async def lift_ticket_files(*, repo: Path, git: Git, fs: Filesystem, effects: Ef
 
 def compose(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
             clock: Clock, process: ProcessExec, fs: Filesystem, git: Git,
+            providers: ProviderRuntime,
             watchdog: bool = False) -> Stages:
     """The production composition: the routed `cli` client behind the LLM
     effect, the redactor wired into every captured-stream writer."""
     repo = Path(repo)
     state = repo / config.state_dir
     redact = Redactor.from_config(config, env)
-    registry = Registry(config)
-    client = CliClient(registry, process=process, fs=fs, env=env, redact=redact,
+    client = CliClient(providers, process=process, fs=fs, env=env, redact=redact,
                        state_dir=state, cwd=repo)
     if watchdog:
-        client = WatchdogLLM(client, registry=registry, journal=journal, clock=clock, git=git)
+        client = WatchdogLLM(
+            client, registry=providers, journal=journal, clock=clock, git=git)
     llm = LLMEffect(llm=client, effects=Effects(journal), redact=redact, clock=clock)
     return Stages(repo=repo, config=config, git=git, process=process, fs=fs, llm=llm,
                   log=EngineLog(state, clock=clock, redact=redact), redact=redact, clock=clock,

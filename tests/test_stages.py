@@ -32,6 +32,7 @@ from squatch.journal import Journal
 from squatch.llm import FakeLLM
 from squatch.llmeffect import LLMEffect
 from squatch.redact import Redactor
+from squatch.providers import ProviderRuntime, Registry
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.shakeout import REPORT_NAME, ShakeoutReport
 from squatch.specs import RenderRefused, load_spec
@@ -51,6 +52,7 @@ from squatch.stages import (
     load_review,
 )
 from squatch.tickets import PLAN_FILE, Intake, Ticket, lint_ticket
+from squatch.timers import Timers
 
 T0 = datetime(2026, 9, 25, 12, 0, tzinfo=timezone.utc)
 STATE = Path(".squatch/state")
@@ -1133,9 +1135,12 @@ def test_compose_builds_the_production_stages_from_config(repo, env):
     config = load(None, cwd=repo)
     clock = TickingClock()
     with Journal(repo / config.state_dir, clock=clock) as journal:
+        providers = ProviderRuntime(
+            Registry(config), timers=Timers(journal=journal, clock=clock), clock=clock)
         stages = compose(repo=repo, config=config, env=env, journal=journal, clock=clock,
                          process=SubprocessExec(), fs=LocalFilesystem(),
-                         git=Git(SubprocessExec(), env=env, timeout=60.0))
+                         git=Git(SubprocessExec(), env=env, timeout=60.0),
+                         providers=providers)
     assert isinstance(stages, Stages)
     assert stages.implement_spec.surface == "implement"
     assert stages.review_spec.surface == "review"

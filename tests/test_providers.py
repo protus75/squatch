@@ -12,6 +12,7 @@ CLI is ever invoked.
 
 import asyncio
 import copy
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -20,8 +21,8 @@ from squatch import providers
 from squatch.config import ConfigError, Provider, load, parse
 from squatch.llm import LLM_SURFACES, WRITING_SURFACES, LLMRequest
 from squatch.providers import (
-    ADAPTERS, PLACEHOLDER, CliClient, FailureFact, ProviderError, Registry, RoutingError,
-    child_env)
+    ADAPTERS, PLACEHOLDER, CliClient, FailureFact, ProviderError, ProviderRuntime, Registry,
+    RoutingError, child_env)
 from squatch.redact import Redactor
 from squatch.watchdog import EventCollector, WatchdogEvent
 
@@ -100,10 +101,26 @@ class RealFs:
         Path(src).replace(dst)
 
 
+class AvailableTimers:
+    """The provider-unit fixture has no durable cooldown assertions."""
+
+    def __init__(self):
+        self.deadlines = {}
+
+    def pending(self, prefix):
+        return max((at for key, at in self.deadlines.items() if key.startswith(prefix)),
+                   default=None)
+
+    def arm(self, key, at):
+        self.deadlines[key] = at
+
+
 def client(tmp_path, exec_, *, reg=None, env=ENV, redact=None):
     reg = reg or registry()
     redact = redact or Redactor.from_config(config(), env)
-    return CliClient(reg, process=exec_, fs=RealFs(), env=env, redact=redact,
+    providers = ProviderRuntime(
+        reg, timers=AvailableTimers(), clock=lambda: datetime(2026, 1, 1, tzinfo=timezone.utc))
+    return CliClient(providers, process=exec_, fs=RealFs(), env=env, redact=redact,
                      state_dir=tmp_path / "state", cwd=tmp_path / "checkout")
 
 

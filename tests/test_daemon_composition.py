@@ -29,10 +29,12 @@ from squatch.scheduler import Scheduler
 from squatch.merge import Pipeline, compose_pipeline
 from squatch.mergequeue import Candidate, MergeQueue
 from squatch.redact import Redactor
+from squatch.providers import ProviderRuntime, Registry
 from squatch.rework import Rework
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.specs import load_spec
 from squatch.stages import Delivery
+from squatch.timers import Timers
 from squatch.watcher import Watcher
 from test_mergequeue import divergent_candidate, fixture_repo, shared_control
 from test_cli import FakePipeline, STATE, author, checkout, git_env  # noqa: F401
@@ -339,10 +341,14 @@ async def test_composition_builds_rework_over_the_real_pipeline_queue_after_slot
         "updated_ticket": {"ticket": ticket}, "split_tickets": [], "escalation": None}))
 
     with Journal(repo / ".state", clock=lambda: NOW) as journal:
+        cfg = config()
+        clock = lambda: NOW
         pipeline = compose_pipeline(
             **shared_control(repo, journal),
-            repo=repo, config=config(), env=env, journal=journal, clock=lambda: NOW,
-            process=SubprocessExec(), fs=fs, git=git)
+            repo=repo, config=cfg, env=env, journal=journal, clock=clock,
+            process=SubprocessExec(), fs=fs, git=git,
+            providers=ProviderRuntime(
+                Registry(cfg), timers=Timers(journal=journal, clock=clock), clock=clock))
         driver = Driver(
             llm=LLMEffect(llm=llm, effects=Effects(journal), redact=Redactor({})),
             spool=Spool(repo / ".state", fs=fs, redact=Redactor({})),

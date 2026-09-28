@@ -14,7 +14,9 @@ from squatch.daemon import compose_daemon_restart, compose_daemon_timers
 from squatch.journal import Journal, JournalCorruption, read_events
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.reconcile import reconcile
-from squatch.runner import Session
+from squatch.config import parse
+from squatch.providers import Registry
+from squatch.runner import RecoveredSession
 from squatch.timers import fold_deadlines
 from test_cli import FakePipeline, STATE, T0, author, checkout, git_env  # noqa: F401
 
@@ -140,7 +142,7 @@ async def test_restart_delegates_entry_and_unwinds_timers_before_session_exit(tm
         with Journal(tmp_path, clock=clock) as journal:
             trace.append("reconcile")
             try:
-                yield Session(journal, None)
+                yield RecoveredSession(journal, None)
             finally:
                 trace.append("session exit")
 
@@ -158,7 +160,11 @@ async def test_restart_delegates_entry_and_unwinds_timers_before_session_exit(tm
 
     monkeypatch.setattr(daemon_module, "compose_daemon_timers", timers)
     with pytest.raises(RuntimeError, match="dispatch failed"):
-        async with compose_daemon_restart(session=session(), clock=clock):
+        async with compose_daemon_restart(
+                session=session(),
+                registry=Registry(parse({"schema_version": 1, "state_dir": ".state",
+                                         "providers": [], "routing": []}, source="test")),
+                clock=clock):
             trace.append("dispatch")
             raise RuntimeError("dispatch failed")
     assert trace == ["reconcile", "dispatch", "shutdown", "session exit"]

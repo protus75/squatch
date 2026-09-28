@@ -43,6 +43,7 @@ from squatch.ladder import Rung, effective, finding_codes, rungs
 from squatch.lockfile import LockHeld, Lockfile
 from squatch.reconcile import reconcile
 from squatch.reject import ARRIVAL, route
+from squatch.providers import ProviderRuntime
 from squatch.seams import Clock, ExecutableNotFound, Filesystem
 from squatch.stages import Delivery, lift_ticket_files
 from squatch.tickets import (PLAN_FILE, TICKET_FILE, TICKETS_DIR, Intake, IntakeResult, Ticket,
@@ -100,6 +101,15 @@ class Session:
 
     journal: Journal
     intake: IntakeResult
+    providers: ProviderRuntime
+
+
+@dataclass(frozen=True)
+class RecoveredSession:
+    """The reconciled inner session before restart state is attached."""
+
+    journal: Journal
+    intake: IntakeResult
 
 
 @dataclass(frozen=True)
@@ -134,7 +144,7 @@ class Runner:
         return self._log.path
 
     @asynccontextmanager
-    async def session(self) -> AsyncIterator[Session]:
+    async def session(self) -> AsyncIterator[RecoveredSession]:
         """Lock -> journal -> reconcile -> intake; the lock is held until exit."""
         lock = Lockfile(self.state_dir, instance_id=self._instance_id, clock=self._clock)
         try:
@@ -155,7 +165,7 @@ class Runner:
                 intake = Intake(repo=self._repo, git=self._git, journal=journal, fs=self._fs)
                 result = await intake.run()
                 self._report_intake(result)
-                yield Session(journal, result)
+                yield RecoveredSession(journal, result)
         finally:
             lock.release()
 
@@ -311,6 +321,10 @@ class Runner:
     async def dispatch(self, ticket: Ticket, journal: Journal) -> Dispatched:
         """One run of a validated, eligible stem under the held lock: the
         `running` transition, the stage seam, and the non-ok terminal write."""
+        hold = self.provider_hold(ticket, journal)
+        if hold is not None:
+            self._report(f"held: {ticket.stem}: {hold}")
+            return Dispatched(run_sequence(journal, ticket.stem), "infra_error")
         stem = ticket.stem
         tier, effort = effective(ticket, rungs(journal.read(), stem))
         ticket = replace(ticket, agent_tier=tier, agent_effort=effort)
@@ -356,6 +370,19 @@ class Runner:
                 self._log.event("harvest_error", ticket=stem, run_seq=run_seq,
                                 error=type(e).__name__, message=str(e),
                                 traceback="".join(traceback.format_exception(e)))
+        if outcome == "infra_error" and "quota_exhausted" in finding_codes(delivery):
+            # Harvest and retire the failed attempt, but weather cannot be diagnosed
+            # or repaired by spending retry/infra caps or climbing capability tiers.
+            body = {"to": outcome, "run_seq": run_seq, "harvest": harvested,
+                    "reason": "quota_exhausted", "finding_codes": ["quota_exhausted"],
+                    "provider_cooldown": delivery.stage}
+            if harvest_error is not None:
+                body["harvest_error"] = harvest_error
+            journal.append("state_transition", body, ticket=stem)
+            await self._retire_attempt(delivery)
+            self._report(f"held: {stem} run {run_seq} ended on provider cooldown; "
+                         "resumes when its configured route is available")
+            return Dispatched(run_seq, outcome)
         if outcome in {"infra_error", "timeout"}:
             await consume(journal, repo=self._repo, git=self._git, stem=stem, cap=INFRA_CAP,
                           run_seq=run_seq)
@@ -392,16 +419,23 @@ class Runner:
             journal.append("signal", {"kind": "escalation", "escalation": ARRIVAL,
                                       "reason": routing.reason, "run_seq": run_seq},
                            ticket=stem)
-        if delivery.worktree.exists():
-            await self._git.worktree_remove(self._repo, delivery.worktree)
-        else:
-            await self._git.worktree_prune(self._repo)
+        await self._retire_attempt(delivery)
         suffix = (f"; reject queue: `squatch confirm {stem}` to keep or "
                   f"`squatch reject {stem}` to kill"
                   if routing.routed == "reject_queue" else "")
         self._report(f"stopped: {stem} run {run_seq} ended {outcome}; branch left in place; "
                      f"detail: {attempt}/{suffix}")
         return Dispatched(run_seq, outcome)
+
+    async def _retire_attempt(self, delivery: Delivery) -> None:
+        if delivery.worktree.exists():
+            await self._git.worktree_remove(self._repo, delivery.worktree)
+        else:
+            await self._git.worktree_prune(self._repo)
+
+    def provider_hold(self, ticket: Ticket, journal: Journal) -> str | None:
+        """The provider admission hook; the bare runner owns only a pipeline seam."""
+        return None
 
     def _fault(self, stem: str, run_seq: int, e: Exception) -> Refusal:
         """A fault outside the stage vocabulary: the traceback goes to the

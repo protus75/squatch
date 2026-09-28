@@ -20,9 +20,10 @@ from squatch.journal import Journal
 from squatch.llm import Effort
 from squatch.lockfile import Holder
 from squatch.merge import Pipeline
+from squatch.providers import ProviderRuntime, Registry
 from squatch.rework import Rework
 from squatch.restart import restart_session
-from squatch.runner import Session
+from squatch.runner import RecoveredSession, Session
 from squatch.scheduler import Scheduler
 from squatch.seams import Clock, Filesystem, Sleep
 from squatch.specs import Spec
@@ -357,11 +358,13 @@ def compose_daemon_timers(*, journal: Journal, clock: Clock,
     return timers
 
 
-def compose_daemon_restart(*, session: AbstractAsyncContextManager[Session],
-                           clock: Clock) -> AbstractAsyncContextManager[Session]:
+def compose_daemon_restart(*, session: AbstractAsyncContextManager[RecoveredSession],
+                           registry: Registry, clock: Clock) -> AbstractAsyncContextManager[Session]:
     """Delegate recovery to Runner.session and bind timers to that lifetime."""
-    return restart_session(session, timers=lambda journal: compose_daemon_timers(
-        journal=journal, clock=clock))
+    return restart_session(
+        session,
+        timers=lambda journal: compose_daemon_timers(journal=journal, clock=clock),
+        providers=lambda timers: ProviderRuntime(registry, timers=timers, clock=clock))
 
 
 def watcher_consumer(watcher: Watcher, priority_snapshot: PrioritySnapshot) -> ConsumerCallback:

@@ -53,9 +53,11 @@ from squatch.merge import (
     compose_pipeline,
 )
 from squatch.redact import Redactor
+from squatch.providers import ProviderRuntime, Registry
 from squatch.runner import merged_stems
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.tickets import lint_ticket
+from squatch.timers import Timers
 
 
 def requisition_approve() -> str:
@@ -92,7 +94,10 @@ def composed_pipeline_of(h: Harness) -> Pipeline:
     return compose_pipeline(
         control_inbox=inbox, admission_hold=hold, repo=h.repo, config=h.config,
         env=h.env, journal=h.journal, clock=h.clock, process=SubprocessExec(),
-        fs=LocalFilesystem(), git=h.git)
+        fs=LocalFilesystem(), git=h.git,
+        providers=ProviderRuntime(
+            Registry(h.config), timers=Timers(journal=h.journal, clock=h.clock),
+            clock=h.clock))
 
 
 class SettledStages:
@@ -739,7 +744,11 @@ def test_compose_pipeline_builds_the_production_composition_from_config(repo, en
         pipeline = compose_pipeline(control_inbox=inbox, admission_hold=hold,
                                     repo=repo, config=config, env=env, journal=journal,
                                     clock=clock, process=SubprocessExec(), fs=LocalFilesystem(),
-                                    git=Git(SubprocessExec(), env=env, timeout=60.0))
+                                    git=Git(SubprocessExec(), env=env, timeout=60.0),
+                                    providers=ProviderRuntime(
+                                        Registry(config),
+                                        timers=Timers(journal=journal, clock=clock),
+                                        clock=clock))
     assert pipeline.merge_queue.admission_hold is hold
     assert hold.inbox is inbox
     assert isinstance(pipeline, Pipeline)

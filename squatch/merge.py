@@ -33,6 +33,7 @@ from squatch.git import Git, GitError, RebaseConflict
 from squatch.journal import Journal
 from squatch.mergequeue import AdmissionHold, Candidate, MergeQueue
 from squatch.providers import child_env
+from squatch.providers import ProviderRuntime
 from squatch.redact import Redactor
 from squatch.runner import SETTLED
 from squatch.seeds import SEED_LIFT_SIGNAL, blob_sha
@@ -450,12 +451,14 @@ class Pipeline:
 def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
                      clock: Clock, process: ProcessExec, fs: Filesystem, git: Git,
                      control_inbox: ControlInbox, admission_hold: AdmissionHold,
+                     providers: ProviderRuntime,
                      watchdog: bool = False) -> Pipeline:
     """The production composition: the stages over the routed provider, the
     admission over the same journal, git, and redactor."""
     repo = Path(repo)
     stages = compose(repo=repo, config=config, env=env, journal=journal, clock=clock,
-                     process=process, fs=fs, git=git, watchdog=watchdog)
+                     process=process, fs=fs, git=git, providers=providers,
+                     watchdog=watchdog)
     redact = Redactor.from_config(config, env)
     merge = Merge(repo=repo, config=config, git=git, process=process, fs=fs,
                   effects=Effects(journal), journal=journal,

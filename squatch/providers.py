@@ -2,7 +2,7 @@
 
 The registry validates the config's provider set and routing table beyond
 what the loader can know (adapter facts: which names the engine can drive,
-whose stream reports cost). Routing resolves `(tier, surface)` to the FIRST
+whose stream reports cost). Routing resolves `(tier, surface)` to an eligible configured
 candidate's concrete `(provider, model)` before every call. `CliClient` is
 the one `kind: cli` implementation of the Phase 0 `LLM` interface: one
 adapter per agent CLI (`claude`, `codex`), each owning only its argv
@@ -17,13 +17,16 @@ flag, so for it effort is provenance only.
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 
 from squatch.config import Config, ConfigError, Provider
 from squatch.llm import LLM_SURFACES, WRITING_SURFACES, LLMRequest, LLMResult
 from squatch.redact import Redactor
-from squatch.seams import Filesystem, ProcessExec, kill_group
+from squatch.seams import Clock, Filesystem, ProcessExec, kill_group
+from squatch.timers import Timers
 from squatch.watchdog import WatchdogCallback, WatchdogEvent
 
 # The section 0 placeholder an unset operator value carries; a resolved row
@@ -298,14 +301,63 @@ class Registry:
     def resolve(self, tier: str, surface: str) -> Resolved:
         """The FIRST candidate of the (tier, surface) row; a surface with no
         row of its own inherits the `review` row (section 5 invariant 6)."""
+        return self.candidates(tier, surface)[0]
+
+    def candidates(self, tier: str, surface: str) -> tuple[Resolved, ...]:
+        """The configured row in order, with the review inheritance applied."""
         route = self._routes.get((tier, surface)) or self._routes.get((tier, "review"))
         if route is None:
             raise RoutingError(f"no routing row for tier `{tier}` surface `{surface}` "
                                f"(nor a `review` row to inherit); add one to config.yaml")
-        candidate = route.candidates[0]
-        provider = self._providers[candidate.provider]
-        model = candidate.model or getattr(provider.models_by_tier, tier)
-        return Resolved(provider=provider, model=model)
+        return tuple(Resolved(
+            provider=self._providers[candidate.provider],
+            model=(candidate.model
+                   or getattr(self._providers[candidate.provider].models_by_tier, tier)))
+            for candidate in route.candidates)
+
+
+COOLDOWN_PREFIX = "provider-cooldown/"
+
+
+class ProviderRuntime:
+    """One session's unchanged registry plus its durable cooldown state."""
+
+    def __init__(self, registry: Registry, *, timers: Timers, clock: Clock) -> None:
+        self.registry = registry
+        self.timers = timers
+        self._clock = clock
+
+    @property
+    def auth_names(self) -> frozenset[str]:
+        return self.registry.auth_names
+
+    def provider(self, name: str) -> Provider:
+        return self.registry.provider(name)
+
+    def resolve(self, tier: str, surface: str) -> Resolved:
+        candidates = self.registry.candidates(tier, surface)
+        deadlines = []
+        for resolved in candidates:
+            deadline = self.timers.pending(self._prefix(resolved.provider.name))
+            if deadline is None:
+                return resolved
+            deadlines.append(deadline)
+        names = ", ".join(resolved.provider.name for resolved in candidates)
+        raise ProviderError(
+            candidates[0].provider.name,
+            f"route ({tier}, {surface}) has no eligible candidate; cooling down: {names}",
+            failure_class="quota_exhausted",
+            paved_road=f"wait until {min(deadlines).isoformat()} for the cooldown Timer to fire")
+
+    def cool_down(self, provider: Provider) -> datetime:
+        deadline = self._clock() + timedelta(minutes=provider.limits.quota_window_minutes)
+        key = self._prefix(provider.name) + quote(deadline.isoformat(), safe="")
+        self.timers.arm(key, deadline)
+        return deadline
+
+    @staticmethod
+    def _prefix(provider: str) -> str:
+        return f"{COOLDOWN_PREFIX}{quote(provider, safe='')}/"
 
 
 def child_env(env: Mapping[str, str], auth_names: frozenset[str] | set[str]) -> dict[str, str]:
@@ -319,10 +371,10 @@ class CliClient:
 
     kind: Literal["api", "cli"] = "cli"
 
-    def __init__(self, registry: Registry, *, process: ProcessExec, fs: Filesystem,
+    def __init__(self, providers: ProviderRuntime, *, process: ProcessExec, fs: Filesystem,
                  env: Mapping[str, str], redact: Redactor, state_dir: Path, cwd: Path,
                  timeout: float = CALL_TIMEOUT_SECONDS):
-        self._registry = registry
+        self._providers = providers
         self._process = process
         self._fs = fs
         self._env = env
@@ -334,7 +386,12 @@ class CliClient:
         self._pgid: int | None = None
 
     async def call(self, req: LLMRequest, *, on_event: WatchdogCallback | None = None) -> LLMResult:
-        resolved = self._registry.resolve(req.tier, req.surface)
+        return await self.call_resolved(
+            req, self._providers.resolve(req.tier, req.surface), on_event=on_event)
+
+    async def call_resolved(self, req: LLMRequest, resolved: Resolved, *,
+                            on_event: WatchdogCallback | None = None) -> LLMResult:
+        # Watchdog samples can await across a cooldown reset; keep this call's choice.
         provider, model = resolved.provider, resolved.model
         if PLACEHOLDER in (model, provider.auth):
             raise RoutingError(f"route ({req.tier}, {req.surface}) -> {provider.name} still "
@@ -346,7 +403,7 @@ class CliClient:
             raise ValueError(f"surface `{req.surface}` writes a tree but the request "
                              f"carries no worktree")
         cwd = req.worktree if req.worktree is not None else self._cwd
-        env = child_env(self._env, self._registry.auth_names)
+        env = child_env(self._env, self._providers.auth_names)
         if provider.auth:
             if provider.auth not in self._env:
                 raise RoutingError(f"provider `{provider.name}` reads its key from "
@@ -381,10 +438,16 @@ class CliClient:
         # Both sinks are scrubbed before anything is parsed or raised from them.
         out, err = self._redact(out), self._redact(err)
         parsed = adapter.parse(out)
-        if rc != 0:
-            raise adapter.error(parsed.failure or "non-zero exit", rc=rc, stderr=err)
-        if parsed.failure:
-            raise adapter.error(parsed.failure, rc=rc, stderr=err)
+        if rc != 0 or parsed.failure:
+            error = adapter.error(parsed.failure or "non-zero exit", rc=rc, stderr=err)
+            if error.failure_class == "quota_exhausted":
+                deadline = self._providers.cool_down(provider)
+                error = ProviderError(
+                    provider.name, error.reason, rc=rc, stderr=err,
+                    failure_class="quota_exhausted",
+                    paved_road=(f"subsequent calls use an eligible configured candidate; "
+                                f"{provider.name} is eligible after {deadline.isoformat()}"))
+            raise error
         # Cost floor: metered when the stream reports it, else the declared
         # flat estimate; never unmetered.
         usd = parsed.usd if parsed.usd is not None else provider.limits.est_cost_per_call_usd

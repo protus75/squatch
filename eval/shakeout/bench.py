@@ -16,9 +16,9 @@ from squatch.llm import FakeLLM
 from squatch.llmeffect import LLMEffect
 from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
-from squatch.providers import child_env
+from squatch.providers import Registry, child_env
 from squatch.redact import Redactor
-from squatch.runner import Runner
+from squatch.__main__ import _RestartRunner
 from squatch.seams import Clock, LocalFilesystem, Sleep, SubprocessExec
 
 GIT_TIMEOUT = 60.0
@@ -82,7 +82,7 @@ class Bench:
             pipeline = compose_pipeline(
                 repo=self.repo, config=self.config, env=self.env, journal=journal,
                 clock=self.clock, process=self.process, fs=self.fs, git=self.git,
-                control_inbox=inbox, admission_hold=hold)
+                control_inbox=inbox, admission_hold=hold, providers=self.runner.providers)
             effect = LLMEffect(llm=self.fake, effects=Effects(journal), redact=redact,
                                clock=self.clock, sleep=self.sleep)
             pipeline.stages._llm = effect
@@ -93,7 +93,8 @@ class Bench:
             pipeline.diagnoser._driver._llm = effect
             return pipeline
 
-        self.runner = Runner(
+        self.runner = _RestartRunner(
+            provider_registry=Registry(self.config),
             repo=self.repo, config=self.config, git=self.git, fs=self.fs, clock=self.clock,
             instance_id="shakeout", pipeline=factory, log=log, report=self.lines.append)
         self._drain = Drain(

@@ -32,8 +32,10 @@ from squatch.mergequeue import (
     MergeQueue,
     UnresolvedConflictHandoff,
 )
+from squatch.providers import ProviderRuntime, Registry
 from squatch.seams import LocalFilesystem, SubprocessExec
 from squatch.tickets import lint_ticket
+from squatch.timers import Timers
 
 
 def config(*strategies):
@@ -95,6 +97,11 @@ def queue(repo, env, git, journal, cfg, *, regate, integration, integrate):
 def shared_control(repo, journal):
     inbox = ControlInbox(repo / ".state", journal=journal, fs=LocalFilesystem())
     return {"control_inbox": inbox, "admission_hold": AdmissionHold(inbox, journal)}
+
+
+def provider_runtime(cfg, journal, clock):
+    return ProviderRuntime(
+        Registry(cfg), timers=Timers(journal=journal, clock=clock), clock=clock)
 
 
 async def release_hold(repo, q):
@@ -713,12 +720,13 @@ def test_additive_composition_hook_does_not_change_phase1_composition(tmp_path):
     env = git_env(tmp_path)
     process = SubprocessExec()
     git = Git(process, env=env, timeout=60)
-    with Journal(repo / cfg.state_dir, clock=lambda: datetime.now(timezone.utc)) as journal:
+    clock = lambda: datetime.now(timezone.utc)
+    with Journal(repo / cfg.state_dir, clock=clock) as journal:
         pipeline = compose_pipeline(
             **shared_control(repo, journal),
             repo=repo, config=cfg, env=env, journal=journal,
-            clock=lambda: datetime.now(timezone.utc), process=process,
-            fs=LocalFilesystem(), git=git)
+            clock=clock, process=process, fs=LocalFilesystem(), git=git,
+            providers=provider_runtime(cfg, journal, clock))
         dormant = compose_merge_queue(
             **shared_control(repo, journal),
             repo=repo, config=cfg, env=env, journal=journal, process=process,
@@ -777,10 +785,11 @@ async def daemon_conflict_pipeline(tmp_path, *, strategies=(), fail_on=0):
         cost=Cost(tokens=0, seconds=0, attempts=0))
     cfg = config(*strategies)
     journal = Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc))
+    clock = lambda: datetime.now(timezone.utc)
     pipeline = compose_pipeline(
         **shared_control(repo, journal), repo=repo, config=cfg, env=env, journal=journal,
-        clock=lambda: datetime.now(timezone.utc), process=SubprocessExec(),
-        fs=LocalFilesystem(), git=git)
+        clock=clock, process=SubprocessExec(), fs=LocalFilesystem(), git=git,
+        providers=provider_runtime(cfg, journal, clock))
     pipeline.stages = SettledStages(delivery)
     pipeline.select_daemon_admission()
     return repo, worktree, git, journal, pipeline, ticket, main_before
@@ -934,12 +943,14 @@ async def test_concrete_adapters_approval_verification_and_squash(tmp_path, monk
     monkeypatch.setattr(Verification, "check", check)
     monkeypatch.setattr(merge_module, "compose_merge_queue", construct)
     env = {**env, "PROVIDER_KEY": "secret-value", "KEEP_ME": "yes"}
-    with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
+    clock = lambda: datetime.now(timezone.utc)
+    with Journal(repo / ".state", clock=clock) as journal:
         process = SubprocessExec()
-        pipeline = compose_pipeline(**shared_control(repo, journal), repo=repo,
-                                    config=adapter_config(), env=env, journal=journal,
-                                    clock=lambda: datetime.now(timezone.utc), process=process,
-                                    fs=LocalFilesystem(), git=git)
+        cfg = adapter_config()
+        pipeline = compose_pipeline(
+            **shared_control(repo, journal), repo=repo, config=cfg, env=env,
+            journal=journal, clock=clock, process=process, fs=LocalFilesystem(), git=git,
+            providers=provider_runtime(cfg, journal, clock))
         q = pipeline.merge_queue
         assert constructions == [q] and isinstance(q, MergeQueue)
         assert type(q) is not MergeQueue
@@ -996,11 +1007,13 @@ async def test_concrete_adapter_state_unwinds_after_invoice(tmp_path, monkeypatc
         return await original(self, slip, workspace)
 
     monkeypatch.setattr(Verification, "check", check)
-    with Journal(repo / ".state", clock=lambda: datetime.now(timezone.utc)) as journal:
-        pipeline = compose_pipeline(**shared_control(repo, journal), repo=repo,
-                                    config=config(), env=env, journal=journal,
-                                    clock=lambda: datetime.now(timezone.utc),
-                                    process=SubprocessExec(), fs=LocalFilesystem(), git=git)
+    clock = lambda: datetime.now(timezone.utc)
+    with Journal(repo / ".state", clock=clock) as journal:
+        cfg = config()
+        pipeline = compose_pipeline(
+            **shared_control(repo, journal), repo=repo, config=cfg, env=env,
+            journal=journal, clock=clock, process=SubprocessExec(), fs=LocalFilesystem(),
+            git=git, providers=provider_runtime(cfg, journal, clock))
         q = pipeline.merge_queue
         task = asyncio.create_task(q.admit(candidate))
         if failure == "cancel":

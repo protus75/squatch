@@ -22,8 +22,9 @@ from squatch.git import Git
 from squatch.journal import Event, Journal, read_events
 from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
+from squatch.providers import Registry
 from squatch.redact import Redactor
-from squatch.runner import Runner
+from squatch.__main__ import _RestartRunner
 from squatch.seams import Filesystem, LocalFilesystem, ProcessExec, SubprocessExec
 from squatch.serve import CONTROL_POLL_SECONDS, Serve
 
@@ -374,6 +375,7 @@ async def _member(*, member: str, root: Path, clock: AdvancingClock,
     state = root / config.state_dir
     controls = {}
     pipelines = {}
+    runner = None
 
     def control(journal: Journal):
         if journal not in controls:
@@ -387,13 +389,15 @@ async def _member(*, member: str, root: Path, clock: AdvancingClock,
             made = compose_pipeline(
                 repo=root, config=config, env=child_env, journal=journal, clock=clock,
                 process=scenario_process, fs=fs, git=git, control_inbox=pause.inbox,
-                admission_hold=AdmissionHold(pause.inbox, journal))
+                admission_hold=AdmissionHold(pause.inbox, journal),
+                providers=runner.providers)
             pipelines[journal] = made
         return pipelines[journal]
 
     log = EngineLog(state, clock=clock, redact=Redactor.from_config(config, child_env))
-    runner = Runner(
-        repo=root, config=config, git=git, fs=fs, clock=clock,
+    runner = _RestartRunner(
+        provider_registry=Registry(config), repo=root, config=config, git=git, fs=fs,
+        clock=clock,
         instance_id=f"daemon-soak-{member}", pipeline=pipeline, log=log,
         report=lambda _line: None)
     lifetimes: list[timedelta] = []

@@ -12,7 +12,7 @@ from squatch.seams import Clock, ExecutableNotFound, Sleep
 
 if TYPE_CHECKING:
     from squatch.journal import Journal
-    from squatch.providers import CliClient, Registry
+    from squatch.providers import CliClient, ProviderRuntime
     from squatch.tickets import Ticket
 
 
@@ -138,7 +138,7 @@ class WatchdogLLM:
 
     kind: Literal["api", "cli"] = "cli"
 
-    def __init__(self, client: "CliClient", *, registry: "Registry", journal: "Journal",
+    def __init__(self, client: "CliClient", *, registry: "ProviderRuntime", journal: "Journal",
                  clock: Clock, git: Git, sleep: Sleep = asyncio.sleep):
         self.client = client
         self._registry = registry
@@ -260,7 +260,7 @@ class WatchdogLLM:
                 self._worktree = req.worktree
                 await self._sample()
             observer = asyncio.create_task(self._observe())
-            result = await self.client.call(req, on_event=on_event)
+            result = await self.client.call_resolved(req, resolved, on_event=on_event)
             if metered:
                 self._basis[served] = result.usd
                 self._detector._cost_basis_usd = result.usd

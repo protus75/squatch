@@ -213,6 +213,7 @@ class Drain:
         while True:
             facts = fold(journal.read())
             plane = await self._scan(facts)
+            plane = self._provider_holds(plane, journal)
             self._refuse_cycles(plane)
             if await self._resolve_rejects(journal, plane, facts):
                 continue
@@ -228,6 +229,8 @@ class Drain:
                 return self._halted(plane, facts, merged_now, ticket)
             if self._stopping:
                 return self._killed()
+            if self._runner.provider_hold(ticket, journal) is not None:
+                continue
             if offer is not None:
                 await self._draw_retry(journal, ticket)
                 if not await self._wait_for_offer(started + ceiling, ticket.stem):
@@ -302,6 +305,16 @@ class Drain:
             tickets[stem] = ticket
         return Plane(tickets, held, pending)
 
+    def _provider_holds(self, plane: Plane, journal: Journal) -> Plane:
+        tickets, held = {}, dict(plane.held)
+        for stem, ticket in plane.tickets.items():
+            reason = self._runner.provider_hold(ticket, journal)
+            if reason is None:
+                tickets[stem] = ticket
+            else:
+                held[stem] = Held(stem, "provider cooldown", reason)
+        return Plane(tickets, held, plane.pending)
+
     def _refuse_cycles(self, plane: Plane) -> None:
         graph = {s: t.depends for s, t in plane.tickets.items()}
         for stem in sorted(graph):
@@ -322,7 +335,7 @@ class Drain:
 
     def _released(self, facts: Fold, stem: str) -> bool:
         """A premise park whose ticket-plane `ticket.md` commit has changed."""
-        if stem in facts.confirmed:
+        if stem in facts.confirmed or facts.terminals.get(stem, {}).get("provider_cooldown"):
             return True
         return (facts.latest.get(stem) == PREMISE and stem in facts.edited
                 and remaining(self._config, facts.cap_drawn, stem, PREMISE_BOUNCE_CAP) > 0)

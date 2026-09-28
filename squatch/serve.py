@@ -24,7 +24,7 @@ from squatch.journal import Journal
 from squatch.llmeffect import LLMEffect
 from squatch.merge import Pipeline
 from squatch.notify import NotificationReconciler
-from squatch.providers import CliClient, Registry
+from squatch.providers import CliClient
 from squatch.redact import Redactor
 from squatch.rework import Rework
 from squatch.runner import EXIT_OK, Dispatched, PipelineFactory, Refusal, Runner, Session
@@ -210,9 +210,8 @@ class Serve:
         pipeline.select_daemon_admission()
 
         redact = Redactor.from_config(config, self._env)
-        registry = Registry(config)
         client = CliClient(
-            registry, process=self._process, fs=self._fs, env=self._env, redact=redact,
+            session.providers, process=self._process, fs=self._fs, env=self._env, redact=redact,
             state_dir=state_dir, cwd=self._repo)
         llm = LLMEffect(
             llm=client, effects=Effects(journal), redact=redact, clock=self._clock)
@@ -227,7 +226,8 @@ class Serve:
             repo=self._repo, config=config, git=self._git, fs=self._fs, clock=self._clock,
             journal=journal,
             llm=CliClient(
-                registry, process=self._process, fs=self._fs, env=self._env, redact=redact,
+                session.providers, process=self._process, fs=self._fs, env=self._env,
+                redact=redact,
                 state_dir=state_dir, cwd=self._repo),
             log=EngineLog(state_dir, clock=self._clock, redact=redact), redact=redact,
             report=self._report)
@@ -243,6 +243,7 @@ class Serve:
                 clock=self._clock, process=self._process, env=self._env, report=self._report)
             facts = fold(journal.read())
             plane = await scanner._scan(facts)
+            plane = scanner._provider_holds(plane, journal)
             scanner._refuse_cycles(plane)
             ready = scanner._eligible(plane, facts)
             tickets.clear()

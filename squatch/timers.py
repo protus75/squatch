@@ -92,6 +92,21 @@ class Timers:
         else:
             self._tasks[key] = asyncio.create_task(self._wait(key))
 
+    def pending(self, prefix: str) -> datetime | None:
+        """The last live deadline under a prefix, firing elapsed windows first."""
+        self.rearm()
+        now = self._clock()
+        render_ts(now)
+        pending = []
+        for key, deadline in tuple(self._deadlines.items()):
+            if deadline.fired:
+                continue
+            if deadline.at <= now:
+                self._fire(key)
+            elif key.startswith(prefix):
+                pending.append(deadline.at)
+        return max(pending, default=None)
+
     async def _wait(self, key: str) -> None:
         while True:
             now = self._clock()
@@ -104,6 +119,8 @@ class Timers:
 
     def _fire(self, key: str) -> None:
         deadline = self._deadlines[key]
+        if deadline.fired:
+            return
         self._journal.append("timer_fired", {
             "kind": "deadline", "deadline": render_ts(deadline.at)}, key=key)
         self._deadlines[key] = Deadline(deadline.at, fired=True)

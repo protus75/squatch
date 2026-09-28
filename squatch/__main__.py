@@ -36,9 +36,10 @@ from squatch.drain import Drain
 from squatch.enginelog import EngineLog
 from squatch.git import Git, GitError
 from squatch.journal import Journal, JournalCorruption, read_events
+from squatch.ladder import effective, rungs
 from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
 from squatch.notify import NotificationReconciler
-from squatch.providers import CliClient, Registry, child_env
+from squatch.providers import CliClient, ProviderError, ProviderRuntime, Registry, RoutingError, child_env
 from squatch.redact import Redactor
 from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
@@ -348,12 +349,7 @@ async def _triage_pass(runner: Runner, config, git: Git, cwd: Path, env,
         state = cwd / config.state_dir
         fs = LocalFilesystem()
         redact = Redactor.from_config(config, env)
-        try:
-            registry = Registry(config)
-        except ConfigError as e:
-            raise Refusal(f"config: {e}",
-                          "fix the named provider or routing row in config.yaml") from None
-        client = CliClient(registry, process=process, fs=fs, env=env,
+        client = CliClient(session.providers, process=process, fs=fs, env=env,
                            redact=redact, state_dir=state, cwd=cwd)
         consumer = Triage(
             repo=cwd, config=config, git=git, fs=fs, clock=clock, journal=session.journal,
@@ -364,16 +360,48 @@ async def _triage_pass(runner: Runner, config, git: Git, cwd: Path, env,
 
 
 class _RestartRunner(Runner):
+    providers: ProviderRuntime
+
+    def __init__(self, *, provider_registry: Registry, **kwargs):
+        super().__init__(**kwargs)
+        self._provider_registry = provider_registry
+
+    def provider_hold(self, ticket, journal):
+        events = tuple(journal.read())
+        tier, _ = effective(ticket, rungs(events, ticket.stem))
+        terminal = next((e.body for e in reversed(events)
+                         if e.ticket == ticket.stem and e.type == "state_transition"), {})
+        surfaces = {"implement", terminal.get("provider_cooldown", "implement")}
+        for surface in sorted(surfaces):
+            try:
+                self.providers.resolve(tier, surface)
+            except RoutingError:
+                # Config refusals retain their existing stage outcome, not a cooldown.
+                continue
+            except ProviderError as error:
+                body = {"kind": "provider_drought", "tier": tier, "surface": surface,
+                        "paved_road": error.paved_road}
+                if not any(e.type == "signal" and e.ticket == ticket.stem and e.body == body
+                           for e in events):
+                    journal.append("signal", body, ticket=ticket.stem)
+                return str(error)
+        return None
+
     def session(self):
-        restarted = compose_daemon_restart(session=super().session(), clock=self._clock)
+        restarted = compose_daemon_restart(
+            session=super().session(), registry=self._provider_registry, clock=self._clock)
 
         @asynccontextmanager
         async def active():
             async with restarted as session:
-                with compose_daemon_storm_producer(
-                        state_dir=self.state_dir, journal=session.journal,
-                        fs=self._fs, clock=self._clock):
-                    yield session
+                self.providers = session.providers
+                try:
+                    with compose_daemon_storm_producer(
+                            state_dir=self.state_dir, journal=session.journal,
+                            fs=self._fs, clock=self._clock):
+                        yield session
+                finally:
+                    del self.providers
 
         return active()
 
@@ -386,6 +414,11 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         return _config(args, cwd)
 
     config = config_supplier()
+    try:
+        provider_registry = Registry(config)
+    except ConfigError as e:
+        raise Refusal(f"config: {e}",
+                      "fix the named provider or routing row in config.yaml") from None
     # Inherit-minus-secrets: git never needs a provider key (section 6).
     git = Git(process, env=child_env(env, {p.auth for p in config.providers if p.auth}),
               timeout=GIT_TIMEOUT_SECONDS)
@@ -393,6 +426,7 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
     control = _control_factory(cwd / config.state_dir, config_supplier)
 
     serve_pipelines = {}
+    runner: _RestartRunner | None = None
 
     def factory(journal):
         if getattr(args, "verb", None) == "serve" and journal in serve_pipelines:
@@ -400,11 +434,13 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         if pipeline is not None:  # a scripted stand-in (tests)
             composed = pipeline(journal)
         else:
+            assert runner is not None
             pause, _wait = control(journal)
             composed = compose_pipeline(repo=cwd, config=config, env=env, journal=journal,
                                         clock=clock, process=process, fs=LocalFilesystem(), git=git,
                                         control_inbox=pause.inbox,
                                         admission_hold=pause.admission_hold,
+                                        providers=runner.providers,
                                         watchdog=getattr(args, "verb", None) in {"drain", "serve"})
             if getattr(args, "verb", None) == "drain":
                 pause.bind_abort(composed.stages.abort_active)
@@ -413,6 +449,7 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         return composed
 
     async def go() -> int:
+        nonlocal runner
         try:
             instance_id = await git.describe(ENGINE_ROOT)
         except ExecutableNotFound:
@@ -420,9 +457,11 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
                           "subprocess through git.py") from None
         log = EngineLog(cwd / config.state_dir, clock=clock,
                         redact=Redactor.from_config(config, env))
-        runner = _RestartRunner(repo=cwd, config=config, git=git, fs=LocalFilesystem(), clock=clock,
-                        instance_id=instance_id, pipeline=factory, log=log,
-                        report=lambda line: print(line, file=out))
+        runner = _RestartRunner(
+            provider_registry=provider_registry, repo=cwd, config=config, git=git,
+            fs=LocalFilesystem(), clock=clock,
+            instance_id=instance_id, pipeline=factory, log=log,
+            report=lambda line: print(line, file=out))
         return await verb(runner, config, git, control)
 
     try:
