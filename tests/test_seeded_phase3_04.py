@@ -71,6 +71,9 @@ REVISED_SUCCESSOR_EXISTING = {
     "tests/test_daemon_admission.py": 5837,
     "tests/test_daemon_config.py": 5062,
 }
+# Measured from section 20 through its final newline when the repaired
+# successor was authored. Later append-only phase contracts must not redden it.
+SECTION_20_CHARS_AT_AUTHORING = 10065
 SUFFIX = (
     ("scheduler-activation",),
     ("merge-queue-activation", "rework-activation"),
@@ -112,6 +115,15 @@ def _section(stem, name):
 def _yaml_blocks(stem):
     return [yaml.safe_load(block) for block in re.findall(
         r"```yaml\n(.*?)\n```", _section(stem, "Scope in"), re.S)]
+
+
+def _authoring_plan():
+    current = (REPO / PLAN_FILE).read_text()
+    start = current.index("## 20.")
+    end = current.index("\n## ", start + 1) + 1
+    heading = current[start:current.index("\n", start) + 1]
+    section = heading + "x" * (SECTION_20_CHARS_AT_AUTHORING - len(heading) - 1) + "\n"
+    return current[:start] + section + current[end:]
 
 
 def test_emitted_batch_is_exact_linted_and_capped():
@@ -222,7 +234,7 @@ def test_continuation_carries_the_exact_ordered_suffix():
 
 def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = _authoring_plan()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in PHASE3_04:
         ticket = _ticket(stem)
