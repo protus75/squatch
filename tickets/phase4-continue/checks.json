@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "bc5b379a0bd71addc7ca56a2af6313752518342a",
+  "produced_at_sha": "b5a020cce0637842d88245a517489f56a0686ec3",
   "stem": "phase4-continue",
   "branch": "phase4-continue",
-  "base": "bc328764198c133869bc43fd33850aa768ed6683",
-  "head": "bc5b379a0bd71addc7ca56a2af6313752518342a",
+  "base": "da21cb79fb29532abf10e9a836ff2d6497c84686",
+  "head": "b5a020cce0637842d88245a517489f56a0686ec3",
   "changed_files": [
     "tests/test_seeded_phase4_01.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase4-continue-02/ticket.md",
-      "sha": "0ba270d7fc880b40a059ab950b57c9363af28ea2",
+      "sha": "3ad522ed49e1686c8a9109f4822b8897c2a3d548",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -25,41 +25,49 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/watchdog-activation/ticket.md",
-      "sha": "470bd741437bee390c0437e4cb785c5779576318",
+      "sha": "9a6e5011552daa894289e2a005639f25addd6d1f",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/watchdog-activation/ticket.md",
-          "line": 62,
-          "message": "`CliClient.call` accepts `on_event` (providers.py:336), but the driver reaches it only through `LLMEffect._call`, which invokes `self._llm.call(req)` against the `LLM` Protocol. That Protocol (llm.py:62) and `FakeLLM.call` (llm.py:95) take only `req`. Passing the detector through the effect means changing the Protocol and the fake, and squatch/llm.py is neither fenced nor in Context. The only in-fence alternative is a conditional kwarg, which is the dual-path code CLAUDE.md forbids.",
-          "paved_road": "Add squatch/llm.py to both the fence and Context, and state the single callback contract for the `LLM` Protocol and `FakeLLM`. Otherwise, bind the detector at `CliClient` construction in the composition roots so `LLM.call(req)` stays unchanged, and rewrite the scope and criteria to say so."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/watchdog-activation/ticket.md",
-          "line": 161,
-          "message": "`_RequisitionEffect.call` calls `LLMEffect._call.__wrapped__` directly with a fixed keyword set. Any change the ticket makes to `LLMEffect._call`'s signature to carry the callback breaks this module, which is outside the fence. Requisition review is also a production LLM call path, so leaving it out contradicts 'every production driver call, including review'.",
-          "paved_road": "Fence squatch/requisition.py and add it to Context. Alternatively, choose a construction-time binding that leaves the `LLMEffect._call` signature untouched, and say explicitly whether requisition review is in or out of scope."
+          "line": 450,
+          "message": "Fence closure gap. Scope-in binds the detector \"at CliClient construction for the Stages-owned Driver on bootstrap drain and serve\" and needs notifications, the drain/serve selection and invocation metadata at that binding. The only production client construction is `squatch/stages.py::compose` (line 1114). Its only caller is `squatch/merge.py::compose_pipeline` (line 456), and `squatch/__main__.py:385` calls that for both drain and serve. `compose_pipeline` takes no notifications or watchdog binding argument, so both roots cannot reach the construction-time binding without editing `merge.py`, which is outside the fence. The alternative is to patch the Pipeline after construction, which contradicts both 'bind at CliClient construction' and 'Reject activation before detector construction'. `compose_pipeline` has other callers: `eval/daemon_soak.py:387`, `eval/shakeout/bench.py:82`, `tests/test_merge.py:92/739`, `tests/test_mergequeue.py:717/780/939/1000` and `tests/test_daemon_composition.py:342`. Adding a mandatory parameter would force all of them to change.",
+          "paved_road": "Add `squatch/merge.py` to the Scope fence as a fenced on-demand inspection exception (29,186 chars exceeds remaining headroom). State in Scope in that `compose_pipeline` gains only an optional keyword defaulting to the unbound behavior and forwards it to `stages.compose`. This keeps the listed eval, merge, mergequeue and daemon-composition callers unchanged. Add `tests/test_merge.py` and `tests/test_mergequeue.py` to Verification as unchanged preservation suites."
         },
         {
           "code": "requisition_review",
           "path": "tickets/watchdog-activation/ticket.md",
           "line": null,
-          "message": "`LLMEffect`/`CliClient` are also composed in squatch/author.py, squatch/triage.py, squatch/requisition.py, and eval/ (diagnose, harness, shakeout bench, providers_group). The fence covers only stages/drain/serve/__main__. The criterion 'every production driver call ... is watched' therefore either forces edits to the unfenced author, triage, and requisition roots, or cannot be met.",
-          "paved_road": "Either fence squatch/author.py, squatch/triage.py, and squatch/requisition.py as production composition roots and list them as on-demand exceptions, or narrow the Goal and criteria to the Stages-owned Driver on the drain and serve paths and file the remaining production roots as a follow-up. Name the eval/ composers explicitly as non-production callers that keep the optional-callback behavior."
+          "message": "Fenced existing files omitted from Context: `squatch/stages.py`, `squatch/drain.py`, `squatch/serve.py`, `squatch/__main__.py` and `tests/test_providers.py`. The measured render is 100,122 chars against the 120,000-char headroom, leaving about 19,878 chars. That justifies keeping stages.py (55,260), drain.py (25,709), __main__.py (19,480) and test_providers.py (32,667) as on-demand exceptions. It does not justify omitting `squatch/serve.py` (11,768 chars), which fits. serve.py is also where the rework Driver's separate client is constructed (serve.py:214) and the Triage client (serve.py:229), both of which the ticket excludes. Its Scope in names `Serve.compose` and cites no measurement for omitting it.",
+          "paved_road": "Embed `squatch/serve.py` in Context and keep the other four as fenced on-demand inspection exceptions. Alternatively, record the per-file sizes against `REQ_RENDER_HEADROOM` that justify each exception."
         }
       ],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": "tickets/watchdog-detector/ticket.md",
-      "sha": "160aaa0d28e2450fbc7931a8c3435dd0d6b2e82c",
+      "sha": "e531a3931def612522c5637d577061c58f7a8f4f",
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-detector/ticket.md",
+          "line": null,
+          "message": "Scope in requires guarding expected==stuck 'with the expected-to-stuck floor', and acceptance criterion 1 requires proving 'expected==stuck handling'. Neither section 20 nor the Context defines that floor. The ticket also does not say what happens whenever expected x 1.5 >= stuck: the soft band is then empty or inverted. The implementer would have to invent the region boundaries, so no test can pin an expected value and a form-only guess cannot be told apart from a correct one.",
+          "paved_road": "State the rule in Scope in. Give the soft-band lower bound as an exact formula, for example min(expected x 1.5, max(expected, stuck - <explicit floor>)), or declare the soft band empty whenever expected x 1.5 >= stuck, with stuck always winning at elapsed >= stuck. Name the exact boundary values the test must assert for expected==stuck and for expected x 1.5 > stuck."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/watchdog-detector/ticket.md",
+          "line": null,
+          "message": "Scope in and criterion 1 require excluding provider-cap wait time from elapsed time. The enumerated detector inputs are WatchdogEvent observations, an injected clock, Scope fence prefixes and the cost basis, and none of them carries a cap-wait interval: WatchdogEventKind is only 'start' | 'tool_call'. The ticket also forbids new signal shapes and provider event changes. That leaves no sanctioned source for the wait time the criterion must exclude.",
+          "paved_road": "Add a separate injected observation of provider-cap wait intervals to the enumerated detector inputs, as is already done for declared-output mutations. Say explicitly that this is a detector input and not a new WatchdogEvent kind or spiral signal, and that watchdog-activation supplies it later."
+        }
+      ],
       "commands": []
     },
     {
