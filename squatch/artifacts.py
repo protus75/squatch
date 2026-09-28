@@ -27,6 +27,18 @@ DaemonSoakMemberName = Literal[
     "semantic_conflict_integration_red",
 ]
 
+RELIABILITY_BATTERY_REPORT = "reliability-battery-report.json"
+RELIABILITY_BATTERY_MEMBERS = (
+    "classified_quota_exhaustion",
+    "all_candidates_cooling_recovery",
+    "unclassified_failure_preservation",
+)
+ReliabilityBatteryMemberName = Literal[
+    "classified_quota_exhaustion",
+    "all_candidates_cooling_recovery",
+    "unclassified_failure_preservation",
+]
+
 StageName = Literal["author", "implement", "check", "review", "rework", "merge", "triage", "retro"]
 STAGE_NAMES: frozenset[str] = frozenset(StageName.__args__)
 SUBSTEP_NAMES: frozenset[str] = frozenset({"diagnose"})
@@ -111,6 +123,43 @@ class DaemonSoakReport(ClosedModel):
         if members != DAEMON_SOAK_MEMBERS:
             raise ValueError(
                 f"entries must contain the closed member list in order: {DAEMON_SOAK_MEMBERS}")
+        return self
+
+
+class ReliabilityBatteryEntry(ClosedModel):
+    """One execution-derived provider reliability fault result."""
+
+    member: ReliabilityBatteryMemberName
+    fault: str = Field(min_length=1)
+    observable: str = Field(min_length=1)
+    expected: str = Field(min_length=1)
+    observed: str = Field(min_length=1)
+    auditor: Literal["green", "red"]
+    green: bool
+
+    @model_validator(mode="after")
+    def _green_is_derived(self):
+        expected = self.observed == self.expected and self.auditor == "green"
+        if self.green != expected:
+            raise ValueError(
+                "green must be true exactly when observed equals expected and auditor is green")
+        return self
+
+
+class ReliabilityBatteryReport(ClosedModel):
+    """Closed report returned by the provider reliability battery."""
+
+    schema_version: Literal[1]
+    produced_at_sha: str = Field(min_length=1)
+    entries: tuple[ReliabilityBatteryEntry, ...]
+
+    @model_validator(mode="after")
+    def _closed_member_list(self):
+        members = tuple(entry.member for entry in self.entries)
+        if members != RELIABILITY_BATTERY_MEMBERS:
+            raise ValueError(
+                "entries must contain the closed member list in order: "
+                f"{RELIABILITY_BATTERY_MEMBERS}")
         return self
 
 

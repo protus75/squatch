@@ -39,8 +39,9 @@ import yaml
 from pydantic import Field, model_validator
 
 import squatch
-from squatch.artifacts import (DAEMON_SOAK_REPORT, OUTCOMES, Artifact, ClosedModel, Cost,
-                               DaemonSoakReport, Finding, StageResult)
+from squatch.artifacts import (DAEMON_SOAK_REPORT, RELIABILITY_BATTERY_REPORT, OUTCOMES,
+                               Artifact, ClosedModel, Cost, DaemonSoakReport, Finding,
+                               ReliabilityBatteryReport, StageResult)
 from squatch.box import Box
 from squatch.config import Config, Severity
 from squatch.driver import Driver, LLMStage, Spool
@@ -86,6 +87,7 @@ SPLIT_ROAD = "split the ticket (diagnosis verdict `split`, section 11)"
 KNOWN_ARTIFACTS = {
     REPORT_NAME: ShakeoutReport.model_validate_json,
     DAEMON_SOAK_REPORT: DaemonSoakReport.model_validate_json,
+    RELIABILITY_BATTERY_REPORT: ReliabilityBatteryReport.model_validate_json,
 }
 
 
