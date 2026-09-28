@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e9d4a0657ba91d81fe121d775b66435a6524873a",
+  "produced_at_sha": "f13848742bbe8ee9d657117f7456abc096738690",
   "stem": "phase4-exit",
   "branch": "phase4-exit",
-  "base": "274c33a182a7927d2a296de4a15226e087d10c56",
-  "head": "e9d4a0657ba91d81fe121d775b66435a6524873a",
+  "base": "2c9307309a6c2e1ae21c736ca94a6c92f51580fb",
+  "head": "f13848742bbe8ee9d657117f7456abc096738690",
   "changed_files": [
     "tests/test_phase4_exit.py",
     "tests/test_seeded_phase5_core.py"
@@ -16,7 +16,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase5-continue/ticket.md",
-      "sha": "ceb4a2ef9975bb3ce380892076ee1df76f68b3fa",
+      "sha": "7ac39571dcd95380384f1976a6f11a0b85d19e71",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -26,43 +26,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/retro-box-activation/ticket.md",
-      "sha": "9a167c7dbd3dc6370476ac1d5ebd4c4e1836bd84",
+      "sha": "6ba395633360410daa355a01e9761676adfdd5f4",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/retro-box-activation/ticket.md",
           "line": null,
-          "message": "Scope in and criterion 2 require counting re-reports 'deduped by the Box enqueue or semantic-triage path' onto a tombstoned record. Semantic-triage tombstoning happens in the triage consumer (`__main__._triage_pass` and the triage call path), not in `squatch/box.py`. Box has no hook for it: `Box.resolve` only moves a pending message to tombstoned, and `Box.enqueue` dedups only on signature. The code that must change is outside the fence.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-box-activation/ticket.md",
-          "line": null,
-          "message": "The reopen must append a `tombstone_auto_reopened` journal signal before the mutation. `Box` is constructed with only state_dir, fs, clock, and an optional occurrence recorder, and has no journal. For that write to happen in production, the Box composition roots (`squatch/__main__.py`, `squatch/serve.py`, drain/daemon) must pass in a journal-backed hook. None of those roots is fenced. Without them the feature is fixture-only wiring, which the ticket's own Definition of rejected forbids.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-box-activation/ticket.md",
-          "line": null,
-          "message": "Scope in and criterion 2 require that 'triage authors its ticket `draft` regardless of the normal class policy'. The box-triage ticket landed starting-state resolution in `squatch/policy.py`, and the author-stage ticket landed authoring in the Author stage. Neither is fenced, and the plan's retro-box-activation paragraph does not grant this override. Box can store a reopen marker, but nothing in the fence makes authoring honor it.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-box-activation/ticket.md",
-          "line": null,
-          "message": "The merge-time signal must carry `box_id` and `retro_report_key` from the source Box record, never inferred from the stem. Merge has no Box dependency, and no Box query by resolution link (authored stem) exists. `Box.by_origin` matches origin only. If Box has to be injected through `stages.compose`/`compose_pipeline`/`Serve`, those files are unfenced. The ticket does not say how merge reaches the Box record inside its fence.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-box-activation/ticket.md",
-          "line": null,
-          "message": "Criterion 1 requires exactly one `retro_finding` per proposal through the existing enqueue. But `signature()` removes digits and path tokens from `detail` and ignores `summary`. Two proposals from one report that differ only in numbers or spec paths would therefore dedup into one record.",
-          "paved_road": "fix the plan, then re-author the ticket"
+          "message": "base Implement render is 125729 chars against the 160000-char max-effort bound at 75% headroom",
+          "paved_road": "shrink the inputs or split the ticket"
         }
       ],
       "commands": []
@@ -72,22 +44,22 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/retro-drain-invoker/ticket.md",
-      "sha": "2298ebceb7fb6058ec3d521148b1288590c74480",
+      "sha": "ae6e6cc5fb3f26617ffa9dafd8ccc927b5cdef0c",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/retro-drain-invoker/ticket.md",
-          "line": 331,
-          "message": "Binding the live hook in `squatch/__main__.py::_drain` makes every merge-then-quiesce run through `main([\"drain\"])` perform a FORCED retro, because no report exists yet. That adds one model request and either a main-checkout receipt commit or a `retro_failed` signal plus a `failure_report` Box message. Existing suites that drive this root assert behavior this contradicts, and none of them is in the fence. `tests/test_drain_reentry.py::test_an_always_red_verification_is_excused_and_filed_before_review` unpacks exactly one Box message with `[report] = ...`, and its scripted `Agent` has no retro answer. The same exposure applies to the other `main([\"drain\"])` suites: `tests/test_seed_successor.py` (exact main-history ancestry), `tests/test_drain_upgrade.py`, `tests/test_daemon_composition.py`, `tests/test_kill_cli_activation.py`, `tests/test_storm_hold.py`, `tests/test_storm_notification_activation.py`, `tests/test_restart_timers.py`, `tests/test_provider_cooldown_failover.py`, `tests/test_watchdog_activation.py`, `tests/test_daemon_pause.py`, and `tests/test_control_cli.py`.",
-          "paved_road": "Trace every existing test that reaches `_drain` through `main([\"drain\"])` and merges before quiescence. Either fence each one whose asserted Box contents, model-call sequence, journal events, or main history the forced retro changes, and name the exact assertions to migrate, or state in Scope in a mechanism allowed by the plan that keeps them unchanged, and list them as preservation-only suites run unchanged in Verification."
+          "line": null,
+          "message": "The fence includes the existing files tests/test_drain.py, tests/test_driver.py, and tests/test_box.py. None of them is in Context, and Scope in does not name them as measured on-demand exceptions. The only exception sentence covers 'All production roots and the named transition suites', and these three suites are neither. Section 20 requires every fenced large predecessor suite that is left out of Context to be named as a measured on-demand exception.",
+          "paved_road": "In Scope in, name tests/test_drain.py, tests/test_driver.py, and tests/test_box.py individually as measured on-demand Context exceptions. Keep the embedded Context exactly squatch/driver.py, squatch/git.py, squatch/box.py, tests/test_seeded_phase4_02.py."
         },
         {
           "code": "requisition_review",
           "path": "tickets/retro-drain-invoker/ticket.md",
           "line": null,
-          "message": "Scope in says the hook renders the retro prompt and commits a receipt. But the dependencies `_drain` must supply (main repo, journal, clock, filesystem, Git/Effects, Box) include no LLM, Driver, or Stages client to make the governed `retro` call. The ticket also never says how the model output becomes the receipt. `LLMStage` requires an `emits` Artifact type, and the ticket forbids registering one in `squatch/artifacts.py` or `squatch/stages.py`. The implementer cannot tell where the model call comes from, or whether it must share the session's provider/cooldown payload.",
-          "paved_road": "Name the model dependency the production hook receives: for example, the existing `Driver` running an `LLMStage` named `retro` built from `specs/retro.md`, over the lock-held session's shared provider payload. State that the emitted artifact type is defined locally in `squatch/retro.py`, and that the Markdown receipt is rendered from it. Add that dependency to the `_drain` binding sentence and to the composition acceptance criterion."
+          "message": "The phrase 'All production roots' does not name its paths. Section 20 names squatch/drain.py and squatch/__main__.py specifically as the measured on-demand exceptions, so the ticket's partition cannot be checked mechanically against the registry.",
+          "paved_road": "Replace 'All production roots' with the explicit paths squatch/drain.py and squatch/__main__.py."
         }
       ],
       "commands": []
