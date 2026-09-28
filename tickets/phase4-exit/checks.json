@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e5ad03833d037cb09a9fe5070ea36a6a6dd4a6c1",
+  "produced_at_sha": "e5c9cc29ba6ab48b6a9017c4d211fc6445c4d176",
   "stem": "phase4-exit",
   "branch": "phase4-exit",
-  "base": "febc52db95d8490ccad50f682a9b0d4ca90eb465",
-  "head": "e5ad03833d037cb09a9fe5070ea36a6a6dd4a6c1",
+  "base": "13d42521dfddfd7672f757fd69c0ce2cb2ffae1d",
+  "head": "e5c9cc29ba6ab48b6a9017c4d211fc6445c4d176",
   "changed_files": [
     "tests/test_phase4_exit.py",
     "tests/test_seeded_phase5_core.py"
@@ -13,69 +13,47 @@
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase5-continue/ticket.md",
-      "sha": "7293875f20b94472d990837ed8ac164e705433fc",
+      "sha": "4b0f15eaa2a5c90bc7e0bbef9a9ebaf1f22f4581",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue/ticket.md",
-          "line": null,
-          "message": "The Scope in requires `phase5-continue-02` to embed \"the merged `tests/test_seeded_phase5_01.py` continuation pattern\". That file is new in this ticket's own admission (fence_facts: exists_on_main=false), so at seed authoring and requisition review it is neither merged nor existing on main. A Context entry naming it breaks the existing-path Context rule and the rule that new paths in the same admission are never Context. The established precedent does the same: `phase4-continue-05`, authored by `phase4-continue-04`, embeds `tests/test_seeded_phase4_03.py` and not its author's own new test. Section 20's 'immediately preceding merged seeded-test pattern' therefore means the most recent pattern already on main when the ticket is authored.",
-          "paved_road": "Have `phase5-continue-02` embed an already-merged seeded-test pattern (`tests/test_seeded_phase4_05.py`, this ticket's own Context) and pin its authoring-time size. List `tests/test_seeded_phase5_01.py` alongside the other paths new in this admission as excluded from the continuation's Context, and assert that exclusion in `tests/test_seeded_phase5_01.py`."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue/ticket.md",
-          "line": null,
-          "message": "The criteria pin 'authoring-time sizes' of the merged `squatch/retro.py` and `tests/test_retro.py`, but they do not forbid comparing those pins with live file sizes. `scorecard-reporting` fences and must edit both files, so any live-size comparison would turn this seeded test red as soon as that seed merges.",
-          "paved_road": "State in Scope in and the criteria that the authoring-time sizes are synthetic fixtures used only for the bounded max-effort render (the `_context`/`EXISTING_AT_AUTHORING` pattern in `tests/test_seeded_phase4_05.py`) and are never compared with later live file sizes."
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/retro-box-activation/ticket.md",
-      "sha": "5048f3f15edd08d26df308d5e8b32f78336b526f",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-box-activation/ticket.md",
-          "line": 176,
-          "message": "The criterion 'hard unique-bridge provenance lookup without a Merge-to-Box dependency' and the Definition of rejected entry 'Merge-owned Box' contradict merged behavior. `Merge.__init__` builds `self._box = Box(...)` (line 176) and passes it to `Verification(..., box=self._box)` in `_regate` (line 347) so that pre-existing base failures are filed as a `failure_report`. That Box is a production constructor. The criterion 'every production Box receives the callback' therefore reaches merge.py, while section 20 lists only the stage/runner/daemon/drain/serve/CLI constructors and says Merge never constructs a Box. The implementer can't meet both requirements unless they remove verification attribution's Box filing, which is out of scope.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-box-activation/ticket.md",
-          "line": 119,
-          "message": "`squatch/status.py` also constructs a production Box. It is neither fenced nor mentioned in the ticket or plan. The criterion that every production Box receives the rereport callback is therefore unclear for this constructor, and the ticket's fence doesn't cover it.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-box-activation/ticket.md",
-          "line": null,
-          "message": "Scope in says 'On hit K' without giving K. The threshold is in section 12 ('shipped default K=3'), and the ticket cites only section 20. The implementer's render won't include the number, so the tombstone reopen threshold can't be built from the rendered contract.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
       "verdict": "pass",
       "severity": "hard",
-      "path": "tickets/retro-drain-invoker/ticket.md",
-      "sha": "5fee2d6a290913780aa73e0b309b2f442cad0834",
+      "path": "tickets/retro-box-activation/ticket.md",
+      "sha": "dc9d9820bdaf77b5250895e74f344571601493f2",
       "bypassed": false,
       "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/retro-drain-invoker/ticket.md",
+      "sha": "2f4fc5e86be181f8e18877de5c3dca5f7abfe731",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/retro-drain-invoker/ticket.md",
+          "line": null,
+          "message": "The fence includes existing tests/test_driver.py, but it is not in Context and is missing from the Scope in list of fenced measured on-demand exceptions. Section 20 requires the embedded Context to be exactly squatch/driver.py, squatch/git.py, squatch/box.py and tests/test_seeded_phase4_02.py, with every other existing fenced path named as a measured on-demand exception.",
+          "paved_road": "Add tests/test_driver.py to the Scope in paragraph that lists the fenced measured on-demand exceptions. Leave the four-file Context unchanged."
+        },
+        {
+          "code": "requisition_review",
+          "path": "tickets/retro-drain-invoker/ticket.md",
+          "line": null,
+          "message": "The fence includes existing tests/test_box.py, but it is not in Context and is missing from the Scope in list of fenced measured on-demand exceptions. This leaves the fence-to-Context closure open, which the section 20 partition does not allow.",
+          "paved_road": "Add tests/test_box.py to the same Scope in list of fenced measured on-demand exceptions. Leave the four-file Context unchanged."
+        }
+      ],
       "commands": []
     },
     {
