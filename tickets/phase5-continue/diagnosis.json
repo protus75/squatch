@@ -1,14 +1,18 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "The content passed every check and review. Only the merge gate failed: tickets/scorecard-reporting/ticket.md and tickets/phase5-continue-02/ticket.md were committed on the branch. tickets/** never rides the code lane.",
-    "Author both new ticket files in the working tree but leave them uncommitted, because the driver lifts outbox files. Commit only tests/test_seeded_phase5_01.py on the branch.",
-    "Keep the ticket text, the registry, the edges, the fences, the Context partition, the synthetic size fixtures (16091/20072/8111) and the test assertions as they are. Review approved them against section 20.",
-    "Keep run.md `## Outcome` to exactly one Outcome value such as `ok`, with all six required sections. Before finishing, check that `git diff --name-only base..HEAD` lists no tickets/** path."
+    "Requisition review snagged tickets/phase5-continue-02/ticket.md. scorecard-reporting ticket, registry, edges, fences, synthetic fixtures (16091/20072/8111) and branch-only commit of tests/test_seeded_phase5_01.py are fine; keep them.",
+    "In phase5-continue-02 Scope in, state that sibling-new paths for ITS admission are tests/test_status.py, squatch/baseline.py, tests/test_baseline.py, tests/test_seeded_phase5_03.py; never repeat the phase5-continue sibling set.",
+    "State in phase5-continue-02 that merged squatch/scorecard.py and tests/test_scorecard.py are existing Context for status-projection, with authoring-time sizes pinned as synthetic fixtures or named as measured on-demand exceptions.",
+    "Add phase5-continue-02 criteria: tests/test_seeded_phase5_02.py pins the Context partition and synthetic size fixtures, and proves a max-effort specs/implement.md render of each seed stays within RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM.",
+    "Add a criterion that each existing fence path of the authored seeds is embedded Context or a named on-demand exception, following tests/test_seeded_phase4_05.py.",
+    "Resolve baseline-binding-reader's starting-state caller to a concrete path. Read the code first; it is likely squatch/policy.py (policy.starting_state) plus its focused test. Name that path and require tests/test_seeded_phase5_02.py to pin the exact fence.",
+    "Extend tests/test_seeded_phase5_01.py to assert the new phase5-continue-02 text: the corrected sibling-new set, the merged-scorecard Context rule, and the concrete starting-state caller path.",
+    "Leave ticket files uncommitted outbox files. Commit only tests/test_seeded_phase5_01.py. Set run.md ## Outcome to exactly `ok`."
   ],
-  "reason": "A fixable process mistake: correct content was blocked only because tickets/** files were committed on the branch instead of being left as uncommitted outbox files.",
+  "reason": "Check failed on fixable requisition-review gaps in the authored phase5-continue-02 ticket that the findings now steer precisely.",
   "detail": null
 }
