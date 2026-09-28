@@ -1,14 +1,14 @@
 {
-  "run_seq": 11,
+  "run_seq": 12,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "This attempt's content was approved. The only finding is that the engine rejected the requisition_review reply because the reviewer wrapped its approving JSON in a ```json code fence. The ticket, plan and tests did not cause the failure.",
-    "Keep both authored tickets and all test changes exactly as they are: phase4_02, the phase4_01 ownership update, and the phase3_01/08/10 section-20 pins. Retry and let review run again. Do not re-author or widen anything in response to this finding.",
-    "The finding's paved road 'fix the plan, then re-author the ticket' is the generic road for requisition_review and does not apply here. The reviewer's summary confirms the fence covers every direct caller of stages.compose, compose_pipeline, Serve, Session and _triage_pass.",
-    "Engine cause to file separately: the requisition_review reply parser is strict and rejects a code-fenced JSON object. Either the review spec must state the no-fence rule more forcefully or the parse seam must be fixed. Otherwise approved work fails at random."
+    "Review approved the phase4_02 test, the phase4_01 ownership update, and both authored tickets. Keep them unchanged. Fix only the SECTION_20_CHARS_AT_AUTHORING pins in tests/test_seeded_phase3_01.py, phase3_08.py and phase3_10.py.",
+    "Pin the measured section-20 sizes, counted from '## 20.' to the start of '## 21.': 8911 at 64b1f83 for phase3_01, 11661 at d4961ff for phase3_08, and 12826 at 4fe624e for phase3_10. Never round down or invent a smaller value.",
+    "Measure each value yourself with git show <sha>:SQUATCH_PLAN.md, slicing the same way the test does, before writing it. Fix each comment so it states the measured value and the commit it came from.",
+    "If a real pin breaks REQ_RENDER_HEADROOM, do not shrink the pin to pass. Check whether live inputs (the ticket files or specs/implement.md) grew after authoring. If so, pin those too, or report it in the run record. Never mask the breach."
   ],
-  "reason": "Review approved the work, but the engine's strict parser rejected the reply because it was wrapped in a code fence; a fresh review pass should clear it.",
+  "reason": "The only review findings are three historical section-20 pins set below the measured sizes at their authoring commits, and the reviewer gave the exact values to use.",
   "detail": null
 }
