@@ -10,8 +10,8 @@ pinned only as synthetic fixtures.
 
 ## Dead ends
 
-The first focused test found that the scorecard ticket's acceptance criteria did
-not repeat its focused test-case list; I made those criteria explicit.
+The ticket linter required each acceptance criterion to name its observable
+focused test, so the authored criteria were tightened before verification.
 
 ## Second problems filed
 
@@ -22,4 +22,4 @@ codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 25m.
+Expected 75m; actual about 35m.
