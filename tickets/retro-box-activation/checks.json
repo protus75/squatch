@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "c64687e6468a1168be4b8595ad8505932b5fdade",
+  "produced_at_sha": "6f5b1f3174f56235d723cd569287542bbffd945d",
   "stem": "retro-box-activation",
   "branch": "retro-box-activation",
-  "base": "e483e735a15f42b7d10cf7a85285f16990032dcd",
-  "head": "c64687e6468a1168be4b8595ad8505932b5fdade",
+  "base": "9b5befb8c02e6c4ae50e91a6e57ea73cb0ca29b7",
+  "head": "6f5b1f3174f56235d723cd569287542bbffd945d",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/author.py",
