@@ -1,19 +1,21 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8968b60e99f2c3cccb56c5adc800ef57d5f8e8c3",
+  "produced_at_sha": "87434782626cc4a1259de7513428b3852f3d341d",
   "stem": "report-inbox-triage",
   "branch": "report-inbox-triage",
-  "base": "7b8d021bcf15383308eed67db5151f5713098ba3",
-  "head": "8968b60e99f2c3cccb56c5adc800ef57d5f8e8c3",
+  "base": "e84dc5e437c2fafc5be015e1f0e74aec6a2a61ad",
+  "head": "87434782626cc4a1259de7513428b3852f3d341d",
   "changed_files": [
     "squatch/author.py",
     "squatch/box.py",
     "squatch/daemon.py",
     "squatch/inbox.py",
+    "squatch/serve.py",
     "squatch/triage.py",
     "tests/test_box.py",
     "tests/test_inbox.py",
+    "tests/test_serve.py",
     "tests/test_triage.py"
   ],
   "checks": [
@@ -67,27 +69,19 @@
             "pytest",
             "-q"
           ],
-          "attribution": null,
-          "filed": null
+          "attribution": "base",
+          "filed": "box-000272-223b48a0"
         }
       ]
     },
     {
       "code": "run_record",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "run_record",
-          "path": "tickets/report-inbox-triage/run.md",
-          "line": null,
-          "message": "tickets/report-inbox-triage/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
-          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
