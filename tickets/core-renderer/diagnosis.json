@@ -1,14 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Before rendering, managed_block must refuse any `core` whose text matches _MARKER_LIKE (case-insensitive `squatch:core`). Otherwise render writes a block that the next pass refuses as corrupt, and output is not idempotent.",
-    "Add a test to tests/test_hostfiles.py: a core containing `squatch:core` (for example a literal `<!-- squatch:core end -->` line) raises ManagedBlockRefusal on the first render, not on the second pass.",
-    "Also test idempotence with a multi-line core and with a file that already has project text around the block, not only with the single core string 'Engine conduct'.",
-    "Keep everything else from the prior diff. The scope fence, verification, run record and diff budget all passed, and the CLI `core` registration and its tests in test_cli.py and test_verbs.py were accepted."
+    "SQUATCH_PLAN.md section 15 (line ~1286) names the marker `<!-- squatch:core begin/end -->`. Rename the opening keyword from `start` to `begin` in `_START` and `managed_block` in hostfiles.py. Do not diverge from the plan.",
+    "Update every fixture in tests/test_hostfiles.py that spells `squatch:core start` so it uses `begin`, including the refusal parametrize cases and the duplicate-end case. Keep a case where the begin line lacks its version/sha256 stamp, which must still refuse.",
+    "Strengthen test_rendering_has_no_git_or_commit_effect so it proves more than `subprocess.run` never ran. Parse hostfiles.py (AST or module globals) and assert it imports none of squatch.git, subprocess, os, or the process/filesystem seams. render must stay pure str->str and write nothing.",
+    "Keep everything else as accepted: the CLI `core` registration and its tests, marker-like core refusal, the idempotence tests with a multi-line core and surrounding project text, and preserving every project byte on first adoption. Change only the marker keyword and the no-Git test."
   ],
-  "reason": "The review found one small defect in place (core text is not checked for marker-like text) and gave an exact fix. All mechanical checks passed, so a retry at the same capability should succeed.",
+  "reason": "A reviewer snag with two fixable findings. The plan confirms the `begin/end` marker grammar, and the no-Git test is too weak. Both are fixable at the same capability, and the checks all passed.",
   "detail": null
 }
