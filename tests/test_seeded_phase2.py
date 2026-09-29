@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from squatch.config import load
-from squatch.specs import DATA_MARKER, DataBlock, load_spec
+from squatch.specs import DataBlock, load_spec
 from squatch.stages import RUN_RECORD
 from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, cycle_through, lint_ticket
 
@@ -94,15 +94,20 @@ EXISTING_AT_AUTHORING: dict[str, int] = {
     "tests/test_seams.py": 4442, "tests/test_seeded_phase2.py": 10293, "tests/test_specs.py": 15875,
     "tests/test_stages.py": 31648, "tests/test_terminal.py": 14783, "tests/test_tickets.py": 20100,
 }
-# Files the production Implement render refuses as Context: any carrying the
-# engine's data-block delimiter (the section 8 render contract), plus the
-# prompt specs the Context grammar refuses. Derived from the real rule over
-# the authoring-time tree, never hand-listed: a hand list mirrors the
-# author's belief and goes green over a seed the engine parks.
-CONTEXT_REFUSED = frozenset(
-    p for p in EXISTING_AT_AUTHORING
-    if p.startswith("specs/") or not (REPO / p).is_file()
-    or DATA_MARKER in (REPO / p).read_text())
+# Files the production Implement render refused as Context at Phase 2
+# authoring time.  This is historical pinned material, just like the byte
+# sizes above: later legitimate edits must not retroactively change whether
+# an already-admitted seed was renderable.
+CONTEXT_REFUSED = frozenset({
+    "bootstrap/suggestions.md",
+    "specs/implement.md",
+    "specs/review.md",
+    "squatch/specs.py",
+    "tests/test_drain_reentry.py",
+    "tests/test_echo_stage.py",
+    "tests/test_specs.py",
+    "tests/test_stages.py",
+})
 
 
 def _path(stem: str) -> Path:

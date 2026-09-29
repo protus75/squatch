@@ -35,7 +35,7 @@ FENCES = {
         "tests/test_scorecard.py", "squatch/box.py", "tests/test_box.py",
         "squatch/retro.py", "tests/test_retro.py", "squatch/__main__.py",
         "tests/test_cli.py", "tests/test_verbs.py", "tests/test_drain.py",
-        "tests/test_drain_upgrade.py",
+        "tests/test_drain_upgrade.py", "tests/test_seeded_phase2.py",
     ),
     "baseline-binding-reader": (
         "squatch/baseline.py", "tests/test_baseline.py", "squatch/journal.py",

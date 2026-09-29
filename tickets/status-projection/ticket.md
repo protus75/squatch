@@ -56,6 +56,11 @@ bytes), `tests/test_drain.py` (42002 bytes), and
 authoring-time sizes, never live-size assertions. New `tests/test_status.py`
 is this ticket's only new test path.
 
+Historical preservation repair: `tests/test_seeded_phase2.py` pins its closed
+Context-refused set from the Phase 2 authoring commit instead of rescanning
+later live files. Later legitimate `tests/test_cli.py` growth must not
+retroactively invalidate the already-admitted `spine-harvest` Context.
+
 ## Scope out
 Do not remove or replace an existing status field or rendering, invent
 provenance, write through a projection, or make malformed journal envelopes
@@ -75,12 +80,14 @@ best-effort.
 - tests/test_verbs.py
 - tests/test_drain.py
 - tests/test_drain_upgrade.py
+- tests/test_seeded_phase2.py
 
 ## Acceptance criteria
 - `tests/test_status.py` proves every preserved field/rendering plus exactly the three additive fields and all deterministic folds.
 - `tests/test_status.py` proves the injected-clock, HEAD, and retro-spec-version scorecard source and optional-metric exclusion.
 - `tests/test_cli.py` and `tests/test_verbs.py` preserve the CLI output and exit contract.
 - `tests/test_drain.py` and `tests/test_drain_upgrade.py` preserve callers without projection writes.
+- `tests/test_seeded_phase2.py` pins its Context-refused set to the Phase 2 authoring-time snapshot instead of rescanning later live files.
 
 ## Verification
 ```
