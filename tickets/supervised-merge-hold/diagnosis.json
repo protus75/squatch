@@ -1,16 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Release a confirmed hold through the one admission entry, MergeQueue.admit() or admit_delivery with releasing=True. Never take queue._slot or call queue._admit directly: that skips admission_hold.wait() and the rework handoff.",
-    "A release that gate-fails or needs rework against moved main must retire the hold durably (discard_hold, released=True) and go through the normal non-ok terminal/harvest path. Never raise RuntimeError and leave the stem held.",
-    "Add a test where moved main makes the release gate-fail or conflict. Assert the hold is retired, the terminal and harvest are written, and the stem is dispatchable again.",
-    "Call compose_pipeline directly in tests. Never build a callee name from strings to get past a caller-inventory check. If the inventory rejects the call, update it inside the fence or file a separate ticket.",
-    "No dual-path code: always unpack admit_delivery's 4-tuple and update every double that returns 3 values. Call pipeline.confirm_hold directly, with no getattr fallback. Pass effect_identity the same way on every path.",
-    "The HELD boundary, restart projection, drain exclusion, and confirm CLI passed review. Keep them and fix only the release path and the test honesty issues."
+    "Keep the HELD boundary, drain exclusion, restart projection, confirm CLI publish path, and single admission entry. Review found only two fixable defects; fix just those.",
+    "Key the admission regate by candidate base on every path: always pass effect_identity=state.slip.base to merge._regate, whatever the verb. Never let effect_identity depend on supervised or verb; that dual path made offline `squatch confirm` replay the stale regate.",
+    "Add a test that builds the confirm release through the same compose_pipeline arguments `_locked` uses for verb=confirm (supervised=False). Move main, confirm, and assert the regate ran again against the new base instead of replaying the stored effect.",
+    "In runner._finish_delivery, route with the effective rung: tier, effort = effective(ticket, rungs(journal.read(), ticket.stem)); Rung(tier, effort). Do not use ticket.agent_tier/agent_effort. Refactoring must not change escalation routing.",
+    "Add or keep a test that routes a failure after an escalation and asserts `route` receives the escalated rung, so the extracted terminal handler cannot regress it."
   ],
-  "reason": "Review snag on fixable defects (release bypasses the one admission entry, failed release strands the hold, a test built to dodge a gate, compat branches). The design otherwise holds, so the same capability can fix it.",
+  "reason": "Review snagged two concrete defects that can be fixed in place: an offline confirm regate cache key collision and base-rung routing in the extracted terminal handler. Checks passed and the rest of the design was accepted.",
   "detail": null
 }
