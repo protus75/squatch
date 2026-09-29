@@ -2,16 +2,16 @@
 ok
 
 ## Surprises / judgment calls
-Restored the previously proved ticket shape from local unreachable history, then applied section 20's compact-render correction: the terminal continuation now makes Phase 5 exit and Phase 6 seeds section-20-only and pins the fixed remaining registry.
+Recovered the prior seeded-test shape from local unreachable history, then added the missing assertions for the terminal exit disposition, full fixed Phase 6 suffix, ownership/Context partition, and pinned compact-render obligation.
 
 ## Dead ends
-The first focused assertion treated wrapped on-demand size text as contiguous. Normalizing whitespace fixed that proof without changing the authored ticket contract. Both required verification commands completed successfully; the focused command reported 5 passed.
+None.
 
 ## Second problems filed
 None.
 
 ## Resolved engine/model
-OpenAI / GPT-5 (Codex).
+OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
-Expected 75m; actual approximately 12m.
+Expected 75m; actual approximately 10m.
