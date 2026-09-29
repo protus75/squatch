@@ -1,0 +1,17 @@
+---
+verdict: snag
+reviewed_sha: 108310a31d394be46f0c704f83d2ce295b47ef51
+produced_by_spec_version: '1.0'
+produced_at_sha: 108310a31d394be46f0c704f83d2ce295b47ef51
+provider: claude
+model: opus
+artifact_schema_version: 1
+---
+## Summary
+The git trailer check, the pure scorecard fold and the mergequeue allowlist change look sound. The snag is acceptance criterion 3: tests/test_cli.py is untouched, and no test shows Status or Retro actually passing attribution into RetroWindow. Report filtering and the BASE..HEAD form may also not match the spec.
+
+## Findings
+- correctness_review at tests/test_cli.py: Acceptance criterion 3 requires tests/test_cli.py to prove that Status passes immutable (signature, ticket) attribution into RetroWindow. The diff does not change tests/test_cli.py (the check report's changed_files confirms this), so the new load_escape_attributions call in squatch/__main__.py _status is never exercised against a Box that holds a bug_report with evidence. (paved road: Add a test_cli.py test that seeds a Box bug_report with Evidence.app_commit on a first-parent squash commit carrying valid squatch-ticket/squatch-reviewed-sha trailers, plus a passing check invoice for that ticket. Run `status` and assert the scorecard escapes column counts it. Also assert the scorecard stays pure (no git or Box access inside project_scorecard).)
+- correctness_review at tests/test_retro.py:160: The new retro test only calls Window.projection(escape_attributions=...) directly. Nothing proves that Retro (the squatch/retro.py Retro.run path, which now calls escape_attributions(self._box.messages(), self._git, self._repo)) passes the resolved tuples into the RetroWindow handed to the driver. Criterion 3 asks for proof that Retro passes them. (paved road: Add a Retro-level test with a fake Git/ProcessExec and a Box holding a bug_report with evidence. Capture the RetroWindow the driver receives and assert escape_attributions == ((report_signature, ticket),).)
+- correctness_review at squatch/retro.py:117: Unsure whether this is a defect. The ticket and plan say the source is *resolved* bug_report evidence and that duplicate data is excluded. escape_attributions() takes every bug_report message with evidence whatever its status or resolution. Pending, un-triaged reports and tombstoned (rejected or duplicate) reports therefore count as escapes the moment they are enqueued. (paved road: Filter to the triage-resolved state the spec intends: for example, skip messages whose status is not a resolved/decided status and skip tombstoned ones. Add a test_scorecard or test_retro case showing a pending or tombstoned report contributes no escape.)
+- correctness_review at squatch/git.py:194: Unsure whether this is a defect. The range form is accepted only as the literal string 'BASE..HEAD', which git resolves as a ref named BASE. Nothing creates that ref, so rev-list fails, the GitError is swallowed, and every range report is silently unattributed. If the spec means a `<sha>..<sha>` range as report evidence, a real range such as 'abc1234..def5678' is rejected outright. The range path has no test either way. (paved road: If BASE..HEAD is a placeholder, accept `^[0-9a-f]{7,64}\.\.[0-9a-f]{7,64}$`, confirm both endpoints are on first-parent HEAD ancestry, and walk `rev-list --first-parent A..B`. Add test_git cases for a valid range, a range with a side-branch endpoint, and a range containing two trailer pairs (unattributed).)
