@@ -1,16 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "run.md `## Outcome` must be exactly one allowed value. Write `ok`, never `implemented`. Keep exactly the six required sections.",
-    "Full `uv run pytest -q` exited 1, but the harvest shows only a uv VIRTUAL_ENV warning, not the failing test. Run the full suite, fix every red test and confirm exit 0 before committing.",
-    "`_status` now needs git HEAD and specs/retro.md. Other status callers or fixtures, such as tests/test_verbs.py, test_drain*.py or a repo without specs/retro.md, may now fail. Update those fixtures inside the fence rather than weakening the production path.",
-    "load_spec failure on a missing or unreadable specs/retro.md is not caught in `_status`. Map it to a defined Refusal with a paved road, as GitError is, and test it. Never let it escape unhandled.",
-    "Keep the existing diff: the folds, GitError refusal and test_status.py coverage match prior lessons. Also add the render test with scorecard=None versus present. Do not redesign.",
-    "Don't claim 'both verification suites passed' unless the full-suite command actually exited 0 on the committed branch."
-  ],
-  "reason": "Fixable oversights: invalid run.md Outcome value and a red full test suite, likely status callers or fixtures lacking git HEAD or specs/retro.md; the implementation itself is on track.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
