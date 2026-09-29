@@ -7,8 +7,7 @@ import yaml
 
 from squatch.config import load
 from squatch.requisition import REQ_RENDER_HEADROOM
-from squatch.specs import (DATA_MARKER, RENDER_BOUND_CHARS, DataBlock, load_spec,
-                           resolve_plan_sections)
+from squatch.specs import DATA_MARKER, RENDER_BOUND_CHARS, DataBlock, load_spec
 from squatch.stages import RUN_RECORD
 from squatch.tickets import PLAN_FILE, TICKET_FILE, TICKETS_DIR, lint_ticket
 
@@ -288,7 +287,10 @@ def test_authoring_time_sizes_section_length_and_every_max_effort_render():
     assert PLAN_SECTION_AT_AUTHORING == 21923
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
-    section = resolve_plan_sections(plan, ("20",))[0][1]
+    start = plan.index("## 20.")
+    body = plan.index("\n", start) + 1
+    end = plan.index("\n## ", body) + 1
+    plan = plan[:body] + "x" * (PLAN_SECTION_AT_AUTHORING - 1) + "\n" + plan[end:]
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
         context = "".join(f"### {path}\n{'x' * EXISTING_AT_AUTHORING[path]}\n"
@@ -298,5 +300,4 @@ def test_authoring_time_sizes_section_length_and_every_max_effort_render():
                                 "ticket": DataBlock("host", _path(stem).read_text()),
                                 "context": DataBlock("host", context)}, plan=plan,
                                plan_sections=("20",), effort="max")
-        historical_length = len(rendered) - len(section) + PLAN_SECTION_AT_AUTHORING
-        assert historical_length <= limit, (stem, historical_length, limit)
+        assert len(rendered) <= limit, (stem, len(rendered), limit)

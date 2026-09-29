@@ -60,6 +60,13 @@ boundaries in `tests/test_doctor.py`, `tests/test_retro.py`,
 `tests/test_cli.py`, and `tests/test_verbs.py`; seed partition and synthetic
 size assertions remain only in `tests/test_seeded_phase5_03.py`.
 
+The authored `phase5-continue-04` ticket carries section 20's committed-
+artifact Phase 5 exit disposition and exact Phase 6 core registry. It authors
+only `phase5-exit`; its seeded proof pins the exit's clean-checkout retro,
+scorecard, retro-provenance, and baseline reads plus the exact
+`core-renderer`, `core-drift-classifier`, `phase6-continue` batch. It never
+invents a Phase 6 name, owner, dependency, Context path, or exit read.
+
 ## Scope out
 Do not implement a feature, use a same-admission seeded test as Context,
 rename or reorder the registry, or add a successor after `phase5-exit`.
@@ -73,6 +80,7 @@ rename or reorder the registry, or add a successor after `phase5-exit`.
 - `tests/test_seeded_phase5_03.py` proves `phase5-continue-04` uses merged `tests/test_seeded_phase5_02.py` and excludes both sibling-new seeded tests.
 - `tests/test_seeded_phase5_03.py` proves `phase5-exit` is terminal, transitive, high/high, and owns its two new evidence paths.
 - `tests/test_seeded_phase5_03.py` proves the doctor seed's feature criteria cover both verbs and leaves partition/size assertions in the seeded test only.
+- `tests/test_seeded_phase5_03.py` proves the terminal continuation cites the closed Phase 5 exit disposition and Phase 6 core registry instead of inventing either boundary.
 
 ## Verification
 ```
