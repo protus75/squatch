@@ -1,14 +1,13 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep the resolver move, the CoreDrift wiring and the merge-time rerun. Review accepted all three, and scope_fence, verification, run_record and diff_budget all passed.",
-    "AC2 gap: in tests/test_hostfiles.py, add a parametrized CoreDrift(config).check test over the malformed, partial, duplicate and stray marker fixtures. Assert verdict 'fail', one core_drift finding on CLAUDE.md, and unchanged file bytes.",
-    "Plan section 20 says 'fresh branch-version render'. Render against the candidate worktree's own hostfiles CORE, not the engine's imported CORE. Read the literal via ast from <worktree>/squatch/hostfiles.py without importing branch code, then call classify(content, core).",
-    "Add a gate test where the branch changes CORE and re-renders CLAUDE.md to match, and assert pass. Also test that a stale file under a changed CORE fails. Keep hostfiles.py's pure import set and test_rendering_has_no_git_or_commit_effect."
+    "The only failing gate was run_record: `## Outcome` said 'implemented'. It must be exactly one closed value. Here that is `ok`. Do not copy the provider response's verdict word into run.md.",
+    "Keep the committed diff. It has the shared providers.conduct_files resolver used by both _core and CoreDrift, the AST-read branch CORE, and the CoreDrift gate in the merge regate tuple. The run reports that both verification suites passed.",
+    "Keep the run.md sections in this exact order: Outcome, Surprises / judgment calls, Dead ends, Second problems filed, Resolved engine/model, Predicted vs actual. Rerun both verification commands after editing run.md."
   ],
-  "reason": "Review returned a snag with two fixable findings: a missing refusal test for AC2, and a render that uses the engine's template instead of the branch's. Neither needs more capability or a ticket change.",
+  "reason": "Fixable run-record vocabulary oversight: Outcome 'implemented' is not in the closed set; the implementation itself appears complete.",
   "detail": null
 }
