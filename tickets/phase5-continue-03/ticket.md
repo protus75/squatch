@@ -66,6 +66,10 @@ only `phase5-exit`; its seeded proof pins the exit's clean-checkout retro,
 scorecard, retro-provenance, and baseline reads plus the exact
 `core-renderer`, `core-drift-classifier`, `phase6-continue` batch. It never
 invents a Phase 6 name, owner, dependency, Context path, or exit read.
+It also pins the compact-render correction: `phase5-exit`, all three Phase 6
+core seeds, and every later Phase 6 seed cite section 20 alone; none renders
+section 19. The continuation carries the finite Phase 6 rows now fixed in
+section 20 and proves each max-effort render stays within headroom.
 
 ## Scope out
 Do not implement a feature, use a same-admission seeded test as Context,
@@ -81,6 +85,7 @@ rename or reorder the registry, or add a successor after `phase5-exit`.
 - `tests/test_seeded_phase5_03.py` proves `phase5-exit` is terminal, transitive, high/high, and owns its two new evidence paths.
 - `tests/test_seeded_phase5_03.py` proves the doctor seed's feature criteria cover both verbs and leaves partition/size assertions in the seeded test only.
 - `tests/test_seeded_phase5_03.py` proves the terminal continuation cites the closed Phase 5 exit disposition and Phase 6 core registry instead of inventing either boundary.
+- `tests/test_seeded_phase5_03.py` proves the exit and Phase 6 seeds cite section 20 alone, never render section 19, carry section 20's fixed Phase 6 rows, and fit max-effort render headroom.
 
 ## Verification
 ```
