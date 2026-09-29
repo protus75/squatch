@@ -1,17 +1,18 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "08e04b354de7d1d66371fa2ebdbf9d2802277568",
+  "produced_at_sha": "0c95f664de1059b5c937700bbe855a9f31e2935d",
   "stem": "retro-doctor-cli",
   "branch": "retro-doctor-cli",
-  "base": "3433d3e1528370b0ec79fe3353677b750540f2b9",
-  "head": "08e04b354de7d1d66371fa2ebdbf9d2802277568",
+  "base": "8d4212d0c5ce84cb77f7e388135ee67dd266c920",
+  "head": "0c95f664de1059b5c937700bbe855a9f31e2935d",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/doctor.py",
     "tests/test_cli.py",
     "tests/test_doctor.py",
-    "tests/test_retro.py"
+    "tests/test_retro.py",
+    "tests/test_verbs.py"
   ],
   "checks": [
     {
