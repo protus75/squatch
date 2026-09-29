@@ -1,17 +1,18 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Zero spend must be real: chmod +x hosts/fixture/bin/codex, document putting hosts/fixture/bin first on PATH, and test through the engine adapter (squatch/providers.py) with the process seam resolving codex to the fixture script.",
-    "Also assert the real codex binary is never run. A declared est_cost_per_call_usd of 0.0 proves nothing.",
-    "bin/codex must read the surface from the prompt's first line (squatch prompt: surface=<name>) and fail closed on unknown surfaces. Substring matching breaks because review prompts contain the word implementer.",
-    "Canned outputs must match each surface's real contract. Review must return {verdict: approve, summary, findings: []}. Never return approved or implemented as a verdict. Test with realistic header prompts.",
-    "replay.py must actually run app.py and compare against recorded expectations. report-to-regression must reproduce classify('Squatch') returning bird where animal is expected, and the test must assert that, not a constant pass.",
-    "Create every replays/*.json file the reports name. Test that each exists, that its size equals replay_bytes, and that it stays within the bound.",
-    "Byte counts must be exact: the regression log_excerpt is 44 bytes, not 48. Use == in the test, not <=, and check the escape report the same way."
+    "Read SQUATCH_PLAN.md section 20 before writing anything. The fixture spec there defines the scenarios, the version-1 report schema, and escape attribution. This attempt took 12m of a 75m budget and missed all three.",
+    "bin/codex implement must write that scenario's canned file change into cwd (the worktree) before it prints agent_message. An empty diff can never merge. Key the author, implement and review answers by scenario, using the ticket stem or a marker in the prompt.",
+    "Test that the scripted implement call leaves a non-empty change in a temporary git worktree.",
+    "The escape defect must not be in the base app. Remove the machine-escape branch from app.py. Ship the escape as one named scenario ticket's canned implement diff, so it reaches main only through a machine merge that escape attribution can trace.",
+    "Rewrite both reports to the version-1 schema: origin self_diagnosed|player, summary, dedup signature, app commit/version, implicated paths (max 32), replay initial_state plus action log, and an optional log excerpt. The test must assert every field and the byte caps.",
+    "Guarantee zero spend inside the fixture itself. Add a launcher such as bin/fixture-serve that puts hosts/fixture/bin first on PATH, strips provider keys and execs serve. Test that shutil.which('codex') under that env resolves to the fixture script.",
+    "Do not leave the fixture root on sys.path or its app/replay modules in sys.modules. Use monkeypatch.syspath_prepend with delitem, or importlib spec_from_file_location under a unique name.",
+    "Keep the earlier lessons: parse the surface from the header and fail closed on unknown ones, match each surface's real contract, give exact byte counts, and create every replay file a report names. Change no engine module."
   ],
-  "reason": "Every review finding is a fixable oversight inside the fence with a concrete paved road; nothing needs more capability or a ticket change.",
+  "reason": "Review found concrete fixable spec mismatches, each with a paved road; nothing shows the ticket is unsatisfiable or needs more capability, only that section 20 was not followed.",
   "detail": null
 }
