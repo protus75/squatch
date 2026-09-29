@@ -2,14 +2,13 @@
 ok
 
 ## Surprises / judgment calls
-The corrected section 20 now explicitly fences the shared provider resolver
-and predecessor assertion migration, so the first row can be authored without
-duplicating a routing policy. The successor Context is the already-merged
-`tests/test_seeded_phase6_core.py`, not its sibling-new numbered test.
+The continuation ticket had collapsed later-row fences and partitions. I
+expanded them into exact path contracts, including exact existing Context sets,
+and made the seeded proof assert those sets, on-demand paths, edges, behavior,
+and terminal fence.
 
 ## Dead ends
-The full suite exceeds the interactive terminal report window; it was allowed
-to complete once in the worktree and exited 0.
+None.
 
 ## Second problems filed
 
@@ -17,4 +16,4 @@ to complete once in the worktree and exited 0.
 OpenAI Codex; serving model identity unavailable.
 
 ## Predicted vs actual
-Expected 75m; actual about 20m.
+Expected 75m; actual about 45m.
