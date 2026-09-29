@@ -1,9 +1,16 @@
 {
-  "run_seq": 14,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 15,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag on tests/test_seeded_phase5_03.py only. Review found the authored tickets correct. Leave both tickets unchanged and uncommitted, and do not create tickets/phase5-exit/ticket.md.",
+    "Test 4: assert continue-04's flat Scope in has KNOWN-HARD high/high, 'depends transitively on every Phase 5 stem', ownership of tickets, tests/test_phase5_exit.py and tests/test_seeded_phase6_core.py, and 'has no successor'.",
+    "Test 4: assert the full ordered list of remaining Phase 6 rows as the Scope in writes it. That covers host-contract-doc through exit-receipt-machinery, KNOWN-DEEP supervised-merge-hold, and ending phase6-exit.",
+    "Test 4: also assert the Phase 6 core ownership and Context text: squatch/hostfiles.py, tests/test_hostfiles.py, tests/test_seeded_phase6_01.py, and merged tests/test_seeded_phase5_04.py. Copy exact phrases from the authored ticket.",
+    "Test 5: delete the final render of the live plan, which uses a phase5-exit label. Headroom is already proven with _authoring_plan(). Keep the Scope in assertion for RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM.",
+    "Keep the prior lessons. Doctor Context: squatch/retro.py and tests/test_retro.py. continue-04 Context: tests/test_seeded_phase5_02.py, pinned at 11383 bytes. Commit only the test and the run record, then rerun the focused suite and the full suite."
+  ],
+  "reason": "Every check passed. Review found three gaps in the test's assertions, each with a specific fix, so another attempt at the same capability can fix them.",
+  "detail": null
 }
