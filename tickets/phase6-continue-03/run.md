@@ -1,16 +1,22 @@
 ## Outcome
-ok
+
+premise_failed
 
 ## Surprises / judgment calls
-The live section 20 and embedded Context files have grown beyond this admission's render point, so the seeded proof uses an explicit authoring-time section-20 and Context-size fixture, following the established Phase 6 predecessor pattern.
+
+The live Context inputs required by the ticket's fixed row-3 partitions cannot both be rendered under the required max-effort bound and accepted by the prompt delimiter validator. I did not alter those partitions because that would change the cited section-20 contract.
 
 ## Dead ends
-The first render proof used live plan and Context bytes; it exceeded the max-effort prompt bound and was replaced with the historical authoring fixture.
+
+The predecessor seeded test passes because it uses authoring-time synthetic sizes, but the prior gate's live requisition review found `bug-gate-grammar` renders at 165093 characters against the 160000-character bound and rejects `report-inbox-triage` because its required `squatch/triage.py` Context contains `[squatch-data:`. Moving either required Context path to measured on-demand would be the necessary paved road, but is prohibited by this ticket's Scope in and section-20 partition contract.
 
 ## Second problems filed
 
+
 ## Resolved engine/model
-Codex, GPT-5.
+
+OpenAI Codex (model identity not exposed).
 
 ## Predicted vs actual
-Expected 75m; actual about 15m.
+
+Expected 75m; stopped after approximately 10m when the contract contradiction was confirmed.
