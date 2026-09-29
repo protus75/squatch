@@ -1,14 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Check failed on one finding. The phase6-continue-02 Context names tests/test_seeded_phase6_01.py, but this same attempt creates that file, so it is a sibling-new path and not on main. The Scope in says new and sibling-new paths are never Context.",
-    "Fix the Context to name the latest Phase 6 seeded test already merged on main. That is tests/test_seeded_phase6_core.py, which exists on main. This follows precedent: phase5-continue-03 cites test_seeded_phase5_01.py, not the phase5_02 file created alongside it.",
-    "Update the guard to match. In tests/test_seeded_phase6_01.py, set CONTEXT['phase6-continue-02'] to the merged path. Replace the phase6_01 entry in EXISTING_AT_AUTHORING with that file's real size, then re-check the max-effort render bound.",
-    "The run record reported ok and green suites, but the requisition check still failed. Before claiming done, check every authored ticket's Context entry with an exists-on-main test, not only the pytest suites."
+    "Check failed on two requisition findings against authored seeds, not on pytest. The run record's 'ok' and green suites did not cover requisition review.",
+    "migrate-config has no fixed target. SCHEMA_VERSION = 1 is the only config schema ever defined, and section 20's 'read one older supported schema' names no source version or key mapping. The plan must define it before this row can be re-authored.",
+    "core-drift-activation's base Implement render is 125376 chars, over the 120000 limit (160000 max-effort bound x 0.75 headroom). The Context partition the ticket fixes overflows. The plan must shrink that partition or split the payload.",
+    "The guard's SIZES used placeholder sizes (5000) for squatch/hostfiles.py and tests/test_hostfiles.py, so its render-bound test passed while the real render overflowed. Measure the real render inputs, not stand-ins.",
+    "Neither fix is reachable inside the tickets/test fence. Fix section 20 first, then regenerate this ticket from the plan."
   ],
-  "reason": "A fixable Context oversight. The failed check names the rule and its paved road, and the rest of the row contract passed.",
+  "reason": "Both check findings trace to the plan. migrate-config's older schema is undefined, and core-drift-activation's contract-fixed Context overflows the render bound, so the row cannot be authored as written until section 20 changes.",
   "detail": null
 }
