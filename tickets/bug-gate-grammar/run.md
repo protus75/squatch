@@ -1,8 +1,8 @@
 ## Outcome
-implemented
+ok
 
 ## Surprises / judgment calls
-The ticket grammar was already present. The new hard gate treats every branch-added file as required overlay evidence, preventing an absent base test from creating a false defect signal.
+The ticket grammar was already present. The hard gate is wired only into the Check-stage gate set; merge composition is outside this ticket's fence.
 
 ## Dead ends
 None.
