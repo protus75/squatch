@@ -4,14 +4,14 @@ ok
 
 ## Surprises / judgment calls
 
-Recovered the prior reviewed outbox seed artifacts locally, then corrected the
-continuation fixture to merged `tests/test_seeded_phase5_01.py` and pinned the
-complete repaired fences and on-demand Context partition.
+The three authored seed contracts were already present on the branch. Added
+their admission proof, including the continue-04 fixture exclusion that a
+prior review identified as unpinned.
 
 ## Dead ends
 
-The full-suite command outlived the command channel capture window; overlapping
-orphaned test workers were stopped rather than used as a result.
+An initial Python one-liner tried to define an async function inline and was
+invalid syntax; reran the same Git-seam operations as direct coroutine calls.
 
 ## Second problems filed
 
@@ -23,4 +23,4 @@ OpenAI Codex, GPT-5.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 35m.
+Expected 75m; actual about 20m.
