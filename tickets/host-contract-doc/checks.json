@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "7793662e9a44e1b8d86fa8889ab542556b8034f0",
+  "produced_at_sha": "f32e3b701751dfe9343e35f6a4a15c00d2f39968",
   "stem": "host-contract-doc",
   "branch": "host-contract-doc",
-  "base": "8e3fcb9d7a4b66bcd2f3919f00684ff5e0df0abe",
-  "head": "7793662e9a44e1b8d86fa8889ab542556b8034f0",
+  "base": "08a45560e192b5d0a646d055f30bf13a757f92c7",
+  "head": "f32e3b701751dfe9343e35f6a4a15c00d2f39968",
   "changed_files": [
     "docs/host-contract.md",
     "tests/test_host_contract.py"
@@ -55,20 +55,12 @@
     },
     {
       "code": "run_record",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "run_record",
-          "path": "tickets/host-contract-doc/run.md",
-          "line": null,
-          "message": "tickets/host-contract-doc/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
-          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
