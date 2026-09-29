@@ -297,6 +297,10 @@ class Box:
     def pending(self) -> list[Message]:
         return [message for _, message in self._records() if message.status == "pending"]
 
+    def messages(self) -> list[Message]:
+        """Return every durable record in sequence order without mutating the queue."""
+        return [message for _, message in self._records()]
+
     def by_origin(self, origin: str) -> Message | None:
         """Return the exact-origin record across every durable status."""
         return next((message for _, message in self._records()

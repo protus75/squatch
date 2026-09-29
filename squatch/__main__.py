@@ -43,13 +43,14 @@ from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
 from squatch.notify import NotificationReconciler
 from squatch.providers import CliClient, ProviderError, ProviderRuntime, Registry, RoutingError, child_env
 from squatch.redact import Redactor
-from squatch.retro import Retro, RetroConstructionError
+from squatch.retro import Retro, RetroConstructionError, Window
 from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
 from squatch.runner import EXIT_OK, EXIT_REFUSED, PipelineFactory, Refusal, Runner
 from squatch.seams import (Clock, ExecutableNotFound, LocalFilesystem, ProcessExec,
                            SubprocessExec, SubprocessNotifications)
 from squatch.serve import Serve
+from squatch.scorecard import project_scorecard
 from squatch.status import project, render
 from squatch.specs import load_spec
 from squatch.tickets import new_ticket
@@ -122,10 +123,26 @@ def _status(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     config = _config(args, cwd)
     state_dir = cwd / config.state_dir
     try:
-        status = project(read_events(state_dir), repo=cwd, state_dir=state_dir)
+        events = tuple(read_events(state_dir))
     except JournalCorruption as e:
         raise Refusal(f"journal corruption: {e}",
                       "a corrupt record is never skipped; inspect the named segment line") from None
+    git = Git(process, env=child_env(env, {provider.auth for provider in config.providers
+                                           if provider.auth}), timeout=GIT_TIMEOUT_SECONDS)
+    try:
+        head_sha = asyncio.run(git.rev_parse(cwd, "HEAD"))
+    except GitError as e:
+        raise Refusal(f"cannot resolve HEAD: {e}",
+                      "run `status` inside a committed git checkout, then re-run") from None
+    try:
+        retro_spec = load_spec(ENGINE_ROOT / "specs" / "retro.md")
+    except Exception as e:
+        raise Refusal(f"cannot load retro spec: {e}",
+                      "repair the engine retro spec at specs/retro.md, then re-run `status`") from None
+    try:
+        scorecard = project_scorecard(
+            Window(events, clock()).projection(sha=head_sha, spec_version=retro_spec.version))
+        status = project(events, repo=cwd, state_dir=state_dir, scorecard=scorecard)
     except BoxCorruption as e:
         raise Refusal(f"box corruption: {e}",
                       "repair or remove the named corrupt box message, then re-run `status`") from None

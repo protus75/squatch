@@ -214,6 +214,14 @@ def test_context_refuses_governed_engine_prose(tickets):
             assert entry != PLAN_FILE, stem
 
 
+def test_context_refused_set_matches_phase2_authoring_snapshot():
+    assert CONTEXT_REFUSED == frozenset({
+        "bootstrap/suggestions.md", "specs/implement.md", "specs/review.md",
+        "squatch/specs.py", "tests/test_drain_reentry.py", "tests/test_echo_stage.py",
+        "tests/test_specs.py", "tests/test_stages.py",
+    })
+
+
 def test_every_seed_renders_under_the_implement_bound(tickets, plan):
     # Section 19: a seed is proven BUILDABLE where authored. The production
     # first-attempt render (`Stages._implement`: workspace, ticket, Context,

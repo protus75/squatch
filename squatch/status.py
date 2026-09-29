@@ -18,6 +18,7 @@ from squatch.artifacts import TERMINAL_RUN_STATES
 from squatch.box import Box, Message
 from squatch.journal import Event
 from squatch.reject import Arrival, awaiting
+from squatch.scorecard import Scorecard, render_report
 from squatch.seams import LocalFilesystem
 from squatch.tickets import (INTAKE_SIGNAL, PLAN_FILE, RESERVED_STEMS, TICKET_FILE, TICKETS_DIR,
                              TicketLintError, depends_of, lint_ticket)
@@ -52,15 +53,19 @@ class Status:
     calls: int = 0
     box: tuple[Message, ...] = ()
     reject_queue: tuple[tuple[str, Arrival], ...] = ()
+    box_activity: tuple[tuple[str, int], ...] = ()
+    tombstone_digest: tuple[tuple[str, str, int, bool], ...] = ()
+    scorecard: Scorecard | None = None
 
 
-def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
+def project(events: Iterable[Event], *, repo: Path, state_dir: Path,
+            scorecard: Scorecard | None = None) -> Status:
     events = tuple(events)
     rejects = awaiting(events)
     repo = Path(repo)
     intake: dict[str, Intaken] = {}
     latest: dict[str, dict] = {}   # stem -> latest state_transition body
-    merged: set[str] = set()
+    latest_terminal: dict[str, dict] = {}
     spend = 0.0
     calls = 0
     for e in events:
@@ -69,13 +74,16 @@ def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
                                        e.body["commit"])
         elif e.type == "state_transition" and e.ticket:
             latest[e.ticket] = e.body
-            if e.body.get("to") == "merged":
-                merged.add(e.ticket)
+            if e.body.get("to") in TERMINAL_RUN_STATES:
+                latest_terminal[e.ticket] = e.body
         elif e.type == "effect_completion" and "cost" in e.body:
-            usd = e.body["cost"].get("usd")
-            if usd is not None:
+            cost = e.body["cost"]
+            usd = cost.get("usd") if isinstance(cost, dict) else None
+            if isinstance(usd, (int, float)) and not isinstance(usd, bool):
                 spend += usd
                 calls += 1
+
+    merged = {stem for stem, record in latest_terminal.items() if record.get("to") == "merged"}
 
     on_disk = _stems(repo)
     plan = repo / PLAN_FILE
@@ -96,13 +104,13 @@ def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
 
     in_flight, ready, blocked, stopped = [], [], [], []
     for stem, rec in sorted(intake.items()):
-        if stem in merged:
-            continue
         if stem in rejects:
             continue
         last = latest.get(stem)
         if last is not None and last.get("to") == "running":
             in_flight.append((stem, last.get("run_seq", 0)))
+            continue
+        if stem in merged:
             continue
         if last is not None and last.get("to") in TERMINAL_RUN_STATES:
             stopped.append((stem, last["to"]))
@@ -118,13 +126,20 @@ def project(events: Iterable[Event], *, repo: Path, state_dir: Path) -> Status:
 
     box = Box(state_dir, fs=LocalFilesystem(),
               clock=lambda: (_ for _ in ()).throw(AssertionError("status never writes")))
-    box_messages = tuple(box.pending())
+    messages = tuple(box.messages())
+    box_messages = tuple(message for message in messages if message.status == "pending")
+    activity = tuple((status, sum(message.status == status for message in messages))
+                     for status in sorted({message.status for message in messages}))
+    tombstones = tuple(sorted(
+        (message.id, message.signature, message.reports, message.reopened_from_tombstone)
+        for message in messages if message.status == "tombstoned"))
     return Status(
         unparsed=tuple(unparsed), pending=tuple(pending), in_flight=tuple(in_flight),
         ready=tuple(ready), blocked=tuple(blocked), stopped=tuple(stopped),
         merged=tuple(sorted(merged)), intake=tuple(intake[s] for s in sorted(intake)),
         spend_usd=spend, calls=calls, box=box_messages,
-        reject_queue=tuple(sorted(rejects.items())))
+        reject_queue=tuple(sorted(rejects.items())), box_activity=activity,
+        tombstone_digest=tombstones, scorecard=scorecard)
 
 
 def render(status: Status) -> str:
@@ -148,7 +163,13 @@ def render(status: Status) -> str:
     section("merged", status.merged)
     section("intake", (f"{i.stem}: {i.source}, {i.state}, {i.commit[:12]}" for i in status.intake))
     section("box", (f"{m.id}: {m.message_class}: {m.summary[:80]}" for m in status.box))
+    section("box activity", (f"{state}: {count}" for state, count in status.box_activity))
+    section("tombstone digest", (f"{box_id}: {signature}, reports {reports}, reopened {reopened}"
+                                 for box_id, signature, reports, reopened
+                                 in status.tombstone_digest))
     lines.append(f"spend: ${status.spend_usd:.4f} over {status.calls} metered calls")
+    if status.scorecard is not None:
+        lines.extend(("", render_report(status.scorecard).rstrip("\n")))
     return "\n".join(lines) + "\n"
 
 

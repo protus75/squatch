@@ -183,13 +183,17 @@ class Window:
             and event.ticket is not None)
         costs = [event.body.get("cost") for event in self.events
                  if event.type == "effect_completion" and isinstance(event.body.get("cost"), dict)]
+
+        def numeric(value: object) -> int | float:
+            return value if isinstance(value, (int, float)) and not isinstance(value, bool) else 0
+
         return RetroWindow(
             boundary=self.boundary, started_at=self.started_at, ended_at=render_ts(self.now),
             merged_tickets=self.merged, signal_counts=dict(self.signal_counts),
             event_counts=dict(sorted(event_counts.items())), gate_failures=gate_failures,
-            spend_usd=sum(float(cost.get("usd") or 0) for cost in costs),
-            tokens=sum(int(cost.get("input_tokens") or 0) + int(cost.get("output_tokens") or 0)
-                       for cost in costs),
+            spend_usd=sum(numeric(cost.get("usd")) for cost in costs),
+            tokens=sum(int(numeric(cost.get("input_tokens")))
+                       + int(numeric(cost.get("output_tokens"))) for cost in costs),
             check_observations=self._check_observations(),
             produced_by_spec_version=spec_version, produced_at_sha=sha)
 
