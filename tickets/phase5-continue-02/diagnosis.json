@@ -1,9 +1,14 @@
 {
-  "run_seq": 2,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 3,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snagged only one gap: tests/test_seeded_phase5_02.py never pins the Phase 4 continuation fixture. Add an assertion that _ticket(\"phase5-continue-02\").context == (\"tests/test_seeded_phase4_05.py\",), and assert that the path exists on base and is not in NEW_PATHS.",
+    "Mirror tests/test_seeded_phase5_01.py: pin the tests/test_seeded_phase4_05.py fixture with its synthetic authoring-time byte size (8111) in EXISTING_AT_AUTHORING. Optionally assert that phase5-continue-02's Scope in names that continuation pattern.",
+    "Keep the three authored seeds as they are. Review confirmed the registry, edges, tiers, budgets, fences, and Context partition match. Checks were green. Change only the missing Phase 4 fixture pin.",
+    "Walk through every acceptance criterion clause by clause and match each one to a concrete assertion before finishing. Criterion 2's 'Phase 4 continuation fixture' clause was skipped here even though all tests passed."
+  ],
+  "reason": "A narrow, fixable test omission that review steered precisely; all checks passed and the seeds were judged correct.",
+  "detail": null
 }
