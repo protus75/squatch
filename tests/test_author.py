@@ -321,7 +321,9 @@ def test_hung_author_is_aborted_and_left_pending(checkout, monkeypatch):
 
 
 def test_gate_bypass_forces_draft_under_binding_go(checkout, monkeypatch):
-    monkeypatch.setattr("squatch.author.go_binds", lambda config, events: True)
+    from squatch.baseline import BaselineResolution
+    monkeypatch.setattr("squatch.author.resolve_baseline",
+                        lambda config, events, *, specs_dir: BaselineResolution("GO", True))
     config = (checkout / "config.yaml").read_text() + (
         "engine_plane_safety_inventory: [specs/]\n"
         "box_policy: {failure_report: confirmed}\n")
@@ -333,6 +335,33 @@ def test_gate_bypass_forces_draft_under_binding_go(checkout, monkeypatch):
     text = (checkout / "tickets/parser-ticket/ticket.md").read_text()
     assert "state: draft" in text
     assert box.get(message_id).status == "authored"
+
+
+def test_author_passes_current_inputs_to_baseline_reader_and_uses_its_binding(
+        checkout, monkeypatch):
+    from squatch.baseline import BaselineResolution
+
+    calls = []
+
+    def resolve(config, events, *, specs_dir):
+        calls.append((config, tuple(events), specs_dir))
+        return BaselineResolution("REVOKED", False)
+
+    monkeypatch.setattr("squatch.author.resolve_baseline", resolve)
+    config = (checkout / "config.yaml").read_text() + (
+        "engine_plane_safety_inventory: [specs/]\n"
+        "box_policy: {failure_report: confirmed}\n")
+    _box, _message_id, _reports, run = setup_author(
+        checkout, FakeLLM(reply(ticket()), review_reply("approve")),
+        message_class="failure_report", config_text=config)
+
+    assert asyncio.run(run()) == "parser-ticket"
+    authored = (checkout / "tickets/parser-ticket/ticket.md").read_text()
+    assert "state: draft" in authored
+    [(current, events, directory)] = calls
+    assert current.state_dir == Path(".squatch/state")
+    assert events == tuple(read_events(checkout / STATE))[:len(events)]
+    assert directory == checkout / "specs"
 
 
 def test_commit_failure_discards_ticket_and_leaves_message_pending(checkout, monkeypatch):

@@ -1,54 +1,9 @@
 """Starting-state policy for machine-authored box tickets (plan section 12)."""
 
 from collections.abc import Iterable
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 
-from squatch.config import Config, ConfigError
-from squatch.journal import Event
-from squatch.llm import TIERS
-from squatch.providers import PLACEHOLDER, Registry, RoutingError
-from squatch.specs import load_spec
-
-
-def _major(path: Path) -> int | None:
-    return int(load_spec(path).version.split(".")[0]) if path.is_file() else None
-
-
-def _identity(config: Config, tiers: Iterable[str]) -> tuple[dict, dict]:
-    registry = Registry(config)
-    tiers = tuple(tiers)
-    if not tiers or any(tier not in TIERS for tier in tiers):
-        raise ValueError("baseline tiers must be a non-empty subset of the tier vocabulary")
-    identity = {
-        surface: {
-            tier: {"provider": resolved.provider.name, "model": resolved.model}
-            for tier in tiers
-            for resolved in (registry.resolve(tier, surface),)
-            if PLACEHOLDER not in (resolved.provider.auth, resolved.model)
-        }
-        for surface in ("review", "author")
-    }
-    if any(len(rows) != len(tiers) for rows in identity.values()):
-        raise ValueError("baseline identity contains an unresolved placeholder")
-    specs = Path(__file__).resolve().parent.parent / "specs"
-    majors = {surface: _major(specs / f"{surface}.md")
-              for surface in ("review", "author")}
-    return identity, majors
-
-
-def go_binds(config: Config, events: Iterable[Event]) -> bool:
-    """Whether the newest baseline is GO for the currently routed identity."""
-    baseline = next((event for event in reversed(tuple(events))
-                     if event.type == "signal"
-                     and event.body.get("kind") == "review_baseline"), None)
-    if baseline is None or baseline.body.get("verdict") != "GO":
-        return False
-    try:
-        identity, majors = _identity(config, baseline.body.get("tiers", ()))
-    except (ConfigError, RoutingError, TypeError, ValueError):
-        return False
-    return (baseline.body.get("identity") == identity
-            and baseline.body.get("spec_major") == majors)
+from squatch.config import Config
 
 
 def _row(config: Config, message_class: str, bug_origin: str | None,

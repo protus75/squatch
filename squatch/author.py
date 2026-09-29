@@ -6,6 +6,7 @@ from pathlib import Path
 from pydantic import Field, field_validator
 
 from squatch.artifacts import Artifact
+from squatch.baseline import resolve_baseline
 from squatch.box import Box, Message, journal_rereport_callback
 from squatch.config import Config
 from squatch.driver import Driver, LLMStage, Spool
@@ -15,7 +16,7 @@ from squatch.git import Git, GitError
 from squatch.journal import Journal
 from squatch.llm import LLM
 from squatch.llmeffect import LLMEffect
-from squatch.policy import go_binds, starting_state
+from squatch.policy import starting_state
 from squatch.redact import Redactor
 from squatch.requisition import (REVIEW_CODE, RequisitionGate, RequisitionRMA,
                                  RequisitionReview, RequisitionSnag, Verdict)
@@ -197,11 +198,13 @@ class Author:
                 resolve_stem=lambda stem: (
                     self._repo / TICKETS_DIR / stem / TICKET_FILE).is_file())
             events = tuple(self._journal.read())
+            resolution = resolve_baseline(
+                self._config, events, specs_dir=self._repo / "specs")
             state = starting_state(
                 self._config, message_class=message.message_class, bug_origin=bug_origin,
                 has_repro=has_repro, fence=parsed.scope_fence,
                 reopened=message.reopened_from_tombstone,
-                bypass=bool(parsed.gate_bypass), go_binds=go_binds(self._config, events))
+                bypass=bool(parsed.gate_bypass), go_binds=resolution.binds)
         except Exception as e:
             self._report_failure(message, e)
             return None

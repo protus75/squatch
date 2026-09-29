@@ -75,6 +75,8 @@ def test_retro_proposal_identity_origin_replay_and_distinctions(tmp_path):
         proposal_id("retro/000001", "Failure 1", "Risk", ("specs/author.md",)),
     }
     assert len(identities) == 3
+
+
     ids = []
     for fixed, paths in [("Failure 1", ("specs/review.md",)),
                          ("Failure 2", ("specs/review.md",)),
@@ -89,6 +91,17 @@ def test_retro_proposal_identity_origin_replay_and_distinctions(tmp_path):
     assert len(set(ids)) == 3
     assert proposal_id("retro/000001", "Failure", "Risk", ("specs/z.md", "specs/a.md")) == (
         proposal_id("retro/000001", "Failure", "Risk", ("specs/a.md", "specs/z.md")))
+
+
+def test_author_is_the_only_production_baseline_reader_caller():
+    root = Path(__file__).parents[1] / "squatch"
+    callers = []
+    for path in root.glob("*.py"):
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "squatch.baseline":
+                callers.extend((path.name, alias.name) for alias in node.names)
+    assert callers == [("author.py", "resolve_baseline")]
 
 
 def test_rereport_journals_before_reopen_and_enqueue_uses_shared_route(tmp_path):
@@ -372,7 +385,9 @@ def test_semantic_match_retries_without_losing_or_double_counting_arrival(
 @pytest.mark.parametrize("reopened", [False, True])
 def test_reopened_retro_author_is_draft_then_clears_marker_and_bridges(
         checkout, monkeypatch, reopened):
-    monkeypatch.setattr("squatch.author.go_binds", lambda config, events: True)
+    from squatch.baseline import BaselineResolution
+    monkeypatch.setattr("squatch.author.resolve_baseline",
+                        lambda config, events, *, specs_dir: BaselineResolution("GO", True))
     config = (checkout / "config.yaml").read_text() + (
         "engine_plane_safety_inventory: [specs/]\n"
         "box_policy: {retro_finding: confirmed}\n")
