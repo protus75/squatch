@@ -1,15 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "Keep the HELD boundary, drain exclusion, restart projection, confirm CLI publish path, and single admission entry. Review found only two fixable defects; fix just those.",
-    "Key the admission regate by candidate base on every path: always pass effect_identity=state.slip.base to merge._regate, whatever the verb. Never let effect_identity depend on supervised or verb; that dual path made offline `squatch confirm` replay the stale regate.",
-    "Add a test that builds the confirm release through the same compose_pipeline arguments `_locked` uses for verb=confirm (supervised=False). Move main, confirm, and assert the regate ran again against the new base instead of replaying the stored effect.",
-    "In runner._finish_delivery, route with the effective rung: tier, effort = effective(ticket, rungs(journal.read(), ticket.stem)); Rung(tier, effort). Do not use ticket.agent_tier/agent_effort. Refactoring must not change escalation routing.",
-    "Add or keep a test that routes a failure after an escalation and asserts `route` receives the escalated rung, so the extracted terminal handler cannot regress it."
-  ],
-  "reason": "Review snagged two concrete defects that can be fixed in place: an offline confirm regate cache key collision and base-rung routing in the extracted terminal handler. Checks passed and the rest of the design was accepted.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
