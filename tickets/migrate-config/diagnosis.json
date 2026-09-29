@@ -1,0 +1,16 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Publish the backup with fs.publish, which will not replace an existing path. Turn FileExistsError into a ConfigError that tells the operator to move the existing config.yaml.bak aside. Test that a pre-existing .bak refuses and leaves both files unchanged.",
+    "If the temp write or replace raises OSError, remove the backup this call created and the temp file before raising ConfigError, so a refusal never leaves a write. Test with a fake Filesystem whose replace raises.",
+    "Catch UnicodeDecodeError from fs.read(path).decode() and raise it as a ConfigError so non-UTF-8 input goes through the normal Refusal path.",
+    "Parametrize the CLI refusal test over: missing schema_version, \"0\", -1, 2, an unknown key, v0 with notify: null, and a missing config.yaml. For each, assert EXIT_REFUSED, the config unchanged, and no .bak.",
+    "Add a CLI test that a v1 config prints 'migrate-config: current', stays byte-identical and creates no .bak. In test_verbs, assert the exact verb set with ==, not a <= subset.",
+    "Keep the core design: YAML node-span scalar substitution plus validation through the real loader. The reviewer judged it sound."
+  ],
+  "reason": "Review found fixable gaps in backup safety, the refusal write path and CLI test coverage, each with a concrete fix; checks passed and the core approach is sound.",
+  "detail": null
+}
