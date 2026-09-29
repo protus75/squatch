@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "6e9824796910b17a6c6118c528dd5bfa4edc7aa8",
+  "produced_at_sha": "4db1ef229fc2cc3766964638470a84cfde66cbe3",
   "stem": "core-drift-activation",
   "branch": "core-drift-activation",
-  "base": "a7f386dcb4db08da425ba27610d9256e0b3ab66e",
-  "head": "6e9824796910b17a6c6118c528dd5bfa4edc7aa8",
+  "base": "efa6deddd8905227deb6d554ff36b8bccd1c0100",
+  "head": "4db1ef229fc2cc3766964638470a84cfde66cbe3",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/gates.py",
