@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-The required continuation Context contains a historical literal section-19 heading, so the render proof pins each ticket's section-20-only citation and bound instead of searching the whole rendered prompt for that incidental Context text.
+The authored escape and successor seeds were already present on the base branch. The new proof reads escape-column's own Scope in, rather than the commissioning continuation, so its contract cannot be satisfied by stale continuation prose.
 
 ## Dead ends
 
-The first guard looked for the complete `supervised-merge-hold` contract at its introductory mention; it now locates the contract after the suffix. The render guard likewise avoids treating the required Context's historical section-19 literal as a plan citation.
+The inherited Context quotes the section-19 heading, so using raw rendered-text absence as a section-20 proof produced a false failure. Parsed ticket plan sections provide the citation proof instead.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity not exposed).
+OpenAI GPT-5 / Codex.
 
 ## Predicted vs actual
 
-Expected 75m; completed in approximately 20m.
+Expected 75m; actual about 10m.
