@@ -2,19 +2,20 @@
 ok
 
 ## Surprises / judgment calls
-The row-one seed files already existed in the ticket plane, while the required
-guard did not. I retained their scope and added a guard that ties every
-partition to the relevant authored Context or on-demand clause.
+The engine had already lifted all three row-one seed tickets. I preserved
+those contracts and added the missing continuation custody clauses to the
+lifted row-two ticket without committing anything under `tickets/`.
 
 ## Dead ends
-The first exact-edge parser selected introductory mentions of a stem instead
-of its dependency clause. It was narrowed to the clause beginning with
-`depends on`; the full suite required a second wait for its asynchronous run.
+An earlier reviewed implementation pinned only continuation dependency edges;
+it did not pin the exact fence and sole Context for continuations 03 through
+08. The replacement assertion extracts every explicit custody clause.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI / GPT-5 (Codex).
+OpenAI / Codex.
 
 ## Predicted vs actual
-Expected 75 minutes; actual approximately 15 minutes.
+Expected 75 minutes; actual approximately 20 minutes. Focused verification:
+6 passed. Full verification: 1554 passed.
