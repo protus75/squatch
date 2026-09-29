@@ -1,0 +1,17 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "__main__.py _retro returns EXIT_TICKET, which is never imported or defined, so the exit-1 path raises NameError. Import the exit-1 constant from the module that owns the exit classes, or define it there. Then test that path.",
+    "doctor._venv resolves sys.executable, and that follows the uv symlink out of .venv, so every real run fails venv. Judge by sys.prefix or the unresolved executable path, and add a test with a symlinked interpreter.",
+    "Don't re-derive GitError by scanning every retro_failed in the journal for the window; earlier records misclassify. Scan only events appended during this run, or have Retro.run surface the failure class.",
+    "tests/test_verbs.py was untouched. Criterion 4 requires the verb surface to include doctor and retro and to prove their dispatch contracts: retro through the governed Retro path, doctor with no provider or pipeline construction.",
+    "tests/test_retro.py needs a manual no-merge case (exact output, exit 0, no model call or write) and a selected-failure case (exact 'no report committed' message, exit 1) through main(['retro']).",
+    "tests/test_cli.py needs an exact full doctor output assertion, lock-held refusals for both verbs, retro config/construction/journal refusals with exit 2, and the retro exit-1 path.",
+    "A green suite is not proof. Walk each acceptance criterion and each exit branch, and give every branch a test before reporting ok."
+  ],
+  "reason": "Review found fixable defects (a missing import, a wrong venv check, a journal scan) and missing tests. All have concrete paved roads, and none needs more capability or a ticket change.",
+  "detail": null
+}
