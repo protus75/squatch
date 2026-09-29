@@ -1,17 +1,16 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "884dfa6cad00c3888082103d5fe7fa524ad1a907",
+  "produced_at_sha": "4bae87156ab5aaee0b08489916f8df6759a53bb7",
   "stem": "status-projection",
   "branch": "status-projection",
-  "base": "d3dcca0d87a83e05721d62e95e00ed2ca5cf672d",
-  "head": "884dfa6cad00c3888082103d5fe7fa524ad1a907",
+  "base": "6c68d6a0810775141d69554ead80bf3bf814a343",
+  "head": "4bae87156ab5aaee0b08489916f8df6759a53bb7",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/box.py",
     "squatch/retro.py",
     "squatch/status.py",
-    "tests/test_cli.py",
     "tests/test_status.py"
   ],
   "checks": [
