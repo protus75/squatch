@@ -1,16 +1,16 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8a2768996c998469ccc9a02df68e7b6404776f53",
+  "produced_at_sha": "c650194887d1c8d857d55f2ad9474f26e2ae5346",
   "stem": "status-projection",
   "branch": "status-projection",
-  "base": "0d41e39fa686eda705896daaa147596a6d6b945e",
-  "head": "8a2768996c998469ccc9a02df68e7b6404776f53",
+  "base": "ded12e25661e441d4f8188951f1aca784405bf35",
+  "head": "c650194887d1c8d857d55f2ad9474f26e2ae5346",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/box.py",
-    "squatch/retro.py",
     "squatch/status.py",
+    "tests/test_cli.py",
     "tests/test_status.py"
   ],
   "checks": [
@@ -26,12 +26,20 @@
     },
     {
       "code": "verification",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "verification",
+          "path": null,
+          "line": null,
+          "message": "verification command exit 1: `uv run pytest -q`\nwarning: `VIRTUAL_ENV=/home/djp/source/squatch/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead",
+          "paved_road": "make every `## Verification` command exit 0 on the committed branch"
+        }
+      ],
       "commands": [
         {
           "argv": [
@@ -58,19 +66,27 @@
             "pytest",
             "-q"
           ],
-          "attribution": null,
+          "attribution": "branch",
           "filed": null
         }
       ]
     },
     {
       "code": "run_record",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "run_record",
+          "path": "tickets/status-projection/run.md",
+          "line": null,
+          "message": "tickets/status-projection/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
+          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
+        }
+      ],
       "commands": []
     },
     {
