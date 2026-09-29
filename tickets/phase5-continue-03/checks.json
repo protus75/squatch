@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "4f84b490d7e9c72355b43534b5f96d3a4d07abf0",
+  "produced_at_sha": "c991074600de28182f291d789efa907783ea991a",
   "stem": "phase5-continue-03",
   "branch": "phase5-continue-03",
-  "base": "3c8e05aa5c49a7e33a016fe7ca2bc1544d9ae8e7",
-  "head": "4f84b490d7e9c72355b43534b5f96d3a4d07abf0",
+  "base": "84213a70e35289b40d24936a8a7ed85f4f8a68f5",
+  "head": "c991074600de28182f291d789efa907783ea991a",
   "changed_files": [
     "tests/test_seeded_phase5_03.py"
   ],
@@ -15,14 +15,14 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase5-continue-04/ticket.md",
-      "sha": "1d91bb966b1890f1404e132980414387ed036455",
+      "sha": "05fd4fe51c435332dc9f9c89e8e704de87fb32b4",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase5-continue-04/ticket.md",
           "line": null,
-          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"rma\",\\n \"summary\": \"The continuation matches section 20\\'s fixed Phase 5 suffix, but the exit it authors cannot be built from section 20 alone. Section 20 has no Phase 5 exit-evidence disposition and no Phase 6 boundary registry, so the plan needs a human repair before `phase5-exit` can be pinned.\",\\n \"findings\": [\\n  {\"code\": \"requisition_review\",\\n   \"path\": \"tests/test_seeded_phase5_04.py\",\\n   \"line\": null,\\n   \"message\": \"The criteria require the seeded test to pin `phase5-exi'",
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"snag\", \"summary\": \"The fence, Context, dependency, and exit-read closure all match section 20\\'s phase5-continue-04 contract. But Scope out contradicts Scope in, so the criteria cannot all be met.\", \"findings\": [{\"code\": \"requisition_review\", \"path\": \"tickets/phase5-continue-04/ticket.md\", \"line\": 59, \"message\": \"Scope out says \\\\\"Do not create `phase5-exit` now\\\\\". Scope in (line 26) and every acceptance criterion require this admission to author confirmed `phase5-exit`, which'",
           "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
@@ -33,7 +33,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/retro-doctor-cli/ticket.md",
-      "sha": "0336103f5b8e6bbff9c73aa4e11ffd37d6e93020",
+      "sha": "a0480fe6a7513f0c2564eb48b71078c5b1358899",
       "bypassed": false,
       "findings": [],
       "commands": []
