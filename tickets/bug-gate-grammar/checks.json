@@ -1,33 +1,24 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "6368686f4717e35e424918266a6daee214efeacf",
+  "produced_at_sha": "8f864f21ac567dd88e5d025d77d93e4d03f34fa8",
   "stem": "bug-gate-grammar",
   "branch": "bug-gate-grammar",
-  "base": "a25053e5676d712c2f4ccde08898e1726075e2a2",
-  "head": "6368686f4717e35e424918266a6daee214efeacf",
+  "base": "3d6a49928c6decc775ad4ec75328fdd533896c0a",
+  "head": "8f864f21ac567dd88e5d025d77d93e4d03f34fa8",
   "changed_files": [
-    "squatch/merge.py",
     "squatch/stages.py",
     "tests/test_bug_gate.py"
   ],
   "checks": [
     {
       "code": "scope_fence",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "scope_fence",
-          "path": "squatch/merge.py",
-          "line": null,
-          "message": "squatch/merge.py is outside the scope fence ['squatch/tickets.py', 'squatch/gates.py', 'squatch/stages.py', 'tests/test_tickets.py', 'tests/test_gates.py', 'tests/test_bug_gate.py']",
-          "paved_road": "edit only paths under the ticket's `## Scope fence` prefixes; a criterion that forces an out-of-fence edit is an authoring defect (answer premise_failed), and a genuine surprise takes the gate_bypass valve"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -76,20 +67,12 @@
     },
     {
       "code": "run_record",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [
-        {
-          "code": "run_record",
-          "path": "tickets/bug-gate-grammar/run.md",
-          "line": null,
-          "message": "tickets/bug-gate-grammar/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
-          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
