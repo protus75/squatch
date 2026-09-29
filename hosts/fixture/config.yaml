@@ -1,0 +1,33 @@
+schema_version: 1
+state_dir: .squatch/state
+providers:
+  - name: codex
+    kind: cli
+    models_by_tier:
+      low: fixture-low
+      medium: fixture-medium
+      high: fixture-high
+      max: fixture-max
+    limits:
+      concurrency: 1
+      est_cost_per_call_usd: 0.0
+routing:
+  - tier: medium
+    surface: author
+    candidates: [{provider: codex}]
+  - tier: medium
+    surface: implement
+    candidates: [{provider: codex}]
+  - tier: medium
+    surface: review
+    candidates: [{provider: codex}]
+review:
+  mechanical:
+    - code: fixture-replay
+      argv: [python, bin/fixture-replay]
+      trigger: always
+      severity: hard
+merge:
+  safety_checks: [fixture-replay]
+  strategies: []
+report_inbox: .squatch/report-inbox

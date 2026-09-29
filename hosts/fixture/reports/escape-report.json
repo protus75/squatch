@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "origin": "player",
+  "summary": "fixture-scenario: machine-introduced-escape; a machine-authored change lets the escape sentinel leave containment.",
+  "signature": "fixture:containment-escape:machine-escape:1.0",
+  "app_commit": "fixture-machine-merge",
+  "app_version": "1.0",
+  "implicated_paths": [
+    "app.py"
+  ],
+  "replay_file": "replays/escape.json",
+  "replay_bytes": 181,
+  "log_excerpt": "machine-escape returned escaped",
+  "log_excerpt_bytes": 31
+}

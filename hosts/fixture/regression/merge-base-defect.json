@@ -1,0 +1,6 @@
+{
+  "input": "Squatch",
+  "expected": "animal",
+  "actual": "bird",
+  "surface": "fixture-replay"
+}

@@ -1,0 +1,6 @@
+{
+  "initial_state": {"classifier_version": "1.0", "subject": "machine-escape"},
+  "actions": [
+    {"action": "classify", "input": "machine-escape", "expected": "contained"}
+  ]
+}

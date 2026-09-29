@@ -1,0 +1,6 @@
+{
+  "initial_state": {"classifier_version": "1.0", "subject": "Squatch"},
+  "actions": [
+    {"action": "classify", "input": "Squatch", "expected": "animal"}
+  ]
+}

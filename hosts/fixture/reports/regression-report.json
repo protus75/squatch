@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "origin": "self_diagnosed",
+  "summary": "fixture-scenario: report-to-regression; Squatch is classified as a bird instead of an animal.",
+  "signature": "fixture:wrong-classification:Squatch:1.0",
+  "app_commit": "fixture-merge-base",
+  "app_version": "1.0",
+  "implicated_paths": [
+    "app.py"
+  ],
+  "replay_file": "replays/regression.json",
+  "replay_bytes": 164,
+  "log_excerpt": "classify('Squatch') returned bird",
+  "log_excerpt_bytes": 33
+}

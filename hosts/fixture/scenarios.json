@@ -1,0 +1,5 @@
+[
+  {"name": "deterministic-app", "ticket_stem": "fixture-deterministic-app", "input": "squatch", "expected": "animal"},
+  {"name": "report-to-regression", "ticket_stem": "fixture-regression-fix", "input": "Squatch", "expected": "animal"},
+  {"name": "machine-introduced-escape", "ticket_stem": "fixture-machine-escape", "input": "machine-escape", "expected": "contained"}
+]

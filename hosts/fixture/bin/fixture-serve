@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""Launch Squatch serve with the fixture CLI pinned ahead of ambient tools."""
+
+import os
+from pathlib import Path
+import sys
+
+
+root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root))
+from serve import launch_environment
+
+os.chdir(root)
+os.execvpe(sys.executable, [sys.executable, "-m", "squatch", "--config",
+                            str(root / "config.yaml"), "serve"],
+           launch_environment(os.environ))

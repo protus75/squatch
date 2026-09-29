@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+"""A scenario-keyed, zero-spend stand-in for the Codex JSONL contract."""
+
+import asyncio
+import json
+import os
+from pathlib import Path
+import re
+import sys
+
+from squatch.git import Git
+from squatch.seams import SubprocessExec
+
+
+SCENARIOS = {
+    "deterministic-app": "fixture-deterministic-app",
+    "report-to-regression": "fixture-regression-fix",
+    "machine-introduced-escape": "fixture-machine-escape",
+}
+
+
+def fail(message: str) -> None:
+    print(json.dumps({"type": "turn.failed", "error": {"message": message}}))
+    raise SystemExit(2)
+
+
+def scenario_from(prompt: str) -> str:
+    markers = set(re.findall(r"fixture-scenario:\s*([a-z0-9-]+)", prompt))
+    if len(markers) != 1 or next(iter(markers), None) not in SCENARIOS:
+        fail("unknown or ambiguous fixture scenario")
+    return next(iter(markers))
+
+
+def ticket(scenario: str) -> dict[str, str]:
+    stem = SCENARIOS[scenario]
+    bug = scenario == "report-to-regression"
+    command = ("python scenario-output/regression_check.py" if bug else
+               "python bin/fixture-replay")
+    paths = ["app.py", "scenario-output/"] if scenario != "deterministic-app" else [
+        "scenario-output/"]
+    body = [
+        "---", "priority: P1", f"kind: {'bug' if bug else 'feature'}",
+        "agent_tier: medium", "agent_effort: medium", "---",
+        "## Depends on", "- none", "", "## Context", "- app.py", "",
+        "## Goal", f"Run the closed fixture-scenario: {scenario}.", "",
+        "## Why", "The deterministic host loop needs a machine-authored merge.", "",
+        "## Scope in", f"Apply only the canned {scenario} fixture change.", "",
+        "## Scope out", "No engine or configuration changes.", "", "## Scope fence",
+        *(f"- {path}" for path in paths), "", "## Acceptance criteria",
+        f"- `{command}` exits 0 and `scenario-output/{scenario}.txt` exists.", "",
+        "## Verification", "```", command, "```",
+    ]
+    if bug:
+        body += ["", "## Regression", "```",
+                 command, "```",
+                 "- carries: scenario-output/regression_check.py"]
+    body += ["", "## Definition of rejected", "Reject changes outside the listed paths.", "",
+             "## Time budget", "- expected: 5m", "- stuck: 10m", ""]
+    return {"stem": stem, "ticket": "\n".join(body)}
+
+
+def implement(scenario: str) -> dict[str, str]:
+    cwd = Path.cwd()
+    app = cwd / "app.py"
+    if scenario == "report-to-regression":
+        before = 'if name == "Squatch":\n        return "bird"'
+        after = 'if name == "Squatch":\n        return "animal"'
+        text = app.read_text()
+        if before in text:
+            app.write_text(text.replace(before, after, 1))
+        elif after not in text:
+            fail("fixture regression precondition is absent")
+    elif scenario == "machine-introduced-escape":
+        before = 'if name == "machine-escape":\n        return "contained"'
+        after = 'if name == "machine-escape":\n        return "escaped"'
+        text = app.read_text()
+        if before in text:
+            app.write_text(text.replace(before, after, 1))
+        elif after not in text:
+            fail("fixture escape precondition is absent")
+    marker = cwd / "scenario-output" / f"{scenario}.txt"
+    marker.parent.mkdir(exist_ok=True)
+    marker.write_text(f"fixture-scenario: {scenario}\n")
+    paths = [str(marker.relative_to(cwd))]
+    if scenario != "deterministic-app":
+        paths.append("app.py")
+    if scenario == "report-to-regression":
+        regression = cwd / "scenario-output" / "regression_check.py"
+        regression.write_text(
+            'from pathlib import Path\nimport runpy\nimport sys\n'
+            'sys.argv = ["fixture-replay", "--scenario", "report-to-regression"]\n'
+            'runpy.run_path(str(Path(__file__).resolve().parents[1] / "replay.py"), '
+            'run_name="__main__")\n')
+        paths.append(str(regression.relative_to(cwd)))
+    asyncio.run(commit(cwd, paths, scenario))
+    record = cwd / "tickets" / SCENARIOS[scenario] / "run.md"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text(
+        "## Outcome\nok\n\n## Surprises / judgment calls\n"
+        "Applied the closed fixture scenario.\n\n## Dead ends\n\n"
+        "## Second problems filed\n\n## Resolved engine/model\n"
+        "codex / scripted fixture (zero spend)\n\n## Predicted vs actual\n"
+        "Expected 5m; deterministic scripted execution.\n")
+    return {"verdict": "implemented", "summary": f"applied canned {scenario} change"}
+
+
+async def commit(cwd: Path, paths: list[str], scenario: str) -> None:
+    process = SubprocessExec()
+    check = ("scenario-output/regression_check.py" if scenario == "report-to-regression"
+             else "bin/fixture-replay")
+    rc, _, _ = await process.run(["python", check], cwd=cwd, env=os.environ, timeout=30)
+    if rc:
+        fail("fixture verification failed")
+    git = Git(process, env=os.environ, timeout=30)
+    await git.add(cwd, paths)
+    await git.commit(cwd, f"Apply fixture scenario {scenario}", paths)
+
+
+prompt = sys.stdin.read()
+header = prompt.splitlines()[0] if prompt.splitlines() else ""
+match = re.fullmatch(r"squatch prompt: surface=(author|implement|review) spec_version=\S+", header)
+if match is None:
+    fail("unknown fixture surface")
+surface = match.group(1)
+scenario = scenario_from(prompt)
+if surface == "author":
+    answer = ticket(scenario)
+elif surface == "implement":
+    answer = implement(scenario)
+else:
+    answer = {"verdict": "approve", "summary": f"approved canned {scenario} change",
+              "findings": []}
+print(json.dumps({"type": "item.completed", "item": {"type": "agent_message",
+      "text": json.dumps(answer, sort_keys=True)}}))
+print(json.dumps({"type": "turn.completed", "usage": {"input_tokens": 0,
+                                                          "output_tokens": 0}}))
