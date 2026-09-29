@@ -1,104 +1,18 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "038c56686871fdd28806f2058ca80552f2f2304b",
+  "produced_at_sha": "796783b4f56a9f6a6b76a9c817cb00d20c2c4693",
   "stem": "phase5-continue-02",
   "branch": "phase5-continue-02",
-  "base": "28c829e52983faf928e79f924fd1a19f1c959242",
-  "head": "038c56686871fdd28806f2058ca80552f2f2304b",
+  "base": "6bf1496381c7475c400d3e96d89a2ca109f5ddde",
+  "head": "796783b4f56a9f6a6b76a9c817cb00d20c2c4693",
   "changed_files": [
-    "tests/test_seeded_phase5_02.py"
+    "tests/test_seeded_phase5_02.py",
+    "tickets/baseline-binding-reader/ticket.md",
+    "tickets/phase5-continue-03/ticket.md",
+    "tickets/status-projection/ticket.md"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/baseline-binding-reader/ticket.md",
-      "sha": "2e8e2f4893b132cd2ff0f658c7dbf75ca36c4c69",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/baseline-binding-reader/ticket.md",
-          "line": 39,
-          "message": "`policy.py` already has the binding reader: `go_binds(config, events)` plus `_identity`/`_major`. `_identity` builds the spec path from `Path(__file__)...parent / \"specs\"`, a global lookup, not an explicit `specs_dir`. The ticket requires that 'policy remains only the starting-state policy' and that `squatch/policy.py` is 'neither the binding reader nor its caller'. Section 20 fixes this seed's fence without `squatch/policy.py`, so the new `squatch/baseline.py` would sit next to the old `policy.go_binds` as two production binding readers. That breaks the no-dual-path rule, and the third acceptance criterion cannot be met.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/baseline-binding-reader/ticket.md",
-          "line": 10,
-          "message": "`tests/test_policy.py` imports `go_binds` from `squatch.policy` and checks its GO, NO-GO, and malformed-identity results (lines 28, 53, 69, 81). If the reader moves out of policy, this suite fails on import. It is outside the plan-fixed fence and is not in Context, so the ticket cannot migrate it.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/baseline-binding-reader/ticket.md",
-          "line": 18,
-          "message": "`author.py` imports `go_binds` from `squatch.policy` and calls it at line 204. The fenced tests `tests/test_author.py:324` and `tests/test_retro_box.py:375` monkeypatch `squatch.author.go_binds`. Context does not include the owning module `squatch/policy.py`, so the author cannot see the reader being replaced or confirm that its supervised-side behavior (catching ConfigError/RoutingError/TypeError/ValueError) is preserved.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/phase5-continue-03/ticket.md",
-      "sha": "178695c9d4d0140021b217241c2a8d55c79db921",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-03/ticket.md",
-          "line": null,
-          "message": "Section 20 says each numbered Phase 5 continuation embeds the immediately preceding merged seeded-test pattern. The only exception is the explicit phase5-continue-02 fixture rule. phase5-continue has merged, so tests/test_seeded_phase5_01.py is the immediately preceding merged seeded test when phase5-continue-03 is authored. This ticket's Context and Scope in instead reuse tests/test_seeded_phase4_05.py, which extends the continue-02-only exception to continue-03.",
-          "paved_road": "Replace the Context entry and the Scope in pattern reference with tests/test_seeded_phase5_01.py, the immediately preceding merged seeded test. Keep tests/test_seeded_phase5_02.py, tests/test_seeded_phase5_03.py, and tests/test_seeded_phase5_04.py out of Context wherever they are new in the same admission."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-03/ticket.md",
-          "line": null,
-          "message": "The criteria require tests/test_seeded_phase5_03.py to pin exact ownership fences and the Context partition. Scope in says only that retro-doctor-cli fences squatch/retro.py, squatch/__main__.py, and 'their focused tests'. It does not name those test paths or say which existing fence paths are embedded Context and which are named on-demand exceptions. It also says phase5-continue-04 embeds 'the immediately preceding merged seeded-test pattern when it is authored' without naming it. The seeded test therefore has no fixed values to pin.",
-          "paved_road": "Name the exact existing focused test paths in the retro-doctor-cli fence, for example tests/test_retro.py and the existing __main__/CLI test file, after confirming each exists on main. State the exact embedded-Context set and each named measured on-demand exception with its authoring-time byte size. State that phase5-continue-04's Context is exactly tests/test_seeded_phase5_02.py, which will have merged by then, and that it excludes sibling-new tests/test_seeded_phase5_03.py and tests/test_seeded_phase5_04.py."
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/status-projection/ticket.md",
-      "sha": "4b56096535b33ae93007882fdd00dd4b1ef62191",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/status-projection/ticket.md",
-          "line": 121,
-          "message": "`_status` calls `squatch.status.project(events, repo=, state_dir=)` and writes `render(status)`, so it is the touchpoint-5 CLI rendering that the ticket and section 20 say must consume the new projection. Section 20 fixes the fence to status/scorecard/box and their tests only, and forbids adding to it. So either the CLI is not rewired, which breaks the 'every CLI/file/slash rendering consumes the same value' criterion, or it is rewired outside the fence.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/status-projection/ticket.md",
-          "line": 265,
-          "message": "The existing status render pins categories that the 'exactly merged, in_flight, blocked, spend_usd, box_activity, tombstone_digest, scorecard' field set and the 'reject an extra projection field' rule remove. tests/test_cli.py:265-372 pin 'unparsed tickets (failed intake lint)', 'pending intake', 'reject queue', and 'spend ... over N metered calls'. tests/test_verbs.py:208, tests/test_drain.py:264-681, and tests/test_drain_upgrade.py:253-284 pin 'reject queue' and 'pending intake' output. The reject-queue and suggestion-box deliverables require status to list the Reject queue and unparsed tickets. Replacing `Status` with the exact seven-field value contradicts these unfenced merged tests and laws.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/status-projection/ticket.md",
-          "line": null,
-          "message": "The `scorecard` field is 'the current-window `project_scorecard` result'. Building that `RetroWindow` needs `squatch.retro.Window(events, now).projection(sha=..., spec_version=...)`, which needs a clock value and a SHA/spec version that `status.project` does not receive today. `squatch/retro.py` is neither Context nor named as an on-demand exception, and section 20 does not say where status gets `now`, `sha`, or `spec_version` without a Git or clock seam.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
