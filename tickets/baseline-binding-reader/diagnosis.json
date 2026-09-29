@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The production code passed review. Keep baseline.py, the policy.go_binds removal, and the Author wiring as they are. Only the tests are missing.",
+    "In test_author.py and test_retro_box.py, make the fake resolve_baseline record its args. Assert config is the Author's config, events match the journal's events, and specs_dir == checkout/'specs'. Add a REVOKED/binds=False case that asserts the ticket is drafted.",
+    "Prove Author is the sole caller: assert not hasattr(squatch.policy, 'go_binds') in test_policy.py, and assert that no squatch module other than author.py imports resolve_baseline.",
+    "Cover every fallback in test_baseline.py: PLACEHOLDER auth/model gives REVOKED; a NO-GO then a torn tail gives NO_GO; a torn tail before any baseline gives ABSENT; spec_major='1' or a non-dict identity gives REVOKED; a spec version not in X.Y form gives REVOKED.",
+    "Before finishing, map each acceptance criterion to a named test. Review treats an unproven criterion as a finding even when the code is correct."
+  ],
+  "reason": "Review found only missing test assertions, each with a paved road. The production code is sound, so a same-capability retry can add them.",
+  "detail": null
+}
