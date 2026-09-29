@@ -1,14 +1,14 @@
 ---
 verdict: snag
-reviewed_sha: 6e9824796910b17a6c6118c528dd5bfa4edc7aa8
+reviewed_sha: 4db1ef229fc2cc3766964638470a84cfde66cbe3
 produced_by_spec_version: '1.0'
-produced_at_sha: 6e9824796910b17a6c6118c528dd5bfa4edc7aa8
+produced_at_sha: 4db1ef229fc2cc3766964638470a84cfde66cbe3
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-The resolver move, the gate's use of hostfiles.classify, the marker refusal, and the merge-time rerun wiring all meet the ticket. One defect: the gate only works when the target repo is squatch itself, so on a host repo that has adopted the managed block it crashes and blocks every merge.
+The diff meets every acceptance criterion and stays inside the fence. One logic defect: when squatch merges its own repo, text in the candidate branch can make the gate raise an engine error instead of producing a failing finding.
 
 ## Findings
-- correctness_review at squatch/gates.py:34: `_branch_core` always reads `workspace / 'squatch' / 'hostfiles.py'`. squatch merges into host repos as well as itself (Merge._repo / worktree is the target repo, and Phase 6 runs merge against `hosts/fixture/`). A host worktree has no `squatch/hostfiles.py`. So once a host's CLAUDE.md or AGENTS.md contains `squatch:core` text, `read_text()` raises FileNotFoundError. `run_gates` turns that into a crashing-gate failure, which hard-fails every merge in that host. The paved road (`squatch core` then commit) cannot clear it, so the hold has no release. It also lets a host branch that plants its own `squatch/hostfiles.py` choose the template its conduct files are checked against. I'm not certain the plan limits 'fresh branch-version render' to the self-build case, but as written the gate cannot pass in any adopted host repo. (paved road: Take the template from the right source for each target. When the target repo is the engine repo, read the candidate branch's CORE from the branch. Otherwise use the engine's own `hostfiles.CORE`, for example by passing the template source into `CoreDrift` from `Merge`, which knows whether the target is itself. Add a test in tests/test_gates.py or tests/test_hostfiles.py: a workspace with an adopted CLAUDE.md and no `squatch/hostfiles.py` gets a pass/fail verdict from `classify`, not a crash.)
+- correctness_review at squatch/gates.py:41: `_branch_core` reads the untrusted candidate's `squatch/hostfiles.py` and raises `GateError` when that file has no single plain `CORE = <literal>` assignment, or when the value is not a str. An annotated `CORE: str = "..."` or a second `CORE =` line triggers it. `run_gates` re-raises `GateError` on purpose, because it means 'a gate defect is the engine's bug, never a routable finding'. So candidate content becomes an engine crash in `Merge._regate` instead of a hard `core_drift` finding with its paved road. Other malformed input from the same branch already fails closed as a finding through the generic crash path: a `SyntaxError`, a missing file (`FileNotFoundError`), or a non-literal expression (`ValueError` from `literal_eval`). The two `GateError` branches are the odd ones out. I'm fairly sure this is a defect, but I have not traced how merge handles an escaped `GateError`. (paved road: In `_branch_core`, turn a missing, duplicate, non-literal or non-str `CORE` into a failing `core_drift` finding (return it, or raise a non-`GateError` exception the runner already turns into a fail). Keep `GateError` for real gate-protocol defects only. Add a `tests/test_gates.py` case where the candidate uses `CORE: str = '...'` and assert the run fails with a `core_drift` finding instead of raising.)
