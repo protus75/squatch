@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-Escapes are deduplicated by immutable report signature, admitted ticket, and passing check surface before the pure scorecard fold.
+`BASE..HEAD` is resolved over the current first-parent history; only commits with exactly one valid trailer pair contribute.
 
 ## Dead ends
 
@@ -18,4 +18,4 @@ Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 40m.
+Expected: 75m. Actual: about 45m.
