@@ -1,18 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "escalate",
+  "verdict": "retry",
   "lessons": [
-    "Production code is close: EXIT_TICKET is now imported, venv uses sys.prefix, GitError scanning covers only this run's events, and _compose_retro is shared with drain. Keep all of it. The remaining work is mostly the missing tests the acceptance criteria require.",
-    "test_retro.py: add a selected-failure case through main(['retro']). Use a failing or suppressed scripted retro LLM and assert the exact 'retro: no report committed; inspect status and the Suggestion Box' output, rc == 1, and no tickets/retro file.",
-    "test_retro.py: add a case where the report git op fails. Assert refusal rendering and rc == 2. Also show that an earlier retro_failed or suppression record in the journal does not change this run's exit class.",
-    "test_cli.py: through main(['doctor']), assert the exact full output and rc 0 when all checks pass, and 'doctor: failed' with rc 2 when any fails. For retro, assert exits 0/1/2 with exact output, plus config, construction, and journal-corruption refusals with exit 2.",
-    "test_verbs.py: prove dispatch through main(). doctor runs with no pipeline factory call, no provider, and no lock. retro takes the lock and invokes the governed Retro with trigger 'manual' and forced=True, e.g. via a scripted pipeline that records the retro request.",
-    "test_doctor.py: run the real probe_lock and read_events against a tmp state dir (missing lock, free lock, held live Lockfile). Snapshot the tree before and after to prove nothing is written. Assert the 0/2 exit mapping.",
-    "probe_lock takes LOCK_EX on a free lock, so a concurrent daemon acquire can be refused. Probe without contending (e.g. LOCK_SH, or a read-only holder-record check), or add a why-comment accepting the race. Pin the chosen behavior with a test.",
-    "Before reporting ok, map every acceptance criterion and every exit branch to a named test. Two attempts have now ignored lessons that already named these same test gaps."
+    "Review's only finding: Doctor._git passes the raw operator env to the git subprocess. Build the env with child_env(env, {p.auth for p in config.providers if p.auth}) so provider keys are stripped before git runs.",
+    "If config fails to load, doctor still runs every check. Give the git probe a minimal env (for example PATH and HOME only) so no provider key can leak. Never fall back to the raw env.",
+    "git.py is not in the scope fence, so do not add Git.version() there. Keep the git probe in doctor.py on the process seam, and build its env with the existing child_env helper. Read child_env's module before you import it.",
+    "Add a test_doctor.py case: config declares a provider auth variable, the env contains it, and the env the injected process receives omits it. Add a second case where config fails and the env still contains no provider key.",
+    "Keep everything else: the shared _compose_retro, EXIT_TICKET, sys.prefix for venv, the shared-lock probe, and scanning only this run's events. The checks passed, and review approved the retro path and its output and exit behavior."
   ],
-  "reason": "Second attempt still misses most of the test coverage that prior lessons named explicitly; the steering is not landing at the current capability.",
+  "reason": "Single localized review snag (provider keys passed to the git child env) with a clear in-fence paved road; everything else passed checks and review.",
   "detail": null
 }
