@@ -1,17 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review found two fixable gaps; keep the existing gate logic, the Check-set wiring in stages.py, and the three passing tests.",
-    "Soundness gap: a regression test appended to a file that exists at merge base cannot be carried. At base, pytest then fails with 'not found' (exit 4), and the gate accepts that as defect evidence. Close this hole.",
-    "Suggested fix: let `carries` name branch-modified test and fixture files and overlay their branch content at base. Or fail the gate when the diff modifies a base-existing file that the regression command needs but carries does not cover. Pick one, fail closed.",
-    "Add a test in tests/test_bug_gate.py where the regression test is appended to a file that exists at base. Assert the gate does not pass.",
-    "Add a test where the merge-base run with the carries overlay passes (defect not reproduced). Assert `not run.passed` and that the finding names 'merge base with carries overlay'.",
-    "Add a test where the branch head still fails the regression. Assert `not run.passed` and that the finding names 'branch head'.",
-    "Stay inside the fence: no merge.py edits. run.md `## Outcome` must be one closed value such as `ok`. Rerun all three verification commands before handing off."
+    "Keep the BugEvidence gate, its Check-set wiring in stages.py, the tickets.py carries repo-relative lint, and the existing head-pass, base-fail and head-fail tests. Stay inside the fence and do not edit merge.py.",
+    "Fail closed on files the branch added. List the paths added between base and branch, not a filename guess. Every added path the regression needs must be covered by `carries`; otherwise the gate fails. Remove the `_is_test_path` heuristic as the only filter.",
+    "Simplest sound rule: every branch-added path outside the production fence edits must be carried. Add a test where the branch adds an uncarried non-test* input, such as a root conftest.py or data/case.json, and assert the gate fails.",
+    "Criterion 3 is still unproven. Add a `setup_replay` option that leaves the regression test file out of the base tree. Assert the gate fails when it is not carried, and passes only when it is carried and the base still fails.",
+    "run.md `## Outcome` must be one closed value such as `ok`. Rerun all three verification commands before handing off."
   ],
-  "reason": "Review found a fixable soundness hole (a missing test inside an existing file is accepted at base) and missing negative-path tests; the fixes are concrete and inside the fence.",
+  "reason": "Review found two fixable gaps: an untested absent-at-base criterion and a heuristic uncarried-file check that does not fail closed. The findings give a concrete paved road.",
   "detail": null
 }
