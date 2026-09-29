@@ -1,15 +1,18 @@
 {
-  "run_seq": 9,
+  "run_seq": 11,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "reject",
+  "verdict": "retry",
   "lessons": [
-    "Check failed on two requisition findings, not on pytest. Section 20 names tests/test_harness.py (go-grade-machinery) and tests/test_artifacts.py (exit-receipt-machinery) as existing embedded Context. Neither file is on main, and no earlier Phase 6 payload creates either one.",
-    "The committed harness's existing test is tests/test_eval_harness.py. The plan must either name that file as go-grade-machinery's Context and fence, or mark tests/test_harness.py as new and not Context.",
-    "exit-receipt-machinery must stop claiming tests/test_artifacts.py as existing Context. Either mark it new and not Context, or name the real existing artifact test on main.",
-    "This ticket's own Scope in carries both wrong paths, and it forbids inventing a Context partition. The fix is therefore outside the tickets/test fence: fix section 20 first, then regenerate this ticket and its seeds from the plan.",
-    "After the plan is fixed, keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes. Before claiming done, check every embedded Context path in every seed, including those carried for later rows, against main."
+    "Review snagged and every mechanical gate passed. Both findings are test-strength gaps inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed. Keep all the other pins as they are.",
+    "AC1: ON_DEMAND is only compared with CONTEXT, and neither is read from the tickets. For core-drift-activation and migrate-config, assert every ON_DEMAND path appears backticked in the ticket's 'measured on-demand' sentence in Scope in.",
+    "AC1: also assert set(CONTEXT[s]) | set(ON_DEMAND[s]) == set(FENCES[s]) and that the two sets are disjoint for both payloads. Assert the 'every other existing fence path is Context' clause is present.",
+    "AC2: in phase6-continue-02 Scope in, replace collapsed partition prose with backticked paths. Examples: 'ticket/gate parsers', 'Box/Triage seams', 'Daemon/Author roots', 'Existing harness/artifact modules', and escape-column's bare 'Context'.",
+    "AC2: extend REMAINING to (depends, fence, context, on_demand) path tuples for every payload. Split each segment at its Context and on-demand clauses, and assert the backticked path sets in each clause equal the tuple exactly.",
+    "Cover every remaining payload, not only the three the reviewer named. bug-gate-grammar and report-inbox-triage use the same generic phrasing and will snag next. Also pin the new/sibling-new paths that are excluded from Context.",
+    "Mutation-test before claiming done: in a scratch copy, move one path from Context to on-demand and drop one on-demand exception, and confirm each change fails the test. Then re-run the max-effort render bound after continue-02 grows.",
+    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes."
   ],
-  "reason": "The ticket's section 20 contract embeds two Context paths that are not on main, so it cannot be satisfied inside its fence; the plan must be fixed and the ticket regenerated.",
+  "reason": "Review snag on two concrete test-strength gaps fixable inside the fence; findings are narrowing each round and paved roads are explicit.",
   "detail": null
 }
