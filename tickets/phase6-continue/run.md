@@ -1,17 +1,15 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The fixed `core-drift-activation` fence excludes `squatch/__main__.py`, where
-the sole routing-to-conduct-file resolver lives. Recreating that resolver in a
-fenced module would create a second path that can drift from `core`.
+The corrected section 20 now explicitly fences the shared provider resolver
+and predecessor assertion migration, so the first row can be authored without
+duplicating a routing policy. The successor Context is the already-merged
+`tests/test_seeded_phase6_core.py`, not its sibling-new numbered test.
 
 ## Dead ends
-`tests/test_hostfiles.py::test_classifier_is_unreachable_from_production_gates`
-forbids any production module from importing or calling `classify`, but the
-required hard `core_drift` gate must consume that classifier. Migrating that
-predecessor assertion and fencing the routing seam require a section 20 change
-outside this ticket's fence.
+The full suite exceeds the interactive terminal report window; it was allowed
+to complete once in the worktree and exited 0.
 
 ## Second problems filed
 
@@ -19,4 +17,4 @@ outside this ticket's fence.
 OpenAI Codex; serving model identity unavailable.
 
 ## Predicted vs actual
-Expected 75m; actual about 5m.
+Expected 75m; actual about 20m.
