@@ -1,0 +1,82 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "b7c2aabcf63f23872dda1882f1fe70b917014df5",
+  "stem": "core-renderer",
+  "branch": "core-renderer",
+  "base": "b0b28251e6250ada8e4e02f7d700dbbc3f3ac9ff",
+  "head": "b7c2aabcf63f23872dda1882f1fe70b917014df5",
+  "changed_files": [
+    "squatch/__main__.py",
+    "squatch/hostfiles.py",
+    "tests/test_cli.py",
+    "tests/test_hostfiles.py",
+    "tests/test_verbs.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_hostfiles.py",
+            "tests/test_cli.py",
+            "tests/test_verbs.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
