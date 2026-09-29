@@ -1,18 +1,53 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "1aad71969c64b55dadeb30f958b9cce9501e11e5",
+  "produced_at_sha": "b194f6c6e531236678b913156aaedc32256e4e3c",
   "stem": "phase6-continue-02",
   "branch": "phase6-continue-02",
-  "base": "3e8f682f38979810ff1c53ac8644e6a95d2f0181",
-  "head": "1aad71969c64b55dadeb30f958b9cce9501e11e5",
+  "base": "c793956bb3274497aa55356c063abf7007555eba",
+  "head": "b194f6c6e531236678b913156aaedc32256e4e3c",
   "changed_files": [
-    "tests/test_seeded_phase6_02.py",
-    "tickets/fixture-host-scaffold/ticket.md",
-    "tickets/host-contract-doc/ticket.md",
-    "tickets/phase6-continue-03/ticket.md"
+    "tests/test_seeded_phase6_02.py"
   ],
   "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/fixture-host-scaffold/ticket.md",
+      "sha": "78959a3736508b5b10145e2db50615f26a390064",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/host-contract-doc/ticket.md",
+      "sha": "cd7d9be98bef084efd620074862777ca2a95c5d1",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase6-continue-03/ticket.md",
+      "sha": "24bda531566459babbba0a0c9bd17a90b3741240",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase6-continue-03/ticket.md",
+          "line": null,
+          "message": "base Implement render is 121903 chars against the 160000-char max-effort bound at 75% headroom",
+          "paved_road": "shrink the inputs or split the ticket"
+        }
+      ],
+      "commands": []
+    },
     {
       "code": "scope_fence",
       "verdict": "pass",
