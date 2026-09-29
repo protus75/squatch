@@ -1,0 +1,85 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "7793662e9a44e1b8d86fa8889ab542556b8034f0",
+  "stem": "host-contract-doc",
+  "branch": "host-contract-doc",
+  "base": "8e3fcb9d7a4b66bcd2f3919f00684ff5e0df0abe",
+  "head": "7793662e9a44e1b8d86fa8889ab542556b8034f0",
+  "changed_files": [
+    "docs/host-contract.md",
+    "tests/test_host_contract.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_host_contract.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "run_record",
+          "path": "tickets/host-contract-doc/run.md",
+          "line": null,
+          "message": "tickets/host-contract-doc/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
+          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
