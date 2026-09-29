@@ -1,13 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "run.md `## Outcome` must be exactly one closed value (e.g. `ok`), not `implemented`; the gate rejected only this.",
-    "Write tickets/host-contract-doc/run.md in the worktree with exactly the six required sections; the diff and both pytest commands were reported passing.",
-    "Keep the existing docs/host-contract.md and tests/test_host_contract.py content; only the run record needs fixing unless review finds otherwise."
+    "Review snag only. Make no other changes: the checks, fence, and YAML example all passed.",
+    "docs/host-contract.md: document the begin marker as `<!-- squatch:core begin version=<N> sha256=<64 hex> -->`, rendered by Squatch and never hand-written, to match squatch/hostfiles.py:83,100. Keep `<!-- squatch:core end -->`.",
+    "tests/test_host_contract.py: stop asserting the bare `<!-- squatch:core begin -->` literal. Assert the `<!-- squatch:core begin` prefix plus the `version=` and `sha256=` attributes.",
+    "Read squatch/hostfiles.py before you document any marker or format. Match the doc to the code that parses it.",
+    "Keep run.md `## Outcome` as exactly `ok` and keep the six required sections."
   ],
-  "reason": "The only gate finding was a run-record vocabulary oversight; the findings now steer the fix at the same capability.",
+  "reason": "A fixable doc/test mismatch with the managed-block marker in hostfiles.py; the review finding gives the exact fix.",
   "detail": null
 }
