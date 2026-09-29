@@ -1,35 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "1ab39037596609959cd11481cd5805d2a1930083",
+  "produced_at_sha": "2fc5acf79a495ceb97dd417e5a281a1880b916f3",
   "stem": "phase6-continue-04",
   "branch": "phase6-continue-04",
-  "base": "197e6da819cc7954d89cd8975317c2037fbb8b8f",
-  "head": "1ab39037596609959cd11481cd5805d2a1930083",
+  "base": "ae221ef846c83749f1261f0aeaba58a87e43ecd6",
+  "head": "2fc5acf79a495ceb97dd417e5a281a1880b916f3",
   "changed_files": [
     "tests/test_seeded_phase6_04.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/escape-column/ticket.md",
-      "sha": "e4a5378946b9455da029eeef8890bf5de65a42df",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase6-continue-05/ticket.md",
-      "sha": "71af17734a02d48ad1e742cfa12847314bc7f789",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
