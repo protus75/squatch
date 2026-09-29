@@ -1,15 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep the BugEvidence gate, its Check-set wiring in stages.py, the tickets.py carries repo-relative lint, and the existing head-pass, base-fail and head-fail tests. Stay inside the fence and do not edit merge.py.",
-    "Fail closed on files the branch added. List the paths added between base and branch, not a filename guess. Every added path the regression needs must be covered by `carries`; otherwise the gate fails. Remove the `_is_test_path` heuristic as the only filter.",
-    "Simplest sound rule: every branch-added path outside the production fence edits must be carried. Add a test where the branch adds an uncarried non-test* input, such as a root conftest.py or data/case.json, and assert the gate fails.",
-    "Criterion 3 is still unproven. Add a `setup_replay` option that leaves the regression test file out of the base tree. Assert the gate fails when it is not carried, and passes only when it is carried and the base still fails.",
-    "run.md `## Outcome` must be one closed value such as `ok`. Rerun all three verification commands before handing off."
+    "Keep the BugEvidence gate, its Check-set wiring in stages.py, the repo-relative carries lint in tickets.py, and every existing test in tests/test_bug_gate.py. Review found one fixable gap. Do not touch merge.py or any path outside the fence.",
+    "Fix at squatch/stages.py ~540: `git diff --name-only base...branch` also lists paths the branch deleted, and no `carries` prefix can ever cover them. Before computing `uncovered`, drop changed paths that are missing from the branch workspace. Intersect with the ls_files(workspace) result.",
+    "Fetch ls_files(workspace) once and reuse it for both `_carried_paths` and the filter on changed paths, so there is a single source of truth for what exists on the branch.",
+    "Add a test to tests/test_bug_gate.py where the branch renames a test: the old path appears in `changed`, is present at base and absent on the branch, and the new path is carried. Assert the gate passes. The ReplayGit stub already takes an arbitrary `changed` tuple.",
+    "Keep the fail-closed rule for every branch-added path that is not carried. Only deleted paths get exempted. Rerun all three verification commands. run.md `## Outcome` must be a single closed value such as `ok`."
   ],
-  "reason": "Review found two fixable gaps: an untested absent-at-base criterion and a heuristic uncarried-file check that does not fail closed. The findings give a concrete paved road.",
+  "reason": "The review snag is one concrete in-fence fix with a clear paved road (filter deleted paths out of `changed` and add a rename test); the rest of the diff was judged sound.",
   "detail": null
 }
