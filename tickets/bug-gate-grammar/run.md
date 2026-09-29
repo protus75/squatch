@@ -2,15 +2,14 @@
 ok
 
 ## Surprises / judgment calls
-The ticket grammar was already present. The hard gate is wired only into the Check-stage gate set; merge composition is outside this ticket's fence.
+The prior implementation was recoverable from branch history. I retained its modified-test carry check and added a fail-closed rule requiring every branch-added path, regardless of filename, to be covered by `carries`.
 
 ## Dead ends
-None.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI / GPT-5 Codex
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual about 35m.
+Expected: 75m. Actual: about 10m for this re-entry.
