@@ -1,9 +1,14 @@
 {
-  "run_seq": 5,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 6,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snag: the escape-column contract phrases are checked against _scope(\"phase6-continue-04\"). Check them against _scope(\"escape-column\") instead, following the per-stem CONTRACTS pattern in tests/test_seeded_phase6_03.py lines 101-103.",
+    "Every pinned phrase already appears verbatim in the authored escape-column Scope in, so the fix is a one-token swap. You may also keep a separate check that phase6-continue-04 still carries the phrases.",
+    "Nothing else failed. Requisition review passed for both authored seeds, and so did the scope fence, the verification run, the run record, the diff budget and the bug-evidence check. Keep the rest of tests/test_seeded_phase6_04.py and both authored tickets as they are.",
+    "The earlier lessons about an unfenced git.py, retro.py, __main__.py and test_mergequeue.py no longer apply. The current section 20 row fences all of them and names the attribution basis (app_commit plus the trailer pair), and requisition review passed."
+  ],
+  "reason": "The only failure is one review finding that the implementer can fix with a one-token change, and the review itself names the fix; the tickets and their contracts are valid.",
+  "detail": null
 }
