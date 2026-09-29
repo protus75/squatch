@@ -1,18 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Read SQUATCH_PLAN.md section 20 before writing anything. The fixture spec there defines the scenarios, the version-1 report schema, and escape attribution. This attempt took 12m of a 75m budget and missed all three.",
-    "bin/codex implement must write that scenario's canned file change into cwd (the worktree) before it prints agent_message. An empty diff can never merge. Key the author, implement and review answers by scenario, using the ticket stem or a marker in the prompt.",
-    "Test that the scripted implement call leaves a non-empty change in a temporary git worktree.",
-    "The escape defect must not be in the base app. Remove the machine-escape branch from app.py. Ship the escape as one named scenario ticket's canned implement diff, so it reaches main only through a machine merge that escape attribution can trace.",
-    "Rewrite both reports to the version-1 schema: origin self_diagnosed|player, summary, dedup signature, app commit/version, implicated paths (max 32), replay initial_state plus action log, and an optional log excerpt. The test must assert every field and the byte caps.",
-    "Guarantee zero spend inside the fixture itself. Add a launcher such as bin/fixture-serve that puts hosts/fixture/bin first on PATH, strips provider keys and execs serve. Test that shutil.which('codex') under that env resolves to the fixture script.",
-    "Do not leave the fixture root on sys.path or its app/replay modules in sys.modules. Use monkeypatch.syspath_prepend with delitem, or importlib spec_from_file_location under a unique name.",
-    "Keep the earlier lessons: parse the surface from the header and fail closed on unknown ones, match each surface's real contract, give exact byte counts, and create every replay file a report names. Change no engine module."
+    "replay.py main() must exit nonzero when any selected scenario's outcome is \"reproduced\". A Regression command that exits 0 at the merge base can never pass the section 13 bug gate. Read section 13's `## Regression`/`carries:` spec before editing.",
+    "Keep the always-on `fixture-replay` mechanical check green on the unfixed base. For example, have the no-arg run cover only scenarios expected to pass, or give it a mode that reports without failing. Only `--scenario report-to-regression` should go red while the defect exists.",
+    "In bin/codex's authored bug ticket, `carries:` must never name app.py, the file the fix changes. Have the canned implement add a regression test or fixture file inside the authored fence, point the Regression command at it, and carry only that file.",
+    "Add tests that run `bin/fixture-replay --scenario report-to-regression`: assert a nonzero exit on the unfixed copy and exit 0 after the scripted implement in the temp worktree. Also assert the authored ticket's `carries:` excludes app.py.",
+    "Keep everything that already passed review: the fence, header-parsed surfaces, per-scenario canned answers, exact report byte counts, the escape living only in the canned implement, and the fixture-serve PATH/key stripping. Change no engine module."
   ],
-  "reason": "Review found concrete fixable spec mismatches, each with a paved road; nothing shows the ticket is unsatisfiable or needs more capability, only that section 20 was not followed.",
+  "reason": "Review found two concrete, fixable defects with clear fixes (replay's exit code and the carries target). The fence, the checks, and the other acceptance points all passed, so a same-capability retry should close them.",
   "detail": null
 }
