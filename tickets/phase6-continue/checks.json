@@ -1,38 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e34392ad9dafaf40930eda0715776a0d065d6d6c",
+  "produced_at_sha": "f0236715bce070934596fa47929c52a55be8047d",
   "stem": "phase6-continue",
   "branch": "phase6-continue",
-  "base": "02a1290ec6f49a22a68f5e937ea611e9c15e8370",
-  "head": "e34392ad9dafaf40930eda0715776a0d065d6d6c",
+  "base": "9b4a5edc2aec541b27baa95574a293733ccba29f",
+  "head": "f0236715bce070934596fa47929c52a55be8047d",
   "changed_files": [
     "tests/test_seeded_phase6_01.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/core-drift-activation/ticket.md",
-      "sha": "ce20c7929805bacbe0645af60b021af988373267",
+      "sha": "b529019b7a28d609893845f403cfdbcf4f034ec2",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/core-drift-activation/ticket.md",
-          "line": 130,
-          "message": "The gate must use \"conduct-file paths resolved from routing\". The only existing resolver is inline in `__main__._core`: it runs Registry(config).candidates(route.tier, route.surface) over config.routing, keeps cli providers, and maps claude -> CLAUDE.md and everything else -> AGENTS.md. The fence is fixed by the plan to hostfiles, gates, config, and merge plus their tests, and excludes squatch/__main__.py. The gate is therefore forced either to hook a seam whose owning module is unfenced, or to copy the provider-to-filename mapping into a second resolver in hostfiles/gates. The copy breaks the no-dual-path rule and lets `core` and `core_drift` drift apart on which files they manage.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/core-drift-activation/ticket.md",
-          "line": null,
-          "message": "`test_classifier_is_unreachable_from_production_gates` asserts that no module in squatch/ imports `classify` from squatch.hostfiles or makes any `.classify(...)` attribute call. Activating the gate makes the drift logic reachable from production, which contradicts this test. No acceptance criterion names the migration. Separately, `test_rendering_has_no_git_or_commit_effect` pins hostfiles' imports to exactly {hashlib, re, typing}. That constrains where the gate and its routing lookup can live, and the ticket does not say so.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -40,7 +25,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/migrate-config/ticket.md",
-      "sha": "16c1ff90f3e24308c7750a525843bd1a3cb1ad9c",
+      "sha": "fceff3cfa244a6012fe6a1327c66664ea0da02d7",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -50,7 +35,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase6-continue-02/ticket.md",
-      "sha": "b5293e2ad35e8f92cd77ba4d19e4171b4bddcaf5",
+      "sha": "a304d79cae47c6affde11de82d57dbedf2a0504c",
       "bypassed": false,
       "findings": [],
       "commands": []
