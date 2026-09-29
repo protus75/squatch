@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "a89d7d6d1e0d1b3e816aaf49afddf3cc31b5c733",
+  "produced_at_sha": "0c2e952a725d012cae96c6ad4b74c3bb45b487b6",
   "stem": "bug-gate-grammar",
   "branch": "bug-gate-grammar",
-  "base": "c9b6f34f68ad3ff9cd21a08fa391d31dfade38b5",
-  "head": "a89d7d6d1e0d1b3e816aaf49afddf3cc31b5c733",
+  "base": "34ef1677a45d7952de04992960f0e0d83548c862",
+  "head": "0c2e952a725d012cae96c6ad4b74c3bb45b487b6",
   "changed_files": [
     "squatch/stages.py",
     "squatch/tickets.py",
