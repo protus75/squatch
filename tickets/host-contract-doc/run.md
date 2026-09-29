@@ -4,19 +4,22 @@ ok
 
 ## Surprises / judgment calls
 
-The scoped files were absent despite the prior-attempt note, so I recreated the contract from the cited section 15 source and retained the required bounded report-inbox and foreign-state boundaries.
+The managed-block begin marker is documented with its required `version` and
+`sha256` attributes and as Squatch-rendered, rather than as a hand-written
+bare marker.
 
 ## Dead ends
 
-The first focused test run exposed assertions sensitive to Markdown line wrapping; the tests now normalize prose whitespace where they verify narrative contract clauses.
+None.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI Codex / GPT-5
+OpenAI / GPT-5 (Codex).
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 15m.
+Expected 75m; actual about 15m.
