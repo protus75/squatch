@@ -2,17 +2,16 @@
 ok
 
 ## Surprises / judgment calls
-The cited section 20 now contains the closed Phase 5 exit evidence disposition
-and Phase 6 core registry, so the prior plan-contract blocker no longer
-applies. The authored ticket files are intentionally left uncommitted for the
-engine's ticket outbox lift.
+The terminal `phase5-exit` remains a future output of `phase5-continue-04`, so no
+same-admission exit ticket was created. Its contract is pinned by the continuation
+and seeded test.
 
 ## Dead ends
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI GPT-5
+OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected 75m; actual approximately 20m.
+Expected 75m; actual about 14m.
