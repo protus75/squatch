@@ -1,0 +1,15 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Criterion 4 needs a test that reads ticket.context. Follow test_context_partition_synthetic_sizes_and_render_headroom in tests/test_seeded_phase5_02.py and assert phase5-continue-04 context == ('tests/test_seeded_phase5_02.py',) and that the file exists.",
+    "Assert the admission's Context is disjoint from {tests/test_seeded_phase5_03.py, tests/test_seeded_phase5_04.py}. Pin phase5-exit's exact Context tuple, prove each path existed at authoring, and prove it is disjoint from the exit's new fence paths and tests/test_seeded_phase5_04.py.",
+    "The max-effort render proof must use the exit's declared Context, not an empty context block. Use a pinned EXISTING_AT_AUTHORING synthetic-size map and _context(_ticket(EXIT).context), then assert the render stays within RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM.",
+    "This ticket calls tests/test_seeded_phase5_03.py sibling-new. Before keeping it in phase5-exit's Context, confirm it is merged and existed at authoring, or drop it so the Definition of rejected is not tripped.",
+    "The authored phase5-exit text and the one-row terminal registry already passed review. Keep them and add only the missing Context and render assertions."
+  ],
+  "reason": "All gates passed and review found two fixable test omissions, each with an exact paved road. Same capability suffices.",
+  "detail": null
+}
