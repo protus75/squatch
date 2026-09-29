@@ -4,9 +4,8 @@ ok
 
 ## Surprises / judgment calls
 
-Restored the reviewed scoped seed artifacts from the prior local commit, then
-strengthened the seeded contract test to assert the doctor ticket's criteria
-explicitly cover both operator verbs.
+Restored the reviewed scoped seed artifacts from the prior local commit and
+corrected the merged continuation fixture to its measured 11,383-byte size.
 
 ## Dead ends
 
@@ -22,4 +21,4 @@ OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 8m.
+Expected 75m; actual about 6m.
