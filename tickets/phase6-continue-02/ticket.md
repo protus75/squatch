@@ -89,6 +89,26 @@ triage author `kind: bug` tickets whose evidence and `## Regression` survive
 intake. `phase6-continue-04` depends on both `bug-gate-grammar` and
 `report-inbox-triage`.
 
+Every numbered continuation passes this same custody rule forward: it owns
+only `tickets` plus its matching new `tests/test_seeded_phase6_<nn>.py`,
+embeds the immediately preceding merged Phase 6 seeded test as its sole
+Context, depends on every payload in its row, and carries the shrinking
+suffix. The exact remaining continuation partitions are:
+`phase6-continue-03` owns only `tickets` plus new
+`tests/test_seeded_phase6_03.py` and has sole Context
+`tests/test_seeded_phase6_02.py`; `phase6-continue-04` owns only `tickets`
+plus new `tests/test_seeded_phase6_04.py` and has sole Context
+`tests/test_seeded_phase6_03.py`; `phase6-continue-05` owns only `tickets`
+plus new `tests/test_seeded_phase6_05.py` and has sole Context
+`tests/test_seeded_phase6_04.py`; `phase6-continue-06` owns only `tickets`
+plus new `tests/test_seeded_phase6_06.py` and has sole Context
+`tests/test_seeded_phase6_05.py`; `phase6-continue-07` owns only `tickets`
+plus new `tests/test_seeded_phase6_07.py` and has sole Context
+`tests/test_seeded_phase6_06.py`; and `phase6-continue-08` owns only `tickets`
+plus new `tests/test_seeded_phase6_08.py` and has sole Context
+`tests/test_seeded_phase6_07.py`. `phase6-continue-03` passes this same rule
+forward for every later numbered continuation.
+
 `escape-column` depends on both `bug-gate-grammar` and
 `report-inbox-triage`, owns/fences `squatch/scorecard.py`, `squatch/git.py`,
 `tests/test_scorecard.py`, and `tests/test_git.py`. `squatch/git.py` and
