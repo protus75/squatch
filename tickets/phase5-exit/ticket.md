@@ -63,6 +63,14 @@ invented. The seeded proof renders this exit and all Phase 6 seeds at max effort
 within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`; none cites or renders
 section 19.
 
+Delete any prior uncommitted `core-renderer`, `core-drift-classifier`, or
+`phase6-continue` output before authoring the batch. The regenerated
+`phase6-continue` and its seeded proof must copy section 20's complete Phase 6
+remaining-row contracts: every direct edge through `phase6-continue-08`, exact
+owner/fence and Context/on-demand partition, behavior boundary, shrinking
+suffix, and terminal `phase6-exit` custody. Naming a row without those fixed
+contracts is rejected.
+
 ## Scope out
 Do not implement an exit feature, read a live journal, accept a manual report,
 write a report, edit engine code, invent a Phase 6 boundary, or add a successor
@@ -78,6 +86,7 @@ after `phase5-exit`.
 - `tests/test_phase5_exit.py` proves the forced pre-phase-exit `retro-drain-invoker` producer and rejects a manual `retro` report.
 - `tests/test_seeded_phase6_core.py` pins the exact Phase 6 core identities, edges, tiers, section-20-only citations, ownership, Context partitions, remaining rows, and max-effort render headroom.
 - `tests/test_seeded_phase6_core.py` proves `phase6-continue` embeds merged `tests/test_seeded_phase5_04.py` and excludes same-admission and sibling-new paths.
+- `tests/test_seeded_phase6_core.py` proves `phase6-continue` carries every section 20 remaining-row direct edge, exact owner/fence, Context/on-demand partition, behavior contract, continuation tail through `phase6-continue-08`, and terminal `phase6-exit` custody without invention.
 
 ## Verification
 ```
