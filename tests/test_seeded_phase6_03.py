@@ -28,8 +28,9 @@ FENCES = {
         "tests/test_tickets.py", "tests/test_gates.py", "tests/test_bug_gate.py"),
     "report-inbox-triage": (
         "squatch/inbox.py", "squatch/box.py", "squatch/triage.py",
-        "squatch/author.py", "squatch/daemon.py", "tests/test_box.py",
-        "tests/test_triage.py", "tests/test_author.py", "tests/test_inbox.py"),
+        "squatch/author.py", "squatch/daemon.py", "squatch/serve.py", "tests/test_box.py",
+        "tests/test_triage.py", "tests/test_author.py", "tests/test_serve.py",
+        "tests/test_inbox.py"),
     "phase6-continue-04": ("tickets", "tests/test_seeded_phase6_04.py"),
 }
 CONTEXT = {
@@ -41,7 +42,8 @@ ON_DEMAND = {
     "bug-gate-grammar": ("squatch/tickets.py", "squatch/stages.py", "tests/test_tickets.py"),
     "report-inbox-triage": (
         "squatch/triage.py", "squatch/author.py", "squatch/daemon.py",
-        "tests/test_author.py", "tests/test_triage.py"),
+        "squatch/serve.py", "tests/test_author.py", "tests/test_triage.py",
+        "tests/test_serve.py"),
 }
 EXISTING_FENCE = {
     "bug-gate-grammar": FENCES["bug-gate-grammar"][:-1],
