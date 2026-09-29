@@ -1,15 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Requisition review of the authored escape-column seed found the section 20 row's fence cannot deliver its goal: attribution needs new RetroWindow fields folded in squatch/retro.py, which is outside the fence.",
-    "The Git squash-trailer read has no production caller. Its callers, squatch/__main__.py _status and squatch/retro.py report render, call project_scorecard(window) and are unfenced, so escapes would stay zero.",
-    "Neither the plan nor bug_report records define the attribution basis: which field names the implicated merged ticket or commit range, or which squash trailer keys the read returns.",
-    "The implementer cannot widen the fence, because this ticket must carry the section 20 contract verbatim and rejects changed contracts. Fix the plan's section 20 escape-column row first, then regenerate phase6-continue-04.",
-    "The authored tests/test_seeded_phase6_04.py passed locally and is reusable once the plan fixes the escape-column fence, callers, and attribution basis; its pinned phrases must follow the revised row."
-  ],
-  "reason": "Requisition review showed that the plan's escape-column contract, which this ticket must copy exactly, cannot be built within its fence and has no defined attribution basis, so the plan needs fixing before any re-author.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
