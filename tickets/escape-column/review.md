@@ -1,15 +1,14 @@
 ---
-verdict: snag
-reviewed_sha: 70003a67c47e3819f66ac80ceecd2ebde27dcf49
+verdict: approve
+reviewed_sha: 6fa2f9b13646bcac6d7b69ae552dc38962d981a3
 produced_by_spec_version: '1.0'
-produced_at_sha: 70003a67c47e3819f66ac80ceecd2ebde27dcf49
+produced_at_sha: 6fa2f9b13646bcac6d7b69ae552dc38962d981a3
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-Scorecard dedup and the per-SHA first-parent trailer check are sound. Two problems block merge: the range form of `app_commit` is implemented as the literal string `BASE..HEAD` and collapses to at most one ticket, which contradicts the plan's bounded-range attribution; and the scorecard test cannot detect whether fail, bypass, foreign-history or unattributed data is excluded.
+The diff meets every acceptance criterion and stays inside the scope fence. The Git operation takes only a lowercase SHA or SHA range on HEAD's first-parent line with exactly one valid trailer pair. Status and Retro pass immutable (signature, ticket) tuples into RetroWindow. The scorecard stays a pure projection and counts each passed, non-bypassed report/ticket/surface once. The check report is green.
 
 ## Findings
-- correctness_review at squatch/git.py:191: `escape_tickets` treats the range form as the exact string "BASE..HEAD". It walks the whole first-parent history of HEAD and returns a ticket only when exactly one trailer exists in the entire history. The plan (section 14 ESCAPE, section 20 escape-column) defines `BASE..HEAD` as a bounded range of merged tickets: the escape is counted against the surfaces that passed the range's merges. So (a) real range evidence such as `<sha>..<sha>` is always unattributed, (b) the literal form only works in a repo that has exactly one squatch merge ever, and (c) a bounded range covering several merges returns () instead of one attribution per merged ticket. The comment at the end of the method says outright that it declines to attribute a range to more than one ticket. `test_escape_ticket_range_refuses_multiple_or_foreign_first_parent_candidates` pins this wrong behaviour. I am uncertain only about whether host evidence could ever carry the literal placeholder. Nothing in the fixture or the plan suggests it can. (paved road: Parse `app_commit` as either one lowercase SHA or `<sha>..<sha>` (both sides matching the SHA grammar). For a range, require both endpoints to be on HEAD's first-parent line with the base before the head. Select the first-parent commits in (base, head] with `rev-list --first-parent base..head` and check they are HEAD first-parent ancestors. Return every commit's valid single-pair trailer ticket (commits without a valid pair are skipped). Return () for malformed or foreign endpoints. Update the range tests to use a SHA range that covers two merges and expect both tickets, plus a foreign-endpoint case.)
-- correctness_review at tests/test_scorecard.py:86: Acceptance criterion 2 is only partly proven. In `test_scorecard_counts_each_passing_report_ticket_surface_escape_once`, the fail observation (`check/merged/2`) and the bypassed observation (`check/merged/3`) belong to the same ticket and surface that already has passing observations. The (signature, ticket, surface) dedup therefore gives escapes == 2 whether or not `project_scorecard` filters `verdict != "pass"` or `bypassed`: deleting that filter leaves the test green. The test also has no foreign-history case and no unattributed case. The only exclusion it really exercises is 'absent' (`report-c`/`missing`), plus duplicates. (paved road: Add surfaces or tickets whose only observations are fail (for example `fail_only`) or bypassed (for example `bypass_only`), attribute a report to each, and assert their escapes == 0. Show that foreign or unattributed evidence contributes nothing to the scorecard: an attribution tuple for a ticket that is not in the window's check observations, and a window with an empty `escape_attributions`, both leave escapes at 0. Keep the existing duplicate assertion.)
+- none
