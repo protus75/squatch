@@ -284,3 +284,5 @@ def test_phase6_remaining_registry_closes_contracts_paths_and_edges():
     assert "The sole supported older schema is version 0" in section20
     assert "changes only that scalar to integer 1 and keeps every other key byte-for-byte" in section20
     assert "A valid current version-1 file is a byte-identical no-op" in section20
+    assert "sibling-new `docs/host-contract.md` is excluded at authoring" in section20
+    assert "the directory `hosts/fixture/` is a named measured on-demand worktree read" in section20

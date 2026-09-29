@@ -99,7 +99,9 @@ profile, miniature deterministic app, replay-runner command, closed scenario
 list, bounded version-1 report fixtures, one merge-base regression defect, one
 machine-introduced escape scenario, and a scripted agent-CLI provider row
 serving Author/Implement/Review at zero model spend. It changes no engine
-module; `docs/host-contract.md` is its sole Context.
+module and has no embedded Context: sibling-new `docs/host-contract.md` is
+excluded at authoring and becomes an ordinary worktree read after its required
+`host-contract-doc` dependency merges.
 
 `phase6-continue-03` depends on both `host-contract-doc` and
 `fixture-host-scaffold`. It authors row 3.
@@ -185,8 +187,9 @@ host-loop harness launches supervised `serve` as a subprocess against
 and records per-member `(member, driven scenario, observable, producing run)`
 evidence for at least three machine-ticket merges, the report-to-regression bug
 loop, and escape attribution. The machinery never produces terminal artifacts
-during its own build; existing artifact code/tests and `hosts/fixture/` are
-Context.
+during its own build. Existing artifact code/tests are embedded Context; the
+directory `hosts/fixture/` is a named measured on-demand worktree read and is
+never an embedded Context entry.
 
 `phase6-continue-08` depends on `exit-receipt-machinery`. It authors the
 terminal row.
