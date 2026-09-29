@@ -1,13 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "The only failing gate was run_record: `## Outcome` said 'implemented'. It must be exactly one closed value. Here that is `ok`. Do not copy the provider response's verdict word into run.md.",
-    "Keep the committed diff. It has the shared providers.conduct_files resolver used by both _core and CoreDrift, the AST-read branch CORE, and the CoreDrift gate in the merge regate tuple. The run reports that both verification suites passed.",
-    "Keep the run.md sections in this exact order: Outcome, Surprises / judgment calls, Dead ends, Second problems filed, Resolved engine/model, Predicted vs actual. Rerun both verification commands after editing run.md."
+    "Keep the committed diff: providers.conduct_files shared by _core and CoreDrift, CoreDrift in the merge regate tuple, the marker-refusal and remainder tests, and run.md with Outcome `ok`. Every mechanical gate passed. Review raised only the one host-repo defect.",
+    "Fix: _branch_core always reads <worktree>/squatch/hostfiles.py. A host worktree has no such file, so the gate crashes on every adopted host and no release path exists. A host could also plant that file to choose its own template.",
+    "Pick the template source by target. Read the candidate branch's CORE via AST only when the merge target is the engine repo. Otherwise use the engine's imported hostfiles.CORE. merge.py has no self-target flag today, so Merge must pass the source into CoreDrift(config, ...).",
+    "Add a test: an adopted CLAUDE.md in a workspace with no squatch/hostfiles.py gets a pass/fail verdict from classify, not a crash. Also test that a host-planted squatch/hostfiles.py is ignored when the target is not the engine repo.",
+    "Stay inside the fence: gates.py, merge.py and the tests. Keep hostfiles.py's pure import set and test_rendering_has_no_git_or_commit_effect. Rerun both verification commands after the change."
   ],
-  "reason": "Fixable run-record vocabulary oversight: Outcome 'implemented' is not in the closed set; the implementation itself appears complete.",
+  "reason": "Review found one fixable correctness defect, a host-repo crash in the template source. Everything else passed and is accepted, so the same capability can fix it in place.",
   "detail": null
 }
