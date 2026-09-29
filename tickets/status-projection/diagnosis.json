@@ -1,9 +1,16 @@
 {
-  "run_seq": 2,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 3,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Keep the existing diff; do not redesign. Checks are green and the reviewer accepted the three additive fields, the render, and the scorecard wiring. Fix only the `merged` fold and the spec-path finding.",
+    "In squatch/status.py, track each stem's latest TERMINAL transition separately, updating it only when body['to'] is in TERMINAL_RUN_STATES. Derive `merged` from that, not from `latest`, which also holds non-terminal transitions such as `running`.",
+    "Add test_status.py cases: stem journaled merged then running stays in `merged` and out of `in_flight`/blocking dependents; stem journaled merged then a later non-merged terminal state leaves `merged`.",
+    "The attempt 1 reviewer flagged `_status` loading `cwd / 'specs' / 'retro.md'`, the host checkout. Specs are engine-plane: the `retro` verb loads `ENGINE_ROOT / 'specs' / 'retro.md'`. Use that path so hosts without specs/ don't refuse and version provenance can't be faked.",
+    "If you switch to ENGINE_ROOT, remove the RETRO_SPEC fixture and the specs/retro.md seeding from test_cli.py. Test the version by monkeypatching the engine spec path or load_spec, not by editing a host file. Keep the refusal test for an unreadable spec.",
+    "Run the full `uv run pytest -q` suite on the committed branch and confirm it exits 0 before writing `ok` in run.md."
+  ],
+  "reason": "Checks green. The only open review finding is a narrow fold bug with an explicit paved road: a fixable oversight, so rerun at the same capability.",
+  "detail": null
 }
