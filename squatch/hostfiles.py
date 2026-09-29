@@ -2,6 +2,7 @@
 
 import hashlib
 import re
+from typing import Literal
 
 VERSION = 1
 # Section 17's seed becomes the first engine-owned template. Never read a
@@ -84,6 +85,8 @@ _BEGIN = re.compile(
 )
 _END = re.compile(r"^<!-- squatch:core end -->(?=\n|\Z)", re.MULTILINE)
 
+DriftState = Literal["missing", "current", "drifted", "refused"]
+
 
 class ManagedBlockRefusal(ValueError):
     """Corrupt or unsupported ownership markers cannot be safely rewritten."""
@@ -114,3 +117,14 @@ def render(content: str, core: str = CORE) -> str:
     if begin.group(1) != str(VERSION):
         raise ManagedBlockRefusal("unsupported core version; use the matching engine version")
     return content[:begin.start()] + block + content[end.end():]
+
+
+def classify(content: str, core: str = CORE) -> DriftState:
+    """Classify managed ownership without changing any host-file bytes."""
+    try:
+        rendered = render(content, core)
+    except ManagedBlockRefusal:
+        return "refused"
+    if not _MARKER_LIKE.search(content):
+        return "missing"
+    return "current" if rendered == content else "drifted"

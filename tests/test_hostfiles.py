@@ -3,11 +3,13 @@
 import ast
 import hashlib
 import inspect
+from pathlib import Path
+from typing import get_args
 
 import pytest
 
 from squatch import hostfiles
-from squatch.hostfiles import ManagedBlockRefusal, managed_block, render
+from squatch.hostfiles import DriftState, ManagedBlockRefusal, classify, managed_block, render
 
 
 @pytest.mark.parametrize("project", ["", "no trailing newline", "# Host\r\n\r\n café\t\r\n", "\ufeffheader\n"])
@@ -59,6 +61,48 @@ def test_marker_like_core_is_refused_on_the_first_render(core):
         render("unmarked project", core)
 
 
+def test_classifier_has_exactly_the_closed_drift_states():
+    assert set(get_args(DriftState)) == {"missing", "current", "drifted", "refused"}
+    assert classify("project", "core") == "missing"
+    current = render("project-owned remainder\r\n", "core")
+    assert classify(current, "core") == "current"
+    assert classify(current.replace("core\n", "changed core\n"), "core") == "drifted"
+    assert classify("<!-- squatch:core begin -->\n", "core") == "refused"
+
+
+@pytest.mark.parametrize("content", [
+    "squatch:core", "<!-- squatch:core begin -->\n", "<!-- squatch:core end -->",
+    managed_block("old").split("\n", 1)[0] + "\nunterminated",
+    managed_block("old") + "\n" + managed_block("old"),
+])
+def test_classifier_inherits_renderer_refusal_for_marker_like_text(content):
+    assert classify(content, "new") == "refused"
+
+
+def test_classifier_preserves_project_owned_remainder_and_is_pure():
+    project = "prefix\r\n" + managed_block("old") + "\n\nsuffix\t\r\n"
+    before = project.encode()
+    assert classify(project, "new") == "drifted"
+    assert project.encode() == before
+    current = render(project, "new")
+    assert current.startswith("prefix\r\n")
+    assert current.endswith("\n\nsuffix\t\r\n")
+    assert classify(current, "new") == "current"
+
+
+def test_classifier_is_unreachable_from_production_gates():
+    root = Path(hostfiles.__file__).parent
+    for path in root.glob("*.py"):
+        if path.name == "hostfiles.py":
+            continue
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "squatch.hostfiles":
+                assert all(alias.name != "classify" for alias in node.names)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                assert node.func.attr != "classify"
+
+
 def test_rendering_has_no_git_or_commit_effect():
     tree = ast.parse(inspect.getsource(hostfiles))
     imports = set()
@@ -67,8 +111,9 @@ def test_rendering_has_no_git_or_commit_effect():
             imports.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
             imports.add(node.module)
-    assert imports == {"hashlib", "re"}
+    assert imports == {"hashlib", "re", "typing"}
     assert not any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
                    and node.func.id in {"open", "eval", "exec", "__import__"}
                    for node in ast.walk(tree))
     assert isinstance(render("project", "core"), str)
+    assert isinstance(classify("project", "core"), str)
