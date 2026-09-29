@@ -170,13 +170,13 @@ test is not Context.
 
 `go-grade-machinery` depends on both `supervised-merge-hold` and
 `fixture-host-scaffold` and owns/fences `eval/harness.py`,
-`squatch/artifacts.py`, `tests/test_harness.py`, and new
+`squatch/artifacts.py`, `tests/test_eval_harness.py`, and new
 `tests/test_go_grade.py`. It extends the committed harness to at least 50
 planted defects under the fixed USD 5.00 cap, runs the harness-local Author
 prompt, records the authored tickets and dependency graph in one closed
 report, and adds operator-only `--record-go`; production
 `specs/author.md` is never used. Existing harness/artifact modules and
-`tests/test_harness.py` are Context.
+`tests/test_eval_harness.py` are Context.
 
 `go-grade-run` depends on `go-grade-machinery`, changes no code, and
 owns/fences only `tickets/go-grade-run/review-baseline-report.json`. It
@@ -190,14 +190,15 @@ result. Its Context is `eval/harness.py` and `squatch/artifacts.py`.
 
 `exit-receipt-machinery` depends on `go-grade-run` and owns/fences
 `squatch/artifacts.py`, new `eval/host_loop.py`, new
-`tests/test_host_loop.py`, and `tests/test_artifacts.py`. It registers
+`tests/test_host_loop.py`, and `tests/test_gates.py`. It registers
 closed writers for `host-loop-report.json` and `exit-receipt.json`; the
 host-loop harness launches supervised `serve` as a subprocess against
 `hosts/fixture/`, drives machine-actor confirms through the control inbox,
 and records per-member `(member, driven scenario, observable, producing run)`
 evidence for at least three machine-ticket merges, the report-to-regression bug
 loop, and escape attribution. The machinery never produces terminal artifacts
-during its own build. Existing artifact code/tests are embedded Context; the
+during its own build. Existing artifact code/tests `squatch/artifacts.py` and
+`tests/test_gates.py` are embedded Context; the
 directory `hosts/fixture/` is a named measured on-demand worktree read and is
 never an embedded Context entry.
 

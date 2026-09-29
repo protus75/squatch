@@ -114,10 +114,10 @@ holds the bootstrap self-build. `phase6-continue-06` depends on
 
 `go-grade-machinery` depends on both `supervised-merge-hold` and
 `fixture-host-scaffold`, owns/fences `eval/harness.py`,
-`squatch/artifacts.py`, `tests/test_harness.py`, and new
+`squatch/artifacts.py`, `tests/test_eval_harness.py`, and new
 `tests/test_go_grade.py`; existing harness/artifact modules and
-`tests/test_harness.py` are Context: exactly `eval/harness.py`,
-`squatch/artifacts.py`, and `tests/test_harness.py`. It extends the committed harness to at
+`tests/test_eval_harness.py` are Context: exactly `eval/harness.py`,
+`squatch/artifacts.py`, and `tests/test_eval_harness.py`. It extends the committed harness to at
 least 50 planted defects under the fixed USD 5.00 cap, runs the harness-local
 Author prompt, records the authored tickets and dependency graph in one closed
 report, and adds operator-only `--record-go`; production `specs/author.md` is
@@ -130,8 +130,8 @@ operator may turn an earned result into GO, so NO-GO is valid.
 
 `exit-receipt-machinery` depends on `go-grade-run`, owns/fences
 `squatch/artifacts.py`, new `eval/host_loop.py`, new
-`tests/test_host_loop.py`, and `tests/test_artifacts.py`. Existing artifact
-code/tests `squatch/artifacts.py` and `tests/test_artifacts.py` are embedded Context;
+`tests/test_host_loop.py`, and `tests/test_gates.py`. Existing artifact
+code/tests `squatch/artifacts.py` and `tests/test_gates.py` are embedded Context;
 `hosts/fixture/` is a named measured on-demand
 worktree read and is never an embedded Context entry. It registers closed
 writers for `host-loop-report.json` and `exit-receipt.json`; the host-loop
