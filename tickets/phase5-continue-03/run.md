@@ -4,8 +4,8 @@ ok
 
 ## Surprises / judgment calls
 
-Restored the reviewed scoped seed artifacts from the prior local commit and
-corrected the merged continuation fixture to its measured 11,383-byte size.
+Restored the previously reviewed scoped seed artifacts, keeping the two authored
+ticket outbox files uncommitted and pinning the merged fixture at 11,383 bytes.
 
 ## Dead ends
 
@@ -21,4 +21,4 @@ OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
 
-Expected 75m; actual about 6m.
+Expected 75m; actual about 5m.
