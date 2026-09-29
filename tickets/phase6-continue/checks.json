@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "f0236715bce070934596fa47929c52a55be8047d",
+  "produced_at_sha": "76593337494fd75a8f199e2a040292ad7c03fce0",
   "stem": "phase6-continue",
   "branch": "phase6-continue",
-  "base": "9b4a5edc2aec541b27baa95574a293733ccba29f",
-  "head": "f0236715bce070934596fa47929c52a55be8047d",
+  "base": "4de40c0b4ab1faf73841d0c6ab915067bf2e0e78",
+  "head": "76593337494fd75a8f199e2a040292ad7c03fce0",
   "changed_files": [
     "tests/test_seeded_phase6_01.py"
   ],
@@ -14,28 +14,8 @@
       "code": "requisition_review",
       "verdict": "pass",
       "severity": "hard",
-      "path": "tickets/core-drift-activation/ticket.md",
-      "sha": "b529019b7a28d609893845f403cfdbcf4f034ec2",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/migrate-config/ticket.md",
-      "sha": "fceff3cfa244a6012fe6a1327c66664ea0da02d7",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
       "path": "tickets/phase6-continue-02/ticket.md",
-      "sha": "a304d79cae47c6affde11de82d57dbedf2a0504c",
+      "sha": "50bf4b74e152375570ddb00c0f7be65423378c2d",
       "bypassed": false,
       "findings": [],
       "commands": []
