@@ -1,0 +1,15 @@
+---
+verdict: snag
+reviewed_sha: f0236715bce070934596fa47929c52a55be8047d
+produced_by_spec_version: '1.0'
+produced_at_sha: f0236715bce070934596fa47929c52a55be8047d
+provider: claude
+model: opus
+artifact_schema_version: 1
+---
+## Summary
+The test pins row 1 and the render bound properly, but it does not meet acceptance criterion 2 for the remaining rows. It checks only a few loose phrases, so the exact fences, Context/on-demand partitions and most direct edges from row 3 on are never pinned. The committed phase6-continue-02 ticket it passes against has already reduced several of those fences to vague summaries.
+
+## Findings
+- correctness_review at tests/test_seeded_phase6_01.py:140: Acceptance criterion 2 requires the test to pin every remaining row's direct edges, exact owner/fence, Context/on-demand partition and behavior contract through phase6-continue-08. `test_remaining_rows_contracts_suffix_known_deep_and_terminal_custody` only checks phrases in continue-02's Scope in. It checks the exact fence of phase6-exit alone. It never checks the fences of report-inbox-triage (inbox/box/triage/author/daemon plus the four tests), bug-gate-grammar (tickets/gates/stages plus tests/test_tickets.py, tests/test_gates.py, tests/test_bug_gate.py), escape-column (scorecard/git plus their tests), supervised-merge-hold (13 paths), go-grade-machinery or exit-receipt-machinery. It does not check any on-demand partition: stages.py for bug-gate-grammar, the Daemon/Author roots for report-inbox-triage, git.py and tests/test_git.py for escape-column. It also omits the direct edges report-inbox-triage->bug-gate-grammar, escape-column->{bug-gate-grammar, report-inbox-triage}, go-grade-run->go-grade-machinery, and every phase6-continue-NN edge from 03 to 08. The test passes today because the authored continue-02 ticket replaced those exact paths with prose such as 'ticket/gate parser paths', 'Box/Triage/Author/Daemon seams and focused tests' and 'scorecard/Git and their tests'. That is the incomplete row contract the Definition of rejected names. (paved road: Add a table like REMAINING = {stem: (depends, fence, context, on_demand, tier)} covering every payload in SUFFIX[1:]. Assert that each exact edge, fence path, Context path and on-demand path appears in backticks in continue-02's Scope in. Fix tickets/phase6-continue-02/ticket.md, which is inside the `tickets` fence, so it states every row's exact paths and partitions from this ticket's Scope in instead of the collapsed prose.)
+- correctness_review at tests/test_seeded_phase6_01.py:160: Acceptance criterion 5 requires proof that phase6-exit writes ONLY its two receipts and the focused proof. The test checks that the three paths appear somewhere in the text. It never checks that phase6-exit's fence is exactly those three paths, so adding a fourth fenced path would still pass. (paved road: Take the phase6-exit fence sentence from continue-02's Scope in and assert that its set of backticked paths equals exit_fence exactly. Also assert that 'no Context' and 'no engine-code edit' are present.)
