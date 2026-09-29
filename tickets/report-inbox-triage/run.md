@@ -1,21 +1,21 @@
 ## Outcome
-implemented
+premise_failed
 
 ## Surprises / judgment calls
 
-Invalid reports are quarantined individually so they cannot block later reports or the sequential triage pass. The live Box consumer reads reports from `<state_dir>/inbox` using the explicit `*.report.json` report suffix.
+The production Box loop is owned by `squatch/serve.py`, which is outside the scope fence. Its pending-Box guard prevents an inbox-only host report from ever reaching the fenced `inbox_consumer`.
 
 ## Dead ends
 
-None.
+Implemented and focused-tested the fenced intake path, but production wiring requires changing `squatch/serve.py`; the scope fence forbids that change.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity not exposed to the worker).
+OpenAI Codex
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 45m.
+Expected: 75m. Actual: approximately 25m before the scope conflict was established.
