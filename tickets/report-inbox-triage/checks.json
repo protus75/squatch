@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "f7446e1d80c5bc65bfa498aa2017b3a3c7275104",
+  "produced_at_sha": "62298b037750a907f6a543365862e1380c65e457",
   "stem": "report-inbox-triage",
   "branch": "report-inbox-triage",
-  "base": "a22a75c2be6b8ff96b8f0922ec69f915344a95ab",
-  "head": "f7446e1d80c5bc65bfa498aa2017b3a3c7275104",
+  "base": "28805302e3870d5c2c8d20d984ff33187760778c",
+  "head": "62298b037750a907f6a543365862e1380c65e457",
   "changed_files": [
     "squatch/author.py",
     "squatch/box.py",
