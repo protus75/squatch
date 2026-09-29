@@ -1,15 +1,15 @@
 {
-  "run_seq": 2,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "reject",
+  "verdict": "retry",
   "lessons": [
-    "Requisition review failed on the plan, not the diff: section 20 fences retro-doctor-cli but never specifies its behavior (verbs, output, exit codes, reads). A seed that cites only section 20 therefore has no contract to implement.",
-    "Sections 18, 19 and 20 disagree about what doctor is. Section 18 calls it a mechanical self-check (venv, git, config, lock, journal). Section 19 says Phase 5 adds both retro and doctor verbs. The authored ticket made doctor a retro-window view and left out the retro verb.",
-    "Fix section 20 first: give retro-doctor-cli a closed behavior contract (the verbs to add to __main__.py, their output, exit codes and allowed reads), in line with sections 18 and 19. Then re-author phase5-continue-03 from the fixed plan.",
-    "The doctor seed's acceptance criteria must test feature behavior. Checks on the Context/on-demand partition and synthetic byte sizes belong in tests/test_seeded_phase5_03.py, not in tests/test_doctor.py.",
-    "Keep the prior lessons: don't create tickets/phase5-exit/ticket.md. Context stays squatch/retro.py and tests/test_retro.py for the doctor, and only tests/test_seeded_phase5_02.py for continue-04."
+    "Check failed: requisition_review at tickets/retro-doctor-cli/ticket.md:69. The meta criterion 'Feature criteria cover both operator verbs; Context partition... asserted only by tests/test_seeded_phase5_03.py' names no command from that ticket's Verification section.",
+    "Remove that meta criterion from the doctor ticket. Each doctor criterion must be a feature behavior that names one of tests/test_doctor.py, test_retro.py, test_cli.py or test_verbs.py, and that path must be run by the ticket's Verification commands.",
+    "Invert the last seeded-test assertion: tests/test_seeded_phase5_03.py should assert that the doctor's Acceptance criteria do NOT mention partition, sizes, headroom or test_seeded_phase5_03.py. Do not require that text to be present in the ticket.",
+    "Before finishing, check every authored acceptance criterion: it must quote in backticks a path or command that the same ticket's Verification section runs. Then rerun the focused suite and the full suite.",
+    "Keep the prior lessons: do not create tickets/phase5-exit/ticket.md. The doctor's Context stays squatch/retro.py and tests/test_retro.py; continue-04's Context stays tests/test_seeded_phase5_02.py only."
   ],
-  "reason": "The ticket requires a seed citing section 20 alone, but section 20 gives retro-doctor-cli no behavior contract and the plan contradicts itself about doctor, so only a plan fix (outside this fence) can unblock it.",
+  "reason": "A fixable authoring oversight: one meta acceptance criterion in the doctor seed has no Verification command. The plan and scope are now sound, so retry at the same capability.",
   "detail": null
 }
