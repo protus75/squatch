@@ -3,14 +3,13 @@ ok
 
 ## Surprises / judgment calls
 The row-one seed files already existed in the ticket plane, while the required
-guard did not. I retained their exact scope and Context partitions, added the
-guard, and repaired the carried row-two contract with the missing host-loop
-subprocess, evidence tuple, terminal producer, and forbidden-input clauses.
+guard did not. I retained their scope and added a guard that ties every
+partition to the relevant authored Context or on-demand clause.
 
 ## Dead ends
 The first exact-edge parser selected introductory mentions of a stem instead
 of its dependency clause. It was narrowed to the clause beginning with
-`depends on`.
+`depends on`; the full suite required a second wait for its asynchronous run.
 
 ## Second problems filed
 
