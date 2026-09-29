@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Before rendering, managed_block must refuse any `core` whose text matches _MARKER_LIKE (case-insensitive `squatch:core`). Otherwise render writes a block that the next pass refuses as corrupt, and output is not idempotent.",
+    "Add a test to tests/test_hostfiles.py: a core containing `squatch:core` (for example a literal `<!-- squatch:core end -->` line) raises ManagedBlockRefusal on the first render, not on the second pass.",
+    "Also test idempotence with a multi-line core and with a file that already has project text around the block, not only with the single core string 'Engine conduct'.",
+    "Keep everything else from the prior diff. The scope fence, verification, run record and diff budget all passed, and the CLI `core` registration and its tests in test_cli.py and test_verbs.py were accepted."
+  ],
+  "reason": "The review found one small defect in place (core text is not checked for marker-like text) and gave an exact fix. All mechanical checks passed, so a retry at the same capability should succeed.",
+  "detail": null
+}
