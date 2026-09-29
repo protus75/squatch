@@ -1,18 +1,18 @@
 {
-  "run_seq": 11,
+  "run_seq": 12,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snagged and every mechanical gate passed. Both findings are test-strength gaps inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed. Keep all the other pins as they are.",
-    "AC1: ON_DEMAND is only compared with CONTEXT, and neither is read from the tickets. For core-drift-activation and migrate-config, assert every ON_DEMAND path appears backticked in the ticket's 'measured on-demand' sentence in Scope in.",
-    "AC1: also assert set(CONTEXT[s]) | set(ON_DEMAND[s]) == set(FENCES[s]) and that the two sets are disjoint for both payloads. Assert the 'every other existing fence path is Context' clause is present.",
-    "AC2: in phase6-continue-02 Scope in, replace collapsed partition prose with backticked paths. Examples: 'ticket/gate parsers', 'Box/Triage seams', 'Daemon/Author roots', 'Existing harness/artifact modules', and escape-column's bare 'Context'.",
-    "AC2: extend REMAINING to (depends, fence, context, on_demand) path tuples for every payload. Split each segment at its Context and on-demand clauses, and assert the backticked path sets in each clause equal the tuple exactly.",
-    "Cover every remaining payload, not only the three the reviewer named. bug-gate-grammar and report-inbox-triage use the same generic phrasing and will snag next. Also pin the new/sibling-new paths that are excluded from Context.",
-    "Mutation-test before claiming done: in a scratch copy, move one path from Context to on-demand and drop one on-demand exception, and confirm each change fails the test. Then re-run the max-effort render bound after continue-02 grows.",
-    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes."
+    "Review snagged, and every mechanical gate passed. Both findings are inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed. Keep all existing pins and earlier fixes.",
+    "Edit tickets/phase6-continue-02/ticket.md; this diff did not touch it. Add the generic continuation clause: each numbered continuation owns only `tickets` plus its matching new `tests/test_seeded_phase6_<nn>.py` (see next lesson).",
+    "The rest of that clause: each continuation embeds the immediately preceding merged Phase 6 seeded test as its sole Context, depends on every payload in its row, and carries the shrinking suffix.",
+    "In the test, add a CONTINUATIONS table for phase6-continue-03..08 with fence ('tickets', 'tests/test_seeded_phase6_<nn>.py') and the sole-preceding-merged-seeded-test Context rule. Assert each clause appears verbatim in continue-02's Scope in.",
+    "Make the new clause fail closed. Mutation-test it: delete the generic clause, or change one nn in a scratch copy, and confirm the test fails. The existing check that only pins the depends edges for 03..08 is not enough.",
+    "The generic clause must say that phase6-continue-03 passes the same rule forward, so rows 04..08 inherit a stated fence and Context. Also keep 'The terminal row contains `phase6-exit` alone' and no successor.",
+    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes. Re-run the max-effort render bound after continue-02 grows.",
+    "Before claiming done, map every AC2 clause (edges, owner/fence, Context/on-demand, behavior, suffix) for every row through phase6-continue-08 to a specific assertion."
   ],
-  "reason": "Review snag on two concrete test-strength gaps fixable inside the fence; findings are narrowing each round and paved roads are explicit.",
+  "reason": "Review snagged on a narrow test-strength and row-2-contract gap that the fence can fix; all mechanical gates passed and the findings are shrinking each round.",
   "detail": null
 }
