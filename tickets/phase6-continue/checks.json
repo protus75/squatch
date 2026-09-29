@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "21946e8773d397c3f07a0bdb702d7f66d5e8637f",
+  "produced_at_sha": "af48f70f7459408f5b04384fa588d5b2109d7ca6",
   "stem": "phase6-continue",
   "branch": "phase6-continue",
-  "base": "98530dd22abacabdf4a34504671cf95dbcbd4e98",
-  "head": "21946e8773d397c3f07a0bdb702d7f66d5e8637f",
+  "base": "b47b33f3322a5a3431459212f851ee03559405e2",
+  "head": "af48f70f7459408f5b04384fa588d5b2109d7ca6",
   "changed_files": [
     "tests/test_seeded_phase6_01.py"
   ],
@@ -15,7 +15,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase6-continue-02/ticket.md",
-      "sha": "4a4fe1cefa930a3421cda50ac4691ec5b1ce029e",
+      "sha": "2c06eef9f3c8cfc14fc46b6ce6f7f161fe5cbd8a",
       "bypassed": false,
       "findings": [],
       "commands": []
