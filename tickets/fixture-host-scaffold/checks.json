@@ -1,15 +1,16 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "6574e4bc79038d70d4c02f6120b3234f7e567ba7",
+  "produced_at_sha": "8dc21c62ddd6acaf45414cd97db2cfada9034033",
   "stem": "fixture-host-scaffold",
   "branch": "fixture-host-scaffold",
-  "base": "55807a36c0b0a6e0a2c5b871230e8edcb976bbec",
-  "head": "6574e4bc79038d70d4c02f6120b3234f7e567ba7",
+  "base": "425a21416977851b5b0174c1ef4c46c73d6c13d4",
+  "head": "8dc21c62ddd6acaf45414cd97db2cfada9034033",
   "changed_files": [
     "hosts/fixture/app.py",
     "hosts/fixture/bin/codex",
     "hosts/fixture/bin/fixture-replay",
+    "hosts/fixture/bin/fixture-serve",
     "hosts/fixture/config.yaml",
     "hosts/fixture/regression/merge-base-defect.json",
     "hosts/fixture/replay.py",
@@ -18,6 +19,7 @@
     "hosts/fixture/reports/escape-report.json",
     "hosts/fixture/reports/regression-report.json",
     "hosts/fixture/scenarios.json",
+    "hosts/fixture/serve.py",
     "tests/test_fixture_host.py"
   ],
   "checks": [
