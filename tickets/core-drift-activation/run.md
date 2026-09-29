@@ -1,23 +1,15 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-The drift boundary verifies adopted managed blocks; first adoption remains the explicit `core` command. Candidate `CORE` is read as an AST literal from the branch worktree without importing branch code.
+The drift template source must differ by merge target: self-build candidates use their branch literal, while adopted host repositories use the running engine's template and ignore any host-planted `squatch/hostfiles.py`.
 
 ## Dead ends
 
-None.
-
 ## Second problems filed
 
-None.
-
 ## Resolved engine/model
-
-OpenAI Codex (GPT-5).
+OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-
-Expected 75m; actual about 25m.
+Expected 75m; actual about 15m, including both verification suites.
