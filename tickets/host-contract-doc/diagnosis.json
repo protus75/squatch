@@ -1,0 +1,13 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "run.md `## Outcome` must be exactly one closed value (e.g. `ok`), not `implemented`; the gate rejected only this.",
+    "Write tickets/host-contract-doc/run.md in the worktree with exactly the six required sections; the diff and both pytest commands were reported passing.",
+    "Keep the existing docs/host-contract.md and tests/test_host_contract.py content; only the run record needs fixing unless review finds otherwise."
+  ],
+  "reason": "The only gate finding was a run-record vocabulary oversight; the findings now steer the fix at the same capability.",
+  "detail": null
+}
