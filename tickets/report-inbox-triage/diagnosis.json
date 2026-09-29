@@ -1,16 +1,17 @@
 {
-  "run_seq": 8,
+  "run_seq": 9,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep the existing diff. Gates are green and every earlier lesson is in place. Fix only the one review finding: redact host-captured text before it enters Box custody.",
-    "inbox.py: add a `redact: Redactor` parameter to Inbox. In Serve.run (serve.py), pass the `redact` that is already in scope next to the Inbox construction. Update every Inbox call site and test in the same change.",
-    "After metadata validation and the byte-cap checks, redact log_excerpt, summary and signature once. Use only the redacted values for origin, _detail, store_evidence and enqueue. No raw host text may reach the Box record.",
-    "Redaction can change byte lengths, so keep the size caps on the raw report. Make sure the redacted excerpt still passes Evidence's 64 KiB validator. Read the Redactor's API before calling it; do not guess its method name.",
-    "Add a tests/test_inbox.py case with a configured secret in log_excerpt, summary and signature. Assert that the stored Box message JSON and its evidence contain no raw secret, and that the report is still filed.",
-    "Keep run.md's six sections with `## Outcome` exactly `ok`. Rerun all three verification commands and confirm they are green before finishing."
+    "Keep the existing diff. The gates are green and every earlier lesson is already in place. Fix only the two review findings in squatch/inbox.py.",
+    "Redact every host-supplied text field before it reaches the Box: app_commit, app_version, each implicated_path, and replay_file. Use only the redacted values in the origin, _detail, store_evidence and enqueue.",
+    "Check the replay bytes for secrets and fail closed: raise ReportError if any configured secret value appears in them. Do not rewrite the bytes, because that breaks the sha256 custody check. Read the Redactor API to find how to test for secrets.",
+    "Add a test_inbox.py case that puts a configured secret in app_version and in the replay bytes. Assert that the report is rejected or redacted, and that no file under box.dir contains the raw secret.",
+    "In consume(), catch only ReportError. Convert only failures the host caused (bad metadata, replay stat or read errors) to ReportError. Let Box store_evidence and enqueue errors propagate so the report stays *.report.json and is retried on the next pass.",
+    "Add a test in which store_evidence or enqueue raises OSError once. Assert that the report is not renamed to .rejected, and that the next consume() files it. Check that other reports and the serve loop still behave correctly.",
+    "Keep all six sections in run.md, with `## Outcome` exactly `ok`. Rerun all three verification commands and confirm they are green before finishing."
   ],
-  "reason": "The only finding is a missing redaction step at the Inbox write seam. It can be fixed inside the fence, and the Redactor is already in scope.",
+  "reason": "Review found two concrete, fixable defects that come with clear paved roads (incomplete redaction, and a too-broad catch that quarantines valid reports). Everything else passes.",
   "detail": null
 }
