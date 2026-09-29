@@ -1,9 +1,16 @@
 {
-  "run_seq": 5,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 6,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Review snagged, not check: every mechanical gate passed. The fix is inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed.",
+    "Rewrite the phase6-continue-02 Scope in so each remaining payload states its exact backticked fence paths, Context paths and on-demand paths as this ticket lists them. Replace collapsed prose like 'scorecard/Git and their tests'.",
+    "In the test, add a REMAINING table {stem: (depends, fence, context, on_demand, tier)} for every payload in SUFFIX[1:]. Assert that each edge and path appears backticked in continue-02's Scope in.",
+    "Pin every direct edge, including report-inbox-triage->bug-gate-grammar, escape-column->both parents and go-grade-run->go-grade-machinery. Also pin phase6-continue-03..08 to exactly their row payloads.",
+    "For phase6-exit, take its fence sentence and assert that its set of backticked paths equals the two receipts plus tests/test_phase6_exit.py exactly. Also assert 'no Context', 'no engine-code edit' and no successor.",
+    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render-bound checks use real measured inputs. Re-run the max-effort render after lengthening continue-02."
+  ],
+  "reason": "The review found that the test only checks loose phrases and that continue-02's prose collapses the exact contracts; both can be fixed inside the existing fence at the same capability.",
+  "detail": null
 }
