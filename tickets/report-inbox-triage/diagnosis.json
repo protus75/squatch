@@ -1,17 +1,9 @@
 {
-  "run_seq": 3,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "Keep the existing diff: stat-before-read replay cap, per-report quarantine, *.report.json selection, custody check in Box.enqueue, and serve/daemon inbox wiring all pass the gates. Fix only the four review findings.",
-    "triage.py bug_report guard: apply it only when isinstance(verdict, TriageAuthor) and verdict.kind != 'bug'. Tombstone and decision verdicts must reach _apply. Add a test that a tombstoned bug_report gets resolved and is no longer pending.",
-    "serve.py box(): if inbox is set, call inbox.consume() first. Then run box_consumer only if triage.box.pending() is non-empty. An idle inbox must not append a triage_pass journal record on every poll.",
-    "test_inbox ordering: give the bad-metadata report a valid replay file, and use a spy Filesystem or a raising path to assert the replay was never read. Without that, the test cannot show metadata validation runs first.",
-    "test_inbox excerpt cap: point the oversized-excerpt report at its own small valid replay file, so the 64 KiB excerpt cap is the only reason it is rejected. Assert the Box stays empty.",
-    "inbox.py: before reading a *.report.json, stat its size against a fixed limit (LOG_EXCERPT_LIMIT plus metadata headroom) and reject it if larger. After a filed or duplicate outcome, rename the report out of the scan glob (e.g. .filed).",
-    "Keep run.md's six sections with `## Outcome` exactly `ok`. Rerun all three verification commands green before finishing."
-  ],
-  "reason": "Review snag lists four concrete fixes, each with its own paved road, and every mechanical gate passed; this is a fixable oversight at the same capability.",
-  "detail": null
+  "run_seq": 4,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
