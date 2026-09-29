@@ -1,18 +1,17 @@
 {
-  "run_seq": 12,
+  "run_seq": 13,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snagged, and every mechanical gate passed. Both findings are inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed. Keep all existing pins and earlier fixes.",
-    "Edit tickets/phase6-continue-02/ticket.md; this diff did not touch it. Add the generic continuation clause: each numbered continuation owns only `tickets` plus its matching new `tests/test_seeded_phase6_<nn>.py` (see next lesson).",
-    "The rest of that clause: each continuation embeds the immediately preceding merged Phase 6 seeded test as its sole Context, depends on every payload in its row, and carries the shrinking suffix.",
-    "In the test, add a CONTINUATIONS table for phase6-continue-03..08 with fence ('tickets', 'tests/test_seeded_phase6_<nn>.py') and the sole-preceding-merged-seeded-test Context rule. Assert each clause appears verbatim in continue-02's Scope in.",
-    "Make the new clause fail closed. Mutation-test it: delete the generic clause, or change one nn in a scratch copy, and confirm the test fails. The existing check that only pins the depends edges for 03..08 is not enough.",
-    "The generic clause must say that phase6-continue-03 passes the same rule forward, so rows 04..08 inherit a stated fence and Context. Also keep 'The terminal row contains `phase6-exit` alone' and no successor.",
-    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes. Re-run the max-effort render bound after continue-02 grows.",
-    "Before claiming done, map every AC2 clause (edges, owner/fence, Context/on-demand, behavior, suffix) for every row through phase6-continue-08 to a specific assertion."
+    "Review snagged and every mechanical gate passed. The only finding is an inconsistent predecessor-Context rule. The fix is inside the fence (tickets plus tests/test_seeded_phase6_01.py).",
+    "Keep continue-02's Context as tests/test_seeded_phase6_core.py. An earlier requisition check failed on test_seeded_phase6_01.py because it is sibling-new at authoring time, and new or sibling-new paths are never Context.",
+    "The real defect is CONTINUATIONS using number-1: 03 gets test_02, which is sibling-new when 03 is authored. That contradicts the rule behind 02 -> core.",
+    "Use one rule for every continuation: sole Context is the latest Phase 6 seeded test already on main at authoring. So 02 -> core, 03 -> 01, 04 -> 02, and so on up to 08 -> 06.",
+    "Change CONTINUATIONS to number-2 (03 uses 01) and update the generic clause in continue-02's Scope in to match. State there that the sibling-new tests/test_seeded_phase6_<nn>.py is excluded because new paths are never Context.",
+    "In continue-02's own Scope in, explain why its Context is core: tests/test_seeded_phase6_01.py was sibling-new when 02 was authored. Cite the phase5-continue-03 -> phase5_01 precedent in the test's docstring or comment.",
+    "Mutation-test the fix: set 03's Context to test_02 and confirm the test fails. Rerun the max-effort render bound after the ticket text changes. Keep every existing pin and use real measured sizes."
   ],
-  "reason": "Review snagged on a narrow test-strength and row-2-contract gap that the fence can fix; all mechanical gates passed and the findings are shrinking each round.",
+  "reason": "The review snag is inside the fence: the per-row predecessor-Context rule is inconsistent, and one consistent authoring-time rule fixes it without a plan change.",
   "detail": null
 }
