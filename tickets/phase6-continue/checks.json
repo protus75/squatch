@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "195111b0f5542aa6168004c72f4540e1c9596963",
+  "produced_at_sha": "eb567a11313d8cc3b8007bdb427a8c34d58e7518",
   "stem": "phase6-continue",
   "branch": "phase6-continue",
-  "base": "c148bfe200c10eb7a7a06c830d60a7d952847ed6",
-  "head": "195111b0f5542aa6168004c72f4540e1c9596963",
+  "base": "3b58f0ee7d0d2c6194341dff38529155708b46e4",
+  "head": "eb567a11313d8cc3b8007bdb427a8c34d58e7518",
   "changed_files": [
     "tests/test_seeded_phase6_01.py"
   ],
@@ -14,18 +14,46 @@
       "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": null,
-      "sha": null,
+      "path": "tickets/core-drift-activation/ticket.md",
+      "sha": "aa3bfce7d530d8910c9bfa40490cba4912c01c44",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
-          "path": "tickets/phase6-continue-02/ticket.md",
-          "line": 5,
-          "message": "Context path 'tests/test_seeded_phase6_01.py' does not exist",
-          "paved_road": "Context is read-first EXISTING material; a file this ticket creates is named in `## Scope fence` and `## Verification` only"
+          "path": "tickets/core-drift-activation/ticket.md",
+          "line": null,
+          "message": "base Implement render is 125376 chars against the 160000-char max-effort bound at 75% headroom",
+          "paved_road": "shrink the inputs or split the ticket"
         }
       ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/migrate-config/ticket.md",
+      "sha": "02a8f35d0f1865b58c150dda27ff5b6cb5a36624",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/migrate-config/ticket.md",
+          "line": null,
+          "message": "`SCHEMA_VERSION = 1` is the only config schema that has ever existed. The only trace of an older version is `parse`'s refusal message, which `tests/test_config.py` probes with `schema_version: 0`, and nothing defines a version-0 document shape. Section 20 says only \"read one older supported schema\" and \"produce the current schema deterministically\". It never names the source version, its keys, or the key-by-key mapping to version 1. That leaves the implementer to choose between two bad options. (a) Invent a version-0 schema and its mapping, which is a speculative feature under the anti-bloat law, and 'without changing host intent' can't be judged against an invented source. (b) Bump `SCHEMA_VERSION` to 2 and define a new schema, which changes the section 15 host schema and every current-version assertion in `tests/test_config.py`, well beyond this row's scope. Criterion 1, 'deterministic migration of the sole supported older schema', therefore has no fixed target, and two correct implementations could produce different bytes.",
+          "paved_road": "fix the plan, then re-author the ticket"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase6-continue-02/ticket.md",
+      "sha": "0f6454b4a1531a1c191c98327020cfe75ede6a0b",
+      "bypassed": false,
+      "findings": [],
       "commands": []
     },
     {
