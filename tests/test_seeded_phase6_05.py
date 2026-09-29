@@ -24,8 +24,9 @@ FENCES = {
     "supervised-merge-hold": (
         "squatch/merge.py", "squatch/baseline.py", "squatch/control.py",
         "squatch/__main__.py", "squatch/stages.py", "squatch/drain.py",
-        "squatch/runner.py", "tests/test_merge.py", "tests/test_baseline.py",
+        "squatch/runner.py", "eval/daemon_soak.py", "tests/test_merge.py", "tests/test_baseline.py",
         "tests/test_control_cli.py", "tests/test_cli.py", "tests/test_drain.py",
+        "tests/test_daemon_soak_runner.py",
         "tests/test_supervised_merge_hold.py"),
     "phase6-continue-06": ("tickets", "tests/test_seeded_phase6_06.py"),
 }
@@ -91,6 +92,7 @@ def test_supervised_hold_identity_tier_fence_and_partition():
     assert all(phrase in scope for phrase in (
         "durable HELD admission", "merge safety and integration checks but before main mutation",
         "identity-bound `confirm`", "cap-rearming keep signal", "Rebase and regate",
+        "daemon-soak passed-invoice reader",
         "reconstruct holds on restart", "never hold the bootstrap self-build"))
     assert set(CONTEXT["supervised-merge-hold"]).isdisjoint(ON_DEMAND)
     assert set(ON_DEMAND) | {"tests/test_supervised_merge_hold.py"} == set(FENCES["supervised-merge-hold"])
