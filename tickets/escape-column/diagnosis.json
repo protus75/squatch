@@ -1,15 +1,16 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "The focused suites passed but `uv run pytest -q` exited 1 on the committed branch. The harvest only captured the uv VIRTUAL_ENV warning, not the failing test. Run the full suite in the worktree, find the failing test, and fix it inside the fence before claiming success.",
-    "Your response said the full suite passed, but the gate re-run failed. Paste the actual pass line from `uv run pytest -q` in the run record rather than asserting it.",
-    "Look for other tests that enumerate Git, Retro, or `Window.projection` signatures, or that snapshot RetroWindow fields and the status scorecard output. The new `escape_attributions` field and escape_rate can break those tests. Any fix must stay within the scope fence.",
-    "BASE..HEAD is still matched as a literal string and treated as all first-parent history. Read plan section 20 for what BASE means and resolve real endpoints on first-parent HEAD ancestry. Add test_git cases for valid, foreign, and ambiguous ranges.",
-    "Keep the parts that already work: resolved-only filtering, trailer-pair validation, the CLI status test, the one-line mergequeue allowlist change, and pure scorecard counting."
+    "Treat app_commit as either one lowercase SHA or `<sha>..<sha>`. The literal string BASE..HEAD is not the range form. This is the third attempt that got it wrong despite being told.",
+    "For a range, both endpoints must be first-parent ancestors of HEAD, with base before head. Use `rev-list --first-parent base..head`. Return the ticket from each commit that has exactly one valid trailer pair and skip the rest. Return () for malformed or foreign endpoints.",
+    "Replace test_escape_ticket_range_refuses_multiple_or_foreign_first_parent_candidates. A SHA range covering two merges must return both tickets. Add a foreign-endpoint case and a malformed-range case that both return ().",
+    "In test_scorecard, add fail-only and bypass-only tickets or surfaces with attributed reports and assert escapes == 0. Today the fail and bypass rows share a ticket that also passes, so deleting the filter still passes the test.",
+    "Prove that foreign or unattributed evidence adds nothing. An attribution for a ticket not in check_observations must give escapes == 0, and so must an empty escape_attributions.",
+    "Keep what already works: resolved-only filtering, trailer-pair validation, the CLI status test, the Retro.run test, the one-line mergequeue allowlist change, and pure scorecard counting. Paste the real `uv run pytest -q` pass line into the run record."
   ],
-  "reason": "Most criteria are met, but the full-suite verification failed on an unidentified test. That is a fixable oversight at the same capability.",
+  "reason": "Three attempts running have kept BASE..HEAD as a literal whole-history match despite explicit lessons, so the same capability is not taking the steer.",
   "detail": null
 }
