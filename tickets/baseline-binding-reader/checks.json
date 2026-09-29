@@ -1,0 +1,85 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "05df6dec4453553f87990d3d82bb6077a40d9030",
+  "stem": "baseline-binding-reader",
+  "branch": "baseline-binding-reader",
+  "base": "05ef39b2dbfcaab015572a58485eb0c2a7c7f2a1",
+  "head": "05df6dec4453553f87990d3d82bb6077a40d9030",
+  "changed_files": [
+    "squatch/author.py",
+    "squatch/baseline.py",
+    "squatch/policy.py",
+    "tests/test_author.py",
+    "tests/test_baseline.py",
+    "tests/test_policy.py",
+    "tests/test_retro_box.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_baseline.py",
+            "tests/test_policy.py",
+            "tests/test_author.py",
+            "tests/test_retro_box.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
