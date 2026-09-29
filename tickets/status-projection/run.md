@@ -1,8 +1,11 @@
 ## Outcome
+
 ok
 
 ## Surprises / judgment calls
-The current branch retained the historical Phase 2 Context snapshot repair but not the prior status implementation, so the status projection was restored and its refusal coverage retained.
+
+- The branch contained the pre-projection status surface, so the additive Phase 5 projection was implemented directly.
+- Invalid optional cost values are excluded before both status and the retro-window scorecard projection.
 
 ## Dead ends
 
@@ -11,7 +14,9 @@ The current branch retained the historical Phase 2 Context snapshot repair but n
 
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5
+
+OpenAI Codex (model identity not exposed to the workspace).
 
 ## Predicted vs actual
-Expected: 75m. Actual: about 25m.
+
+Expected: 75m. Actual: about 20m.
