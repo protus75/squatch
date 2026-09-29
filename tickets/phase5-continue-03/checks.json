@@ -1,35 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "96a66eae17c2c4fdc00508aef52ac17e45ec9b9c",
+  "produced_at_sha": "c57652ca53363fbcf73496db00370ac3b2d36b74",
   "stem": "phase5-continue-03",
   "branch": "phase5-continue-03",
-  "base": "54c137ab4b66746a235065b2836399c2d1b658aa",
-  "head": "96a66eae17c2c4fdc00508aef52ac17e45ec9b9c",
+  "base": "6c3c90cbf0279daa12da1d9e28cc023c271433d2",
+  "head": "c57652ca53363fbcf73496db00370ac3b2d36b74",
   "changed_files": [
     "tests/test_seeded_phase5_03.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase5-continue-04/ticket.md",
-      "sha": "32903249c4cef9f2497db118758cf634c0a457e4",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/retro-doctor-cli/ticket.md",
-      "sha": "6fd0c0a141c5c94a68db89fbd22eaea488a67def",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
