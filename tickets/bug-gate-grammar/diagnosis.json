@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Revert the squatch/merge.py edit. The fence allows only tickets.py, gates.py, stages.py, tests/test_tickets.py, tests/test_gates.py and tests/test_bug_gate.py; composition callers such as merge.py may be inspected but not edited.",
+    "Wire BugEvidence into the Check gate set inside squatch/stages.py only. If the merge re-gate provably cannot pick up the gate without editing merge.py, answer premise_failed instead of editing outside the fence.",
+    "run.md `## Outcome` must be exactly one closed value (e.g. `ok`). `implemented` is the packing-slip verdict, not a run-record Outcome.",
+    "Keep the working gate logic and tests/test_bug_gate.py (head pass, base fail with carries overlay, absent-at-base rejection). Rerun all three verification commands after the fixes."
+  ],
+  "reason": "Both gate findings are fixable oversights: one edit outside the fence and an out-of-vocabulary run.md Outcome. The gate and tests themselves look sound.",
+  "detail": null
+}
