@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "83c8a0e8bfe19ce1b8d2ce826f0a1d8492c63e01",
+  "produced_at_sha": "fd271211d0fabd0a2554194fcb7f115b3bca9801",
   "stem": "supervised-merge-hold",
   "branch": "supervised-merge-hold",
-  "base": "15516393f0a8e86bb374a53b827b9b613a5c51bf",
-  "head": "83c8a0e8bfe19ce1b8d2ce826f0a1d8492c63e01",
+  "base": "c9af536624f0c3bc302007719f49466858a7ab91",
+  "head": "fd271211d0fabd0a2554194fcb7f115b3bca9801",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/baseline.py",
@@ -15,6 +15,7 @@
     "squatch/runner.py",
     "squatch/stages.py",
     "tests/test_baseline.py",
+    "tests/test_merge.py",
     "tests/test_supervised_merge_hold.py"
   ],
   "checks": [
