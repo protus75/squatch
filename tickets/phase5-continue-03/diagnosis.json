@@ -1,14 +1,15 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Check failed: untracked tickets/phase5-exit/ticket.md lists sibling-new tests/test_seeded_phase5_03.py as Context. Context may only name files that exist on main.",
-    "Scope in says author only retro-doctor-cli and phase5-continue-04. Do not create tickets/phase5-exit/ticket.md; phase5-continue-04 authors it later.",
-    "Prove phase5-exit's terminal, transitive, high/high and ownership facts from the registry and Scope in text of phase5-continue-04. Do not read a phase5-exit ticket file.",
-    "Before finishing, lint every authored ticket's Context against files that exist on main. Keep the doctor Context as squatch/retro.py and tests/test_retro.py, and continue-04's as tests/test_seeded_phase5_02.py only."
+    "Requisition review failed on the plan, not the diff: section 20 fences retro-doctor-cli but never specifies its behavior (verbs, output, exit codes, reads). A seed that cites only section 20 therefore has no contract to implement.",
+    "Sections 18, 19 and 20 disagree about what doctor is. Section 18 calls it a mechanical self-check (venv, git, config, lock, journal). Section 19 says Phase 5 adds both retro and doctor verbs. The authored ticket made doctor a retro-window view and left out the retro verb.",
+    "Fix section 20 first: give retro-doctor-cli a closed behavior contract (the verbs to add to __main__.py, their output, exit codes and allowed reads), in line with sections 18 and 19. Then re-author phase5-continue-03 from the fixed plan.",
+    "The doctor seed's acceptance criteria must test feature behavior. Checks on the Context/on-demand partition and synthetic byte sizes belong in tests/test_seeded_phase5_03.py, not in tests/test_doctor.py.",
+    "Keep the prior lessons: don't create tickets/phase5-exit/ticket.md. Context stays squatch/retro.py and tests/test_retro.py for the doctor, and only tests/test_seeded_phase5_02.py for continue-04."
   ],
-  "reason": "A fixable scope and Context oversight: an out-of-scope phase5-exit ticket named a sibling-new file as Context.",
+  "reason": "The ticket requires a seed citing section 20 alone, but section 20 gives retro-doctor-cli no behavior contract and the plan contradicts itself about doctor, so only a plan fix (outside this fence) can unblock it.",
   "detail": null
 }
