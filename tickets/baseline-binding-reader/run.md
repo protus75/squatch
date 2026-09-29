@@ -4,18 +4,20 @@ ok
 
 ## Surprises / judgment calls
 
-Author now passes the journal iterator directly so a reader-side journal-tail failure remains a fail-closed baseline revocation rather than an authoring exception.
+The branch was before the prior attempted implementation, so this run implemented the reader and wiring as well as the missing proof coverage.
 
 ## Dead ends
 
+None.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI Codex / GPT-5
+OpenAI GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 25m.
+Expected 75m; actual about 35m.
