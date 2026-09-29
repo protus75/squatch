@@ -1,14 +1,15 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep the existing diff. Gates are green and every earlier lesson is in place. Fix only the single METADATA_LIMIT review finding.",
-    "inbox.py: METADATA_LIMIT must cover the worst-case JSON escaping of an excerpt exactly at LOG_EXCERPT_LIMIT. A control byte becomes \\u00XX, which is 6x its size. Use e.g. 6 * LOG_EXCERPT_LIMIT + 16 * 1024. Keep the stat-before-parse check as the memory bound.",
-    "Add a test_inbox.py case: a report whose excerpt is exactly LOG_EXCERPT_LIMIT bytes and full of escape-heavy characters (ESC/ANSI codes, quotes, backslashes), written with json.dumps defaults. Assert it is filed, not rejected, and that its evidence reaches the Box.",
+    "Keep the existing diff. Gates are green and every earlier lesson is in place. Fix only the single rereport-idempotency review finding in inbox.py.",
+    "Derive a stable receipt per arrival, e.g. sha256 of the report file bytes. Store it on the message at enqueue time, or pass it as incoming_id= to record_rereport.",
+    "On a by_origin hit, skip counting if the receipt already matches the message's own receipt or is in its rereport_ids, then rename the report to .filed. A crash before the rename must not count the report twice.",
+    "Add a test_inbox.py case: make fs.replace fail once after a successful enqueue, re-run consume, and assert reports == 1. Also cover a crash after a real rereport, before its rename.",
     "Keep run.md's six sections with `## Outcome` exactly `ok`. Rerun all three verification commands and confirm they are green before finishing."
   ],
-  "reason": "Review found one fixable defect with a concrete fix: the metadata size cap rejects valid escape-heavy excerpts. Everything else passed.",
+  "reason": "Review found one fixable crash-replay double-count with a concrete paved road; all gates are green.",
   "detail": null
 }
