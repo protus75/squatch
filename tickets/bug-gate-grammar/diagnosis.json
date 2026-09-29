@@ -1,14 +1,17 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Revert the squatch/merge.py edit. The fence allows only tickets.py, gates.py, stages.py, tests/test_tickets.py, tests/test_gates.py and tests/test_bug_gate.py; composition callers such as merge.py may be inspected but not edited.",
-    "Wire BugEvidence into the Check gate set inside squatch/stages.py only. If the merge re-gate provably cannot pick up the gate without editing merge.py, answer premise_failed instead of editing outside the fence.",
-    "run.md `## Outcome` must be exactly one closed value (e.g. `ok`). `implemented` is the packing-slip verdict, not a run-record Outcome.",
-    "Keep the working gate logic and tests/test_bug_gate.py (head pass, base fail with carries overlay, absent-at-base rejection). Rerun all three verification commands after the fixes."
+    "Review found two fixable gaps; keep the existing gate logic, the Check-set wiring in stages.py, and the three passing tests.",
+    "Soundness gap: a regression test appended to a file that exists at merge base cannot be carried. At base, pytest then fails with 'not found' (exit 4), and the gate accepts that as defect evidence. Close this hole.",
+    "Suggested fix: let `carries` name branch-modified test and fixture files and overlay their branch content at base. Or fail the gate when the diff modifies a base-existing file that the regression command needs but carries does not cover. Pick one, fail closed.",
+    "Add a test in tests/test_bug_gate.py where the regression test is appended to a file that exists at base. Assert the gate does not pass.",
+    "Add a test where the merge-base run with the carries overlay passes (defect not reproduced). Assert `not run.passed` and that the finding names 'merge base with carries overlay'.",
+    "Add a test where the branch head still fails the regression. Assert `not run.passed` and that the finding names 'branch head'.",
+    "Stay inside the fence: no merge.py edits. run.md `## Outcome` must be one closed value such as `ok`. Rerun all three verification commands before handing off."
   ],
-  "reason": "Both gate findings are fixable oversights: one edit outside the fence and an out-of-vocabulary run.md Outcome. The gate and tests themselves look sound.",
+  "reason": "Review found a fixable soundness hole (a missing test inside an existing file is accepted at base) and missing negative-path tests; the fixes are concrete and inside the fence.",
   "detail": null
 }
