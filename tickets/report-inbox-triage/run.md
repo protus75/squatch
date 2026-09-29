@@ -1,13 +1,13 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
 
-The production Box loop is owned by `squatch/serve.py`, which is outside the scope fence. Its pending-Box guard prevents an inbox-only host report from ever reaching the fenced `inbox_consumer`.
+Report files use the explicit `*.report.json` intake rule so replay JSON beside a report is never mistaken for report metadata. Invalid reports are quarantined individually, allowing later reports and sequential Box triage to proceed.
 
 ## Dead ends
 
-Implemented and focused-tested the fenced intake path, but production wiring requires changing `squatch/serve.py`; the scope fence forbids that change.
+
 
 ## Second problems filed
 
@@ -18,4 +18,4 @@ OpenAI Codex
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: approximately 25m before the scope conflict was established.
+Expected: 75m. Actual: approximately 35m.
