@@ -4,20 +4,18 @@ ok
 
 ## Surprises / judgment calls
 
-The engine's CLI adapter identifies a provider by its fixed adapter name, so the
-fixture uses the `codex` row with a local scripted `bin/codex` JSONL stand-in
-and a zero per-call estimate. The closed replay command exercises scenarios
-without invoking that executable or any network service.
+The fixture's zero-spend claim is exercised through the real Codex adapter with the fixture `bin` directory first on `PATH`, rather than by calling the script through Python directly.
 
 ## Dead ends
 
+The initial report metadata used guessed replay and excerpt byte counts; the focused test caught them and the committed fixtures carry the exact counts.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI Codex / GPT-5.
+Codex / GPT-5
 
 ## Predicted vs actual
 
