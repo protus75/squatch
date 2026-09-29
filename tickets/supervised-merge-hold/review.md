@@ -1,0 +1,17 @@
+---
+verdict: snag
+reviewed_sha: 83c8a0e8bfe19ce1b8d2ce826f0a1d8492c63e01
+produced_by_spec_version: '1.0'
+produced_at_sha: 83c8a0e8bfe19ce1b8d2ce826f0a1d8492c63e01
+provider: claude
+model: opus
+artifact_schema_version: 1
+---
+## Summary
+The HELD boundary, restart projection and dispatch exclusion are wired in, but the release path skips the merge queue's admission entry: it ignores the integration-red pause and drops the rework handoff. A release that fails against moved main leaves the ticket held forever with no road out. The new test also hides its compose_pipeline call from the caller inventory by building the name from a string.
+
+## Findings
+- correctness_review at squatch/merge.py:660: release() takes `queue._slot` and calls `queue._admit(candidate)` directly instead of going through `MergeQueue.admit()`. That skips `admission_hold.wait()`, so a confirm integrates into main even while an integration_red_streak or tree_hash_mismatch hold has paused all admissions. It also skips the `self._rework.put_nowait(admission.rework)` handoff, so a rebase conflict on release is silently dropped. This is a second admission path, which the Scope out forbids. (paved road: Release through the one admission entry point: `MergeQueue.admit()`, or `_ReviewedMergeQueue.admit_delivery` with `releasing=True` state. That path already waits on the admission hold and queues the rework handoff.)
+- correctness_review at squatch/merge.py:664: When the released admission ends `gate_failed` or `rework` (the expected result when the moved main breaks the candidate), release() raises RuntimeError. The control_hold is never marked released, no terminal state_transition or harvest is written, and the stem stays in `held_admissions`, so the drain never dispatches it again. Repeating `squatch confirm` re-runs the same failing regate. That is a hold with no reachable release, and the stale-main regate failure never reaches the implementer. (paved road: On a non-integrated release, retire the hold durably: `discard_hold` writes released=True. Then route the admission findings through the existing non-ok terminal/harvest path, the way the unheld admission does in `Merge.admit`, so the ticket reaches rework or a settled terminal. Add a test where moved main makes the release gate-fail.)
+- correctness_review at tests/test_supervised_merge_hold.py:31: `getattr(merge_module, "compose_" + "pipeline")` builds the callee name from a string. The commit message says this is to 'preserve historical caller inventory', i.e. to keep a new compose_pipeline caller out of a mechanical inventory check. This is a test shaped to get past a gate, not to exercise the code honestly. (paved road: Import and call `compose_pipeline` directly. If the caller inventory rejects it, update the inventory to list the new caller (inside the fence), or file the inventory change as a separate ticket.)
+- correctness_review at squatch/merge.py:240: `if len(admitted) == 3: ... else: ...` handles two tuple shapes from `admit_delivery`, but `_ReviewedMergeQueue.admit_delivery` now always returns four values. This is dual-path compat code. Similarly, `getattr(pipeline, "confirm_hold", None)` in squatch/runner.py adds a defensive parallel path for a pipeline without the method. (paved road: Unpack the four-tuple unconditionally and update every caller or double that returns three values in the same change. Call `pipeline.confirm_hold` directly.)
