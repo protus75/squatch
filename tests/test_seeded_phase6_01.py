@@ -77,14 +77,16 @@ REMAINING = {'host-contract-doc': (('migrate-config',),
                           'squatch/triage.py',
                           'squatch/author.py',
                           'squatch/daemon.py',
+                          'squatch/serve.py',
                           'tests/test_box.py',
                           'tests/test_triage.py',
                           'tests/test_author.py',
+                          'tests/test_serve.py',
                           'tests/test_inbox.py'),
                          ('squatch/box.py', 'tests/test_box.py'),
                          ('squatch/triage.py', 'squatch/author.py', 'squatch/daemon.py',
-                          'tests/test_author.py',
-                          'tests/test_triage.py')),
+                          'squatch/serve.py', 'tests/test_author.py', 'tests/test_triage.py',
+                          'tests/test_serve.py')),
  'escape-column': (('bug-gate-grammar', 'report-inbox-triage'),
                    ('squatch/scorecard.py',
                     'squatch/git.py',
@@ -172,13 +174,14 @@ BEHAVIOR = {'host-contract-doc': '`host-contract-doc` depends on `migrate-config
                      '`tests/test_gates.py` are Context.',
  'report-inbox-triage': '`report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new '
                         '`squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, '
-                        '`squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`, '
-                        '`tests/test_triage.py`, `tests/test_author.py`, and new '
+                        '`squatch/author.py`, `squatch/daemon.py`, `squatch/serve.py`, '
+                        '`tests/test_box.py`, `tests/test_triage.py`, `tests/test_author.py`, '
+                        '`tests/test_serve.py`, and new '
                         '`tests/test_inbox.py`. It enforces the version-1 report schema, '
                         'metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies '
                         'bounded evidence into durable Box custody before recording the message, '
-                        'wires the daemon consumer, and makes sequential triage author `kind: bug` '
-                        'tickets whose evidence and `## Regression` survive intake. Daemon/Author '
+                        'wires the daemon and live serve consumers, and makes sequential triage author `kind: bug` '
+                        'tickets whose evidence and `## Regression` survive intake. Daemon/Author/Serve '
                         'roots, `squatch/triage.py`, their large tests, and delimiter-carrying '
                         '`tests/test_triage.py` are measured on-demand exceptions; the Box seam '
                         'and focused `tests/test_box.py` are Context.',

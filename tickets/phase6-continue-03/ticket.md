@@ -20,12 +20,12 @@ agent_effort: medium
 Row 3
 
 ## Why
-Plan repaired.
+Ready.
 
 ## Scope in
-Author `bug-gate-grammar`, `report-inbox-triage`, and `phase6-continue-04`. Every payload and continuation cites section 20 alone and starts medium/medium unless KNOWN-DEEP or KNOWN-HARD high/high. Render at max effort within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`; never render section 19.
+Author `bug-gate-grammar`, `report-inbox-triage`, and `phase6-continue-04`; section 20 alone; starts medium/medium unless KNOWN-DEEP or KNOWN-HARD high/high; max-effort headroom; never render section 19.
 
-Every numbered continuation owns only `tickets` plus its new `tests/test_seeded_phase6_<nn>.py`, embeds the immediately preceding merged Phase 6 seeded test as sole Context, depends on every row payload, and carries this suffix:
+Suffix:
 ```yaml
 - [bug-gate-grammar, report-inbox-triage, phase6-continue-04]
 - [escape-column, phase6-continue-05]
@@ -39,9 +39,9 @@ Every numbered continuation owns only `tickets` plus its new `tests/test_seeded_
 
 `bug-gate-grammar` partition: Embedded Context: `squatch/gates.py`, `tests/test_gates.py`; measured on-demand: `squatch/tickets.py`, `squatch/stages.py`, `tests/test_tickets.py`.
 
-`report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new `squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`, `tests/test_triage.py`, `tests/test_author.py`, and new `tests/test_inbox.py`. It enforces the version-1 report schema, metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies bounded evidence into durable Box custody before recording the message, wires the daemon consumer, and makes sequential triage author `kind: bug` tickets whose evidence and `## Regression` survive intake.
+`report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new `squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `squatch/serve.py`, `tests/test_box.py`, `tests/test_triage.py`, `tests/test_author.py`, `tests/test_serve.py`, and new `tests/test_inbox.py`. It enforces the version-1 report schema, metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies bounded evidence into durable Box custody before recording the message, wires the daemon and live serve consumers, and makes sequential triage author `kind: bug` tickets whose evidence and `## Regression` survive intake.
 
-`report-inbox-triage` partition: Embedded Context: `squatch/box.py`, `tests/test_box.py`; measured on-demand: `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `tests/test_author.py`, `tests/test_triage.py`.
+`report-inbox-triage` partition: Embedded Context: `squatch/box.py`, `tests/test_box.py`; measured on-demand: `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `squatch/serve.py`, `tests/test_author.py`, `tests/test_triage.py`, `tests/test_serve.py`.
 
 `escape-column` depends on both `bug-gate-grammar` and `report-inbox-triage` and owns/fences `squatch/scorecard.py`, `squatch/git.py`, `tests/test_scorecard.py`, and `tests/test_git.py`. It adds the squash-trailer read operation and deterministic bug-to-merged-ticket-or-bounded-range attribution, increments escapes only for surfaces that passed attributed merges, and leaves unattributed or foreign history out.
 
@@ -80,7 +80,7 @@ Every numbered continuation owns only `tickets` plus its new `tests/test_seeded_
 The terminal row contains `phase6-exit` alone, has no successor, and authors no continuation tail.
 
 ## Scope out
-Do not implement payloads, use sibling-new Context, render section 19, or add successors.
+No payload implementations, sibling-new Context, section 19, or successors.
 
 ## Scope fence
 - tickets
