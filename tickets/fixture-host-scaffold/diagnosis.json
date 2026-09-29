@@ -1,0 +1,17 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Zero spend must be real: chmod +x hosts/fixture/bin/codex, document putting hosts/fixture/bin first on PATH, and test through the engine adapter (squatch/providers.py) with the process seam resolving codex to the fixture script.",
+    "Also assert the real codex binary is never run. A declared est_cost_per_call_usd of 0.0 proves nothing.",
+    "bin/codex must read the surface from the prompt's first line (squatch prompt: surface=<name>) and fail closed on unknown surfaces. Substring matching breaks because review prompts contain the word implementer.",
+    "Canned outputs must match each surface's real contract. Review must return {verdict: approve, summary, findings: []}. Never return approved or implemented as a verdict. Test with realistic header prompts.",
+    "replay.py must actually run app.py and compare against recorded expectations. report-to-regression must reproduce classify('Squatch') returning bird where animal is expected, and the test must assert that, not a constant pass.",
+    "Create every replays/*.json file the reports name. Test that each exists, that its size equals replay_bytes, and that it stays within the bound.",
+    "Byte counts must be exact: the regression log_excerpt is 44 bytes, not 48. Use == in the test, not <=, and check the escape report the same way."
+  ],
+  "reason": "Every review finding is a fixable oversight inside the fence with a concrete paved road; nothing needs more capability or a ticket change.",
+  "detail": null
+}
