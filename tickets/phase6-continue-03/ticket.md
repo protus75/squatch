@@ -37,7 +37,7 @@ Every numbered continuation owns only `tickets` plus its new `tests/test_seeded_
 
 `bug-gate-grammar` depends on `fixture-host-scaffold` and owns/fences `squatch/tickets.py`, `squatch/gates.py`, `squatch/stages.py`, `tests/test_tickets.py`, `tests/test_gates.py`, and new `tests/test_bug_gate.py`. It adds `kind: bug`, mandatory `## Regression`, and the branch-head-pass/merge-base-with-`carries`-overlay-fail hard gate; a missing test at base is never accepted as defect evidence.
 
-`bug-gate-grammar` partition: Embedded Context: `squatch/tickets.py`, `squatch/gates.py`, `tests/test_gates.py`; measured on-demand: `squatch/stages.py`, `tests/test_tickets.py`.
+`bug-gate-grammar` partition: Embedded Context: `squatch/gates.py`, `tests/test_gates.py`; measured on-demand: `squatch/tickets.py`, `squatch/stages.py`, `tests/test_tickets.py`.
 
 `report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new `squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`, `tests/test_triage.py`, `tests/test_author.py`, and new `tests/test_inbox.py`. It enforces the version-1 report schema, metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies bounded evidence into durable Box custody before recording the message, wires the daemon consumer, and makes sequential triage author `kind: bug` tickets whose evidence and `## Regression` survive intake.
 
