@@ -1,9 +1,16 @@
 {
-  "run_seq": 2,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 3,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "Requisition review found that section 20's escape-column row cannot be delivered inside its fence. squatch/git.py has no rev-list, merge-base, or trailer read for HEAD-reachable first-parent ancestry or squatch-ticket/squatch-reviewed-sha pairs.",
+    "Adding a public Git coroutine breaks test_git_conflict_seams_are_only_additions_and_old_rebase_still_aborts, which pins the public coroutine set. tests/test_mergequeue.py sits outside the escape-column fence.",
+    "A private _run probe from retro.py or __main__.py would bypass the public git seam, so it is not a paved road either.",
+    "Earlier attempts found the same class of defect: the RetroWindow fold, the scorecard callers, and the attribution basis were all unfenced or unspecified. The fence cannot be widened because this ticket must carry the section 20 contract verbatim.",
+    "Fix section 20's escape-column row in the plan (git seam and allowlist test in the fence, callers, attribution basis), then regenerate phase6-continue-04.",
+    "tests/test_seeded_phase6_04.py passed locally and can be reused after the plan fix. Update its pinned phrases and fences to match the revised row."
+  ],
+  "reason": "Section 20's escape-column fence is too narrow to deliver its own goal, and this ticket must carry that contract unchanged, so only a plan fix can unblock it.",
+  "detail": null
 }
