@@ -13,4 +13,4 @@ None.
 OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected 75m; actual about 20m.
+Expected 75m; actual about 35m.
