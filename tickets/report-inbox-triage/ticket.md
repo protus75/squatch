@@ -34,15 +34,18 @@ Do not retain unbounded evidence, bypass Box custody, or use the delimiter-carry
 - squatch/triage.py
 - squatch/author.py
 - squatch/daemon.py
+- squatch/serve.py
 - tests/test_box.py
 - tests/test_triage.py
 - tests/test_author.py
+- tests/test_serve.py
 - tests/test_inbox.py
 
 ## Acceptance criteria
 - `tests/test_inbox.py` proves version-1 reports validate metadata before bounded evidence replay.
 - `tests/test_inbox.py` proves replay files cap at 1 MiB and log excerpts cap at 64 KiB before durable Box recording.
 - `tests/test_triage.py` proves sequential triage authors `kind: bug` tickets retaining evidence and `## Regression`.
+- `tests/test_serve.py` proves inbox-only reports wake the live serve consumer even when Box is initially empty.
 
 ## Verification
 ```
