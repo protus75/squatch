@@ -25,11 +25,14 @@ def verdict(checkout, verb: str, stem: str, *, pipeline=None):
     return rc, out.getvalue()
 
 
-def test_operator_verb_surface_includes_provider_free_doctor_and_manual_retro():
+def test_operator_verb_surface_has_exactly_the_supported_verbs():
     parser = main_module._parser()
     subparsers = next(action for action in parser._actions
                       if hasattr(action, "choices") and action.choices)
-    assert {"core", "doctor", "retro"} <= set(subparsers.choices)
+    assert set(subparsers.choices) == {
+        "confirm", "core", "doctor", "drain", "kill", "migrate-config", "new",
+        "pause", "reject", "resume", "retro", "run", "serve", "status", "triage",
+    }
 
 
 def test_doctor_dispatches_without_pipeline_provider_or_writer_lock(

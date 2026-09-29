@@ -28,7 +28,7 @@ from uuid import UUID
 
 import squatch
 from squatch.box import Box, BoxCorruption, journal_rereport_callback
-from squatch.config import ConfigError, load
+from squatch.config import ConfigError, load, migrate
 from squatch.control import ControlRequest, publish_control
 from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
                             compose_daemon_restart, compose_daemon_storm_producer,
@@ -76,6 +76,7 @@ def _parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="verb", required=True)
     sub.add_parser("status", help="project current state from the journal (read-only)")
     sub.add_parser("core", help="render managed conduct blocks for routed CLIs")
+    sub.add_parser("migrate-config", help="migrate config.yaml schema version 0 to 1")
     sub.add_parser("doctor", help="run read-only mechanical diagnostics")
     sub.add_parser("retro", help="force one retrospective over the current window")
     new = sub.add_parser("new", help="template tickets/<stem>/ticket.md and lint it")
@@ -117,7 +118,8 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
     except SystemExit as e:  # argparse already printed usage or help
         return int(e.code or 0)
     try:
-        return {"core": _core, "status": _status, "doctor": _doctor, "retro": _retro,
+        return {"core": _core, "migrate-config": _migrate_config, "status": _status,
+                "doctor": _doctor, "retro": _retro,
                 "new": _new, "run": _run, "confirm": _confirm,
                 "reject": _reject, "drain": _drain, "serve": _serve, "triage": _triage,
                 "pause": _control, "resume": _control, "kill": _control}[args.verb](
@@ -155,6 +157,15 @@ def _core(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
                       "preserve all project-owned text") from None
     if not names:
         print("core: no routed CLI conduct files", file=out)
+    return EXIT_OK
+
+
+def _migrate_config(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    try:
+        changed = migrate(args.config, cwd=cwd)
+    except ConfigError as e:
+        raise Refusal(f"config: {e}", "fix the named key in config.yaml (section 15)") from None
+    out.write(f"migrate-config: {'migrated' if changed else 'current'}\n")
     return EXIT_OK
 
 

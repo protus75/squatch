@@ -16,6 +16,8 @@ import re
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
+from squatch.seams import Filesystem, LocalFilesystem
+
 SCHEMA_VERSION = 1
 DEFAULT_NAME = "config.yaml"
 
@@ -300,10 +302,96 @@ def load(path: Path | None = None, *, cwd: Path) -> Config:
     path = Path(path) if path is not None else Path(cwd) / DEFAULT_NAME
     try:
         text = path.read_text()
-    except OSError as e:
-        raise ConfigError(str(path), [("", f"cannot read: {e.strerror or e}")]) from None
+    except (OSError, UnicodeDecodeError) as e:
+        raise ConfigError(
+            str(path), [("", f"cannot read: {getattr(e, 'strerror', None) or e}")]
+        ) from None
     try:
         data = yaml.safe_load(text)
     except yaml.YAMLError as e:
         raise ConfigError(str(path), [("", f"invalid YAML: {e}")]) from None
     return parse(data, source=str(path))
+
+
+def migrate(path: Path | None = None, *, cwd: Path, fs: Filesystem | None = None) -> bool:
+    """Migrate the sole supported predecessor, returning whether it changed."""
+    path = Path(path) if path is not None else Path(cwd) / DEFAULT_NAME
+    fs = fs if fs is not None else LocalFilesystem()
+    try:
+        original = fs.read(path)
+    except OSError as e:
+        raise ConfigError(str(path), [("", f"cannot read: {e.strerror or e}")]) from None
+    try:
+        text = original.decode()
+    except UnicodeDecodeError as e:
+        raise ConfigError(str(path), [("", f"cannot read: {e}")]) from None
+    try:
+        data = yaml.safe_load(text)
+        document = yaml.compose(text)
+    except yaml.YAMLError as e:
+        raise ConfigError(str(path), [("", f"invalid YAML: {e}")]) from None
+    if not isinstance(data, dict):
+        raise ConfigError(str(path), [("", "top level must be a mapping of the section 15 keys")])
+    if "schema_version" not in data:
+        raise ConfigError(str(path), [("schema_version", "required key is missing")])
+    version = data["schema_version"]
+    if isinstance(version, bool) or not isinstance(version, int):
+        raise ConfigError(str(path), [("schema_version", f"must be an integer, got {version!r}")])
+    if version < 0 or version > SCHEMA_VERSION:
+        raise ConfigError(str(path), [("schema_version", f"unsupported version {version}")])
+    if version == SCHEMA_VERSION:
+        load(path, cwd=cwd)
+        return False
+
+    scalar = _schema_version_scalar(document)
+    if scalar is None:
+        raise ConfigError(str(path), [("schema_version", "must be a top-level scalar")])
+    start, end = scalar
+    candidate = (text[:start] + "1" + text[end:]).encode()
+    temporary = path.with_name(f".{path.name}.migrate.tmp")
+    backup = path.with_name(f"{path.name}.bak")
+    try:
+        fs.publish(temporary, candidate)
+    except FileExistsError:
+        raise ConfigError(
+            str(path),
+            [("", f"stale {temporary.name} from an interrupted migration; remove it and rerun")],
+        ) from None
+    except OSError as e:
+        raise ConfigError(str(path), [("", f"cannot migrate: {e.strerror or e}")]) from None
+    try:
+        load(temporary, cwd=cwd)
+    except ConfigError as e:
+        _remove_migration_file(fs, temporary)
+        raise ConfigError(str(path), e.findings) from None
+    try:
+        fs.publish(backup, original)
+    except FileExistsError:
+        _remove_migration_file(fs, temporary)
+        raise ConfigError(str(path), [("", f"backup {backup.name} already exists; move it aside")]) from None
+    except OSError as e:
+        _remove_migration_file(fs, temporary)
+        raise ConfigError(str(path), [("", f"cannot migrate: {e.strerror or e}")]) from None
+    try:
+        fs.replace(temporary, path)
+    except OSError as e:
+        _remove_migration_file(fs, temporary)
+        _remove_migration_file(fs, backup)
+        raise ConfigError(str(path), [("", f"cannot migrate: {e.strerror or e}")]) from None
+    return True
+
+
+def _schema_version_scalar(document) -> tuple[int, int] | None:
+    if not isinstance(document, yaml.MappingNode):
+        return None
+    for key, value in reversed(document.value):
+        if key.value == "schema_version" and isinstance(value, yaml.ScalarNode):
+            return value.start_mark.index, value.end_mark.index
+    return None
+
+
+def _remove_migration_file(fs: Filesystem, path: Path) -> None:
+    try:
+        fs.remove(path)
+    except OSError:
+        pass

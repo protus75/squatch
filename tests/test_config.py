@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from squatch.config import SCHEMA_VERSION, Config, ConfigError, load, parse
+from squatch.config import SCHEMA_VERSION, Config, ConfigError, load, migrate, parse
 
 VALID = {
     "schema_version": 1,
@@ -221,6 +221,112 @@ def test_handshake_runs_before_the_rest_of_the_schema():
     # the handshake owns the first verdict.
     err = refused({"schema_version": 0, "garbage": True})
     assert "migrate-config" in str(err)
+
+
+# --- schema migration ----------------------------------------------------------
+
+def test_migrate_replaces_only_the_version_scalar_after_loader_validation(tmp_path):
+    path = write(tmp_path, yaml.safe_dump(variant(schema_version=0), sort_keys=False))
+    before = path.read_bytes()
+
+    assert migrate(cwd=tmp_path) is True
+
+    assert path.read_bytes() == before.replace(b"schema_version: 0", b"schema_version: 1", 1)
+    assert (tmp_path / "config.yaml.bak").read_bytes() == before
+    assert load(cwd=tmp_path).schema_version == 1
+
+
+def test_migrate_current_config_is_byte_identical_and_creates_no_backup(tmp_path):
+    path = write(tmp_path, yaml.safe_dump(VALID, sort_keys=False))
+    before = path.read_bytes()
+
+    assert migrate(cwd=tmp_path) is False
+
+    assert path.read_bytes() == before
+    assert not (tmp_path / "config.yaml.bak").exists()
+    assert not (tmp_path / ".config.yaml.migrate.tmp").exists()
+
+
+@pytest.mark.parametrize("contents", [
+    "state_dir: /tmp/squatch-state\nproviders: []\nrouting: []\n",
+    yaml.safe_dump(variant(schema_version="0")),
+    yaml.safe_dump(variant(schema_version=-1)),
+    yaml.safe_dump(variant(schema_version=2)),
+    yaml.safe_dump(variant(spend_ceiling=1, schema_version=0)),
+    yaml.safe_dump(variant(notify=None, schema_version=0)),
+    "schema_version: 0\n  bad: [",
+    "- schema_version\n- 0\n",
+    "scalar document\n",
+    yaml.safe_dump(variant(schema_version=True)),
+    yaml.safe_dump(variant(schema_version=0.0)),
+    yaml.safe_dump(variant(schema_version=1, unknown=True)),
+])
+def test_migrate_refuses_invalid_inputs_without_a_write(tmp_path, contents):
+    path = write(tmp_path, contents)
+    before = path.read_bytes()
+
+    with pytest.raises(ConfigError):
+        migrate(cwd=tmp_path)
+
+    assert path.read_bytes() == before
+    assert not (tmp_path / "config.yaml.bak").exists()
+    assert not (tmp_path / ".config.yaml.migrate.tmp").exists()
+
+
+def test_migrate_refuses_a_stale_temporary_file_with_its_release(tmp_path):
+    path = write(tmp_path, variant(schema_version=0))
+    temporary = tmp_path / ".config.yaml.migrate.tmp"
+    temporary.write_bytes(b"interrupted")
+    before = path.read_bytes()
+
+    with pytest.raises(ConfigError, match=r"stale \.config\.yaml\.migrate\.tmp.*remove it"):
+        migrate(cwd=tmp_path)
+
+    assert path.read_bytes() == before
+    assert temporary.read_bytes() == b"interrupted"
+    assert not (tmp_path / "config.yaml.bak").exists()
+
+
+def test_migrate_refuses_an_existing_backup_without_overwriting_either_file(tmp_path):
+    path = write(tmp_path, variant(schema_version=0))
+    backup = tmp_path / "config.yaml.bak"
+    backup.write_bytes(b"operator backup")
+    before = path.read_bytes()
+
+    with pytest.raises(ConfigError, match="move it aside"):
+        migrate(cwd=tmp_path)
+
+    assert path.read_bytes() == before
+    assert backup.read_bytes() == b"operator backup"
+    assert not (tmp_path / ".config.yaml.migrate.tmp").exists()
+
+
+def test_migrate_cleans_its_backup_and_temporary_file_when_replace_fails(tmp_path):
+    class FailingReplace:
+        def read(self, path):
+            return Path(path).read_bytes()
+
+        def publish(self, path, data):
+            path = Path(path)
+            if path.exists():
+                raise FileExistsError(path)
+            path.write_bytes(data)
+
+        def replace(self, _src, _dst):
+            raise OSError("replace failed")
+
+        def remove(self, path):
+            Path(path).unlink()
+
+    path = write(tmp_path, variant(schema_version=0))
+    before = path.read_bytes()
+
+    with pytest.raises(ConfigError, match="replace failed"):
+        migrate(cwd=tmp_path, fs=FailingReplace())
+
+    assert path.read_bytes() == before
+    assert not (tmp_path / "config.yaml.bak").exists()
+    assert not (tmp_path / ".config.yaml.migrate.tmp").exists()
 
 
 # --- fail-closed validation ------------------------------------------------------

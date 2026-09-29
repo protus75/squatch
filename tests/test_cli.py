@@ -652,6 +652,58 @@ def core_config(checkout, routed=("claude",)):
         if routed else []}))
 
 
+def test_migrate_config_cli_migrates_version_zero_and_reports_current_for_version_one(checkout):
+    path = checkout / "config.yaml"
+    path.write_text(CONFIG.replace("schema_version: 1", "schema_version: 0"))
+    before = path.read_bytes()
+
+    rc, out = cli(checkout, "migrate-config")
+
+    assert (rc, out) == (EXIT_OK, "migrate-config: migrated\n")
+    assert path.read_bytes() == before.replace(b"schema_version: 0", b"schema_version: 1", 1)
+    assert (checkout / "config.yaml.bak").read_bytes() == before
+    current = path.read_bytes()
+    assert cli(checkout, "migrate-config") == (EXIT_OK, "migrate-config: current\n")
+    assert path.read_bytes() == current
+
+
+@pytest.mark.parametrize("contents", [
+    "state_dir: .squatch/state\nproviders: []\nrouting: []\n",
+    CONFIG.replace("schema_version: 1", "schema_version: '0'"),
+    CONFIG.replace("schema_version: 1", "schema_version: -1"),
+    CONFIG.replace("schema_version: 1", "schema_version: 2"),
+    CONFIG.replace("schema_version: 1", "schema_version: 0\nunknown: true"),
+    CONFIG.replace("schema_version: 1", "schema_version: 0\nnotify: null"),
+    "schema_version: 0\n  bad: [",
+    "- schema_version\n- 0\n",
+    "schema_version: true\n",
+    "schema_version: 0.0\n",
+    CONFIG + "unknown: true\n",
+])
+def test_migrate_config_cli_refusals_leave_the_config_and_backup_unchanged(checkout, contents):
+    path = checkout / "config.yaml"
+    path.write_text(contents)
+    before = path.read_bytes()
+
+    rc, out = cli(checkout, "migrate-config")
+
+    assert rc == EXIT_REFUSED and out.startswith("refused: config:")
+    assert path.read_bytes() == before
+    assert not (checkout / "config.yaml.bak").exists()
+    assert not (checkout / ".config.yaml.migrate.tmp").exists()
+
+
+def test_migrate_config_cli_refuses_a_missing_config_without_a_backup(checkout):
+    path = checkout / "config.yaml"
+    path.unlink()
+
+    rc, out = cli(checkout, "migrate-config")
+
+    assert rc == EXIT_REFUSED and out.startswith("refused: config:")
+    assert not (checkout / "config.yaml.bak").exists()
+    assert not (checkout / ".config.yaml.migrate.tmp").exists()
+
+
 def core_without_process(checkout):
     class NoProcess:
         async def run(self, *_args, **_kwargs):
