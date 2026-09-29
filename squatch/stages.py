@@ -74,7 +74,8 @@ RUN_RECORD_SECTIONS: tuple[str, ...] = (
     "Resolved engine/model", "Predicted vs actual")
 # The Check stage's gate set: the v1 hard codes that validate the packing
 # slip (section 7), in run order. Check has no prompt spec; this is its version.
-CHECK_CODES: tuple[str, ...] = ("scope_fence", "verification", "run_record", "diff_budget")
+CHECK_CODES: tuple[str, ...] = ("scope_fence", "verification", "run_record", "diff_budget",
+                                "bug_evidence")
 CHECK_VERSION = "1.0"
 # Engine constants, not config: the reviewable-diff cap (section 7).
 DIFF_BUDGET_FILES = 30
@@ -502,6 +503,77 @@ class DiffBudget:
                     f"of {DIFF_BUDGET_FILES} files / {DIFF_BUDGET_LINES} inserted lines"),))
 
 
+class BugEvidence:
+    """Prove a bug ticket's regression fails at its merge base for the bug."""
+
+    code = "bug_evidence"
+    paved_road = ("make the `## Regression` command pass on the branch and fail at merge base "
+                  "after overlaying every carried test or fixture file")
+
+    def __init__(self, git: Git, repo: Path, process: ProcessExec, ticket: Ticket,
+                 env: Mapping[str, str], redact: Redactor, fs: Filesystem, *,
+                 base_worktree: Path):
+        self._git, self._repo, self._process, self._ticket = git, repo, process, ticket
+        self._env, self._redact, self._fs = env, redact, fs
+        self._base_worktree = base_worktree
+
+    async def check(self, slip: PackingSlip, workspace: Path) -> GateReport:
+        if self._ticket.kind != "bug":
+            return GateReport(code=self.code, verdict="pass")
+        regression = self._ticket.regression
+        if regression is None:
+            return self._failed("bug ticket has no parsed `## Regression` command")
+
+        timeout = self._ticket.stuck_minutes * 60
+        head_rc, _, _ = await self._process.run(
+            list(regression.command), cwd=workspace, env=self._env, timeout=timeout)
+        if head_rc != 0:
+            return self._failed("regression command fails on the branch head")
+
+        tracked = set(await self._git.ls_files(workspace))
+        carried = self._carried_paths(tracked, regression.carries)
+        created = False
+        try:
+            await self._git.worktree_add_detached(self._repo, self._base_worktree, slip.base)
+            created = True
+            changed = await self._git.diff_names(self._repo, slip.base, slip.branch)
+            # Deleted paths have no branch content to carry into the replay.
+            changed = [path for path in changed if path in tracked]
+            added = {path for path in changed if not (self._base_worktree / path).exists()}
+            uncovered = [path for path in changed
+                         if path not in carried and (path in added or _is_test_path(path))]
+            if uncovered:
+                return self._failed(
+                    "branch-added files and changed test or fixture files are not covered by "
+                    "`carries`: " + ", ".join(uncovered))
+            for path in carried:
+                self._fs.write(self._base_worktree / path, self._fs.read(workspace / path))
+            base_rc, _, _ = await self._process.run(
+                list(regression.command), cwd=self._base_worktree, env=self._env, timeout=timeout)
+        finally:
+            if created:
+                await self._git.worktree_remove(self._repo, self._base_worktree)
+        if base_rc == 0:
+            return self._failed("regression command passes at merge base with carries overlay")
+        return GateReport(code=self.code, verdict="pass")
+
+    def _carried_paths(self, tracked: set[str], carries: Sequence[str]) -> set[str]:
+        paths = set()
+        for prefix in carries:
+            paths.update(path for path in tracked if path == prefix or path.startswith(prefix + "/"))
+        return paths
+
+    def _failed(self, message: str) -> GateReport:
+        return GateReport(code=self.code, verdict="fail", findings=(Finding(
+            code=self.code, message=message, paved_road=self.paved_road),))
+
+
+def _is_test_path(path: str) -> bool:
+    """Only changed test/fixture inputs need carrying; production changes are the defect."""
+    parts = Path(path).parts
+    return "tests" in parts or "fixtures" in parts or Path(path).name.startswith("test")
+
+
 def build_invoice(run: GateRun, slip: PackingSlip, names: Sequence[str], *,
                   bypassed: set[str], version: str,
                   verification: Verification | None = None) -> Invoice:
@@ -853,7 +925,12 @@ class Stages:
                                / f"{stem}-base-{run_seq}"),
                 run_seq=run_seq, allow_empty=bool(seeds or output_paths))
             gates = (ScopeFence(self._git, self._repo, ticket), verification,
-                     RunRecord(), DiffBudget(self._git, self._repo))
+                     RunRecord(), DiffBudget(self._git, self._repo),
+                     BugEvidence(
+                         self._git, self._repo, self._process, ticket, self._child_env,
+                         self._redact, self._fs,
+                         base_worktree=(self._repo / self._config.worktree_root
+                                        / f"{stem}-bug-base-{run_seq}")))
             # The one valve (section 7): a bypassed code fails soft, recorded forever.
             severity = {**self._config.review.gate_severity,
                         **{code: "soft" for code in bypassed}}

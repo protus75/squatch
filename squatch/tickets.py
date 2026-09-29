@@ -434,7 +434,7 @@ def _checks(span: str, commands: list[str], fence: tuple[str, ...], context: tup
 def _lint_regression(sections, kind: str | None, findings: list[Finding]) -> Regression | None:
     road = ("`## Regression` is present exactly when `kind: bug`: one fenced argv command that "
             "reproduces the defect, then `- carries: <path-prefix>` bullets naming the "
-            "branch-added test or fixture files it needs")
+            "test or fixture files whose branch content the base replay needs")
     section = sections.get("Regression")
     if kind == "bug" and section is None:
         findings.append(_finding("`## Regression` is required when `kind: bug`", road))
@@ -468,7 +468,12 @@ def _lint_regression(sections, kind: str | None, findings: list[Finding]) -> Reg
             findings.append(_finding(f"`## Regression` line {line!r} is not `- carries: <prefix>`",
                                      road, section[0]))
             return None
-        carries.append(c.group(1))
+        prefix = _repo_relative(c.group(1))
+        if prefix is None:
+            findings.append(_finding(f"`## Regression` carries prefix {c.group(1)!r} is not "
+                                     "repo-relative", road, section[0]))
+            return None
+        carries.append(prefix)
     if not carries:
         findings.append(_finding("`## Regression` names no `carries:` prefix", road, section[0]))
         return None
