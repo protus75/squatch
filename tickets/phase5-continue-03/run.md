@@ -1,28 +1,18 @@
 ## Outcome
-
 ok
 
 ## Surprises / judgment calls
-
-Kept `phase5-exit` uncreated: it is authored by `phase5-continue-04`, and its
-terminal facts are pinned from that continuation's registry and Scope in.
-
-Kept the prior plan correction's closed manual-retro and mechanical-doctor
-contract in the authored feature ticket; partition and size assertions remain
-in this continuation test.
+The terminal `phase5-exit` remains specified only inside the continuation's
+registry; it is intentionally not authored in this admission.
 
 ## Dead ends
-
-The first focused run found an assertion wording mismatch (`only in` versus
-`only by`); the seeded test was corrected before the green rerun.
+The focused seeded test initially compared wrapped Scope-in prose without
+normalizing whitespace; the assertion was corrected before verification.
 
 ## Second problems filed
 
-
 ## Resolved engine/model
-
-codex / GPT-5
+OpenAI GPT-5 (Codex)
 
 ## Predicted vs actual
-
-Expected 75m; actual about 16m.
+Expected 75m; actual about 8m.
