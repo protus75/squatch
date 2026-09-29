@@ -1,53 +1,29 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "6f77a0a4b9d34d386e137819fb5431f04615c9f7",
+  "produced_at_sha": "33d3562a4d1fdf7b454f5a6bcc9110da80b9c2e6",
   "stem": "phase5-continue-03",
   "branch": "phase5-continue-03",
-  "base": "58837cf1ab2d4e2ed8fdb2453932f3da2942693f",
-  "head": "6f77a0a4b9d34d386e137819fb5431f04615c9f7",
+  "base": "d5b366bdacc50be44f067ffc827ea156ff5dc0b6",
+  "head": "33d3562a4d1fdf7b454f5a6bcc9110da80b9c2e6",
   "changed_files": [
     "tests/test_seeded_phase5_03.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase5-continue-04/ticket.md",
-      "sha": "357dc0b3ac4c18bfaa2c49093aafd1ad08493d7b",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
       "verdict": "fail",
       "severity": "hard",
-      "path": "tickets/retro-doctor-cli/ticket.md",
-      "sha": "281902ddf3aa80dbf06fc1f40208b82557ec6c9f",
+      "path": null,
+      "sha": null,
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/retro-doctor-cli/ticket.md",
-          "line": 1585,
-          "message": "Section 20's Phase 5 registry claims to be the sole authority for Phase 5 naming, behavior, ownership, and fences. It gives full behavior contracts for `scorecard-reporting`, `status-projection`, and `baseline-binding-reader`. For `retro-doctor-cli` it gives only the fence (`squatch/doctor.py`, `tests/test_doctor.py`, `squatch/retro.py`, `squatch/__main__.py`, `tests/test_retro.py`, `tests/test_cli.py`, `tests/test_verbs.py`). It never says which verbs to add, what they print, their exit codes, or what they may read. A seed that cites section 20 alone therefore has no plan-granted behavior to implement.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-doctor-cli/ticket.md",
-          "line": 1426,
-          "message": "Section 18 defines `doctor` as a mechanical self-check: venv, git on PATH, config schema, lock, and journal readability. Section 19 says Phase 5 adds both a `retro` verb and `doctor`, each registered in `squatch/__main__.py`. The ticket instead defines doctor as a 'bounded doctor view for a completed retro window' projected through the retro model, and it omits the `retro` verb. Neither verb exists on main today: `squatch/__main__.py` registers only status, new, run, confirm, reject, drain, serve, pause, kill, resume, and triage. So the plan's three descriptions disagree and none of them is a concrete contract.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-doctor-cli/ticket.md",
-          "line": null,
-          "message": "Neither acceptance criterion can be checked for feature behavior. The first only requires that `tests/test_doctor.py` exists and that existing contracts are preserved. The second asks a feature test to pin the seed's Context/on-demand partition and its synthetic byte sizes. That is a check on how the seed was authored, and it belongs in the continuation's `tests/test_seeded_phase5_<nn>.py`. It is not something the feature under test does.",
-          "paved_road": "fix the plan, then re-author the ticket"
+          "line": 69,
+          "message": "acceptance criterion names no `Verification` command or observable artifact: 'Feature criteria cover both operator verbs; Context partition, measured sizes, and render headroom are asserted only by `tests/test_seeded_phase5_03.py`.'",
+          "paved_road": "quote, in backticks, the `Verification` command or the observable artifact path that checks this criterion"
         }
       ],
       "commands": []
