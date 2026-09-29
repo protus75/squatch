@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Criterion 3 is unmet: tests/test_cli.py was never changed. Add a status test. Seed a Box bug_report whose app_commit is a first-parent commit with valid trailers, plus a passing check invoice. Assert the scorecard escapes column counts it once.",
+    "Add a Retro.run-level test in tests/test_retro.py using fake Git and a fake driver. Capture the RetroWindow the driver receives and assert escape_attributions == ((signature, ticket),). A direct Window.projection call does not prove Retro passes the attribution.",
+    "The ticket says the source is resolved bug_report evidence. Filter out pending (untriaged) and tombstoned (rejected or duplicate) reports in escape_attributions(). Prove it with a test where such a report contributes no escape.",
+    "The BASE..HEAD form is untested and passes the literal string to git. Read section 20 of the plan to learn what BASE means. Resolve it to real endpoints on first-parent HEAD ancestry, and add test_git cases for a valid range, a foreign range, and an ambiguous range."
+  ],
+  "reason": "Review snag: acceptance-criterion tests for Status/Retro wiring are missing, and report filtering needs a fix. Both can be fixed in place at the same capability.",
+  "detail": null
+}
