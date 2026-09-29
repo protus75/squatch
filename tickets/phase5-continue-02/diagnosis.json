@@ -1,15 +1,17 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Merge regate rejected the branch because the three authored seeds under tickets/** were committed. Leave tickets/status-projection, tickets/baseline-binding-reader, and tickets/phase5-continue-03 ticket.md files uncommitted in the worktree; the driver lifts outbox files.",
-    "Commit only tests/test_seeded_phase5_02.py and the run record on the branch. Write the three seed ticket.md files to the working tree but never git add them.",
-    "Keep the seed content and the test content unchanged. Checks passed and review approved: the registry, edges, tiers, budgets, fences, Context partition, the Phase 4 fixture pin, and render headroom were all accepted.",
-    "Before finishing, run git diff --name-only against the base and confirm no path under tickets/** appears except the run record. Scope-fence and check passes do not catch the outbox rule; only the merge regate does.",
-    "Possible engine inconsistency: the check stage passed a branch that the merge regate later rejected on tickets/** commits. If this recurs even though the seeds are left uncommitted, file it to the Suggestion Box rather than working around it."
+    "Review snagged only one gap: AC5's clause that pins `phase5-continue-04` to merged `tests/test_seeded_phase5_02.py` has no assertion. The remaining-rows test checks continue-04's depends and owns but never what it embeds.",
+    "Fix: in test_remaining_rows_dependencies_owners_terminal_and_no_successor_are_verbatim, assert the flattened continue-03 Scope in contains \"embeds merged `tests/test_seeded_phase5_02.py`\" and \"never its own test nor sibling-new `tests/test_seeded_phase5_03.py`\".",
+    "Copy the assertion strings from the authored tickets/phase5-continue-03/ticket.md text exactly. _flat collapses whitespace, so match the single-spaced form.",
+    "Keep the three authored seeds and every other assertion unchanged. All checks passed: requisition_review on all three seeds, scope_fence, verification, run_record and diff_budget.",
+    "Leave the three seed ticket.md files uncommitted in the worktree. Commit only tests/test_seeded_phase5_02.py and the run record. Confirm with git diff --name-only against base.",
+    "Before finishing, match every acceptance-criterion clause to a concrete assertion. Both omissions so far (Phase 4 fixture, continue-04 embed) were skipped clauses in tests that otherwise passed.",
+    "If the full-suite command runs past the capture window again, rerun it with a longer wait. Don't report an unverified pass."
   ],
-  "reason": "Only the merge regate failed, and only because the outbox ticket files were committed. That is a fixable oversight with a stated paved road; the content already passed checks and review.",
+  "reason": "Single missing assertion for an explicit acceptance clause; the seeds and checks are already green, so the same capability can fix it.",
   "detail": null
 }
