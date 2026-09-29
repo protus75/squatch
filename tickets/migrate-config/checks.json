@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "9562e9ee2a8691f06296f0d8645c0c1b96bf2c14",
+  "produced_at_sha": "8fbedf41c001a729ea25f6a4c6045fdb220a4745",
   "stem": "migrate-config",
   "branch": "migrate-config",
-  "base": "07f71d982ae6ac0ccdb7b01387b52b857a6caea5",
-  "head": "9562e9ee2a8691f06296f0d8645c0c1b96bf2c14",
+  "base": "4a6adc4c0a7bbf901c76da1d36e751e21ad620c0",
+  "head": "8fbedf41c001a729ea25f6a4c6045fdb220a4745",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/config.py",
