@@ -1,16 +1,14 @@
 ---
-verdict: snag
-reviewed_sha: 96a66eae17c2c4fdc00508aef52ac17e45ec9b9c
+verdict: approve
+reviewed_sha: c57652ca53363fbcf73496db00370ac3b2d36b74
 produced_by_spec_version: '1.0'
-produced_at_sha: 96a66eae17c2c4fdc00508aef52ac17e45ec9b9c
+produced_at_sha: c57652ca53363fbcf73496db00370ac3b2d36b74
 provider: claude
 model: opus
 artifact_schema_version: 1
 ---
 ## Summary
-The seeded test pins the rows, edges, tiers, fences, Context partition, synthetic sizes and the doctor criteria correctly. It does not prove `phase5-exit`'s high/high tier, its transitive dependencies or its two owned evidence paths, and it pins only the first of section 20's fixed Phase 6 rows.
+The diff adds only the in-fence seeded test tests/test_seeded_phase5_03.py; the retro-doctor-cli and phase5-continue-04 ticket files were already committed at base. Each acceptance criterion is covered by an assertion: registry rows, dependency edges, tiers, budgets, fences, Context partition that excludes sibling-new tests, on-demand sizes, max-effort render headroom, doctor criteria that name both verbs without partition or size text, and the continuation's exit disposition and Phase 6 registry with the section-20-only correction. The check report is green.
 
 ## Findings
-- correctness_review at tests/test_seeded_phase5_03.py:125: Acceptance criterion 3 requires the test to prove `phase5-exit` is terminal, transitive, high/high, and owns its two new evidence paths. `test_terminal_continuation_pins_exit_disposition_and_phase6_registry` checks only the one-row registry and that `phase5-continue-05` is absent. No assertion checks the authored `phase5-continue-04` Scope in for 'KNOWN-HARD high/high', 'depends transitively on every Phase 5 stem', 'owns only `tickets`, new `tests/test_phase5_exit.py`, and new `tests/test_seeded_phase6_core.py`', or 'has no successor'. A ticket that dropped or changed any of these would still pass. (paved road: Add substring assertions on `_flat(CONTINUE, "Scope in")` for the KNOWN-HARD high/high tier, the transitive-dependency clause, the exact three-path ownership (`tickets`, `tests/test_phase5_exit.py`, `tests/test_seeded_phase6_core.py`) and 'has no successor'.)
-- correctness_review at tests/test_seeded_phase5_03.py:134: Acceptance criterion 6 requires proof that the continuation carries section 20's fixed Phase 6 rows. The test pins only the first row fragment ('`core-drift-activation`, `migrate-config`') and the ending `phase6-exit`. The rows in between are unchecked: `host-contract-doc`/`fixture-host-scaffold`, `bug-gate-grammar`/`report-inbox-triage`, `escape-column`, KNOWN-DEEP `supervised-merge-hold`, `go-grade-machinery`/`go-grade-run` and `exit-receipt-machinery`. The Phase 6 core ownership and Context partition (hostfiles paths, `tests/test_seeded_phase6_01.py`, embedding merged `tests/test_seeded_phase5_04.py`) are also unchecked. A continuation that dropped or reordered these rows would still pass. (paved road: Assert the complete ordered remaining-row sequence exactly as written in the authored Scope in. Also assert the core renderer/classifier/continuation ownership and Context clauses (new `squatch/hostfiles.py`, new `tests/test_hostfiles.py`, new `tests/test_seeded_phase6_01.py`, merged `tests/test_seeded_phase5_04.py`).)
-- correctness_review at tests/test_seeded_phase5_03.py:157: The final headroom render in `test_exit_and_phase6_contracts_use_section20_only_and_compact_headroom` labels the workspace `phase5-exit` but renders the `phase5-continue-04` ticket against the live plan. It says nothing about the exit or Phase 6 seed renders, which the criterion names. It also turns the live plan's size into an assertion that will break as the plan grows, unlike the pinned `_authoring_plan` approach used earlier in the file. (I'm unsure whether a proxy render was intended; flagging it for that reason.) (paved road: Delete the redundant live-plan render; the continuation headroom is already proven with `_authoring_plan()`. Rely on the asserted 'RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM' clause in the continuation's Scope in to carry the exit and Phase 6 headroom obligation. If a render is kept, use the pinned authoring-time section-20 size so it is not a live-size assertion.)
+- none
