@@ -1,17 +1,16 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Wrap git.rev_parse in _status: catch GitError and raise Refusal(f\"cannot resolve HEAD: {e}\", <paved road>) as _run does. Add a test in which the stub rev_parse raises GitError, and assert the refusal exit code and message.",
-    "Before this change, status needed no git, so HEAD failures (no commits yet, a non-git cwd) must map to a defined Refusal exit. They must not escape as unhandled exceptions.",
-    "In tests/test_status.py, assert the blocked fold: on disk, a confirmed unmerged ticket whose declared dependency is unmerged yields sorted (stem, unmet_dependencies).",
-    "Assert values and exact render() section text for the preserved fields unparsed, pending, ready, stopped, intake, box, and reject_queue using a representative fixture.",
-    "Assert that [f.name for f in dataclasses.fields(Status)] equals the 12 preserved names followed by exactly box_activity, tombstone_digest, and scorecard.",
-    "Assert that render() includes the render_report(scorecard) lines when a scorecard is present and omits them when scorecard is None.",
-    "Checks were green and the reviewer called the folds and wiring correct. Keep the existing diff and add only the missing GitError handling and tests. Do not redesign."
+    "run.md `## Outcome` must be exactly one allowed value. Write `ok`, never `implemented`. Keep exactly the six required sections.",
+    "Full `uv run pytest -q` exited 1, but the harvest shows only a uv VIRTUAL_ENV warning, not the failing test. Run the full suite, fix every red test and confirm exit 0 before committing.",
+    "`_status` now needs git HEAD and specs/retro.md. Other status callers or fixtures, such as tests/test_verbs.py, test_drain*.py or a repo without specs/retro.md, may now fail. Update those fixtures inside the fence rather than weakening the production path.",
+    "load_spec failure on a missing or unreadable specs/retro.md is not caught in `_status`. Map it to a defined Refusal with a paved road, as GitError is, and test it. Never let it escape unhandled.",
+    "Keep the existing diff: the folds, GitError refusal and test_status.py coverage match prior lessons. Also add the render test with scorecard=None versus present. Do not redesign.",
+    "Don't claim 'both verification suites passed' unless the full-suite command actually exited 0 on the committed branch."
   ],
-  "reason": "Review found two fixable gaps with clear fixes: an unhandled GitError in _status and incomplete acceptance-criterion-1 test coverage. The rest of the diff passed review and all checks.",
+  "reason": "Fixable oversights: invalid run.md Outcome value and a red full test suite, likely status callers or fixtures lacking git HEAD or specs/retro.md; the implementation itself is on track.",
   "detail": null
 }
