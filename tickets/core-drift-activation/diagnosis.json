@@ -1,15 +1,16 @@
 {
-  "run_seq": 2,
+  "run_seq": 3,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep the committed diff: providers.conduct_files shared by _core and CoreDrift, CoreDrift in the merge regate tuple, the marker-refusal and remainder tests, and run.md with Outcome `ok`. Every mechanical gate passed. Review raised only the one host-repo defect.",
-    "Fix: _branch_core always reads <worktree>/squatch/hostfiles.py. A host worktree has no such file, so the gate crashes on every adopted host and no release path exists. A host could also plant that file to choose its own template.",
-    "Pick the template source by target. Read the candidate branch's CORE via AST only when the merge target is the engine repo. Otherwise use the engine's imported hostfiles.CORE. merge.py has no self-target flag today, so Merge must pass the source into CoreDrift(config, ...).",
-    "Add a test: an adopted CLAUDE.md in a workspace with no squatch/hostfiles.py gets a pass/fail verdict from classify, not a crash. Also test that a host-planted squatch/hostfiles.py is ignored when the target is not the engine repo.",
-    "Stay inside the fence: gates.py, merge.py and the tests. Keep hostfiles.py's pure import set and test_rendering_has_no_git_or_commit_effect. Rerun both verification commands after the change."
+    "Keep the committed diff as it is: providers.conduct_files shared by _core and CoreDrift, the CoreDrift gate in the merge regate tuple, the target-dependent template source, and the marker, remainder and merge tests. Every mechanical gate passed.",
+    "Only defect: _branch_core raises GateError for candidate content, and run_gates re-raises GateError as an engine bug. So an annotated `CORE: str = ...`, a duplicate CORE, or a non-str CORE crashes Merge._regate instead of producing a finding.",
+    "Fix: in _branch_core or CoreDrift.check, turn a missing, duplicate, annotated, non-literal or non-str candidate CORE into a failing core_drift finding (path squatch/hostfiles.py) with CORE_DRIFT_ROAD. Keep GateError only for gate-protocol defects.",
+    "Before changing anything, read how run_gates handles GateError versus other exceptions in squatch/gates.py. Then choose between returning a finding directly and raising a non-GateError exception that the runner already turns into a fail.",
+    "Add tests/test_gates.py cases with candidate_template=True and an adopted CLAUDE.md: `CORE: str = 'x'`, two CORE assignments, and `CORE = 1`. Each must give a failed run with a core_drift finding, not a raise.",
+    "Stay inside the fence. Keep hostfiles.py's pure import set and test_rendering_has_no_git_or_commit_effect, and keep run.md's Outcome as `ok` in the fixed section order. Rerun both verification commands."
   ],
-  "reason": "Review found one fixable correctness defect, a host-repo crash in the template source. Everything else passed and is accepted, so the same capability can fix it in place.",
+  "reason": "Review found one fixable defect: bad CORE text in the candidate branch escapes as a GateError engine crash instead of a core_drift finding. The rest of the diff passed every gate and review.",
   "detail": null
 }
