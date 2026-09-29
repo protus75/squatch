@@ -1,13 +1,15 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "abandon-human",
+  "verdict": "retry",
   "lessons": [
-    "The check-stage requisition_review failed because the reviewer provider could not connect: 'SSL certificate has expired'. It never evaluated the tickets, so this finding says nothing about the authored seeds.",
-    "The implementation reported itself complete: it added the Phase 4 continuation-fixture pin (context == tests/test_seeded_phase4_05.py, size 8111, exists on base, not in NEW_PATHS) and both pytest commands passed. Keep the seeds and test unchanged.",
-    "Once the host's TLS/CA trust or clock is repaired, re-run the check stage on the existing branch. A new implementation attempt is not needed unless requisition review then reports a real content finding."
+    "Merge regate rejected the branch because the three authored seeds under tickets/** were committed. Leave tickets/status-projection, tickets/baseline-binding-reader, and tickets/phase5-continue-03 ticket.md files uncommitted in the worktree; the driver lifts outbox files.",
+    "Commit only tests/test_seeded_phase5_02.py and the run record on the branch. Write the three seed ticket.md files to the working tree but never git add them.",
+    "Keep the seed content and the test content unchanged. Checks passed and review approved: the registry, edges, tiers, budgets, fences, Context partition, the Phase 4 fixture pin, and render headroom were all accepted.",
+    "Before finishing, run git diff --name-only against the base and confirm no path under tickets/** appears except the run record. Scope-fence and check passes do not catch the outbox rule; only the merge regate does.",
+    "Possible engine inconsistency: the check stage passed a branch that the merge regate later rejected on tickets/** commits. If this recurs even though the seeds are left uncommitted, file it to the Suggestion Box rather than working around it."
   ],
-  "reason": "The only findings come from an expired SSL certificate blocking the reviewer API call; that is an environment failure, and no retry or extra capability fixes it.",
+  "reason": "Only the merge regate failed, and only because the outbox ticket files were committed. That is a fixable oversight with a stated paved road; the content already passed checks and review.",
   "detail": null
 }
