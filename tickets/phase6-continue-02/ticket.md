@@ -66,52 +66,89 @@ Carry this exact shrinking suffix:
 
 Pin every following row's exact direct edges, owner/fence, Context/on-demand
 partition, and behavior contract from section 20. `bug-gate-grammar` depends
-on `fixture-host-scaffold`, fences ticket/gate parser paths plus new
-`tests/test_bug_gate.py`, adds `kind: bug`, mandatory `## Regression`, and the
-branch-head-pass/merge-base-with-`carries`-overlay-fail hard gate; missing base
-tests are never defect evidence. `report-inbox-triage` depends on it, fences
-new `squatch/inbox.py`, Box/Triage/Author/Daemon seams and focused tests, caps
-metadata-first replay files at 1 MiB and log excerpts at 64 KiB, copies bounded
-evidence into durable Box custody before recording, and preserves `kind: bug` evidence and
-`## Regression` through sequential triage.
+on `fixture-host-scaffold`, owns/fences `squatch/tickets.py`,
+`squatch/gates.py`, `squatch/stages.py`, `tests/test_tickets.py`,
+`tests/test_gates.py`, and new `tests/test_bug_gate.py`. `squatch/stages.py`
+and its composition callers are measured on-demand exceptions; the ticket/gate
+parsers `squatch/tickets.py` and `squatch/gates.py` plus focused
+`tests/test_tickets.py` and `tests/test_gates.py` are Context. It adds `kind: bug`, mandatory
+`## Regression`, and the branch-head-pass/merge-base-with-`carries`-overlay-
+fail hard gate; a missing test at base is never accepted as defect evidence.
+`report-inbox-triage` depends on `bug-gate-grammar`, owns/fences new
+`squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`,
+`squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`,
+`tests/test_triage.py`, `tests/test_author.py`, and new
+`tests/test_inbox.py`. Daemon/Author roots and their large tests are measured
+on-demand exceptions; existing `squatch/box.py` and `squatch/triage.py` seams
+plus focused `tests/test_box.py` and `tests/test_triage.py` are Context.
+It enforces the version-1 report schema, metadata-first 1 MiB replay-file and
+64 KiB log-excerpt caps, copies bounded evidence into durable Box custody
+before recording the message, wires the daemon consumer, and makes sequential
+triage author `kind: bug` tickets whose evidence and `## Regression` survive
+intake. `phase6-continue-04` depends on both `bug-gate-grammar` and
+`report-inbox-triage`.
 
-`escape-column` depends on both row-3 features, fences scorecard/Git and their
-tests, and adds squash-trailer reading with deterministic bug attribution;
-only surfaces passing attributed merges gain escapes, foreign or unattributed
-history is excluded. `supervised-merge-hold` is KNOWN-DEEP high/high, depends
-on `escape-column`, fences merge/baseline/control/CLI/stages/drain/runner and
-their listed tests plus new `tests/test_supervised_merge_hold.py`, and provides
-durable HELD admission, identity-bound `confirm`, restart reconstruction,
-rebase/regate, and no bootstrap self-build hold. Existing roots and broad
-suites are measured on-demand; the new focused test is not Context.
+`escape-column` depends on both `bug-gate-grammar` and
+`report-inbox-triage`, owns/fences `squatch/scorecard.py`, `squatch/git.py`,
+`tests/test_scorecard.py`, and `tests/test_git.py`. `squatch/git.py` and
+`tests/test_git.py` may be measured on-demand exceptions; `squatch/scorecard.py`
+and `tests/test_scorecard.py` are Context. It adds the squash-trailer read operation and deterministic
+bug-to-merged-ticket-or-bounded-range attribution, increments escapes only for
+surfaces that passed the attributed merges, and leaves unattributed or foreign
+history out. `phase6-continue-05` depends on `escape-column`.
 
-`go-grade-machinery` depends on `supervised-merge-hold` and
-`fixture-host-scaffold`, fences `eval/harness.py`, `squatch/artifacts.py`,
-`tests/test_harness.py`, and new `tests/test_go_grade.py`; its existing paths
-are Context. It has at least 50 planted defects, fixed USD 5.00 cap,
-harness-local Author prompt, closed report, and operator-only `--record-go`;
-production `specs/author.md` is never used. `go-grade-run` depends on it,
-changes no code, fences only
-`tickets/go-grade-run/review-baseline-report.json`, has Context
-`eval/harness.py` and `squatch/artifacts.py`, and records GO-or-NO-GO signal
-identity, with NO-GO valid.
+`supervised-merge-hold` is KNOWN-DEEP high/high, depends on `escape-column`,
+and owns/fences `squatch/merge.py`, `squatch/baseline.py`,
+`squatch/control.py`, `squatch/__main__.py`, `squatch/stages.py`,
+`squatch/drain.py`, `squatch/runner.py`, `tests/test_merge.py`,
+`tests/test_baseline.py`, `tests/test_control_cli.py`, `tests/test_cli.py`,
+`tests/test_drain.py`, and new `tests/test_supervised_merge_hold.py`. Every
+existing production root and broad suite in this fence is a measured on-demand
+exception; the new focused test is not Context. It implements durable HELD
+admission after merge safety and integration checks but before main mutation,
+excludes held stems from dispatch while preserving their worktrees, releases
+through identity-bound `confirm` without a cap-rearming keep signal,
+rebase/regates against moved main, reconstructs holds on restart, and never
+holds the bootstrap self-build. `phase6-continue-06` depends on
+`supervised-merge-hold`.
 
-`exit-receipt-machinery` depends on `go-grade-run`, fences
-`squatch/artifacts.py`, new `eval/host_loop.py`, new `tests/test_host_loop.py`,
-and `tests/test_artifacts.py`; artifact code/tests are Context and
-`hosts/fixture/` is a measured on-demand worktree read, never embedded. It
-registers closed receipt writers and runs supervised `serve` with control-inbox
-machine confirms, recording per-member evidence for three machine merges, the
-report-to-regression bug loop, and escape attribution; it never produces
-terminal artifacts during its build. `phase6-continue-08` depends on it.
+`go-grade-machinery` depends on both `supervised-merge-hold` and
+`fixture-host-scaffold`, owns/fences `eval/harness.py`,
+`squatch/artifacts.py`, `tests/test_harness.py`, and new
+`tests/test_go_grade.py`; existing harness/artifact modules and
+`tests/test_harness.py` are Context: exactly `eval/harness.py`,
+`squatch/artifacts.py`, and `tests/test_harness.py`. It extends the committed harness to at
+least 50 planted defects under the fixed USD 5.00 cap, runs the harness-local
+Author prompt, records the authored tickets and dependency graph in one closed
+report, and adds operator-only `--record-go`; production `specs/author.md` is
+never used. `go-grade-run` depends on `go-grade-machinery`, changes no code,
+owns/fences only `tickets/go-grade-run/review-baseline-report.json`, and has
+Context exactly `eval/harness.py` and `squatch/artifacts.py`. Its committed report
+embeds its mechanically recorded GO-or-NO-GO verdict signal identity; only the
+operator may turn an earned result into GO, so NO-GO is valid.
+`phase6-continue-07` depends on both `go-grade-machinery` and `go-grade-run`.
+
+`exit-receipt-machinery` depends on `go-grade-run`, owns/fences
+`squatch/artifacts.py`, new `eval/host_loop.py`, new
+`tests/test_host_loop.py`, and `tests/test_artifacts.py`. Existing artifact
+code/tests `squatch/artifacts.py` and `tests/test_artifacts.py` are embedded Context;
+`hosts/fixture/` is a named measured on-demand
+worktree read and is never an embedded Context entry. It registers closed
+writers for `host-loop-report.json` and `exit-receipt.json`; the host-loop
+harness launches supervised `serve`, drives machine-actor confirms through the
+control inbox, and records per-member evidence for at least three
+machine-ticket merges, the report-to-regression bug loop, and escape
+attribution. It never produces terminal artifacts during its own build.
+`phase6-continue-08` depends on `exit-receipt-machinery`.
 
 The terminal row contains `phase6-exit` alone. It is KNOWN-HARD high/high,
 depends on `exit-receipt-machinery`, owns/fences only
 `tickets/phase6-exit/host-loop-report.json`,
-`tickets/phase6-exit/exit-receipt.json`, and new `tests/test_phase6_exit.py`,
-has no Context, reads the committed GO-grade verdict identity, accepts GO or
-NO-GO, proves the three closed members, writes the receipt digest, makes no
-engine-code edit, and has no successor.
+`tickets/phase6-exit/exit-receipt.json`, and new `tests/test_phase6_exit.py`.
+Every fenced path is terminal output or a new focused test, so it has no
+Context. It reads the committed GO-grade verdict identity, accepts GO or
+NO-GO, proves the three closed host-loop members, writes the receipt digest,
+makes no engine-code edit, and has no successor.
 
 ## Scope out
 Do not implement a payload, use sibling-new Context, cite or render section
