@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "15db44a01e1a9d490acecfc66a3a444b9af693be",
+  "produced_at_sha": "7ea945040facaf30bcf5fc1ff70c1e3b7a8e7fb8",
   "stem": "retro-doctor-cli",
   "branch": "retro-doctor-cli",
-  "base": "ec026f937e6ce01d8a0c016ba5bacdae4c0f60a1",
-  "head": "15db44a01e1a9d490acecfc66a3a444b9af693be",
+  "base": "513b4c311672eeafb2d49ff174c48c0c0af1a84a",
+  "head": "7ea945040facaf30bcf5fc1ff70c1e3b7a8e7fb8",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/doctor.py",
