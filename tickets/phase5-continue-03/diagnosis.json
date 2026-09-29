@@ -1,9 +1,16 @@
 {
-  "run_seq": 9,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 10,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Check failed on requisition_review for tickets/phase5-continue-04/ticket.md:59. Its Scope out says \"Do not create `phase5-exit` now\", but its Scope in and every criterion require it to author confirmed phase5-exit. The ticket contradicts itself.",
+    "Fix only continue-04's Scope out. Delete the phase5-exit prohibition, which was carried over from continue-03's own Scope out. Keep bans that fit: no Phase 6 invention, no successor after phase5-exit, and no feature implementation.",
+    "Review found everything else in continue-04 correct against section 20: fence, Context, dependency and exit-read closure. The plan fix landed, so do not re-open it. Change nothing else in either ticket or in the four tests.",
+    "Before finishing, read each authored ticket's Scope out against its own Scope in and acceptance criteria. No prohibition may forbid an output that the same ticket requires.",
+    "Keep the prior lessons: do not create tickets/phase5-exit/ticket.md. The doctor's Context stays squatch/retro.py and tests/test_retro.py; continue-04's stays tests/test_seeded_phase5_02.py. The fixture stays pinned at 11383 bytes, and ticket files stay uncommitted.",
+    "Engine issue, still open: for the second time, the requisition_review reply came wrapped in ```json and was cut off before the parser read it. It should be filed separately if it isn't already; do not fold it into this ticket."
+  ],
+  "reason": "The reviewer's snag is a self-contradiction inside the authored continue-04 ticket (a stale Scope out line), not a plan defect; the next run can fix it at the same capability.",
+  "detail": null
 }
