@@ -2,13 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The continuation ticket had collapsed later-row fences and partitions. I
-expanded them into exact path contracts, including exact existing Context sets,
-and made the seeded proof assert those sets, on-demand paths, edges, behavior,
-and terminal fence.
+The previously authored row tickets were already present, while the seeded
+guard was absent from the branch. I restored the accepted exact remaining-row
+tables and added direct assertions for every carried review finding: row-one
+behavior and on-demand partitions, continuation-02's shrinking suffix and
+continuation contract, and stem-bound KNOWN-DEEP/KNOWN-HARD custody.
 
 ## Dead ends
-None.
+Initial exact-phrase assertions used two grammatical variants not present in
+the authored tickets; I aligned them to the contract text before verification.
 
 ## Second problems filed
 
@@ -16,4 +18,4 @@ None.
 OpenAI Codex; serving model identity unavailable.
 
 ## Predicted vs actual
-Expected 75m; actual about 45m.
+Expected 75m; actual about 20m.
