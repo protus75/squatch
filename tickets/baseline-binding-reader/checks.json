@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "05df6dec4453553f87990d3d82bb6077a40d9030",
+  "produced_at_sha": "8ef42ab600592c7778e6f5773294f077b0cfcb1e",
   "stem": "baseline-binding-reader",
   "branch": "baseline-binding-reader",
-  "base": "05ef39b2dbfcaab015572a58485eb0c2a7c7f2a1",
-  "head": "05df6dec4453553f87990d3d82bb6077a40d9030",
+  "base": "081dd9acacb1950f8bb7acb381a5b5b3606658a9",
+  "head": "8ef42ab600592c7778e6f5773294f077b0cfcb1e",
   "changed_files": [
     "squatch/author.py",
     "squatch/baseline.py",
