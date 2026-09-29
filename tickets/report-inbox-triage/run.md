@@ -4,7 +4,7 @@ ok
 
 ## Surprises / judgment calls
 
-Reports use the explicit `*.report.json` intake rule, are metadata-validated before replay access, and are filed or quarantined out of subsequent scans. Triage restricts only author verdicts for bug reports, so tombstones and decisions still resolve normally.
+Restored the prior scoped intake implementation from local ticket history, then hardened its per-report failure boundary. Duplicate report origins now use the Box rereport path, and bug tickets must include their evidence custody reference.
 
 ## Dead ends
 
@@ -15,8 +15,8 @@ None.
 
 ## Resolved engine/model
 
-OpenAI Codex
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: approximately 35m.
+Expected: 75m. Actual: approximately 20m.
