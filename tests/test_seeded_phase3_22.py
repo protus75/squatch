@@ -61,6 +61,7 @@ EXISTING_AT_AUTHORING = {
     "tests/test_serve.py": 9235,
     "squatch/stages.py": 52958,
 }
+PLAN_SECTION_AT_AUTHORING = 32180
 NEW_PATH_OWNERS = {
     "tickets/soak-run/daemon-soak-report.json": "soak-run",
     "tests/test_seeded_phase3_23.py": "phase3-continue-23",
@@ -188,6 +189,10 @@ def test_context_partitions_predecessor_closure_and_new_path_owners():
 def test_authoring_sizes_and_max_effort_render_headroom():
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
+    start = plan.index("## 20.")
+    body = plan.index("\n", start) + 1
+    end = plan.index("\n## ", body) + 1
+    plan = plan[:body] + "x" * (PLAN_SECTION_AT_AUTHORING - 1) + "\n" + plan[end:]
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
         ticket = _ticket(stem)

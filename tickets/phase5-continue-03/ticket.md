@@ -51,6 +51,15 @@ The doctor ticket embeds `squatch/retro.py` (17745 bytes) and
 `tests/test_seeded_phase5_03.py` pins all ownership/context partitions and
 the max-effort render headroom.
 
+The authored `retro-doctor-cli` ticket carries section 20's complete feature
+contract: the lock-held manual `retro` verb reuses the governed production
+Retro path, while provider-free `doctor` performs only the five ordered
+mechanical checks (`venv`, `git`, `config`, `lock`, `journal`). Its acceptance
+criteria test verb behavior, exact output/exit classes, reads and write
+boundaries in `tests/test_doctor.py`, `tests/test_retro.py`,
+`tests/test_cli.py`, and `tests/test_verbs.py`; seed partition and synthetic
+size assertions remain only in `tests/test_seeded_phase5_03.py`.
+
 ## Scope out
 Do not implement a feature, use a same-admission seeded test as Context,
 rename or reorder the registry, or add a successor after `phase5-exit`.
@@ -63,6 +72,7 @@ rename or reorder the registry, or add a successor after `phase5-exit`.
 - `tests/test_seeded_phase5_03.py` pins the exact rows, edges, tiers, budgets, ownership, Context partition, synthetic sizes, and render headroom.
 - `tests/test_seeded_phase5_03.py` proves `phase5-continue-04` uses merged `tests/test_seeded_phase5_02.py` and excludes both sibling-new seeded tests.
 - `tests/test_seeded_phase5_03.py` proves `phase5-exit` is terminal, transitive, high/high, and owns its two new evidence paths.
+- `tests/test_seeded_phase5_03.py` proves the doctor seed's feature criteria cover both verbs and leaves partition/size assertions in the seeded test only.
 
 ## Verification
 ```

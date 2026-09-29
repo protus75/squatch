@@ -140,6 +140,10 @@ def test_continuation_carries_the_finite_ordered_remainder():
 def test_every_seed_render_fits_authoring_headroom_with_pinned_context():
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
+    start = plan.index("## 20.")
+    body = plan.index("\n", start) + 1
+    end = plan.index("\n## ", body) + 1
+    plan = plan[:body] + "x" * (PLAN_SECTION_AT_AUTHORING - 1) + "\n" + plan[end:]
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in PHASE3_CORE:
         ticket = _ticket(stem)
@@ -153,6 +157,4 @@ def test_every_seed_render_fits_authoring_headroom_with_pinned_context():
             "ticket": DataBlock("host", _path(stem).read_text()),
             "context": DataBlock("host", context or "(no Context files)\n"),
         }, plan=plan, plan_sections=ticket.plan_sections, effort="max")
-        section = plan.split("## 20. Open decisions", 1)[1].split("## 21.", 1)[0]
-        historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING)
-        assert historical_length <= limit, (stem, historical_length, limit)
+        assert len(rendered) <= limit, (stem, len(rendered), limit)

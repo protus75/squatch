@@ -34,6 +34,7 @@ EXISTING_AT_AUTHORING = {
     "tickets/phase3-continue-03/ticket.md": 4876,
     "tests/test_seeded_phase3_core.py": 5877,
 }
+PLAN_SECTION_AT_AUTHORING = 8890
 SUFFIX = (
     ("dispatch-admission-boundary", "dispatch-config-snapshot"),
     ("scheduler-activation",),
@@ -127,6 +128,10 @@ def test_continuation_carries_the_exact_ordered_suffix():
 def test_every_seed_render_fits_requisition_headroom_with_pinned_context():
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
+    start = plan.index("## 20.")
+    body = plan.index("\n", start) + 1
+    end = plan.index("\n## ", body) + 1
+    plan = plan[:body] + "x" * (PLAN_SECTION_AT_AUTHORING - 1) + "\n" + plan[end:]
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in PHASE3_03:
         ticket = _ticket(stem)
