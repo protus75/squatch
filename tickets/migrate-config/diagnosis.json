@@ -1,16 +1,16 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Publish the backup with fs.publish, which will not replace an existing path. Turn FileExistsError into a ConfigError that tells the operator to move the existing config.yaml.bak aside. Test that a pre-existing .bak refuses and leaves both files unchanged.",
-    "If the temp write or replace raises OSError, remove the backup this call created and the temp file before raising ConfigError, so a refusal never leaves a write. Test with a fake Filesystem whose replace raises.",
-    "Catch UnicodeDecodeError from fs.read(path).decode() and raise it as a ConfigError so non-UTF-8 input goes through the normal Refusal path.",
-    "Parametrize the CLI refusal test over: missing schema_version, \"0\", -1, 2, an unknown key, v0 with notify: null, and a missing config.yaml. For each, assert EXIT_REFUSED, the config unchanged, and no .bak.",
-    "Add a CLI test that a v1 config prints 'migrate-config: current', stays byte-identical and creates no .bak. In test_verbs, assert the exact verb set with ==, not a <= subset.",
-    "Keep the core design: YAML node-span scalar substitution plus validation through the real loader. The reviewer judged it sound."
+    "Keep the design as is: node-span scalar substitution, real-loader validation of the temp file, no-overwrite publish for backup and temp, and cleanup on failure. The reviewer found the logic sound; only test coverage and one message are missing.",
+    "Add refusal cases to test_migrate_refuses_invalid_inputs_without_a_write using raw text: invalid YAML ('schema_version: 0\\n  bad: ['), a list document, a scalar document, schema_version: true, and schema_version: 0.0. Assert bytes unchanged, no .bak, no .migrate.tmp.",
+    "Add a test_config.py case where a version-1 config has an unknown key or invalid value: migrate must raise ConfigError, leave bytes unchanged, and create no .bak or temp file.",
+    "Add at least the invalid-YAML and non-mapping (list document) cases to the CLI refusal parametrization in tests/test_cli.py, asserting EXIT_REFUSED, config unchanged, and no .bak.",
+    "On FileExistsError from publishing the temp file, raise a ConfigError that names the stale file and its release, e.g. 'stale .config.yaml.migrate.tmp from an interrupted migration; remove it and rerun'.",
+    "Add a test that pre-creates .config.yaml.migrate.tmp and asserts: the refusal message names the file and says to remove it, config bytes are unchanged, and no .bak is created."
   ],
-  "reason": "Review found fixable gaps in backup safety, the refusal write path and CLI test coverage, each with a concrete fix; checks passed and the core approach is sound.",
+  "reason": "Review snagged on fixable test-coverage gaps and one missing paved-road message. The implementation design was judged sound, so a retry at the same capability should succeed.",
   "detail": null
 }
