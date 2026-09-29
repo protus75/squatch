@@ -1,18 +1,18 @@
 {
-  "run_seq": 7,
+  "run_seq": 8,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snagged; every mechanical gate passed. All three findings are test-strength gaps inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed.",
-    "AC1: for core-drift-activation and migrate-config, assert over each ticket's flattened Scope in: the exact on-demand path list, the 'every other existing fence path is Context' clause, and each named behavior phrase.",
-    "AC1 behavior phrases to pin: resolver moved into squatch/providers.py and shared by _core and core_drift, replacement of test_classifier_is_unreachable_from_production_gates, kept test_rendering_has_no_git_or_commit_effect, merge-time rerun set.",
-    "AC1 migrate-config phrases to pin: version-0-only mapping, byte-identical v1 no-op, and the full refusal set. Also assert that phase6-continue-02 says it authors row 2.",
-    "AC2: assert _admissions('phase6-continue-02') == SUFFIX[1:]. Pin the continuation contract in 02's Scope in: owns only tickets plus the matching tests/test_seeded_phase6_<nn>.py, with the preceding merged seeded test as sole Context.",
-    "AC3: bind each marker to its stem, e.g. assert '`supervised-merge-hold` is KNOWN-DEEP high/high' in scope, and assert the KNOWN-HARD clause inside the phase6-exit sentence, not as bare substrings.",
-    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render-bound guards use real measured sizes. Re-run the max-effort render check after any ticket text grows.",
-    "Before claiming done, map each acceptance-criterion clause to a specific assertion. Green suites and an 'ok' run record have not predicted review outcomes on this ticket."
+    "Review snagged and every mechanical gate passed. Both findings are inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed. Findings are shrinking each round; close these two exactly.",
+    "Exact edges: for each stem in REMAINING, capture only its own 'depends on ...' clause up to the next comma or 'and owns'. Extract the backticked stems and assert they equal the depends tuple exactly. Scope-wide substring checks always pass.",
+    "Apply the same exact-clause extraction to each phase6-continue-03..08 edge and to phase6-exit's depends clause. Then check that dropping one parent, such as escape-column->report-inbox-triage, would fail the test.",
+    "Edit tickets/phase6-continue-02/ticket.md (this diff did not touch it). exit-receipt-machinery must add: supervised `serve` subprocess against `hosts/fixture/`, and per-member `(member, driven scenario, observable, producing run)` evidence.",
+    "phase6-exit in continue-02 must add: runs the registered host-loop producer, and live-host K>=10 and real-host bug-loop evidence are forbidden as exit inputs. Add these phrases to the REMAINING behavior tuples.",
+    "Diff every payload paragraph in the commissioning Scope in against continue-02's text, clause by clause. Any clause missing from continue-02 is an incomplete row contract and must be added and pinned.",
+    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes. Re-run the max-effort render bound after continue-02 grows.",
+    "Before claiming done, mutation-test each pin: change an edge or remove a phrase in a scratch copy and confirm the test fails. Green suites have not predicted review outcomes on this ticket."
   ],
-  "reason": "The review found fixable test-coverage gaps inside the fence, and its findings now point to the exact assertions to add.",
+  "reason": "Two fixable test-strength and contract-completeness gaps inside the fence; review findings name concrete paved roads.",
   "detail": null
 }
