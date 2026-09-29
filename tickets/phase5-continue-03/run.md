@@ -4,21 +4,21 @@ ok
 
 ## Surprises / judgment calls
 
-The terminal exit's direct dependency is `phase5-continue-04`; its full Phase 5
-coverage is transitive through the fixed continuation chain.
+Kept `phase5-exit` uncreated: it is authored by `phase5-continue-04`, and its
+terminal facts are pinned from that continuation's registry and Scope in.
 
 ## Dead ends
 
-None.
+Initial wrapped acceptance-criterion bullets did not satisfy ticket lint, so
+they were rewritten as single bullets with their observable test paths.
 
 ## Second problems filed
 
-None.
 
 ## Resolved engine/model
 
-Codex; exact serving model was not exposed.
+codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 10m.
+Expected 75m; actual about 14m.
