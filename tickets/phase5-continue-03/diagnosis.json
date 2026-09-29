@@ -1,0 +1,14 @@
+{
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Check failed: untracked tickets/phase5-exit/ticket.md lists sibling-new tests/test_seeded_phase5_03.py as Context. Context may only name files that exist on main.",
+    "Scope in says author only retro-doctor-cli and phase5-continue-04. Do not create tickets/phase5-exit/ticket.md; phase5-continue-04 authors it later.",
+    "Prove phase5-exit's terminal, transitive, high/high and ownership facts from the registry and Scope in text of phase5-continue-04. Do not read a phase5-exit ticket file.",
+    "Before finishing, lint every authored ticket's Context against files that exist on main. Keep the doctor Context as squatch/retro.py and tests/test_retro.py, and continue-04's as tests/test_seeded_phase5_02.py only."
+  ],
+  "reason": "A fixable scope and Context oversight: an out-of-scope phase5-exit ticket named a sibling-new file as Context.",
+  "detail": null
+}
