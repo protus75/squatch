@@ -1,0 +1,16 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Copy every remaining payload paragraph and every continuation dependency/sole-Context line verbatim into phase6-continue-03 Scope in, from bug-gate-grammar through phase6-exit and phase6-continue-04..08. Do not summarize or paraphrase any of them.",
+    "Keep one verbatim '`<stem>` partition: Embedded Context: ...; measured on-demand: ...' paragraph for every remaining payload. tests/test_seeded_phase6_01.py parses these clauses by that prefix.",
+    "Restate the 'starts medium/medium unless marked KNOWN-DEEP or KNOWN-HARD high/high' rule. Keep supervised-merge-hold marked KNOWN-DEEP high/high and phase6-exit marked KNOWN-HARD high/high, with the exact three-path fence for phase6-exit.",
+    "Model test_seeded_phase6_02.py on test_seeded_phase6_01.py. Use per-stem tables for depends, fence, behavior phrases, partition, tier and continuation sole Context across the whole remaining suffix, and assert each entry against the phase6-continue-03 text.",
+    "Assert phase6-exit's exact fence (tickets/phase6-exit/host-loop-report.json, tickets/phase6-exit/exit-receipt.json, tests/test_phase6_exit.py) and its no-successor clause. After lengthening the ticket, re-check the max-effort render bound.",
+    "Row 2 identities, edges, tiers, Contexts and render checks already passed review. Keep them and fix only the dropped suffix contracts and the missing pins."
+  ],
+  "reason": "Review found a fixable omission: the implementer summarized the suffix contracts instead of copying them. The findings give an exact paved road, and all mechanical gates passed.",
+  "detail": null
+}
