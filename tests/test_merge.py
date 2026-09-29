@@ -305,6 +305,19 @@ async def test_merge_regate_requires_current_completed_output_and_check_evidence
     assert any("no committed diff" in f.message for f in invoice.hard_findings)
 
 
+async def test_merge_regate_includes_the_core_drift_gate(repo, env):
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"),
+                                actions=[implementer(env, WIDGET)]))
+    delivery = await deliver(h, verify=GREEN)
+    merge = merge_of(h)
+    rebased = await merge._rebase(STEM, h.worktree(), 0)
+    candidate = delivery.slip.model_copy(update={"base": rebased["base"], "head": rebased["head"]})
+
+    invoice = await merge._regate(ticket_of(h), candidate, h.worktree(), 0)
+
+    assert "core_drift" in [check.code for check in invoice.checks]
+
+
 @pytest.mark.parametrize("daemon", [False, True])
 @pytest.mark.parametrize("rel", ["squatch/widget.py", "tickets/other/note.txt"])
 async def test_output_merge_refuses_foreign_edits_before_ticket_plane_cleanup(

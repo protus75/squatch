@@ -8,6 +8,7 @@ a gate outside the closed protocol -- unlisted code, no paved road, no async
 `check` -- is refused, never skipped.
 """
 
+import ast
 import inspect
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -18,11 +19,72 @@ from pydantic import Field, model_validator
 
 from squatch.artifacts import GATE_CODES, Artifact, Finding, ClosedModel
 from squatch.config import Severity
+from squatch import hostfiles
+from squatch.providers import conduct_files
+from squatch.seams import Filesystem, LocalFilesystem
 
 Verdict = Literal["pass", "fail"]
 
 # Shipped default (section 15): every engine-shipped code hard at merge.
 SHIPPED_GATE_SEVERITY: Mapping[str, Severity] = {code: "hard" for code in sorted(GATE_CODES)}
+
+CORE_DRIFT_ROAD = ("repair the named template or markers while preserving project-owned text; "
+                   "run `squatch core` on the candidate branch, then commit the rendered files")
+
+
+def _branch_core(workspace: Path, fs: Filesystem) -> str:
+    """Read the candidate template as data; branch code is never imported."""
+    source = fs.read(workspace / "squatch" / "hostfiles.py")
+    tree = ast.parse(source)
+    values = [node.value for node in tree.body if isinstance(node, ast.Assign)
+              for target in node.targets if isinstance(target, ast.Name) and target.id == "CORE"]
+    if len(values) != 1:
+        raise ValueError("candidate hostfiles.py must define exactly one literal CORE")
+    core = ast.literal_eval(values[0])
+    if not isinstance(core, str):
+        raise ValueError("candidate hostfiles.py CORE must be a string literal")
+    return core
+
+
+class CoreDrift:
+    """Require each routed conduct file to match its authoritative template."""
+
+    code = "core_drift"
+    paved_road = CORE_DRIFT_ROAD
+
+    def __init__(self, config, *, candidate_template: bool = False,
+                 fs: Filesystem | None = None) -> None:
+        self._files = conduct_files(config)
+        self._candidate_template = candidate_template
+        self._fs = fs if fs is not None else LocalFilesystem()
+
+    async def check(self, artifact: Artifact, workspace: Path) -> "GateReport":
+        core = None if self._candidate_template else hostfiles.CORE
+        findings = []
+        for name in self._files:
+            path = workspace / name
+            try:
+                content = self._fs.read(path).decode("utf-8", errors="surrogateescape")
+            except FileNotFoundError:
+                continue
+            # First adoption remains the explicit `core` command's job. This
+            # merge boundary verifies every block the candidate has adopted.
+            if "squatch:core" not in content.casefold():
+                continue
+            if core is None:
+                try:
+                    core = _branch_core(workspace, self._fs)
+                except (OSError, SyntaxError, ValueError, TypeError) as error:
+                    return GateReport(code=self.code, verdict="fail", findings=(Finding(
+                        code=self.code, path="squatch/hostfiles.py", paved_road=self.paved_road,
+                        message=f"cannot read candidate CORE: {error}"),))
+            state = hostfiles.classify(content, core)
+            if state != "current":
+                findings.append(Finding(
+                    code=self.code, path=name, paved_road=self.paved_road,
+                    message=f"{name} managed conduct is {state}; render it from this branch"))
+        return GateReport(code=self.code, verdict="fail" if findings else "pass",
+                          findings=tuple(findings))
 
 
 class GateReport(ClosedModel):

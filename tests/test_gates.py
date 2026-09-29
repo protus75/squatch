@@ -10,6 +10,8 @@ gate must reach a fixpoint on its second run (invariant 5).
 import pytest
 from pydantic import ValidationError
 
+import squatch.__main__ as main_module
+from squatch import gates, hostfiles, providers
 from squatch.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
     GATE_CODES,
@@ -21,13 +23,14 @@ from squatch.artifacts import (
     StageResult,
 )
 from squatch.gates import (
-    SHIPPED_GATE_SEVERITY,
+    CoreDrift, SHIPPED_GATE_SEVERITY,
     GateError,
     GateLintError,
     GateReport,
     gate_lint,
     run_gates,
 )
+from squatch.config import parse
 
 PROVENANCE = {"produced_by_spec_version": "check@1", "produced_at_sha": "0123abcd"}
 
@@ -198,6 +201,62 @@ def test_shipped_severity_is_every_gate_code_hard():
     assert set(SHIPPED_GATE_SEVERITY.values()) == {"hard"}
 
 
+def core_config():
+    return parse({
+        "schema_version": 1, "state_dir": ".squatch/state",
+        "providers": [{"name": "claude", "kind": "cli",
+                       "models_by_tier": {tier: "model" for tier in
+                                          ("low", "medium", "high", "max")},
+                       "limits": {"concurrency": 1}}],
+        "routing": [{"tier": "medium", "surface": "review",
+                     "candidates": [{"provider": "claude"}]}],
+    }, source="test")
+
+
+async def test_core_drift_reaches_classifier_through_the_shared_conduct_resolver(
+        tmp_path, monkeypatch):
+    branch = tmp_path / "squatch"
+    branch.mkdir()
+    (branch / "hostfiles.py").write_text("CORE = 'candidate core'\n")
+    (tmp_path / "CLAUDE.md").write_text(hostfiles.managed_block("candidate core"))
+    called = []
+
+    def classify(content, core):
+        called.append((content, core))
+        return "current"
+
+    monkeypatch.setattr(gates.hostfiles, "classify", classify)
+    run = await run_gates(
+        [CoreDrift(core_config(), candidate_template=True)], Invoice(**PROVENANCE), tmp_path)
+
+    assert run.passed
+    assert called and called[0][1] == "candidate core"
+    assert gates.conduct_files is providers.conduct_files
+    assert main_module.conduct_files is providers.conduct_files
+
+
+@pytest.mark.parametrize("planted", [False, True])
+async def test_host_core_drift_uses_engine_template_without_branch_source(
+        tmp_path, monkeypatch, planted):
+    (tmp_path / "CLAUDE.md").write_text(hostfiles.managed_block())
+    if planted:
+        branch = tmp_path / "squatch"
+        branch.mkdir()
+        (branch / "hostfiles.py").write_text("CORE = 'host planted template'\n")
+    called = []
+    real_classify = hostfiles.classify
+
+    def classify(content, core):
+        called.append(core)
+        return real_classify(content, core)
+
+    monkeypatch.setattr(gates.hostfiles, "classify", classify)
+    run = await run_gates([CoreDrift(core_config())], Invoice(**PROVENANCE), tmp_path)
+
+    assert run.passed
+    assert called == [hostfiles.CORE]
+
+
 async def test_runner_defaults_to_hard(tmp_path):
     gate = StubGate(failing())
     run = await run_gates([gate], Invoice(**PROVENANCE), tmp_path)
@@ -205,6 +264,30 @@ async def test_runner_defaults_to_hard(tmp_path):
     assert [f.code for f in run.hard_failures] == ["run_record"]
     assert run.soft_failures == ()
     assert run.results[0].severity == "hard"
+
+
+@pytest.mark.parametrize("source", [
+    "CORE: str = 'x'\n", "CORE = 'x'\nCORE = 'y'\n", "CORE = 1\n",
+    "OTHER = 'x'\n", "CORE = str('x')\n", "CORE = (\n", None,
+])
+async def test_invalid_candidate_core_is_a_located_hard_finding(tmp_path, source):
+    branch = tmp_path / "squatch"
+    branch.mkdir()
+    if source is not None:
+        (branch / "hostfiles.py").write_text(source)
+    path = tmp_path / "CLAUDE.md"
+    path.write_text(hostfiles.managed_block("x"))
+    before = path.read_bytes()
+
+    run = await run_gates([CoreDrift(core_config(), candidate_template=True)],
+                          Invoice(**PROVENANCE), tmp_path)
+
+    assert not run.passed
+    (finding,) = run.hard_failures
+    assert (finding.code, finding.path) == ("core_drift", "squatch/hostfiles.py")
+    assert finding.paved_road == gates.CORE_DRIFT_ROAD
+    assert "cannot read candidate CORE" in finding.message
+    assert path.read_bytes() == before
 
 
 async def test_runner_applies_soft_severity_from_config(tmp_path):

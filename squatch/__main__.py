@@ -44,7 +44,8 @@ from squatch.journal import Journal, JournalCorruption, read_events
 from squatch.ladder import effective, rungs
 from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
 from squatch.notify import NotificationReconciler
-from squatch.providers import CliClient, ProviderError, ProviderRuntime, Registry, RoutingError, child_env
+from squatch.providers import (CliClient, ProviderError, ProviderRuntime, Registry, RoutingError,
+                               child_env, conduct_files)
 from squatch.redact import Redactor
 from squatch.retro import Retro, RetroConstructionError, Window
 from squatch.merge import compose_pipeline
@@ -131,13 +132,7 @@ def _core(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
     config = _config(args, cwd)
     fs = LocalFilesystem()
     try:
-        registry = Registry(config)
-        names = sorted({
-            "CLAUDE.md" if resolved.provider.name == "claude" else "AGENTS.md"
-            for route in config.routing
-            for resolved in registry.candidates(route.tier, route.surface)
-            if resolved.provider.kind == "cli"
-        })
+        names = conduct_files(config)
         pending = []
         # Validate every target before publishing any, so a corrupt second
         # file cannot leave an otherwise refused invocation half adopted.

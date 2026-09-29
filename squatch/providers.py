@@ -316,6 +316,17 @@ class Registry:
             for candidate in route.candidates)
 
 
+def conduct_files(config: Config) -> tuple[str, ...]:
+    """The managed conduct files implied by routed CLI providers."""
+    registry = Registry(config)
+    return tuple(sorted({
+        "CLAUDE.md" if resolved.provider.name == "claude" else "AGENTS.md"
+        for route in config.routing
+        for resolved in registry.candidates(route.tier, route.surface)
+        if resolved.provider.kind == "cli"
+    }))
+
+
 COOLDOWN_PREFIX = "provider-cooldown/"
 
 

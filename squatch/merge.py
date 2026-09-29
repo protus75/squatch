@@ -28,7 +28,7 @@ from squatch.control import ControlInbox
 from squatch.diagnose import Diagnoser, DiagnosisRecord
 from squatch.effects import Effects, effect_key
 from squatch.enginelog import EngineLog
-from squatch.gates import GateReport, run_gates
+from squatch.gates import CoreDrift, GateReport, run_gates
 from squatch.git import Git, GitError, RebaseConflict
 from squatch.journal import Journal
 from squatch.mergequeue import AdmissionHold, Candidate, MergeQueue
@@ -60,6 +60,7 @@ REWORK_ROAD = ("let the daemon Rework consumer revise or split the ticket from t
 RETRO_PROVENANCE = "retro_provenance"
 RETRO_PROVENANCE_ROAD = ("author the retro finding through Box so its unique journal bridge "
                          "exists before merge")
+ENGINE_ROOT = Path(__file__).resolve().parent.parent
 
 
 
@@ -358,7 +359,10 @@ class Merge:
                 run_seq=run_seq,
                 allow_empty=bool(output_paths) or self._seed_lift(stem, run_seq) is not None)
             gates = (ScopeFence(self._git, self._repo, ticket), RunRecord(),
-                     DiffBudget(self._git, self._repo), verification)
+                     DiffBudget(self._git, self._repo), verification,
+                     CoreDrift(self._config,
+                               candidate_template=self._repo.resolve() == ENGINE_ROOT,
+                               fs=self._fs))
             run = await run_gates(gates, candidate, worktree, severity=self._severity(ticket))
             names = await self._git.diff_names(self._repo, candidate.base, candidate.branch)
             invoice = build_invoice(run, candidate, names, bypassed=bypassed,

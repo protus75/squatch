@@ -22,7 +22,7 @@ from squatch.config import ConfigError, Provider, load, parse
 from squatch.llm import LLM_SURFACES, WRITING_SURFACES, LLMRequest
 from squatch.providers import (
     ADAPTERS, PLACEHOLDER, CliClient, FailureFact, ProviderError, ProviderRuntime, Registry,
-    RoutingError, child_env)
+    RoutingError, child_env, conduct_files)
 from squatch.redact import Redactor
 from squatch.watchdog import EventCollector, WatchdogEvent
 
@@ -166,6 +166,10 @@ def test_registry_accepts_the_valid_config_and_names_the_shipped_adapters():
     assert set(ADAPTERS) == {"claude", "codex"}
     assert reg.auth_names == {CLAUDE_KEY, CODEX_KEY}
     assert reg.surfaces == LLM_SURFACES | {"arch"}
+
+
+def test_conduct_files_owns_the_routed_provider_mapping():
+    assert conduct_files(config()) == ("AGENTS.md", "CLAUDE.md")
 
 
 def test_cli_provider_name_must_be_a_shipped_adapter():

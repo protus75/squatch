@@ -9,7 +9,27 @@ from typing import get_args
 import pytest
 
 from squatch import hostfiles
+from squatch.config import parse
+from squatch.gates import CoreDrift
 from squatch.hostfiles import DriftState, ManagedBlockRefusal, classify, managed_block, render
+
+
+def core_config():
+    return parse({
+        "schema_version": 1, "state_dir": ".squatch/state",
+        "providers": [{"name": "claude", "kind": "cli",
+                       "models_by_tier": {tier: "model" for tier in
+                                          ("low", "medium", "high", "max")},
+                       "limits": {"concurrency": 1}}],
+        "routing": [{"tier": "medium", "surface": "review",
+                     "candidates": [{"provider": "claude"}]}],
+    }, source="test")
+
+
+def branch_template(workspace: Path, core: str) -> None:
+    path = workspace / "squatch" / "hostfiles.py"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(f"CORE = {core!r}\n")
 
 
 @pytest.mark.parametrize("project", ["", "no trailing newline", "# Host\r\n\r\n café\t\r\n", "\ufeffheader\n"])
@@ -37,7 +57,7 @@ def test_render_is_idempotent_with_multiline_core_and_surrounding_project_text(c
     assert result == "prefix\n" + managed_block(core) + "\n\nsuffix\r\n"
 
 
-@pytest.mark.parametrize("content", [
+MALFORMED_MARKERS = [
     "squatch:core", "SQUATCH:CORE", "<!-- squatch:core begin -->\n",
     "<!-- squatch:core end -->", "<!-- squatch:core start -->",
     managed_block("old").split("\n", 1)[0] + "\nunterminated",
@@ -49,7 +69,10 @@ def test_render_is_idempotent_with_multiline_core_and_surrounding_project_text(c
     managed_block("old").replace("sha256=", "hash="),
     "inline " + managed_block("old"),
     managed_block("old").replace("<!-- squatch:core end -->", "<!-- squatch:core end --> junk"),
-])
+]
+
+
+@pytest.mark.parametrize("content", MALFORMED_MARKERS)
 def test_malformed_partial_duplicate_and_stray_marker_text_refuses(content):
     with pytest.raises(ManagedBlockRefusal):
         render(content, "new")
@@ -90,17 +113,38 @@ def test_classifier_preserves_project_owned_remainder_and_is_pure():
     assert classify(current, "new") == "current"
 
 
-def test_classifier_is_unreachable_from_production_gates():
-    root = Path(hostfiles.__file__).parent
-    for path in root.glob("*.py"):
-        if path.name == "hostfiles.py":
-            continue
-        tree = ast.parse(path.read_text())
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module == "squatch.hostfiles":
-                assert all(alias.name != "classify" for alias in node.names)
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-                assert node.func.attr != "classify"
+async def test_core_drift_compares_the_branch_template_and_preserves_project_remainder(tmp_path):
+    project = "# Project\r\nkeep these bytes\r\n"
+    branch_template(tmp_path, "old core")
+    path = tmp_path / "CLAUDE.md"
+    path.write_text(render(project, "old core"), newline="")
+    gate = CoreDrift(core_config(), candidate_template=True)
+
+    assert (await gate.check(object(), tmp_path)).verdict == "pass"
+    branch_template(tmp_path, "new core")
+    report = await gate.check(object(), tmp_path)
+    assert report.verdict == "fail"
+    assert report.findings[0].path == "CLAUDE.md"
+    assert path.read_text(newline="").endswith(project)
+
+    path.write_text(render(path.read_text(newline=""), "new core"), newline="")
+    assert (await gate.check(object(), tmp_path)).verdict == "pass"
+    assert path.read_text(newline="").endswith(project)
+
+
+@pytest.mark.parametrize("content", MALFORMED_MARKERS)
+async def test_core_drift_refuses_malformed_managed_markers_without_rewriting(tmp_path, content):
+    branch_template(tmp_path, "new")
+    path = tmp_path / "CLAUDE.md"
+    path.write_text(content)
+    before = path.read_bytes()
+
+    report = await CoreDrift(core_config(), candidate_template=True).check(object(), tmp_path)
+
+    assert report.verdict == "fail"
+    assert [(finding.code, finding.path) for finding in report.findings] == [
+        ("core_drift", "CLAUDE.md")]
+    assert path.read_bytes() == before
 
 
 def test_rendering_has_no_git_or_commit_effect():
