@@ -4,19 +4,19 @@ ok
 
 ## Surprises / judgment calls
 
-Used YAML node source spans so migration changes only the schema scalar, including in CRLF files; the adjacent backup is `config.yaml.bak`.
+The existing filesystem seam's no-overwrite publish operation was used for both the backup and migration temporary file. A failed replacement removes only the backup created by this invocation.
 
 ## Dead ends
 
-The optional Ruff check could not run because `ruff` is not installed in the project environment.
+The optional Ruff check could not run because Ruff is not installed in the project environment.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI / GPT-5
+OpenAI GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 25m.
+Expected: 75m. Actual: about 25m.
