@@ -1,0 +1,17 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Wrap git.rev_parse in _status: catch GitError and raise Refusal(f\"cannot resolve HEAD: {e}\", <paved road>) as _run does. Add a test in which the stub rev_parse raises GitError, and assert the refusal exit code and message.",
+    "Before this change, status needed no git, so HEAD failures (no commits yet, a non-git cwd) must map to a defined Refusal exit. They must not escape as unhandled exceptions.",
+    "In tests/test_status.py, assert the blocked fold: on disk, a confirmed unmerged ticket whose declared dependency is unmerged yields sorted (stem, unmet_dependencies).",
+    "Assert values and exact render() section text for the preserved fields unparsed, pending, ready, stopped, intake, box, and reject_queue using a representative fixture.",
+    "Assert that [f.name for f in dataclasses.fields(Status)] equals the 12 preserved names followed by exactly box_activity, tombstone_digest, and scorecard.",
+    "Assert that render() includes the render_report(scorecard) lines when a scorecard is present and omits them when scorecard is None.",
+    "Checks were green and the reviewer called the folds and wiring correct. Keep the existing diff and add only the missing GitError handling and tests. Do not redesign."
+  ],
+  "reason": "Review found two fixable gaps with clear fixes: an unhandled GitError in _status and incomplete acceptance-criterion-1 test coverage. The rest of the diff passed review and all checks.",
+  "detail": null
+}
