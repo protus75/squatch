@@ -230,3 +230,25 @@ def test_baseline_reader_and_remaining_suffix_are_closed_and_terminal():
     ):
         assert text in scope
     assert "phase5-continue-05" not in scope
+
+
+def test_phase5_exit_and_phase6_use_compact_section20_render_surface():
+    plan = (REPO / PLAN_FILE).read_text()
+    section20 = plan[plan.index("## 20."):]
+    for text in (
+        "Phase 5/6 compact-render correction",
+        "`phase5-exit`, `core-renderer`, `core-drift-classifier`, `phase6-continue`, and every later Phase 6 seed cite section 20 ALONE",
+        "full section 19 is never rendered for these tickets",
+        "The remaining Phase 6 admissions are fixed here rather than read from section 19",
+        "then `phase6-exit` alone with no successor",
+        "no historical section-19 snapshot or live section-19 render is accepted",
+    ):
+        assert text in section20
+
+    spec = load_spec(REPO / "specs" / "implement.md")
+    rendered = spec.render({
+        "workspace": DataBlock("engine", "stem: phase5-exit\nbranch: phase5-exit\n"),
+        "ticket": DataBlock("host", "# compact Phase 5 exit fixture\n"),
+        "context": DataBlock("host", ""),
+    }, plan=plan, plan_sections=("20",), effort="max")
+    assert len(rendered) <= int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)

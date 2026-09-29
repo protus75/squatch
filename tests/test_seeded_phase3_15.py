@@ -178,8 +178,11 @@ def test_successor_removes_only_journal_and_storm_pair_without_combining():
 
 def test_authoring_section_length_and_max_effort_headroom():
     plan = (REPO / PLAN_FILE).read_text()
-    section = plan.split("## 20. Open decisions", 1)[1].split("## 21.", 1)[0]
     assert PLAN_SECTION_AT_AUTHORING == 20430
+    start = plan.index("## 20.")
+    body = plan.index("\n", start) + 1
+    end = plan.index("\n## ", body) + 1
+    plan = plan[:body] + "x" * (PLAN_SECTION_AT_AUTHORING - 1) + "\n" + plan[end:]
     spec = load_spec(REPO / "specs" / "implement.md")
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
@@ -189,5 +192,4 @@ def test_authoring_section_length_and_max_effort_headroom():
                                 "ticket": DataBlock("host", _path(stem).read_text()),
                                 "context": DataBlock("host", context)}, plan=plan,
                                plan_sections=("20",), effort="max")
-        historical_length = len(rendered) - max(0, len(section) - PLAN_SECTION_AT_AUTHORING)
-        assert historical_length <= limit, (stem, historical_length, limit)
+        assert len(rendered) <= limit, (stem, len(rendered), limit)
