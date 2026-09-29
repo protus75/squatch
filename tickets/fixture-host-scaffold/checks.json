@@ -1,12 +1,14 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "8dc21c62ddd6acaf45414cd97db2cfada9034033",
+  "produced_at_sha": "934ce0fbe472d4d28d17b581928195b6415065db",
   "stem": "fixture-host-scaffold",
   "branch": "fixture-host-scaffold",
-  "base": "425a21416977851b5b0174c1ef4c46c73d6c13d4",
-  "head": "8dc21c62ddd6acaf45414cd97db2cfada9034033",
+  "base": "40a7cb0df1a187c9a584de9ca836210dc4c14a3a",
+  "head": "934ce0fbe472d4d28d17b581928195b6415065db",
   "changed_files": [
+    "hosts/fixture/.gitignore",
+    "hosts/fixture/README.md",
     "hosts/fixture/app.py",
     "hosts/fixture/bin/codex",
     "hosts/fixture/bin/fixture-replay",
