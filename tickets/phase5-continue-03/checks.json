@@ -1,33 +1,17 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "33d3562a4d1fdf7b454f5a6bcc9110da80b9c2e6",
+  "produced_at_sha": "e6e4702678571d48310701d20ef703cbf40bc337",
   "stem": "phase5-continue-03",
   "branch": "phase5-continue-03",
-  "base": "d5b366bdacc50be44f067ffc827ea156ff5dc0b6",
-  "head": "33d3562a4d1fdf7b454f5a6bcc9110da80b9c2e6",
+  "base": "45dad0411ada64bed7a0d2fec63b572ae6f9a6db",
+  "head": "e6e4702678571d48310701d20ef703cbf40bc337",
   "changed_files": [
-    "tests/test_seeded_phase5_03.py"
+    "tests/test_seeded_phase5_03.py",
+    "tickets/phase5-continue-04/ticket.md",
+    "tickets/retro-doctor-cli/ticket.md"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": null,
-      "sha": null,
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/retro-doctor-cli/ticket.md",
-          "line": 69,
-          "message": "acceptance criterion names no `Verification` command or observable artifact: 'Feature criteria cover both operator verbs; Context partition, measured sizes, and render headroom are asserted only by `tests/test_seeded_phase5_03.py`.'",
-          "paved_road": "quote, in backticks, the `Verification` command or the observable artifact path that checks this criterion"
-        }
-      ],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
