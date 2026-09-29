@@ -1,16 +1,17 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "108310a31d394be46f0c704f83d2ce295b47ef51",
+  "produced_at_sha": "27dcf0c31ca649b14f0b26d5805ce72df97a9027",
   "stem": "escape-column",
   "branch": "escape-column",
-  "base": "d98f7699f7f58f5aeafe4c06a09538964dde3854",
-  "head": "108310a31d394be46f0c704f83d2ce295b47ef51",
+  "base": "0c76389d08423d4fd74b23d3a255e514eb3925db",
+  "head": "27dcf0c31ca649b14f0b26d5805ce72df97a9027",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/git.py",
     "squatch/retro.py",
     "squatch/scorecard.py",
+    "tests/test_cli.py",
     "tests/test_git.py",
     "tests/test_mergequeue.py",
     "tests/test_retro.py",
@@ -29,12 +30,20 @@
     },
     {
       "code": "verification",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "verification",
+          "path": null,
+          "line": null,
+          "message": "verification command exit 1: `uv run pytest -q`\nwarning: `VIRTUAL_ENV=/home/djp/source/squatch/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead",
+          "paved_road": "make every `## Verification` command exit 0 on the committed branch"
+        }
+      ],
       "commands": [
         {
           "argv": [
@@ -58,7 +67,7 @@
             "pytest",
             "-q"
           ],
-          "attribution": null,
+          "attribution": "branch",
           "filed": null
         }
       ]
