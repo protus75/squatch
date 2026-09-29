@@ -1,9 +1,16 @@
 {
-  "run_seq": 4,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 5,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Keep the existing diff: gates are green and the prior-lesson fixes are in place. Fix only the three review findings below.",
+    "inbox.py _consume_one: wrap the replay read (`self._fs.read(replay_path)`) so an OSError becomes a ReportError and the report moves to .rejected. Add a test_inbox case with an unreadable or vanished replay after stat.",
+    "Isolate other per-report failures the same way. A ValueError or BoxCorruption raised by store_evidence or enqueue for one report must quarantine that report, not escape consume() and stall later reports.",
+    "On a by_origin hit, call `self._box.record_rereport(existing.id)` before marking the report .filed, so repeat reports count and can reopen a tombstone. Add a test that a second same-signature report increments `reports`.",
+    "Make the authored bug ticket retain its evidence: have Author reject a bug_report ticket that omits the custody reference (evidence.replay_path in Context or Regression). Assert this in tests/test_triage.py; do not rely only on the prompt and the Box record.",
+    "Keep run.md's six sections with `## Outcome` exactly `ok`. Rerun all three verification commands and confirm they are green before finishing."
+  ],
+  "reason": "The review found three concrete fixes the implementer can make in place, inside the fence, and all mechanical gates pass. No capability gap or ticket defect is shown.",
+  "detail": null
 }
