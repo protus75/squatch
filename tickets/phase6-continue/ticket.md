@@ -134,9 +134,9 @@ composition callers are measured on demand; the gate parser and focused
 metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies bounded
 evidence into durable Box custody before recording the message, wires the
 daemon consumer, and makes sequential triage author `kind: bug` tickets
-whose evidence and `## Regression` survive intake. Daemon/Author roots, their
-large tests, and delimiter-carrying `tests/test_triage.py` are measured
-on-demand exceptions; existing Box/Triage seams and focused
+whose evidence and `## Regression` survive intake. Daemon/Author roots,
+`squatch/triage.py`, their large tests, and delimiter-carrying
+`tests/test_triage.py` are measured on-demand exceptions; the Box seam and focused
 `tests/test_box.py` are Context.
 
 `phase6-continue-04` depends on both `bug-gate-grammar` and

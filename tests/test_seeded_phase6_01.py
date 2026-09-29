@@ -81,10 +81,9 @@ REMAINING = {'host-contract-doc': (('migrate-config',),
                           'tests/test_triage.py',
                           'tests/test_author.py',
                           'tests/test_inbox.py'),
-                         ('squatch/box.py',
-                          'squatch/triage.py',
-                          'tests/test_box.py'),
-                         ('squatch/author.py', 'squatch/daemon.py', 'tests/test_author.py',
+                         ('squatch/box.py', 'tests/test_box.py'),
+                         ('squatch/triage.py', 'squatch/author.py', 'squatch/daemon.py',
+                          'tests/test_author.py',
                           'tests/test_triage.py')),
  'escape-column': (('bug-gate-grammar', 'report-inbox-triage'),
                    ('squatch/scorecard.py',
@@ -180,9 +179,9 @@ BEHAVIOR = {'host-contract-doc': '`host-contract-doc` depends on `migrate-config
                         'bounded evidence into durable Box custody before recording the message, '
                         'wires the daemon consumer, and makes sequential triage author `kind: bug` '
                         'tickets whose evidence and `## Regression` survive intake. Daemon/Author '
-                        'roots, their large tests, and delimiter-carrying `tests/test_triage.py` '
-                        'are measured on-demand exceptions; existing Box/Triage seams and '
-                        'focused `tests/test_box.py` are Context.',
+                        'roots, `squatch/triage.py`, their large tests, and delimiter-carrying '
+                        '`tests/test_triage.py` are measured on-demand exceptions; the Box seam '
+                        'and focused `tests/test_box.py` are Context.',
  'escape-column': '`escape-column` depends on both `bug-gate-grammar` and `report-inbox-triage` '
                   'and owns/fences `squatch/scorecard.py`, `squatch/git.py`, '
                   '`tests/test_scorecard.py`, and `tests/test_git.py`. It adds the squash-trailer '
