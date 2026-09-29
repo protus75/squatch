@@ -1,14 +1,13 @@
 {
-  "run_seq": 3,
+  "run_seq": 4,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "abandon-human",
   "lessons": [
-    "Review snagged only one gap: tests/test_seeded_phase5_02.py never pins the Phase 4 continuation fixture. Add an assertion that _ticket(\"phase5-continue-02\").context == (\"tests/test_seeded_phase4_05.py\",), and assert that the path exists on base and is not in NEW_PATHS.",
-    "Mirror tests/test_seeded_phase5_01.py: pin the tests/test_seeded_phase4_05.py fixture with its synthetic authoring-time byte size (8111) in EXISTING_AT_AUTHORING. Optionally assert that phase5-continue-02's Scope in names that continuation pattern.",
-    "Keep the three authored seeds as they are. Review confirmed the registry, edges, tiers, budgets, fences, and Context partition match. Checks were green. Change only the missing Phase 4 fixture pin.",
-    "Walk through every acceptance criterion clause by clause and match each one to a concrete assertion before finishing. Criterion 2's 'Phase 4 continuation fixture' clause was skipped here even though all tests passed."
+    "The check-stage requisition_review failed because the reviewer provider could not connect: 'SSL certificate has expired'. It never evaluated the tickets, so this finding says nothing about the authored seeds.",
+    "The implementation reported itself complete: it added the Phase 4 continuation-fixture pin (context == tests/test_seeded_phase4_05.py, size 8111, exists on base, not in NEW_PATHS) and both pytest commands passed. Keep the seeds and test unchanged.",
+    "Once the host's TLS/CA trust or clock is repaired, re-run the check stage on the existing branch. A new implementation attempt is not needed unless requisition review then reports a real content finding."
   ],
-  "reason": "A narrow, fixable test omission that review steered precisely; all checks passed and the seeds were judged correct.",
+  "reason": "The only findings come from an expired SSL certificate blocking the reviewer API call; that is an environment failure, and no retry or extra capability fixes it.",
   "detail": null
 }
