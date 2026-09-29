@@ -1,61 +1,18 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "934a90dfd0be18534d8ae05297d1a2a8a7fe720c",
+  "produced_at_sha": "6ce847fcfcbdcd8a9efbb51ffc5052a99d8afd01",
   "stem": "phase5-continue-02",
   "branch": "phase5-continue-02",
-  "base": "c01936e95abd68d30446e1ec5d9e741ceb545638",
-  "head": "934a90dfd0be18534d8ae05297d1a2a8a7fe720c",
+  "base": "fd725bca6c359c1e3581660f7a40dcd20eb178ad",
+  "head": "6ce847fcfcbdcd8a9efbb51ffc5052a99d8afd01",
   "changed_files": [
-    "tests/test_seeded_phase5_02.py"
+    "tests/test_seeded_phase5_02.py",
+    "tickets/baseline-binding-reader/ticket.md",
+    "tickets/phase5-continue-03/ticket.md",
+    "tickets/status-projection/ticket.md"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/baseline-binding-reader/ticket.md",
-      "sha": "d21dd46dc96ee4236679539fcaa77a5b69cddd87",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/phase5-continue-03/ticket.md",
-      "sha": "5062bb4b8e8ce6468e8a789966d4f9e77990d78c",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-03/ticket.md",
-          "line": null,
-          "message": "ProviderError: claude: success: API Error: Unable to connect to API: SSL certificate has expired (rc=1)",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/status-projection/ticket.md",
-      "sha": "39586248bb68b8eec755da8fc8cb706dae87b265",
-      "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/status-projection/ticket.md",
-          "line": null,
-          "message": "ProviderError: claude: success: API Error: Unable to connect to API: SSL certificate has expired (rc=1)",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
