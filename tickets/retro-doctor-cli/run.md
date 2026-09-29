@@ -4,18 +4,20 @@ ok
 
 ## Surprises / judgment calls
 
-The existing drain hook already exposed the governed Retro construction seam, so manual retro reuses that helper. Doctor probes an existing lock read-only and treats an absent lockfile as available.
+The venv identity uses `sys.prefix`, since resolving a venv executable can follow its interpreter symlink outside the checkout.
 
 ## Dead ends
 
+None.
 
 ## Second problems filed
 
+None.
 
 ## Resolved engine/model
 
-OpenAI / GPT-5
+OpenAI Codex (model identity not otherwise exposed).
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 35m.
+Expected: 75m. Actual: approximately 45m.
