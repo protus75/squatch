@@ -1,0 +1,84 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "8425f8be294d6ed0cb9e4a05003e34155d4a92e3",
+  "stem": "fixture-host-scaffold",
+  "branch": "fixture-host-scaffold",
+  "base": "ff5d829069052dc1eea06240fb84dab38f2d6017",
+  "head": "8425f8be294d6ed0cb9e4a05003e34155d4a92e3",
+  "changed_files": [
+    "hosts/fixture/app.py",
+    "hosts/fixture/bin/codex",
+    "hosts/fixture/config.yaml",
+    "hosts/fixture/regression/merge-base-defect.json",
+    "hosts/fixture/replay.py",
+    "hosts/fixture/reports/escape-report.json",
+    "hosts/fixture/reports/regression-report.json",
+    "hosts/fixture/scenarios.json",
+    "tests/test_fixture_host.py"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_fixture_host.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
