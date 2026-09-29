@@ -13,7 +13,7 @@ from squatch.daemon import (ConsumerCallback, DaemonDispatch, DaemonTasks, Dispa
                             PrioritySnapshot, box_consumer, compose_daemon_checkpoint,
                             compose_daemon_dispatch, compose_daemon_heartbeat,
                             compose_daemon_rework, kill_worker_stop_consumer,
-                            rework_consumer, watcher_consumer)
+                            inbox_consumer, rework_consumer, watcher_consumer)
 from squatch.drain import Drain, fold
 from squatch.driver import Driver, Spool
 from squatch.effects import Effects
@@ -21,6 +21,7 @@ from squatch.enginelog import EngineLog
 from squatch.git import Git
 from squatch.heartbeat import Heartbeat
 from squatch.journal import Journal
+from squatch.inbox import Inbox
 from squatch.llmeffect import LLMEffect
 from squatch.merge import Pipeline
 from squatch.notify import NotificationReconciler
@@ -99,6 +100,7 @@ def compose_serve_graph(*, repo: Path, state_dir: Path, journal: Journal,
                         fs: Filesystem, clock: Clock, work: Callable[[str, Config],
                         Awaitable[Dispatched]], priority_snapshot: PrioritySnapshot,
                         sha: Callable[[], Awaitable[str]],
+                        inbox: Inbox | None = None,
                         reconcile_notifications: ConsumerCallback | None = None,
                         sleep: Sleep = asyncio.sleep) -> ServeGraph:
     """Compose every daemon boundary without starting a task or host run."""
@@ -130,7 +132,9 @@ def compose_serve_graph(*, repo: Path, state_dir: Path, journal: Journal,
         await sleep(POLL_SECONDS)
 
     async def box() -> None:
-        if triage._box.pending():
+        if inbox is not None:
+            await inbox_consumer(inbox, triage, triage_spec)()
+        elif triage.box.pending():
             await box_consumer(triage, triage_spec)()
         await sleep(POLL_SECONDS)
 
@@ -231,6 +235,12 @@ class Serve:
                 state_dir=state_dir, cwd=self._repo),
             log=EngineLog(state_dir, clock=self._clock, redact=redact), redact=redact,
             report=self._report)
+        inbox = None
+        if config.report_inbox is not None:
+            inbox_path = config.report_inbox
+            if not inbox_path.is_absolute():
+                inbox_path = self._repo / inbox_path
+            inbox = Inbox(inbox_path, box=triage.box, fs=self._fs, redact=redact)
 
         tickets: dict[str, Ticket] = {}
 
@@ -266,5 +276,6 @@ class Serve:
             config_supplier=self._config_supplier, pipeline=pipeline, pause=pause,
             rework=rework, triage=triage, git=self._git, fs=self._fs, clock=self._clock,
             work=work, priority_snapshot=priority_snapshot, sha=sha, sleep=self._sleep,
+            inbox=inbox,
             reconcile_notifications=(self._notification_reconciler.reconcile
                                      if self._notification_reconciler is not None else None))

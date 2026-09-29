@@ -39,6 +39,7 @@ class AuthorInput(Artifact):
     summary: str
     detail: str
     origin: str
+    evidence: dict | None = None
     triage: TriageAuthor
     ticket_contract: str
     plane: str
@@ -86,7 +87,7 @@ def author_stage(spec: Spec, review: RequisitionReview, *, run_seq: int = 0) -> 
     def render(inputs: AuthorInput, findings: Sequence) -> str:
         message = (f"id: {inputs.message_id}\nmessage_class: {inputs.message_class}\n"
                    f"summary: {inputs.summary}\ndetail: {inputs.detail}\n"
-                   f"origin: {inputs.origin}\n")
+                   f"origin: {inputs.origin}\nevidence: {inputs.evidence}\n")
         blocks = {
             "message": DataBlock("untrusted", _quoted(message)),
             "triage": DataBlock("engine", inputs.triage.model_dump_json(indent=2)),
@@ -197,6 +198,14 @@ class Author:
                 plan=(self._repo / PLAN_FILE).read_text(),
                 resolve_stem=lambda stem: (
                     self._repo / TICKETS_DIR / stem / TICKET_FILE).is_file())
+            if parsed.kind != verdict.kind:
+                raise ValueError("authored ticket kind does not match the triage verdict")
+            if message.message_class == "bug_report":
+                if parsed.regression is None:
+                    raise ValueError("bug report ticket must retain its Regression contract")
+                if (message.evidence is not None
+                        and message.evidence.replay_path not in authored.ticket):
+                    raise ValueError("bug report ticket must retain its evidence custody reference")
             events = tuple(self._journal.read())
             resolution = resolve_baseline(
                 self._config, events, specs_dir=self._repo / "specs")
@@ -277,6 +286,7 @@ class Author:
             produced_by_spec_version="triage", produced_at_sha=sha,
             message_id=message.id, message_class=message.message_class,
             summary=message.summary, detail=message.detail, origin=message.origin,
+            evidence=(message.evidence.model_dump(mode="json") if message.evidence else None),
             triage=verdict, ticket_contract=contract,
             plane=await self._plane(), tree=await self._tree(),
             context_files=self._context_files())

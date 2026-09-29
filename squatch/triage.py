@@ -34,6 +34,7 @@ class TriageInput(Artifact):
     summary: str
     detail: str
     origin: str
+    evidence: dict | None = None
     open_work: str
     merged_work: str
     decisions: str
@@ -130,7 +131,8 @@ def triage_stage(spec: Spec, *, allowed_links: frozenset[str] = frozenset()) -> 
 
     def render(inputs: TriageInput, findings: Sequence) -> str:
         message = (f"id: {inputs.message_id}\nmessage_class: {inputs.message_class}\n"
-                   f"summary: {inputs.summary}\ndetail: {inputs.detail}\norigin: {inputs.origin}\n")
+                   f"summary: {inputs.summary}\ndetail: {inputs.detail}\norigin: {inputs.origin}\n"
+                   f"evidence: {inputs.evidence}\n")
         return spec.render({
             "message": DataBlock("untrusted", _quoted(message)),
             "open_work": DataBlock("engine", inputs.open_work),
@@ -173,6 +175,11 @@ class Triage:
         self._box = Box(
             self._repo / config.state_dir, fs=fs, clock=clock,
             rereport_callback=journal_rereport_callback(journal))
+
+    @property
+    def box(self) -> Box:
+        """Expose the consumer's durable queue to its composition owner."""
+        return self._box
 
     async def run(self, spec: Spec) -> None:
         # Local import avoids making the artifact type shared by these two
@@ -221,6 +228,12 @@ class Triage:
                 self._report(f"triage: {message.id}: {result.outcome}; left pending")
                 continue
             verdict = result.artifact.concrete()
+            if (isinstance(verdict, TriageAuthor)
+                    and message.message_class == "bug_report" and verdict.kind != "bug"):
+                skipped.append(message.id)
+                self._report(
+                    f"triage: {message.id}: bug reports must author kind: bug; left pending")
+                continue
             triaged[verdict.verdict].append(message.id)
             if isinstance(verdict, TriageAuthor):
                 self._box.record_triage(message.id, verdict.model_dump(mode="json"))
@@ -273,6 +286,7 @@ class Triage:
             produced_by_spec_version="box", produced_at_sha=sha,
             message_id=message.id, message_class=message.message_class,
             summary=message.summary, detail=message.detail, origin=message.origin,
+            evidence=(message.evidence.model_dump(mode="json") if message.evidence else None),
             open_work=open_text, merged_work=merged_text, decisions=decision_text), links
 
     async def _apply(self, message: Message, verdict: Artifact) -> None:

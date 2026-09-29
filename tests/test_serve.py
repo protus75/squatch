@@ -1,6 +1,7 @@
 """The real production serve graph and its lifetime contracts."""
 
 import asyncio
+import json
 import threading
 import time
 from contextlib import contextmanager
@@ -94,6 +95,115 @@ def test_cli_constructs_every_boundary_after_reconcile_without_launching_host_wo
                    for event in main_module.read_events(checkout / STATE))
     with Lockfile(checkout / STATE, instance_id="after", clock=lambda: T0):
         pass
+
+
+@pytest.mark.parametrize("with_secret", [False, True])
+def test_inbox_only_report_wakes_the_live_serve_consumer(checkout, monkeypatch, with_secret):
+    import yaml
+
+    secret = "host-private-key"
+    excerpt = f"reproduced {secret}" if with_secret else "reproduced"
+    reports = checkout / "reports"
+    reports.mkdir()
+    (reports / "replay.json").write_bytes(b"{}")
+    (reports / "fixture.report.json").write_text(json.dumps({
+        "schema_version": 1, "origin": "player", "summary": excerpt,
+        "signature": excerpt, "app_commit": excerpt, "app_version": excerpt,
+        "implicated_paths": [f"squatch/{secret if with_secret else 'existing'}.py"],
+        "replay_file": "replay.json",
+        "replay_bytes": 2, "log_excerpt": excerpt, "log_excerpt_bytes": len(excerpt.encode()),
+    }))
+    config_path = checkout / "config.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["report_inbox"] = "reports"
+    env = git_env(checkout.parent)
+    if with_secret:
+        config["providers"] = [{
+            "name": "codex", "kind": "cli", "auth": "HOST_KEY",
+            "models_by_tier": dict.fromkeys(("low", "medium", "high", "max"), "model"),
+            "limits": {"concurrency": 1, "est_cost_per_call_usd": 0},
+        }]
+        env["HOST_KEY"] = secret
+    config_path.write_text(yaml.safe_dump(config))
+    seen = []
+
+    async def triage_run(self, spec):
+        seen.extend(self.box.pending())
+
+    async def inspect(self):
+        assert not self.triage.box.messages()
+        await self.tasks._callbacks[2]()
+        return 0
+
+    monkeypatch.setattr(Triage, "run", triage_run)
+    monkeypatch.setattr(ServeGraph, "run", inspect)
+
+    out = StringIO()
+    assert main_module.main(
+        ["serve"], cwd=checkout, env=env, out=out,
+        clock=lambda: T0) == 0, out.getvalue()
+    assert [message.message_class for message in seen] == ["bug_report"]
+    if with_secret:
+        assert secret not in seen[0].model_dump_json()
+        assert seen[0].evidence.log_excerpt == "reproduced [REDACTED:HOST_KEY]"
+        assert all(secret not in path.read_text()
+                   for path in (checkout / STATE / "box").glob("*.json"))
+
+
+@pytest.mark.parametrize("operation", ["store_evidence", "enqueue"])
+def test_serve_preserves_inbox_report_after_custody_write_failure(
+        checkout, monkeypatch, operation):
+    import yaml
+
+    reports = checkout / "reports"
+    reports.mkdir()
+    (reports / "replay.json").write_bytes(b"{}")
+    report = reports / "fixture.report.json"
+    report.write_text(json.dumps({
+        "schema_version": 1, "origin": "player", "summary": "reproduced",
+        "signature": "fixture", "app_commit": "base", "app_version": "1",
+        "implicated_paths": ["squatch/existing.py"], "replay_file": "replay.json",
+        "replay_bytes": 2, "log_excerpt": "ok", "log_excerpt_bytes": 2,
+    }))
+    config_path = checkout / "config.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    config["report_inbox"] = "reports"
+    config_path.write_text(yaml.safe_dump(config))
+    run_graph = ServeGraph.run
+    failed = False
+    seen = []
+
+    async def triage_run(self, spec):
+        seen.extend(self.box.pending())
+
+    async def inspect(self):
+        nonlocal failed
+        if not failed:
+            def unavailable(**kwargs):
+                raise OSError("Box custody unavailable")
+
+            failed = True
+            monkeypatch.setattr(self.triage.box, operation, unavailable)
+            return await run_graph(self)
+        await self.tasks._callbacks[2]()
+        return 0
+
+    monkeypatch.setattr(Triage, "run", triage_run)
+    monkeypatch.setattr(ServeGraph, "run", inspect)
+    env = git_env(checkout.parent)
+    out = StringIO()
+    assert main_module.main(
+        ["serve"], cwd=checkout, env=env, out=out, clock=lambda: T0) == 2
+    assert "Box custody unavailable" in out.getvalue()
+    assert report.is_file() and not report.with_suffix(".rejected").exists()
+    assert not seen
+    with Lockfile(checkout / STATE, instance_id="after failure", clock=lambda: T0):
+        pass
+
+    assert main_module.main(
+        ["serve"], cwd=checkout, env=env, out=out, clock=lambda: T0) == 0, out.getvalue()
+    assert report.with_suffix(".filed").is_file()
+    assert len(seen) == 1 and seen[0].reports == 1
 
 
 def test_live_serve_holds_one_writer_beats_and_exits_after_applied_kill(checkout):

@@ -17,6 +17,7 @@ from squatch.driver import Driver
 from squatch.flake import Flake
 from squatch.git import Git
 from squatch.heartbeat import Heartbeat
+from squatch.inbox import Inbox
 from squatch.journal import Journal
 from squatch.llm import Effort
 from squatch.lockfile import Holder
@@ -389,6 +390,16 @@ def box_consumer(triage: Triage, spec: Spec) -> ConsumerCallback:
     """Build one deferred Suggestion Box triage pass."""
     async def consume() -> None:
         await triage.run(spec)
+
+    return consume
+
+
+def inbox_consumer(inbox: Inbox, triage: Triage, spec: Spec) -> ConsumerCallback:
+    """Build one report-intake pass followed by needed sequential triage."""
+    async def consume() -> None:
+        inbox.consume()
+        if triage.box.pending():
+            await triage.run(spec)
 
     return consume
 

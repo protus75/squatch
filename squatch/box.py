@@ -65,6 +65,35 @@ class Resolution(BaseModel):
     resolved_at: str
 
 
+class Evidence(BaseModel):
+    """Bounded replay evidence copied beneath the Box before recording."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    report_signature: str = Field(min_length=1)
+    app_commit: str = Field(min_length=1)
+    app_version: str = Field(min_length=1)
+    implicated_paths: tuple[str, ...] = Field(min_length=1)
+    replay_path: str = Field(min_length=1)
+    replay_bytes: int = Field(gt=0, le=1024 * 1024)
+    replay_sha256: str = Field(min_length=64, max_length=64)
+    log_excerpt: str
+
+    @field_validator("replay_sha256")
+    @classmethod
+    def _digest_is_sha256(cls, value: str) -> str:
+        if not _SIGNATURE.match(value):
+            raise ValueError("replay_sha256 must be 64 lowercase hexadecimal characters")
+        return value
+
+    @field_validator("log_excerpt")
+    @classmethod
+    def _excerpt_is_bounded_utf8(cls, value: str) -> str:
+        if len(value.encode()) > 64 * 1024:
+            raise ValueError("log_excerpt exceeds 64 KiB when UTF-8 encoded")
+        return value
+
+
 class Message(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -93,6 +122,7 @@ class Message(BaseModel):
     fixed_failure: str | None = None
     overcorrection_risk: str | None = None
     proposed_spec_paths: tuple[str, ...] | None = None
+    evidence: Evidence | None = None
 
     @field_validator("signature")
     @classmethod
@@ -207,14 +237,24 @@ class Box:
                 run_seq: int | None = None, bug_origin: BugOrigin | None = None,
                 has_repro: bool | None = None, retro_report_key: str | None = None,
                 fixed_failure: str | None = None, overcorrection_risk: str | None = None,
-                proposed_spec_paths: tuple[str, ...] | None = None) -> Enqueued:
+                proposed_spec_paths: tuple[str, ...] | None = None,
+                evidence: Evidence | None = None,
+                incoming_id: str | None = None) -> Enqueued:
+        if evidence is not None:
+            custody = self._state_dir / evidence.replay_path
+            if custody.parent != self.dir / "evidence" or not custody.is_file():
+                raise ValueError("evidence replay is not in durable Box custody")
+            replay = self._fs.read(custody)
+            if (len(replay) != evidence.replay_bytes
+                    or hashlib.sha256(replay).hexdigest() != evidence.replay_sha256):
+                raise ValueError("evidence replay does not match durable Box custody")
         sig = signature(message_class, origin, stage, outcome, detail)
         records = self._records()
         duplicate = next(((path, message) for path, message in records
                           if message.signature == sig), None)
         if duplicate is not None:
             _, message = duplicate
-            self.record_rereport(message.id)
+            self.record_rereport(message.id, incoming_id=incoming_id)
             return Enqueued(message.id, True)
         seq = max((message.seq for _, message in records), default=0) + 1
         sig8 = sig[:8]
@@ -228,12 +268,32 @@ class Box:
             retro_report_key=retro_report_key, fixed_failure=fixed_failure,
             overcorrection_risk=overcorrection_risk,
             proposed_spec_paths=proposed_spec_paths,
+            evidence=evidence,
             stage=stage, outcome=outcome, run_seq=run_seq,
             enqueued_at=render_ts(self._clock()), status="pending", resolution=None,
-            triage=None, reports=1)
+            triage=None, reports=1,
+            rereport_ids=(incoming_id,) if incoming_id is not None else ())
         self._fs.write(path, message.model_dump_json(indent=2).encode())
         self._record_occurrence(message)
         return Enqueued(message.id, False)
+
+    def store_evidence(self, *, report_signature: str, app_commit: str, app_version: str,
+                       implicated_paths: tuple[str, ...], replay: bytes,
+                       log_excerpt: str) -> Evidence:
+        """Copy verified bounded bytes before a message may name the evidence."""
+        if len(replay) > 1024 * 1024 or len(log_excerpt.encode()) > 64 * 1024:
+            raise ValueError("evidence exceeds its custody limit")
+        digest = hashlib.sha256(replay).hexdigest()
+        path = self.dir / "evidence" / f"{digest}.replay"
+        if path.is_file() and self._fs.read(path) != replay:
+            raise BoxCorruption(f"{path}: evidence digest collides with different bytes")
+        if not path.is_file():
+            self._fs.write(path, replay)
+        return Evidence(report_signature=report_signature, app_commit=app_commit,
+                        app_version=app_version, implicated_paths=implicated_paths,
+                        replay_path=str(path.relative_to(self._state_dir)),
+                        replay_bytes=len(replay), replay_sha256=digest,
+                        log_excerpt=log_excerpt)
 
     def record_rereport(self, id: str, *, incoming_id: str | None = None) -> Message:
         """Count one arrival and reopen a threshold tombstone write-ahead."""

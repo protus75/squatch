@@ -163,6 +163,60 @@ def test_pass_commits_records_and_authors_in_the_same_pass(checkout):
             if e.type == "signal" and e.body.get("kind") == "triage_pass"] == [0, 1]
 
 
+@pytest.mark.parametrize("retain_evidence", [True, False])
+def test_bug_report_authors_bug_ticket_retaining_evidence_and_regression(
+        checkout, retain_evidence):
+    box = Box(checkout / STATE, fs=LocalFilesystem(), clock=lambda: T0)
+    evidence = box.store_evidence(
+        report_signature="fixture:escape", app_commit="base", app_version="1",
+        implicated_paths=("squatch/widget.py",), replay=b"{}", log_excerpt="reproduced")
+    message_id = box.enqueue(
+        message_class="bug_report", summary="fixture regression", detail="bounded evidence",
+        origin="report-inbox/fixture:escape", bug_origin="player", has_repro=True,
+        evidence=evidence).id
+    bug = GOOD.format(depends="none").replace("kind: feature", "kind: bug").replace(
+        "## Definition of rejected", "## Regression\n```\nuv run pytest tests/test_widget.py\n```\n"
+        "- carries: squatch/widget.py\n\n"
+        f"## Why\nThe replay custody is {evidence.replay_path}.\n\n"
+        "## Definition of rejected").replace(
+            "## Why\nThe next ticket consumes it.\n\n", "")
+    if not retain_evidence:
+        bug = bug.replace(evidence.replay_path, "omitted")
+    llm = FakeLLM(
+        json.dumps({"verdict": "author", "summary": "fix fixture", "kind": "bug",
+                    "priority": "P1", "goal": "Repair the reproduced defect.",
+                    "why": "The bounded replay demonstrates it."}),
+        json.dumps({"stem": "fixture-bug", "ticket": bug}), _review_reply())
+
+    _run(checkout, llm)
+
+    ticket_path = checkout / "tickets" / "fixture-bug" / "ticket.md"
+    if not retain_evidence:
+        assert not ticket_path.exists()
+        assert box.get(message_id).status == "pending"
+        return
+    authored = ticket_path.read_text()
+    assert ("kind: bug" in authored and "## Regression" in authored
+            and evidence.replay_path in authored)
+    assert box.get(message_id).evidence == evidence
+    assert evidence.replay_path in llm.requests[0].rendered
+
+
+def test_bug_report_tombstone_is_resolved_not_left_pending(checkout):
+    _commit_ticket(checkout, "existing")
+    box = Box(checkout / STATE, fs=LocalFilesystem(), clock=lambda: T0)
+    message_id = box.enqueue(
+        message_class="bug_report", summary="duplicate", detail="same defect",
+        origin="report-inbox/duplicate", bug_origin="player", has_repro=True).id
+    llm = FakeLLM(json.dumps({
+        "verdict": "tombstone", "link": "existing", "reopen_after_days": 7,
+        "rationale": "The existing ticket covers this defect."}))
+
+    _run(checkout, llm)
+
+    assert box.get(message_id).status == "tombstoned"
+
+
 def test_later_pass_authors_a_recorded_verdict_without_triaging_again(checkout):
     box, ids = _enqueue(checkout)
     recorded = TriageAuthor(
