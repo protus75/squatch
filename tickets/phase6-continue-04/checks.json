@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "994f1f91a4b610f21b18b54175dfe3cc6f01bb7e",
+  "produced_at_sha": "dc5aa1c0271a8946d0b29e8441306e2c6741c663",
   "stem": "phase6-continue-04",
   "branch": "phase6-continue-04",
-  "base": "3de06023627e7404cd85fffca03c5a166a07f8bb",
-  "head": "994f1f91a4b610f21b18b54175dfe3cc6f01bb7e",
+  "base": "f7a4a5de8bf6cd6d59cfe8d68a8db9b45381aeb8",
+  "head": "dc5aa1c0271a8946d0b29e8441306e2c6741c663",
   "changed_files": [
     "tests/test_seeded_phase6_04.py"
   ],
@@ -15,28 +15,14 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/escape-column/ticket.md",
-      "sha": "b9ec5161d7cc094b51e2f4e562b436d4084f5d0d",
+      "sha": "7a4fb364977877aa53f1b958d8337f6ad917d9d6",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/escape-column/ticket.md",
-          "line": 101,
-          "message": "`project_scorecard` takes only a `RetroWindow`, and the `Window.projection` fold in `squatch/retro.py` builds it. That window has no bug-report, bug-ticket, or merged-squash identity fields, so attribution in `squatch/scorecard.py` has no input. The projection must stay pure and cannot call Git or the journal, so the missing observations have to be folded in `squatch/retro.py`, and `retro.py` is outside the fence. The plan's section 20 `escape-column` row lists the fence as exactly `squatch/scorecard.py`, `squatch/git.py`, `tests/test_scorecard.py`, and `tests/test_git.py`, so re-authoring cannot add it.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/escape-column/ticket.md",
-          "line": 193,
-          "message": "Both production callers, `squatch/__main__.py:193` (`_status`) and `squatch/retro.py:386` (the retro report render), call `project_scorecard(window)` with only the window. The new Git squash-trailer read is an effect, and the projection stays pure, so the read has to run in a caller and its result has to be passed in. Neither caller is in the fence. As fenced, the new Git operation has no production caller and escapes stay zero in every real scorecard, which misses the goal of exposing escaped surfaces.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/escape-column/ticket.md",
-          "line": null,
-          "message": "The criteria demand attribution to a merged ticket or a bounded range, but neither the ticket nor the plan defines the attribution basis. They don't say which journal or Box field on a `kind: bug` report or ticket names the implicated merged ticket or commit range, or which squash trailer keys the Git read returns. `report-inbox-triage` records `bug_origin`, evidence, and a summary on `bug_report` messages, but no merged-ticket or range reference. Without a defined basis, 'deterministic, non-inferred attribution' cannot be proved or checked.",
+          "line": 692,
+          "message": "The scope and the test_git.py criterion need squatch/git.py to decide HEAD-reachable first-parent ancestry and to read one squatch-ticket/squatch-reviewed-sha trailer pair. No existing Git method can do either. rev_parse only runs `rev-parse --verify`, and there is no rev-list, merge-base, or log/trailer operation. The only paths are a new public coroutine or a private `_run` probe from retro.py or __main__.py, which would bypass the public seam. A new public coroutine breaks test_git_conflict_seams_are_only_additions_and_old_rebase_still_aborts. That test asserts the public Git coroutines minus a fixed allowlist equal exactly {rebase_stop_at_conflict, conflicted_paths, rebase_continue}, and test_mergequeue.py is outside the fence. Section 20 fixes the escape-column paths as exact fences, so the author cannot add it.",
           "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
@@ -47,7 +33,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase6-continue-05/ticket.md",
-      "sha": "e66925f0c38c2526e0961b34d398c52dc0c81bf4",
+      "sha": "9382aa0522da2723ffa82452db271a471ad26f9c",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -89,8 +75,8 @@
             "pytest",
             "-q"
           ],
-          "attribution": null,
-          "filed": null
+          "attribution": "base",
+          "filed": "box-000273-167b8f93"
         }
       ]
     },
