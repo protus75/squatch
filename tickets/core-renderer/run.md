@@ -4,19 +4,18 @@ ok
 
 ## Surprises / judgment calls
 
-The planned `core` CLI has no host-routing or filesystem-write contract yet, so it is registered as a non-mutating availability verb. The renderer is a pure string transform and treats any marker-like corruption as a refusal.
+The earlier attempt's implementation was available as an unreachable Git object. Restored its accepted structure and refused marker-like text in the supplied core before rendering, preventing self-produced non-idempotent output.
 
 ## Dead ends
 
-The first marker-position check compared the opening HTML marker offset instead of the embedded `squatch:core` offset; the focused idempotence test caught it and the parser was corrected.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-OpenAI Codex (model identity not exposed to this run).
+Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 15m.
+Expected: 75m. Actual: about 12m.
