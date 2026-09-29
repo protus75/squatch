@@ -1,46 +1,16 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "a4d8dcc91783a227ada734bc6b656f22d1fba351",
+  "produced_at_sha": "bfb208d563847b71648bc9d842d6e402ccf9b61f",
   "stem": "phase5-exit",
   "branch": "phase5-exit",
-  "base": "96489ddbdd7c8c51fe628d1c246668bad7bd1a9a",
-  "head": "a4d8dcc91783a227ada734bc6b656f22d1fba351",
+  "base": "d3685de3258a24edc4f6527066e4fca631ea55b8",
+  "head": "bfb208d563847b71648bc9d842d6e402ccf9b61f",
   "changed_files": [
     "tests/test_phase5_exit.py",
     "tests/test_seeded_phase6_core.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/core-drift-classifier/ticket.md",
-      "sha": "be597a20754e9e660cd249967d3fe4a3c6f18071",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/core-renderer/ticket.md",
-      "sha": "466d4d927bd4350790d8cdeb7bf1a5e547123c18",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase6-continue/ticket.md",
-      "sha": "cb8a1e472db97cbfa045c068abc2a55c6ee597f7",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
