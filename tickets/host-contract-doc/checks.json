@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "f32e3b701751dfe9343e35f6a4a15c00d2f39968",
+  "produced_at_sha": "f6259e087d915b93225feef8fa080cf19939aa3c",
   "stem": "host-contract-doc",
   "branch": "host-contract-doc",
-  "base": "08a45560e192b5d0a646d055f30bf13a757f92c7",
-  "head": "f32e3b701751dfe9343e35f6a4a15c00d2f39968",
+  "base": "3efb020ff9aa1e0fe21a6c577f197b8abd879941",
+  "head": "f6259e087d915b93225feef8fa080cf19939aa3c",
   "changed_files": [
     "docs/host-contract.md",
     "tests/test_host_contract.py"
