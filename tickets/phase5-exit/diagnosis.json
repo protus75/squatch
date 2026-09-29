@@ -1,9 +1,16 @@
 {
-  "run_seq": 1,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 2,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Every mechanical check passed, including requisition review of all three child tickets. The section 20 plan fix worked. The only blocker is one review finding in tests/test_phase5_exit.py.",
+    "Don't pick the retro report as reports[-1] at HEAD, and don't hardcode tickets/retro/000010.md. Once Phase 6 commits a quiescence or phase-exit retro such as 000011, the test turns red and blocks every later ticket.",
+    "Bound the selection to the Phase 5 window using committed history through git.py (log/rev-list). Take the latest tickets/retro/[0-9]{6}.md whose adding commit comes after every named Phase 5 stem's merge commit and at or before the phase5-exit commit.",
+    "Assert commit ordering explicitly: the retro's adding commit must come after the latest Phase 5 feature merge. Mentioning phase5-continue-04 in the report text is only a textual proxy and does not satisfy Scope in.",
+    "Remove the '\"tickets/retro/\" + \"000011\" not in source' guard. It exists only to protect the literal and won't be needed once the selection is history-bounded.",
+    "Leave test_seeded_phase6_core.py and the three authored child tickets unchanged. They passed requisition review, the scope fence, and verification (1,508 tests)."
+  ],
+  "reason": "Everything passed except one review snag: the retro selection is fragile at HEAD, and the steered fix fits in scope at the same capability.",
+  "detail": null
 }
