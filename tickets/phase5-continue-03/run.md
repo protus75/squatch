@@ -1,18 +1,25 @@
 ## Outcome
+
 ok
 
 ## Surprises / judgment calls
-The terminal `phase5-exit` remains specified only inside the continuation's
-registry; it is intentionally not authored in this admission.
+
+Restored the reviewed scoped seed artifacts from the prior local commit, then
+strengthened the seeded contract test to assert the doctor ticket's criteria
+explicitly cover both operator verbs.
 
 ## Dead ends
-The focused seeded test initially compared wrapped Scope-in prose without
-normalizing whitespace; the assertion was corrected before verification.
+
+None.
 
 ## Second problems filed
 
+None.
+
 ## Resolved engine/model
-OpenAI GPT-5 (Codex)
+
+OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
+
 Expected 75m; actual about 8m.
