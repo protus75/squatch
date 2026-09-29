@@ -1,15 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "The implementation passed its tests. It failed at requisition review of the authored child tickets/phase6-continue/ticket.md, a plan gap that no retry can fix.",
-    "Section 20 names core-drift-activation and migrate-config but gives them no owned/fenced paths, Context partition, behavior contract, or on-demand exceptions. phase6-continue cannot write their seeds without inventing, and Scope out forbids that.",
-    "Section 20 has no dependency edges for the Phase 6 row payloads (core-drift-activation, migrate-config, phase6-continue-02). Earlier phase registries pin every edge, so this one must too.",
-    "Fix the plan first: give every remaining Phase 6 row in section 20 a contract (owner, fence, Context, behavior, edges). Then delete and regenerate phase5-exit's outputs; do not hand-edit the authored tickets.",
-    "Keep the committed-evidence tests (test_phase5_exit.py, test_seeded_phase6_core.py). After the plan fix, update SECTION_20_CHARS_AT_AUTHORING and re-check max-effort headroom, since section 20 will grow."
-  ],
-  "reason": "Section 20 gives the carried Phase 6 rows no ownership/Context/behavior contracts or dependency edges, so phase6-continue can't be satisfied without an invented boundary, which the ticket forbids; the paved road is fixing the plan.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
