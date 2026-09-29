@@ -79,8 +79,9 @@ fail hard gate; a missing test at base is never accepted as defect evidence.
 `squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`,
 `tests/test_triage.py`, `tests/test_author.py`, and new
 `tests/test_inbox.py`. Daemon/Author roots and their large tests are measured
-on-demand exceptions; existing `squatch/box.py` and `squatch/triage.py` seams
-plus focused `tests/test_box.py` and `tests/test_triage.py` are Context.
+on-demand exceptions; existing Box/Triage seams `squatch/box.py` and
+`squatch/triage.py` plus focused `tests/test_box.py` and
+`tests/test_triage.py` are Context.
 It enforces the version-1 report schema, metadata-first 1 MiB replay-file and
 64 KiB log-excerpt caps, copies bounded evidence into durable Box custody
 before recording the message, wires the daemon consumer, and makes sequential
@@ -135,9 +136,10 @@ code/tests `squatch/artifacts.py` and `tests/test_gates.py` are embedded Context
 `hosts/fixture/` is a named measured on-demand
 worktree read and is never an embedded Context entry. It registers closed
 writers for `host-loop-report.json` and `exit-receipt.json`; the host-loop
-harness launches supervised `serve`, drives machine-actor confirms through the
-control inbox, and records per-member evidence for at least three
-machine-ticket merges, the report-to-regression bug loop, and escape
+harness launches supervised `serve` as a subprocess against `hosts/fixture/`,
+drives machine-actor confirms through the control inbox, and records per-member
+`(member, driven scenario, observable, producing run)` evidence for at least
+three machine-ticket merges, the report-to-regression bug loop, and escape
 attribution. It never produces terminal artifacts during its own build.
 `phase6-continue-08` depends on `exit-receipt-machinery`.
 
@@ -146,9 +148,12 @@ depends on `exit-receipt-machinery`, owns/fences only
 `tickets/phase6-exit/host-loop-report.json`,
 `tickets/phase6-exit/exit-receipt.json`, and new `tests/test_phase6_exit.py`.
 Every fenced path is terminal output or a new focused test, so it has no
-Context. It reads the committed GO-grade verdict identity, accepts GO or
-NO-GO, proves the three closed host-loop members, writes the receipt digest,
-makes no engine-code edit, and has no successor.
+Context. It runs the registered host-loop producer, reads the committed
+GO-grade report and its embedded verdict identity, accepts GO or NO-GO, proves
+the three closed host-loop members, writes the receipt digest, makes no
+engine-code edit, and has no successor. Live-host K>=10 and real-host bug-loop
+evidence remain operator post-cutover acceptance and are forbidden as exit
+inputs.
 
 ## Scope out
 Do not implement a payload, use sibling-new Context, cite or render section
