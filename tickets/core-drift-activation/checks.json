@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "82bf6235c8f1007dbd425d0ac3ab8f86d64533ef",
+  "produced_at_sha": "3e3af940b3b8d2eac3f3eee96382540d0f4b49b1",
   "stem": "core-drift-activation",
   "branch": "core-drift-activation",
-  "base": "33d884514768b349f0cfade613400bded37dd7cc",
-  "head": "82bf6235c8f1007dbd425d0ac3ab8f86d64533ef",
+  "base": "0faad26ac8549a01b7b4b8555b1c1d78d5bab299",
+  "head": "3e3af940b3b8d2eac3f3eee96382540d0f4b49b1",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/gates.py",
@@ -64,12 +64,20 @@
     },
     {
       "code": "run_record",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "run_record",
+          "path": "tickets/core-drift-activation/run.md",
+          "line": null,
+          "message": "tickets/core-drift-activation/run.md: `## Outcome` must be exactly one of ['already_satisfied', 'budget_exceeded', 'gate_failed', 'infra_error', 'invalid_artifact', 'ok', 'premise_failed', 'timeout'], got 'implemented'",
+          "paved_road": "write tickets/<stem>/run.md in the worktree with exactly the sections ## Outcome, ## Surprises / judgment calls, ## Dead ends, ## Second problems filed, ## Resolved engine/model, ## Predicted vs actual; ## Outcome carries one Outcome value"
+        }
+      ],
       "commands": []
     },
     {
