@@ -1,17 +1,9 @@
 {
-  "run_seq": 4,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Check failed on two requisition findings against the authored core-drift-activation seed, not on pytest. Green suites and an 'ok' run record did not cover requisition review.",
-    "The only resolver from routing to conduct files is inline in __main__._core. The plan's fixed fence for core-drift-activation excludes squatch/__main__.py, so the gate must either hook an unfenced module or copy the mapping into a second resolver.",
-    "Copying the provider-to-filename mapping into hostfiles or gates would break the no-dual-path rule and let core and core_drift disagree on managed files. The plan must fence __main__.py or move the resolver to a fenced seam.",
-    "test_classifier_is_unreachable_from_production_gates forbids production imports or calls of hostfiles.classify. Activating the gate contradicts it, and no acceptance criterion names that test's migration.",
-    "test_rendering_has_no_git_or_commit_effect pins hostfiles imports to {hashlib, re, typing}. That limits where the gate and its routing lookup can live, and the ticket does not say so.",
-    "No fix is reachable inside the tickets/test fence. Fix section 20 first (the core-drift-activation fence, the resolver seam, and the test migrations), then regenerate this ticket from the plan.",
-    "Keep the prior fix: phase6-continue-02 Context must be the merged tests/test_seeded_phase6_core.py. Render-bound guards must use real measured sizes, not placeholders."
-  ],
-  "reason": "Requisition review found that the plan-fixed core-drift-activation fence cannot fit the routing resolver or the classifier-reachability tests without breaking a rule, so section 20 must change before this ticket is re-authored.",
-  "detail": null
+  "run_seq": 5,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
