@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The prior requisition finding remains true in the current committed plan. I treated the missing Phase 6 seed authority as an authoring defect rather than inventing contracts from section 19, because every Phase 6 seed must cite section 20 alone.
+The repaired section 20 cleared the prior premise failure. I preserved the exit requisition's 65,843-character authoring-time section-20 fixture, then regenerated the three child tickets from the current complete row contracts; the focused verification passed 12 tests and the full suite passed 1,508 tests.
 
 ## Dead ends
-Section 20 names `core-drift-activation`, `migrate-config`, and the continuation row but does not define their behavior contracts, exact ownership/fences, Context partitions, on-demand exceptions, or dependency edges. Authoring `tickets/phase6-continue/ticket.md` therefore cannot satisfy its contract within the `tickets` fence without inventing a Phase 6 boundary. The paved road is to fix section 20 in `SQUATCH_PLAN.md`, regenerate the rendered instruction files, then re-author this terminal admission.
+The first authored-ticket lint pass rejected acceptance criteria that named generic tests instead of observable test paths. I replaced those phrases with the exact verification artifacts before running the required verification commands.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ Section 20 names `core-drift-activation`, `migrate-config`, and the continuation
 OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected 75m; actual approximately 5m to revalidate the unchanged plan blocker and record the premise failure.
+Expected 75m; actual approximately 30m.
