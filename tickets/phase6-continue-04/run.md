@@ -1,18 +1,17 @@
 ## Outcome
 
-premise_failed
+ok
 
 ## Surprises / judgment calls
 
-The repaired section-20 registry now makes the authored `escape-column` fence buildable, including its Retro and CLI callers.
+The continuation's Context contains the prior seeded test, whose source text itself mentions section 19; the render proof therefore pins the section-20-only ticket citation rather than searching the complete rendered prompt for that incidental Context text.
 
 ## Dead ends
 
-`uv run pytest -q` fails in the unchanged `tests/test_seeded_phase6_02.py::test_every_emitted_ticket_renders_with_real_context_at_max_effort`: it renders unchanged `phase6-continue-03` against the unchanged plan at 120952 characters, above the 120000 limit. The failing test, rendered ticket, and plan are outside this ticket's fence and have no diff from HEAD, so this ticket cannot make every required verification command green.
+The initial render proof searched the whole rendered prompt for the section-19 heading and failed because that literal occurs in the required Context test. The check was narrowed to the authoritative ticket citation and render bound.
 
 ## Second problems filed
 
-Historical Phase 6 row-2 render-headroom guard needs a plan/test correction outside this ticket's fence.
 
 ## Resolved engine/model
 
