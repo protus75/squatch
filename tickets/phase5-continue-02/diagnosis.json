@@ -1,17 +1,16 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snagged only one gap: AC5's clause that pins `phase5-continue-04` to merged `tests/test_seeded_phase5_02.py` has no assertion. The remaining-rows test checks continue-04's depends and owns but never what it embeds.",
-    "Fix: in test_remaining_rows_dependencies_owners_terminal_and_no_successor_are_verbatim, assert the flattened continue-03 Scope in contains \"embeds merged `tests/test_seeded_phase5_02.py`\" and \"never its own test nor sibling-new `tests/test_seeded_phase5_03.py`\".",
-    "Copy the assertion strings from the authored tickets/phase5-continue-03/ticket.md text exactly. _flat collapses whitespace, so match the single-spaced form.",
-    "Keep the three authored seeds and every other assertion unchanged. All checks passed: requisition_review on all three seeds, scope_fence, verification, run_record and diff_budget.",
-    "Leave the three seed ticket.md files uncommitted in the worktree. Commit only tests/test_seeded_phase5_02.py and the run record. Confirm with git diff --name-only against base.",
-    "Before finishing, match every acceptance-criterion clause to a concrete assertion. Both omissions so far (Phase 4 fixture, continue-04 embed) were skipped clauses in tests that otherwise passed.",
-    "If the full-suite command runs past the capture window again, rerun it with a longer wait. Don't report an unverified pass."
+    "Review snagged one gap: AC6 'every remaining owner' has no assertion on retro-doctor-cli's fence. Checks and every other clause passed.",
+    "Fix: in test_baseline_reader_and_remaining_suffix_are_closed_and_terminal, assert the flattened phase5-continue-03 Scope in names doctor.py, test_doctor.py, retro.py, __main__.py, test_retro.py, test_cli.py and test_verbs.py as retro-doctor-cli owns.",
+    "Also pin retro-doctor-cli's medium/medium, section-20-only start. Pin the Context or on-demand disposition of its five existing paths and their stated byte sizes, as the paved road asks.",
+    "Copy each assertion string exactly from the authored tickets/phase5-continue-03/ticket.md. _flat collapses whitespace, so match the single-spaced form. Do not copy the reviewer's paraphrase unless it matches word for word.",
+    "Keep the three seeds and every other assertion unchanged. Commit only tests/test_seeded_phase5_02.py and the run record. Leave the seed ticket.md files uncommitted, and confirm with git diff --name-only against base.",
+    "Before finishing, list each named item in AC1-AC6 (every stem, edge, owner, embed, terminal) and map it to an assertion. So far every snag has been a single skipped clause in tests that otherwise passed."
   ],
-  "reason": "Single missing assertion for an explicit acceptance clause; the seeds and checks are already green, so the same capability can fix it.",
+  "reason": "A single fixable test-coverage gap that review named precisely. Checks passed and the seeds were accepted.",
   "detail": null
 }
