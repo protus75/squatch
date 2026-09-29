@@ -1,14 +1,9 @@
 {
-  "run_seq": 0,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "The check-stage requisition review renders live plan and Context bytes. A test fixture that fakes smaller section-20 or Context sizes makes the pytest pass, but the gate still fails.",
-    "bug-gate-grammar's pinned Embedded Context (tickets.py, gates.py, test_tickets.py, test_gates.py) plus section 20 renders to 165093 chars. The max-effort bound with headroom is 160000, so the pinned partition overflows.",
-    "report-inbox-triage's pinned Embedded Context includes squatch/triage.py, which contains the engine delimiter '[squatch-data:'. The render is refused no matter how large the prompt is.",
-    "Both fixes mean moving files out of Embedded Context into measured on-demand. The ticket forbids that as a contract change, so the ticket's partitions must be re-planned in section 20 upstream."
-  ],
-  "reason": "The ticket pins Embedded Context partitions that overflow the max-effort render bound and include a delimiter-carrying file. The only fix changes the pinned contracts, which the ticket's Definition of rejected forbids.",
-  "detail": null
+  "run_seq": 1,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
