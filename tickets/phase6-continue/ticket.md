@@ -60,19 +60,27 @@ paths are never Context.
 gate on conduct-file paths resolved from routing, compares each committed
 managed block with a fresh branch-version render, preserves project-owned
 remainder, refuses malformed, duplicate, or partial marker text, and joins the
-merge-time mechanical rerun set. Existing `squatch/merge.py` and
-`tests/test_merge.py` are measured on-demand exceptions; every other
-existing fence path is Context.
+merge-time mechanical rerun set. Existing `squatch/merge.py`,
+`tests/test_gates.py`, and `tests/test_merge.py` are measured on-demand
+exceptions; every other existing fence path is Context. This exact partition
+keeps the base Implement render under headroom; `tests/test_gates.py` is read
+from the worktree only when needed and is never embedded.
 
 `migrate-config` depends on `core-renderer` and owns/fences
 `squatch/config.py`, `squatch/__main__.py`, `tests/test_config.py`,
 `tests/test_cli.py`, and `tests/test_verbs.py`. It adds only the explicit
-`migrate-config` verb: read one older supported schema, produce the current
-schema deterministically without resolving auth values or changing host
-intent, atomically replace only after the migrated bytes pass the real loader,
-keep a recoverable adjacent backup, and refuse current, future, unknown, or
-invalid input with no write. CLI roots and tests are measured on-demand
-exceptions; config and its focused test are Context.
+`migrate-config` verb. The sole supported older schema is version 0: its full
+key vocabulary, nesting, value types, defaults, and meanings are exactly
+version 1's except for the required top-level integer `schema_version: 0`.
+The deterministic 0-to-1 mapping changes only that scalar to integer 1 and
+keeps every other key byte-for-byte; it never resolves auth values or changes
+host intent. Validate the full candidate through the real loader before one
+atomic replace and keep a recoverable adjacent backup. A valid current
+version-1 file is a byte-identical no-op. Refuse with no write a missing or
+non-integer version, a version below 0 or above 1, an unknown key, or any input
+invalid under the version-1 shape after scalar substitution. CLI roots and
+tests are measured on-demand exceptions; config and its focused test are
+Context.
 
 `phase6-continue-02` depends on both `core-drift-activation` and
 `migrate-config`. It authors row 2.
