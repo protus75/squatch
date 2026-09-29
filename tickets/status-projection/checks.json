@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "fd164c4308d3fa7cf451f1768430b23ee195287a",
+  "produced_at_sha": "3756c4f4e20c233aa50bdad7275f5d0194c44218",
   "stem": "status-projection",
   "branch": "status-projection",
-  "base": "e4eb5971d8437f14512dc8328928c0c645fb83d1",
-  "head": "fd164c4308d3fa7cf451f1768430b23ee195287a",
+  "base": "b8b3dfe91d99648efae742091308a9192a072b0c",
+  "head": "3756c4f4e20c233aa50bdad7275f5d0194c44218",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/box.py",
