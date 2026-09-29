@@ -7,10 +7,14 @@ ok
 Kept `phase5-exit` uncreated: it is authored by `phase5-continue-04`, and its
 terminal facts are pinned from that continuation's registry and Scope in.
 
+Kept the prior plan correction's closed manual-retro and mechanical-doctor
+contract in the authored feature ticket; partition and size assertions remain
+in this continuation test.
+
 ## Dead ends
 
-Initial wrapped acceptance-criterion bullets did not satisfy ticket lint, so
-they were rewritten as single bullets with their observable test paths.
+The first focused run found an assertion wording mismatch (`only in` versus
+`only by`); the seeded test was corrected before the green rerun.
 
 ## Second problems filed
 
@@ -21,4 +25,4 @@ codex / GPT-5
 
 ## Predicted vs actual
 
-Expected 75m; actual about 14m.
+Expected 75m; actual about 16m.
