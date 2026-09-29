@@ -1,45 +1,15 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "96881146bc5a739499e988fbdb963031f73a6172",
+  "produced_at_sha": "5b198a2ada3d199d5f450ac1601b2208b6b60a3c",
   "stem": "phase5-continue-02",
   "branch": "phase5-continue-02",
-  "base": "ddc2a59d9728b14dd942baffc6b4a824bb312b9a",
-  "head": "96881146bc5a739499e988fbdb963031f73a6172",
+  "base": "4b6a7e24b73c587400534c9536e5578c675ad295",
+  "head": "5b198a2ada3d199d5f450ac1601b2208b6b60a3c",
   "changed_files": [
     "tests/test_seeded_phase5_02.py"
   ],
   "checks": [
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/baseline-binding-reader/ticket.md",
-      "sha": "ae080108149af34b4129683ea525358609275d0b",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/phase5-continue-03/ticket.md",
-      "sha": "b901e8a4b9039d176685a1470baa20c3b38581ea",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "pass",
-      "severity": "hard",
-      "path": "tickets/status-projection/ticket.md",
-      "sha": "534dab85231ce6d838b7aadec07c115fc6edb186",
-      "bypassed": false,
-      "findings": [],
-      "commands": []
-    },
     {
       "code": "scope_fence",
       "verdict": "pass",
