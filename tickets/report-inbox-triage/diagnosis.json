@@ -1,16 +1,14 @@
 {
-  "run_seq": 5,
+  "run_seq": 6,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Keep the existing diff: gates are green and the prior-lesson fixes are in place. Fix only the three review findings below.",
-    "inbox.py _consume_one: wrap the replay read (`self._fs.read(replay_path)`) so an OSError becomes a ReportError and the report moves to .rejected. Add a test_inbox case with an unreadable or vanished replay after stat.",
-    "Isolate other per-report failures the same way. A ValueError or BoxCorruption raised by store_evidence or enqueue for one report must quarantine that report, not escape consume() and stall later reports.",
-    "On a by_origin hit, call `self._box.record_rereport(existing.id)` before marking the report .filed, so repeat reports count and can reopen a tombstone. Add a test that a second same-signature report increments `reports`.",
-    "Make the authored bug ticket retain its evidence: have Author reject a bug_report ticket that omits the custody reference (evidence.replay_path in Context or Regression). Assert this in tests/test_triage.py; do not rely only on the prompt and the Box record.",
+    "Keep the existing diff. Gates are green and every earlier lesson is in place. Fix only the single METADATA_LIMIT review finding.",
+    "inbox.py: METADATA_LIMIT must cover the worst-case JSON escaping of an excerpt exactly at LOG_EXCERPT_LIMIT. A control byte becomes \\u00XX, which is 6x its size. Use e.g. 6 * LOG_EXCERPT_LIMIT + 16 * 1024. Keep the stat-before-parse check as the memory bound.",
+    "Add a test_inbox.py case: a report whose excerpt is exactly LOG_EXCERPT_LIMIT bytes and full of escape-heavy characters (ESC/ANSI codes, quotes, backslashes), written with json.dumps defaults. Assert it is filed, not rejected, and that its evidence reaches the Box.",
     "Keep run.md's six sections with `## Outcome` exactly `ok`. Rerun all three verification commands and confirm they are green before finishing."
   ],
-  "reason": "The review found three concrete fixes the implementer can make in place, inside the fence, and all mechanical gates pass. No capability gap or ticket defect is shown.",
+  "reason": "Review found one fixable defect with a concrete fix: the metadata size cap rejects valid escape-heavy excerpts. Everything else passed.",
   "detail": null
 }
