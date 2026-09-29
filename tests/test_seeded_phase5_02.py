@@ -252,3 +252,31 @@ def test_phase5_exit_and_phase6_use_compact_section20_render_surface():
         "context": DataBlock("host", ""),
     }, plan=plan, plan_sections=("20",), effort="max")
     assert len(rendered) <= int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
+
+
+def test_phase6_remaining_registry_closes_contracts_paths_and_edges():
+    plan = (REPO / PLAN_FILE).read_text()
+    section20 = plan[plan.index("## 20."):]
+    contracts = {
+        "core-drift-activation": ("squatch/hostfiles.py", "core-drift-classifier"),
+        "migrate-config": ("squatch/config.py", "core-renderer"),
+        "host-contract-doc": ("docs/host-contract.md", "migrate-config"),
+        "fixture-host-scaffold": ("hosts/fixture/", "host-contract-doc"),
+        "bug-gate-grammar": ("tests/test_bug_gate.py", "fixture-host-scaffold"),
+        "report-inbox-triage": ("squatch/inbox.py", "bug-gate-grammar"),
+        "escape-column": ("squatch/scorecard.py", "report-inbox-triage"),
+        "supervised-merge-hold": ("tests/test_supervised_merge_hold.py", "escape-column"),
+        "go-grade-machinery": ("tests/test_go_grade.py", "supervised-merge-hold"),
+        "go-grade-run": ("tickets/go-grade-run/review-baseline-report.json", "go-grade-machinery"),
+        "exit-receipt-machinery": ("eval/host_loop.py", "go-grade-run"),
+        "phase6-exit": ("tickets/phase6-exit/exit-receipt.json", "exit-receipt-machinery"),
+    }
+    for stem, (owned_path, dependency) in contracts.items():
+        assert f"`{stem}`" in section20
+        assert f"`{owned_path}`" in section20
+        assert f"`{dependency}`" in section20
+    for tail in range(2, 9):
+        assert f"`phase6-continue-{tail:02d}`" in section20
+    assert "Phase 6 remaining-row contracts (DECIDED)" in section20
+    assert "The exact remaining admission rows and direct edges are therefore" in section20
+    assert "alone and terminal" in section20

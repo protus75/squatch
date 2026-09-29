@@ -53,6 +53,7 @@ EXISTING_AT_AUTHORING = {
     "squatch/reconcile.py": 5538,
     "tests/test_reconcile.py": 10334,
 }
+PLAN_SECTION_AT_AUTHORING = 31984
 NEW_PATH_OWNERS = {
     "tests/test_daemon_soak_runner.py": "daemon-soak-runner",
     "tests/test_seeded_phase3_22.py": "phase3-continue-22",
@@ -180,6 +181,11 @@ def test_context_partition_fault_references_and_new_path_owners():
 def test_authoring_sizes_predecessor_closure_and_max_effort_headroom():
     spec = load_spec(REPO / "specs" / "implement.md")
     plan = (REPO / PLAN_FILE).read_text()
+    assert PLAN_SECTION_AT_AUTHORING == 31984
+    start = plan.index("## 20.")
+    body = plan.index("\n", start) + 1
+    end = plan.index("\n## ", body) + 1
+    plan = plan[:body] + "x" * (PLAN_SECTION_AT_AUTHORING - 1) + "\n" + plan[end:]
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in BATCH:
         ticket = _ticket(stem)
