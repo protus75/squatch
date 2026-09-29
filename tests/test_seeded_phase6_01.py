@@ -68,10 +68,9 @@ REMAINING = {'host-contract-doc': (('migrate-config',),
                        'tests/test_tickets.py',
                        'tests/test_gates.py',
                        'tests/test_bug_gate.py'),
-                      ('squatch/tickets.py',
-                       'squatch/gates.py',
+                      ('squatch/gates.py',
                        'tests/test_gates.py'),
-                      ('squatch/stages.py', 'tests/test_tickets.py')),
+                      ('squatch/tickets.py', 'squatch/stages.py', 'tests/test_tickets.py')),
  'report-inbox-triage': (('bug-gate-grammar',),
                          ('squatch/inbox.py',
                           'squatch/box.py',
@@ -169,8 +168,8 @@ BEHAVIOR = {'host-contract-doc': '`host-contract-doc` depends on `migrate-config
                      '`tests/test_bug_gate.py`. It adds `kind: bug`, mandatory `## Regression`, '
                      'and the branch-head-pass/merge-base-with-`carries`-overlay- fail hard gate; '
                      'a missing test at base is never accepted as defect evidence. Existing '
-                     '`squatch/stages.py`, `tests/test_tickets.py`, and composition callers are '
-                     'measured on demand; the ticket/gate parsers and focused '
+                     '`squatch/tickets.py`, `squatch/stages.py`, `tests/test_tickets.py`, and '
+                     'composition callers are measured on demand; the gate parser and focused '
                      '`tests/test_gates.py` are Context.',
  'report-inbox-triage': '`report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new '
                         '`squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, '
