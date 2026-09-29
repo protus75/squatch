@@ -1,16 +1,18 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Review snagged, not check: every mechanical gate passed. The fix is inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed.",
-    "Rewrite the phase6-continue-02 Scope in so each remaining payload states its exact backticked fence paths, Context paths and on-demand paths as this ticket lists them. Replace collapsed prose like 'scorecard/Git and their tests'.",
-    "In the test, add a REMAINING table {stem: (depends, fence, context, on_demand, tier)} for every payload in SUFFIX[1:]. Assert that each edge and path appears backticked in continue-02's Scope in.",
-    "Pin every direct edge, including report-inbox-triage->bug-gate-grammar, escape-column->both parents and go-grade-run->go-grade-machinery. Also pin phase6-continue-03..08 to exactly their row payloads.",
-    "For phase6-exit, take its fence sentence and assert that its set of backticked paths equals the two receipts plus tests/test_phase6_exit.py exactly. Also assert 'no Context', 'no engine-code edit' and no successor.",
-    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render-bound checks use real measured inputs. Re-run the max-effort render after lengthening continue-02."
+    "Review snagged; every mechanical gate passed. All three findings are test-strength gaps inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed.",
+    "AC1: for core-drift-activation and migrate-config, assert over each ticket's flattened Scope in: the exact on-demand path list, the 'every other existing fence path is Context' clause, and each named behavior phrase.",
+    "AC1 behavior phrases to pin: resolver moved into squatch/providers.py and shared by _core and core_drift, replacement of test_classifier_is_unreachable_from_production_gates, kept test_rendering_has_no_git_or_commit_effect, merge-time rerun set.",
+    "AC1 migrate-config phrases to pin: version-0-only mapping, byte-identical v1 no-op, and the full refusal set. Also assert that phase6-continue-02 says it authors row 2.",
+    "AC2: assert _admissions('phase6-continue-02') == SUFFIX[1:]. Pin the continuation contract in 02's Scope in: owns only tickets plus the matching tests/test_seeded_phase6_<nn>.py, with the preceding merged seeded test as sole Context.",
+    "AC3: bind each marker to its stem, e.g. assert '`supervised-merge-hold` is KNOWN-DEEP high/high' in scope, and assert the KNOWN-HARD clause inside the phase6-exit sentence, not as bare substrings.",
+    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render-bound guards use real measured sizes. Re-run the max-effort render check after any ticket text grows.",
+    "Before claiming done, map each acceptance-criterion clause to a specific assertion. Green suites and an 'ok' run record have not predicted review outcomes on this ticket."
   ],
-  "reason": "The review found that the test only checks loose phrases and that continue-02's prose collapses the exact contracts; both can be fixed inside the existing fence at the same capability.",
+  "reason": "The review found fixable test-coverage gaps inside the fence, and its findings now point to the exact assertions to add.",
   "detail": null
 }
