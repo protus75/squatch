@@ -1,17 +1,43 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "2967a76b858ac441776d728571f407e031ebed3c",
+  "produced_at_sha": "4f84b490d7e9c72355b43534b5f96d3a4d07abf0",
   "stem": "phase5-continue-03",
   "branch": "phase5-continue-03",
-  "base": "2433c2f2f63de5f65ab778590b860a68fe986d96",
-  "head": "2967a76b858ac441776d728571f407e031ebed3c",
+  "base": "3c8e05aa5c49a7e33a016fe7ca2bc1544d9ae8e7",
+  "head": "4f84b490d7e9c72355b43534b5f96d3a4d07abf0",
   "changed_files": [
-    "tests/test_seeded_phase5_03.py",
-    "tickets/phase5-continue-04/ticket.md",
-    "tickets/retro-doctor-cli/ticket.md"
+    "tests/test_seeded_phase5_03.py"
   ],
   "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/phase5-continue-04/ticket.md",
+      "sha": "1d91bb966b1890f1404e132980414387ed036455",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase5-continue-04/ticket.md",
+          "line": null,
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"rma\",\\n \"summary\": \"The continuation matches section 20\\'s fixed Phase 5 suffix, but the exit it authors cannot be built from section 20 alone. Section 20 has no Phase 5 exit-evidence disposition and no Phase 6 boundary registry, so the plan needs a human repair before `phase5-exit` can be pinned.\",\\n \"findings\": [\\n  {\"code\": \"requisition_review\",\\n   \"path\": \"tests/test_seeded_phase5_04.py\",\\n   \"line\": null,\\n   \"message\": \"The criteria require the seeded test to pin `phase5-exi'",
+          "paved_road": "fix the plan, then re-author the ticket"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/retro-doctor-cli/ticket.md",
+      "sha": "0336103f5b8e6bbff9c73aa4e11ffd37d6e93020",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
     {
       "code": "scope_fence",
       "verdict": "pass",
