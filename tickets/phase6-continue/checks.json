@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "eb567a11313d8cc3b8007bdb427a8c34d58e7518",
+  "produced_at_sha": "e34392ad9dafaf40930eda0715776a0d065d6d6c",
   "stem": "phase6-continue",
   "branch": "phase6-continue",
-  "base": "3b58f0ee7d0d2c6194341dff38529155708b46e4",
-  "head": "eb567a11313d8cc3b8007bdb427a8c34d58e7518",
+  "base": "02a1290ec6f49a22a68f5e937ea611e9c15e8370",
+  "head": "e34392ad9dafaf40930eda0715776a0d065d6d6c",
   "changed_files": [
     "tests/test_seeded_phase6_01.py"
   ],
@@ -15,32 +15,21 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/core-drift-activation/ticket.md",
-      "sha": "aa3bfce7d530d8910c9bfa40490cba4912c01c44",
+      "sha": "ce20c7929805bacbe0645af60b021af988373267",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/core-drift-activation/ticket.md",
-          "line": null,
-          "message": "base Implement render is 125376 chars against the 160000-char max-effort bound at 75% headroom",
-          "paved_road": "shrink the inputs or split the ticket"
-        }
-      ],
-      "commands": []
-    },
-    {
-      "code": "requisition_review",
-      "verdict": "fail",
-      "severity": "hard",
-      "path": "tickets/migrate-config/ticket.md",
-      "sha": "02a8f35d0f1865b58c150dda27ff5b6cb5a36624",
-      "bypassed": false,
-      "findings": [
+          "line": 130,
+          "message": "The gate must use \"conduct-file paths resolved from routing\". The only existing resolver is inline in `__main__._core`: it runs Registry(config).candidates(route.tier, route.surface) over config.routing, keeps cli providers, and maps claude -> CLAUDE.md and everything else -> AGENTS.md. The fence is fixed by the plan to hostfiles, gates, config, and merge plus their tests, and excludes squatch/__main__.py. The gate is therefore forced either to hook a seam whose owning module is unfenced, or to copy the provider-to-filename mapping into a second resolver in hostfiles/gates. The copy breaks the no-dual-path rule and lets `core` and `core_drift` drift apart on which files they manage.",
+          "paved_road": "fix the plan, then re-author the ticket"
+        },
         {
           "code": "requisition_review",
-          "path": "tickets/migrate-config/ticket.md",
+          "path": "tickets/core-drift-activation/ticket.md",
           "line": null,
-          "message": "`SCHEMA_VERSION = 1` is the only config schema that has ever existed. The only trace of an older version is `parse`'s refusal message, which `tests/test_config.py` probes with `schema_version: 0`, and nothing defines a version-0 document shape. Section 20 says only \"read one older supported schema\" and \"produce the current schema deterministically\". It never names the source version, its keys, or the key-by-key mapping to version 1. That leaves the implementer to choose between two bad options. (a) Invent a version-0 schema and its mapping, which is a speculative feature under the anti-bloat law, and 'without changing host intent' can't be judged against an invented source. (b) Bump `SCHEMA_VERSION` to 2 and define a new schema, which changes the section 15 host schema and every current-version assertion in `tests/test_config.py`, well beyond this row's scope. Criterion 1, 'deterministic migration of the sole supported older schema', therefore has no fixed target, and two correct implementations could produce different bytes.",
+          "message": "`test_classifier_is_unreachable_from_production_gates` asserts that no module in squatch/ imports `classify` from squatch.hostfiles or makes any `.classify(...)` attribute call. Activating the gate makes the drift logic reachable from production, which contradicts this test. No acceptance criterion names the migration. Separately, `test_rendering_has_no_git_or_commit_effect` pins hostfiles' imports to exactly {hashlib, re, typing}. That constrains where the gate and its routing lookup can live, and the ticket does not say so.",
           "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
@@ -50,8 +39,18 @@
       "code": "requisition_review",
       "verdict": "pass",
       "severity": "hard",
+      "path": "tickets/migrate-config/ticket.md",
+      "sha": "16c1ff90f3e24308c7750a525843bd1a3cb1ad9c",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
       "path": "tickets/phase6-continue-02/ticket.md",
-      "sha": "0f6454b4a1531a1c191c98327020cfe75ede6a0b",
+      "sha": "b5293e2ad35e8f92cd77ba4d19e4171b4bddcaf5",
       "bypassed": false,
       "findings": [],
       "commands": []
