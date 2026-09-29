@@ -1,0 +1,16 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Release a confirmed hold through the one admission entry, MergeQueue.admit() or admit_delivery with releasing=True. Never take queue._slot or call queue._admit directly: that skips admission_hold.wait() and the rework handoff.",
+    "A release that gate-fails or needs rework against moved main must retire the hold durably (discard_hold, released=True) and go through the normal non-ok terminal/harvest path. Never raise RuntimeError and leave the stem held.",
+    "Add a test where moved main makes the release gate-fail or conflict. Assert the hold is retired, the terminal and harvest are written, and the stem is dispatchable again.",
+    "Call compose_pipeline directly in tests. Never build a callee name from strings to get past a caller-inventory check. If the inventory rejects the call, update it inside the fence or file a separate ticket.",
+    "No dual-path code: always unpack admit_delivery's 4-tuple and update every double that returns 3 values. Call pipeline.confirm_hold directly, with no getattr fallback. Pass effect_identity the same way on every path.",
+    "The HELD boundary, restart projection, drain exclusion, and confirm CLI passed review. Keep them and fix only the release path and the test honesty issues."
+  ],
+  "reason": "Review snag on fixable defects (release bypasses the one admission entry, failed release strands the hold, a test built to dodge a gate, compat branches). The design otherwise holds, so the same capability can fix it.",
+  "detail": null
+}
