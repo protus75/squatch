@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "70003a67c47e3819f66ac80ceecd2ebde27dcf49",
+  "produced_at_sha": "6fa2f9b13646bcac6d7b69ae552dc38962d981a3",
   "stem": "escape-column",
   "branch": "escape-column",
-  "base": "d35a1e89ed5f192304051486e0a35a47eae9eaaa",
-  "head": "70003a67c47e3819f66ac80ceecd2ebde27dcf49",
+  "base": "828e71f5ca017e4b5f8684add9bc3711b24e8ca7",
+  "head": "6fa2f9b13646bcac6d7b69ae552dc38962d981a3",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/git.py",
