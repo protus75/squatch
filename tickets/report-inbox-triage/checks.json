@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "87434782626cc4a1259de7513428b3852f3d341d",
+  "produced_at_sha": "09b3e11b6572e2a4ab0021c8d9532a3e7d329451",
   "stem": "report-inbox-triage",
   "branch": "report-inbox-triage",
-  "base": "e84dc5e437c2fafc5be015e1f0e74aec6a2a61ad",
-  "head": "87434782626cc4a1259de7513428b3852f3d341d",
+  "base": "3f90dfe82fa2f2e1720de9af94f7cbea289e1285",
+  "head": "09b3e11b6572e2a4ab0021c8d9532a3e7d329451",
   "changed_files": [
     "squatch/author.py",
     "squatch/box.py",
@@ -13,7 +13,6 @@
     "squatch/inbox.py",
     "squatch/serve.py",
     "squatch/triage.py",
-    "tests/test_box.py",
     "tests/test_inbox.py",
     "tests/test_serve.py",
     "tests/test_triage.py"
@@ -69,8 +68,8 @@
             "pytest",
             "-q"
           ],
-          "attribution": "base",
-          "filed": "box-000272-223b48a0"
+          "attribution": null,
+          "filed": null
         }
       ]
     },
