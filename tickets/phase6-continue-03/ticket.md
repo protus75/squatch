@@ -41,7 +41,7 @@ Every numbered continuation owns only `tickets` plus its new `tests/test_seeded_
 
 `report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new `squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`, `tests/test_triage.py`, `tests/test_author.py`, and new `tests/test_inbox.py`. It enforces the version-1 report schema, metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies bounded evidence into durable Box custody before recording the message, wires the daemon consumer, and makes sequential triage author `kind: bug` tickets whose evidence and `## Regression` survive intake.
 
-`report-inbox-triage` partition: Embedded Context: `squatch/box.py`, `squatch/triage.py`, `tests/test_box.py`; measured on-demand: `squatch/author.py`, `squatch/daemon.py`, `tests/test_author.py`, `tests/test_triage.py`.
+`report-inbox-triage` partition: Embedded Context: `squatch/box.py`, `tests/test_box.py`; measured on-demand: `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `tests/test_author.py`, `tests/test_triage.py`.
 
 `escape-column` depends on both `bug-gate-grammar` and `report-inbox-triage` and owns/fences `squatch/scorecard.py`, `squatch/git.py`, `tests/test_scorecard.py`, and `tests/test_git.py`. It adds the squash-trailer read operation and deterministic bug-to-merged-ticket-or-bounded-range attribution, increments escapes only for surfaces that passed attributed merges, and leaves unattributed or foreign history out.
 
