@@ -122,8 +122,9 @@ excluded at authoring and becomes an ordinary worktree read after its required
 `tests/test_bug_gate.py`. It adds `kind: bug`, mandatory
 `## Regression`, and the branch-head-pass/merge-base-with-`carries`-overlay-
 fail hard gate; a missing test at base is never accepted as defect evidence.
-Existing `squatch/stages.py` and its composition callers are measured on
-demand; ticket/gate parsers and focused tests are Context.
+Existing `squatch/stages.py`, `tests/test_tickets.py`, and composition callers
+are measured on demand; ticket/gate parsers and focused
+`tests/test_gates.py` are Context.
 
 `report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new
 `squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`,
@@ -133,9 +134,10 @@ demand; ticket/gate parsers and focused tests are Context.
 metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies bounded
 evidence into durable Box custody before recording the message, wires the
 daemon consumer, and makes sequential triage author `kind: bug` tickets
-whose evidence and `## Regression` survive intake. Daemon/Author roots and
-their large tests are measured on-demand exceptions; existing Box/Triage
-seams and focused tests are Context.
+whose evidence and `## Regression` survive intake. Daemon/Author roots, their
+large tests, and delimiter-carrying `tests/test_triage.py` are measured
+on-demand exceptions; existing Box/Triage seams and focused
+`tests/test_box.py` are Context.
 
 `phase6-continue-04` depends on both `bug-gate-grammar` and
 `report-inbox-triage`. It authors row 4.

@@ -70,9 +70,8 @@ REMAINING = {'host-contract-doc': (('migrate-config',),
                        'tests/test_bug_gate.py'),
                       ('squatch/tickets.py',
                        'squatch/gates.py',
-                       'tests/test_tickets.py',
                        'tests/test_gates.py'),
-                      ('squatch/stages.py',)),
+                      ('squatch/stages.py', 'tests/test_tickets.py')),
  'report-inbox-triage': (('bug-gate-grammar',),
                          ('squatch/inbox.py',
                           'squatch/box.py',
@@ -85,9 +84,9 @@ REMAINING = {'host-contract-doc': (('migrate-config',),
                           'tests/test_inbox.py'),
                          ('squatch/box.py',
                           'squatch/triage.py',
-                          'tests/test_box.py',
-                          'tests/test_triage.py'),
-                         ('squatch/author.py', 'squatch/daemon.py', 'tests/test_author.py')),
+                          'tests/test_box.py'),
+                         ('squatch/author.py', 'squatch/daemon.py', 'tests/test_author.py',
+                          'tests/test_triage.py')),
  'escape-column': (('bug-gate-grammar', 'report-inbox-triage'),
                    ('squatch/scorecard.py',
                     'squatch/git.py',
@@ -170,8 +169,9 @@ BEHAVIOR = {'host-contract-doc': '`host-contract-doc` depends on `migrate-config
                      '`tests/test_bug_gate.py`. It adds `kind: bug`, mandatory `## Regression`, '
                      'and the branch-head-pass/merge-base-with-`carries`-overlay- fail hard gate; '
                      'a missing test at base is never accepted as defect evidence. Existing '
-                     '`squatch/stages.py` and its composition callers are measured on demand; '
-                     'ticket/gate parsers and focused tests are Context.',
+                     '`squatch/stages.py`, `tests/test_tickets.py`, and composition callers are '
+                     'measured on demand; the ticket/gate parsers and focused '
+                     '`tests/test_gates.py` are Context.',
  'report-inbox-triage': '`report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new '
                         '`squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, '
                         '`squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`, '
@@ -181,8 +181,9 @@ BEHAVIOR = {'host-contract-doc': '`host-contract-doc` depends on `migrate-config
                         'bounded evidence into durable Box custody before recording the message, '
                         'wires the daemon consumer, and makes sequential triage author `kind: bug` '
                         'tickets whose evidence and `## Regression` survive intake. Daemon/Author '
-                        'roots and their large tests are measured on-demand exceptions; existing '
-                        'Box/Triage seams and focused tests are Context.',
+                        'roots, their large tests, and delimiter-carrying `tests/test_triage.py` '
+                        'are measured on-demand exceptions; existing Box/Triage seams and '
+                        'focused `tests/test_box.py` are Context.',
  'escape-column': '`escape-column` depends on both `bug-gate-grammar` and `report-inbox-triage` '
                   'and owns/fences `squatch/scorecard.py`, `squatch/git.py`, '
                   '`tests/test_scorecard.py`, and `tests/test_git.py`. It adds the squash-trailer '

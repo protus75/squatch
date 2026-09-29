@@ -17,15 +17,15 @@ agent_effort: medium
 - section 20
 
 ## Goal
-Author row 3.
+Row 3
 
 ## Why
-Dependencies establish it.
+Ready
 
 ## Scope in
-Author `bug-gate-grammar`, `report-inbox-triage`, and `phase6-continue-04`. Every payload and continuation cites section 20 alone and starts medium/medium unless KNOWN-DEEP or KNOWN-HARD high/high. Render at max effort within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`; never render section 19. Sole Context is `tests/test_seeded_phase6_01.py`; sibling-new `tests/test_seeded_phase6_02.py` and new paths are excluded.
+Author `bug-gate-grammar`, `report-inbox-triage`, and `phase6-continue-04`. Every payload and continuation cites section 20 alone and starts medium/medium unless KNOWN-DEEP or KNOWN-HARD high/high. Render at max effort within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`; never render section 19.
 
-Every numbered continuation owns only `tickets` plus its matching new `tests/test_seeded_phase6_<nn>.py`, embeds the immediately preceding merged Phase 6 seeded test as sole Context, depends on every row payload, pins exact edges and contracts plus max-effort headroom, and carries this suffix:
+Every numbered continuation owns only `tickets` plus its new `tests/test_seeded_phase6_<nn>.py`, embeds the immediately preceding merged Phase 6 seeded test as sole Context, depends on every row payload, and carries this suffix:
 ```yaml
 - [bug-gate-grammar, report-inbox-triage, phase6-continue-04]
 - [escape-column, phase6-continue-05]
@@ -37,11 +37,11 @@ Every numbered continuation owns only `tickets` plus its matching new `tests/tes
 
 `bug-gate-grammar` depends on `fixture-host-scaffold` and owns/fences `squatch/tickets.py`, `squatch/gates.py`, `squatch/stages.py`, `tests/test_tickets.py`, `tests/test_gates.py`, and new `tests/test_bug_gate.py`. It adds `kind: bug`, mandatory `## Regression`, and the branch-head-pass/merge-base-with-`carries`-overlay-fail hard gate; a missing test at base is never accepted as defect evidence.
 
-`bug-gate-grammar` partition: Embedded Context: `squatch/tickets.py`, `squatch/gates.py`, `tests/test_tickets.py`, `tests/test_gates.py`; measured on-demand: `squatch/stages.py`.
+`bug-gate-grammar` partition: Embedded Context: `squatch/tickets.py`, `squatch/gates.py`, `tests/test_gates.py`; measured on-demand: `squatch/stages.py`, `tests/test_tickets.py`.
 
 `report-inbox-triage` depends on `bug-gate-grammar` and owns/fences new `squatch/inbox.py`, `squatch/box.py`, `squatch/triage.py`, `squatch/author.py`, `squatch/daemon.py`, `tests/test_box.py`, `tests/test_triage.py`, `tests/test_author.py`, and new `tests/test_inbox.py`. It enforces the version-1 report schema, metadata-first 1 MiB replay-file and 64 KiB log-excerpt caps, copies bounded evidence into durable Box custody before recording the message, wires the daemon consumer, and makes sequential triage author `kind: bug` tickets whose evidence and `## Regression` survive intake.
 
-`report-inbox-triage` partition: Embedded Context: `squatch/box.py`, `squatch/triage.py`, `tests/test_box.py`, `tests/test_triage.py`; measured on-demand: `squatch/author.py`, `squatch/daemon.py`, `tests/test_author.py`.
+`report-inbox-triage` partition: Embedded Context: `squatch/box.py`, `squatch/triage.py`, `tests/test_box.py`; measured on-demand: `squatch/author.py`, `squatch/daemon.py`, `tests/test_author.py`, `tests/test_triage.py`.
 
 `escape-column` depends on both `bug-gate-grammar` and `report-inbox-triage` and owns/fences `squatch/scorecard.py`, `squatch/git.py`, `tests/test_scorecard.py`, and `tests/test_git.py`. It adds the squash-trailer read operation and deterministic bug-to-merged-ticket-or-bounded-range attribution, increments escapes only for surfaces that passed attributed merges, and leaves unattributed or foreign history out.
 
@@ -67,15 +67,15 @@ Every numbered continuation owns only `tickets` plus its matching new `tests/tes
 
 `phase6-exit` partition: Embedded Context: none; measured on-demand: none.
 
-`phase6-continue-04` depends on `bug-gate-grammar`, `report-inbox-triage`. It owns only `tickets`, `tests/test_seeded_phase6_04.py` and has sole Context `tests/test_seeded_phase6_02.py`.
+`phase6-continue-04` depends on `bug-gate-grammar`, `report-inbox-triage`. Owns `tickets`, `tests/test_seeded_phase6_04.py`; Context: `tests/test_seeded_phase6_02.py`.
 
-`phase6-continue-05` depends on `escape-column`. It owns only `tickets`, `tests/test_seeded_phase6_05.py` and has sole Context `tests/test_seeded_phase6_03.py`.
+`phase6-continue-05` depends on `escape-column`. Owns `tickets`, `tests/test_seeded_phase6_05.py`; Context: `tests/test_seeded_phase6_03.py`.
 
-`phase6-continue-06` depends on `supervised-merge-hold`. It owns only `tickets`, `tests/test_seeded_phase6_06.py` and has sole Context `tests/test_seeded_phase6_04.py`.
+`phase6-continue-06` depends on `supervised-merge-hold`. Owns `tickets`, `tests/test_seeded_phase6_06.py`; Context: `tests/test_seeded_phase6_04.py`.
 
-`phase6-continue-07` depends on `go-grade-machinery`, `go-grade-run`. It owns only `tickets`, `tests/test_seeded_phase6_07.py` and has sole Context `tests/test_seeded_phase6_05.py`.
+`phase6-continue-07` depends on `go-grade-machinery`, `go-grade-run`. Owns `tickets`, `tests/test_seeded_phase6_07.py`; Context: `tests/test_seeded_phase6_05.py`.
 
-`phase6-continue-08` depends on `exit-receipt-machinery`. It owns only `tickets`, `tests/test_seeded_phase6_08.py` and has sole Context `tests/test_seeded_phase6_06.py`.
+`phase6-continue-08` depends on `exit-receipt-machinery`. Owns `tickets`, `tests/test_seeded_phase6_08.py`; Context: `tests/test_seeded_phase6_06.py`.
 
 The terminal row contains `phase6-exit` alone, has no successor, and authors no continuation tail.
 
