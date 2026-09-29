@@ -1,14 +1,15 @@
 {
-  "run_seq": 7,
+  "run_seq": 8,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Merge regate failed, not review: review approved and every check passed. tickets/retro-doctor-cli/ticket.md and tickets/phase5-continue-04/ticket.md were committed on the branch, and tickets/** never rides the code lane.",
-    "Write both authored ticket files in the working tree but leave them uncommitted, because the driver lifts outbox files. Commit only tests/test_seeded_phase5_03.py and the run record. Do not restore ticket files from a prior local commit.",
-    "Keep the approved content exactly as it is: both tickets' text, the four tests, and the merged fixture pinned at 11383 bytes. Before finishing, confirm with git that no path under tickets/<new-stem>/ is in the branch diff.",
-    "Keep the prior lessons: do not create tickets/phase5-exit/ticket.md. The doctor's Context stays squatch/retro.py and tests/test_retro.py; continue-04's Context stays tests/test_seeded_phase5_02.py only."
+    "Check failed: requisition_review on tickets/phase5-continue-04/ticket.md. The reply could not be parsed because it was wrapped in a ```json fence and cut off. Its verdict was still 'rma': the plan needs a human repair.",
+    "The reviewer's point: section 20 alone cannot support phase5-exit. It has no Phase 5 exit-evidence disposition and no Phase 6 boundary registry, yet continue-04 cites only section 20 and must pin phase5-exit.",
+    "Fix the plan first. Give section 20 (or continue-04's plan contract, with section 19 added) the phase5-exit evidence reads and the Phase 6 core registry. Then re-author phase5-continue-03 from the fixed plan.",
+    "Keep what review approved: both tickets' text, the four tests, the merged fixture pinned at 11383 bytes, and the ticket files left uncommitted. Do not create tickets/phase5-exit/ticket.md.",
+    "Separate engine issue to check: the requisition_review parser rejected a reply wrapped in a code fence. Confirm whether the reply was cut off or whether the parser should strip fences, and file it on its own."
   ],
-  "reason": "A fixable commit-hygiene slip: the approved outbox ticket files were committed instead of left for the driver to lift.",
+  "reason": "The plan has a gap for the phase5-exit contract, and the reviewer's 'rma' verdict says it needs a plan fix before this ticket can pass. Retrying without that fix will fail the same way.",
   "detail": null
 }
