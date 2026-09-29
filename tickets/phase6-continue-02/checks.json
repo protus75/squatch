@@ -1,0 +1,79 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "1aad71969c64b55dadeb30f958b9cce9501e11e5",
+  "stem": "phase6-continue-02",
+  "branch": "phase6-continue-02",
+  "base": "3e8f682f38979810ff1c53ac8644e6a95d2f0181",
+  "head": "1aad71969c64b55dadeb30f958b9cce9501e11e5",
+  "changed_files": [
+    "tests/test_seeded_phase6_02.py",
+    "tickets/fixture-host-scaffold/ticket.md",
+    "tickets/host-contract-doc/ticket.md",
+    "tickets/phase6-continue-03/ticket.md"
+  ],
+  "checks": [
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase6_02.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
