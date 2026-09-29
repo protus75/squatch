@@ -20,7 +20,7 @@ agent_effort: medium
 Row 3
 
 ## Why
-Ready
+Plan repaired.
 
 ## Scope in
 Author `bug-gate-grammar`, `report-inbox-triage`, and `phase6-continue-04`. Every payload and continuation cites section 20 alone and starts medium/medium unless KNOWN-DEEP or KNOWN-HARD high/high. Render at max effort within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`; never render section 19.
