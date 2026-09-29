@@ -1,14 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "retry",
-  "lessons": [
-    "The only gate finding is the run record: `## Outcome` must be exactly one closed value. After a successful implementation, write `ok`, never `implemented`. Keep all six required sections in tickets/report-inbox-triage/run.md.",
-    "The code already addresses the prior lessons: stat-before-read replay cap, per-report quarantine, `*.report.json` selection, custody check in Box.enqueue, and daemon wiring. Keep that diff and do not rework it unless verification fails.",
-    "Before finishing, rerun all three verification commands and confirm they are green. The previous attempt reported 1,646 passing tests, but the harness did not capture that output as evidence.",
-    "In daemon.box_consumer, avoid reaching into private Triage attributes (`_repo`, `_config`, `_box`, `_fs`) behind an isinstance guard. Pass the Inbox in explicitly (e.g. reuse inbox_consumer) if you can do it inside the fence. This is a nit, not a gate failure."
-  ],
-  "reason": "The gate failed only on a closed-vocabulary run-record value ('implemented' instead of 'ok'). This is a fixable oversight at the same capability.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
