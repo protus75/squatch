@@ -2,15 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The repaired section 20 cleared the prior premise failure. I preserved the exit requisition's 65,843-character authoring-time section-20 fixture, then regenerated the three child tickets from the current complete row contracts; the focused verification passed 12 tests and the full suite passed 1,508 tests.
+The engine had already lifted the three previously authored Phase 6 child tickets, while the two proof files remained only in the prior unmerged implementation commit. I restored those scoped proofs and bounded retrospective selection to committed first-parent history through the commit that adds the exit proof, so later Phase 6 reports cannot change the selected Phase 5 evidence.
 
 ## Dead ends
-The first authored-ticket lint pass rejected acceptance criteria that named generic tests instead of observable test paths. I replaced those phrases with the exact verification artifacts before running the required verification commands.
+The prior proof selected the latest report at HEAD and pinned `000010`; that approach was abandoned because any later drain-produced report would invalidate it.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI Codex / GPT-5
+OpenAI / GPT-5 Codex
 
 ## Predicted vs actual
-Expected 75m; actual approximately 30m.
+Expected 75m; actual approximately 15m. Focused verification passed 12 tests and the full suite passed 1,508 tests.
