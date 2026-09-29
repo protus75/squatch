@@ -1,0 +1,14 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Check failed on one finding. The phase6-continue-02 Context names tests/test_seeded_phase6_01.py, but this same attempt creates that file, so it is a sibling-new path and not on main. The Scope in says new and sibling-new paths are never Context.",
+    "Fix the Context to name the latest Phase 6 seeded test already merged on main. That is tests/test_seeded_phase6_core.py, which exists on main. This follows precedent: phase5-continue-03 cites test_seeded_phase5_01.py, not the phase5_02 file created alongside it.",
+    "Update the guard to match. In tests/test_seeded_phase6_01.py, set CONTEXT['phase6-continue-02'] to the merged path. Replace the phase6_01 entry in EXISTING_AT_AUTHORING with that file's real size, then re-check the max-effort render bound.",
+    "The run record reported ok and green suites, but the requisition check still failed. Before claiming done, check every authored ticket's Context entry with an exists-on-main test, not only the pytest suites."
+  ],
+  "reason": "A fixable Context oversight. The failed check names the rule and its paved road, and the rest of the row contract passed.",
+  "detail": null
+}
