@@ -1,18 +1,15 @@
 {
-  "run_seq": 8,
+  "run_seq": 9,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Review snagged and every mechanical gate passed. Both findings are inside the fence (tickets plus tests/test_seeded_phase6_01.py), so no plan change is needed. Findings are shrinking each round; close these two exactly.",
-    "Exact edges: for each stem in REMAINING, capture only its own 'depends on ...' clause up to the next comma or 'and owns'. Extract the backticked stems and assert they equal the depends tuple exactly. Scope-wide substring checks always pass.",
-    "Apply the same exact-clause extraction to each phase6-continue-03..08 edge and to phase6-exit's depends clause. Then check that dropping one parent, such as escape-column->report-inbox-triage, would fail the test.",
-    "Edit tickets/phase6-continue-02/ticket.md (this diff did not touch it). exit-receipt-machinery must add: supervised `serve` subprocess against `hosts/fixture/`, and per-member `(member, driven scenario, observable, producing run)` evidence.",
-    "phase6-exit in continue-02 must add: runs the registered host-loop producer, and live-host K>=10 and real-host bug-loop evidence are forbidden as exit inputs. Add these phrases to the REMAINING behavior tuples.",
-    "Diff every payload paragraph in the commissioning Scope in against continue-02's text, clause by clause. Any clause missing from continue-02 is an incomplete row contract and must be added and pinned.",
-    "Keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes. Re-run the max-effort render bound after continue-02 grows.",
-    "Before claiming done, mutation-test each pin: change an edge or remove a phrase in a scratch copy and confirm the test fails. Green suites have not predicted review outcomes on this ticket."
+    "Check failed on two requisition findings, not on pytest. Section 20 names tests/test_harness.py (go-grade-machinery) and tests/test_artifacts.py (exit-receipt-machinery) as existing embedded Context. Neither file is on main, and no earlier Phase 6 payload creates either one.",
+    "The committed harness's existing test is tests/test_eval_harness.py. The plan must either name that file as go-grade-machinery's Context and fence, or mark tests/test_harness.py as new and not Context.",
+    "exit-receipt-machinery must stop claiming tests/test_artifacts.py as existing Context. Either mark it new and not Context, or name the real existing artifact test on main.",
+    "This ticket's own Scope in carries both wrong paths, and it forbids inventing a Context partition. The fix is therefore outside the tickets/test fence: fix section 20 first, then regenerate this ticket and its seeds from the plan.",
+    "After the plan is fixed, keep the earlier fixes: continue-02 Context stays tests/test_seeded_phase6_core.py, and render checks use real measured sizes. Before claiming done, check every embedded Context path in every seed, including those carried for later rows, against main."
   ],
-  "reason": "Two fixable test-strength and contract-completeness gaps inside the fence; review findings name concrete paved roads.",
+  "reason": "The ticket's section 20 contract embeds two Context paths that are not on main, so it cannot be satisfied inside its fence; the plan must be fixed and the ticket regenerated.",
   "detail": null
 }
