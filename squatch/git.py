@@ -11,6 +11,7 @@ leaves git's worktree registry pointing at nothing.
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+import re
 
 from squatch.seams import ProcessExec
 
@@ -180,5 +181,70 @@ class Git:
         """Push the checkout's configured upstream through the Git seam."""
         await self._run(cwd, "push")
 
+    async def escape_tickets(self, cwd: Path, app_commit: str) -> tuple[str, ...]:
+        """Resolve report evidence to first-parent squash-ticket trailers.
+
+        A report can name one abbreviated/full commit, or a bounded SHA range.
+        Neither form accepts an arbitrary ref:
+        every selected commit must be on the current first-parent line.
+        """
+        endpoints = app_commit.split("..")
+        if len(endpoints) == 1 and _SHA.fullmatch(endpoints[0]):
+            base = None
+            head = endpoints[0]
+        elif len(endpoints) == 2 and all(_SHA.fullmatch(value) for value in endpoints):
+            base, head = endpoints
+        else:
+            return ()
+
+        history = await self._run(cwd, "rev-list", "--first-parent", "HEAD")
+        ancestry = tuple(line for line in history.splitlines() if _FULL_SHA.fullmatch(line))
+
+        def resolve(value: str) -> str | None:
+            matches = tuple(commit for commit in ancestry if commit.startswith(value))
+            return matches[0] if len(matches) == 1 else None
+
+        resolved_head = resolve(head)
+        if resolved_head is None:
+            return ()
+        if base is None:
+            commits = (resolved_head,)
+        else:
+            resolved_base = resolve(base)
+            if resolved_base is None or ancestry.index(resolved_base) <= ancestry.index(resolved_head):
+                return ()
+            selected = await self._run(
+                cwd, "rev-list", "--first-parent", f"{resolved_base}..{resolved_head}")
+            commits = tuple(line for line in selected.splitlines()
+                            if _FULL_SHA.fullmatch(line))
+
+        tickets: list[str] = []
+        for commit in commits:
+            trailers = await self._run(cwd, "log", "-1", "--format=%(trailers)", commit)
+            ticket = _trailer_ticket(trailers)
+            if ticket is not None:
+                tickets.append(ticket)
+        return tuple(tickets)
+
     async def describe(self, cwd: Path) -> str:
         return (await self._run(cwd, "describe", "--tags", "--always", "--dirty")).strip()
+
+
+_SHA = re.compile(r"[0-9a-f]{7,64}")
+_FULL_SHA = re.compile(r"[0-9a-f]{40,64}")
+_TICKET = re.compile(r"[a-z0-9][a-z0-9-]{1,63}")
+
+
+def _trailer_ticket(text: str) -> str | None:
+    """Return a ticket only for one complete, well-formed trailer pair."""
+    values: dict[str, list[str]] = {"squatch-ticket": [], "squatch-reviewed-sha": []}
+    for line in text.splitlines():
+        key, separator, value = line.partition(":")
+        if separator and key in values:
+            values[key].append(value.strip())
+    tickets = values["squatch-ticket"]
+    reviewed = values["squatch-reviewed-sha"]
+    if (len(tickets) != 1 or len(reviewed) != 1
+            or not _TICKET.fullmatch(tickets[0]) or not _SHA.fullmatch(reviewed[0])):
+        return None
+    return tickets[0]

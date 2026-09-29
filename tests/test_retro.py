@@ -43,6 +43,7 @@ from squatch.retro import (
     RetroProposal,
     RetroWindow,
     Window,
+    load_escape_attributions,
     render_report,
     retro_stage,
 )
@@ -155,6 +156,44 @@ def test_closed_local_artifact_stage_prompt_and_markdown_renderer():
     assert "- Window boundary: `origin`" in report
     assert "- Fixed failure: A repeated rejection is too vague." in report
     assert "- Overcorrection risk: Extra prose could dilute the prompt." in report
+
+
+def test_retro_passes_resolved_bug_report_attribution_into_its_window(tmp_path, monkeypatch):
+    clock = Clock()
+    with Journal(tmp_path / "state", clock=clock) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="merged")
+        value, _repo = retro(tmp_path, journal, clock, FakeLLM(answer()))
+        evidence = value._box.store_evidence(
+            report_signature="host-escape", app_commit="deadbeef", app_version="1",
+            implicated_paths=("app.py",), replay=b"replay", log_excerpt="log")
+        enqueued = value._box.enqueue(
+            message_class="bug_report", summary="escape", detail="escape", origin="host",
+            bug_origin="player", has_repro=True, evidence=evidence)
+        value._box.resolve(enqueued.id, status="authored", link="tickets/bug",
+                           note="authored")
+
+        async def attributed(_repo, commit):
+            assert commit == "deadbeef"
+            return ("merged",)
+
+        monkeypatch.setattr(value._git, "escape_tickets", attributed)
+        assert asyncio.run(value.run("manual", forced=True)) is True
+
+    prompt = value._driver._llm._llm.requests[0].rendered
+    assert '"escape_attributions": [\n    [\n      "host-escape",\n      "merged"' in prompt
+
+
+def test_escape_attributions_exclude_pending_tombstoned_and_missing_evidence():
+    class Git:
+        async def escape_tickets(self, _repo, _commit):
+            raise AssertionError("unresolved reports must not reach Git")
+
+    class Message:
+        message_class = "bug_report"
+        status = "pending"
+        evidence = None
+
+    assert asyncio.run(load_escape_attributions([Message()], Git(), Path("/repo"))) == ()
 
 
 def test_exact_unforced_thresholds_and_per_kind_spikes(tmp_path):

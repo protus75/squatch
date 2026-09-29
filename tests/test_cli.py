@@ -294,6 +294,32 @@ def test_status_lists_pending_box_messages(checkout):
     assert "box (2)" in out and first.id in out and second.id in out
 
 
+def test_status_projects_resolved_bug_escape_without_making_scorecard_impure(checkout):
+    message = "squatch(merged): goal\n\nsquatch-ticket: merged\nsquatch-reviewed-sha: deadbeef"
+    subprocess.run(["git", "-C", str(checkout), "commit", "--allow-empty", "-q", "-m", message],
+                   env=git_env(checkout.parent), check=True)
+    commit = subprocess.run(["git", "-C", str(checkout), "rev-parse", "HEAD"],
+                            env=git_env(checkout.parent), capture_output=True, text=True,
+                            check=True).stdout.strip()
+    queue = Box(checkout / STATE, fs=LocalFilesystem(), clock=clock)
+    evidence = queue.store_evidence(
+        report_signature="host-escape", app_commit=commit, app_version="1",
+        implicated_paths=("app.py",), replay=b"replay", log_excerpt="log")
+    item = queue.enqueue(
+        message_class="bug_report", summary="escape", detail="escape", origin="host",
+        bug_origin="player", has_repro=True, evidence=evidence)
+    queue.resolve(item.id, status="authored", link="tickets/bug", note="authored")
+    with Journal(checkout / STATE, clock=clock) as journal:
+        journal.append("effect_completion", {"result": {"invoice": {"checks": [
+            {"code": "verify", "verdict": "pass", "bypassed": False}]}}},
+                       ticket="merged", key="check/merged/0")
+
+    rc, out = cli(checkout, "status")
+
+    assert rc == EXIT_OK
+    assert "| `verify` | 1 | 0 | 1 | 0 | 0.000000 | 1.000000 | no |" in out
+
+
 def test_status_uses_the_state_dir_from_the_selected_config(checkout, tmp_path):
     default = Box(checkout / STATE, fs=LocalFilesystem(), clock=clock).enqueue(
         message_class="suggestion", summary="default box", detail="default", origin="test")

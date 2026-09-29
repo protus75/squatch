@@ -22,7 +22,7 @@ from squatch.git import Git
 from squatch.journal import Event, Journal, render_ts
 from squatch.providers import ProviderRuntime
 from squatch.redact import Redactor
-from squatch.seams import Clock, Filesystem
+from squatch.seams import Clock, Filesystem, LocalFilesystem
 from squatch.specs import DataBlock, Spec
 
 RETRO_COUNT = 25
@@ -111,6 +111,7 @@ class RetroWindow(Artifact):
     spend_usd: float = Field(ge=0)
     tokens: int = Field(ge=0)
     check_observations: tuple[tuple[str, str, str, bool], ...] = ()
+    escape_attributions: tuple[tuple[str, str], ...] = ()
 
 
 def retro_stage(spec: Spec) -> LLMStage:
@@ -175,7 +176,8 @@ class Window:
                 return kind
         return None
 
-    def projection(self, *, sha: str, spec_version: str) -> RetroWindow:
+    def projection(self, *, sha: str, spec_version: str,
+                   escape_attributions: tuple[tuple[str, str], ...] = ()) -> RetroWindow:
         event_counts = Counter(event.type for event in self.events)
         gate_failures = tuple(
             event.ticket for event in self.events
@@ -195,6 +197,7 @@ class Window:
             tokens=sum(int(numeric(cost.get("input_tokens")))
                        + int(numeric(cost.get("output_tokens"))) for cost in costs),
             check_observations=self._check_observations(),
+            escape_attributions=escape_attributions,
             produced_by_spec_version=spec_version, produced_at_sha=sha)
 
     def _check_observations(self) -> tuple[tuple[str, str, str, bool], ...]:
@@ -279,7 +282,10 @@ class Retro:
             return False
         try:
             sha = await self._git.rev_parse(self._repo, "HEAD")
-            projection = window.projection(sha=sha, spec_version=self._spec.version)
+            attributions = await load_escape_attributions(
+                self._box.messages(), self._git, self._repo)
+            projection = window.projection(
+                sha=sha, spec_version=self._spec.version, escape_attributions=attributions)
             result: StageResult = await self._driver.run(
                 retro_stage(self._spec), projection, ticket=None,
                 run_seq=window.sequence + 1, attempt=0, workspace=self._repo, sha=sha)
@@ -354,6 +360,26 @@ class Retro:
             message_class="failure_report", summary=summary,
             detail=f"{identity}: {bounded}", origin=identity,
             stage="retro", outcome="infra_error")
+
+
+async def load_escape_attributions(messages, git: Git, repo: Path) -> tuple[tuple[str, str], ...]:
+    """Resolve only decided bug reports; the returned tuples are immutable data."""
+    resolved: set[tuple[str, str]] = set()
+    for message in messages:
+        evidence = message.evidence
+        if (message.message_class != "bug_report" or message.status not in {"authored", "decided"}
+                or evidence is None):
+            continue
+        for ticket in await git.escape_tickets(repo, evidence.app_commit):
+            resolved.add((evidence.report_signature, ticket))
+    return tuple(sorted(resolved))
+
+
+async def load_escape_attributions_from_state(
+        state_dir: Path, git: Git, repo: Path, *, clock: Clock) -> tuple[tuple[str, str], ...]:
+    """Read durable reports before handing their immutable attribution to Status."""
+    box = Box(state_dir, fs=LocalFilesystem(), clock=clock)
+    return await load_escape_attributions(box.messages(), git, repo)
 
 
 def proposal_id(retro_report_key: str, fixed_failure: str, overcorrection_risk: str,

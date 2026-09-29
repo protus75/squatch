@@ -389,6 +389,70 @@ async def test_real_repo_detached_worktree_roundtrip_leaves_no_registry_entry(tm
     assert str(wt) not in registered
 
 
+async def test_escape_tickets_accepts_only_first_parent_history_and_one_trailer_pair(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git = Git(SubprocessExec(), env=_git_env(tmp_path), timeout=60.0)
+    await git.init(repo)
+    (repo / "a").write_text("base\n")
+    await git.add(repo, ["a"])
+    await git.commit(repo, "base")
+    (repo / "a").write_text("merged\n")
+    await git.add(repo, ["a"])
+    merged = await git.commit(
+        repo, "squatch(merged): goal\n\nsquatch-ticket: merged\n"
+        "squatch-reviewed-sha: deadbeef")
+    assert await git.escape_tickets(repo, merged) == ("merged",)
+
+    await git.branch(repo, "side", merged)
+    side = tmp_path / "side"
+    await git.worktree_add(repo, side, "side-work", "side")
+    (side / "a").write_text("side\n")
+    await git.add(side, ["a"])
+    foreign = await git.commit(
+        side, "squatch(foreign): goal\n\nsquatch-ticket: foreign\n"
+        "squatch-reviewed-sha: deadbeef")
+    assert await git.escape_tickets(repo, foreign) == ()
+
+    (repo / "a").write_text("ambiguous\n")
+    await git.add(repo, ["a"])
+    ambiguous = await git.commit(
+        repo, "squatch(two): goal\n\nsquatch-ticket: one\nsquatch-ticket: two\n"
+        "squatch-reviewed-sha: deadbeef")
+    assert await git.escape_tickets(repo, ambiguous) == ()
+
+
+async def test_escape_ticket_range_returns_each_valid_first_parent_ticket(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    git = Git(SubprocessExec(), env=_git_env(tmp_path), timeout=60.0)
+    await git.init(repo)
+    commits = {}
+    for name in ("base", "first", "ordinary", "second"):
+        (repo / "a").write_text(name)
+        await git.add(repo, ["a"])
+        commits[name] = await git.commit(repo, (
+            name if name in {"base", "ordinary"} else
+            f"squatch({name}): goal\n\nsquatch-ticket: {name}\n"
+            "squatch-reviewed-sha: deadbeef"))
+    assert await git.escape_tickets(
+        repo, f"{commits['base']}..{commits['second']}") == ("second", "first")
+    assert await git.escape_tickets(
+        repo, f"{commits['second']}..{commits['base']}") == ()
+    assert await git.escape_tickets(repo, "BASE..HEAD") == ()
+
+    await git.branch(repo, "side", "HEAD~1")
+    side = tmp_path / "side"
+    await git.worktree_add(repo, side, "side-work", "side")
+    (side / "a").write_text("side")
+    await git.add(side, ["a"])
+    foreign = await git.commit(
+        side, "squatch(side): goal\n\nsquatch-ticket: side\n"
+        "squatch-reviewed-sha: deadbeef")
+    assert await git.escape_tickets(repo, foreign) == ()
+    assert await git.escape_tickets(repo, f"{commits['base']}..{foreign}") == ()
+
+
 async def test_real_repo_conflicted_rebase_is_aborted(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()

@@ -83,6 +83,32 @@ def test_zero_denominator_and_twenty_five_ticket_prune_threshold():
     assert rows["caught"].prune_candidate is False
 
 
+def test_scorecard_counts_each_passing_report_ticket_surface_escape_once():
+    projection = window((
+        event(key="check/merged/0", result=invoice(check("verify"), check("verify"))),
+        event(key="check/merged/1", result=invoice(check("verify"))),
+        event(key="check/merged/2", result=invoice(check("verify", "fail"))),
+        event(key="check/merged/3", result=invoice(check("verify", bypassed=True))),
+        event(key="check/other/0", result=invoice(check("verify"))),
+        event(key="check/fail-ticket/0", result=invoice(check("fail_only", "fail"))),
+        event(key="check/bypass-ticket/0", result=invoice(check("bypass_only", bypassed=True))),
+    )).model_copy(update={"escape_attributions": (("report-a", "merged"),
+                                                     ("report-a", "merged"),
+                                                     ("report-b", "merged"),
+                                                     ("report-c", "missing"),
+                                                     ("report-d", "fail-ticket"),
+                                                     ("report-e", "bypass-ticket"))})
+
+    rows = {row.surface: row for row in project_scorecard(projection).surfaces}
+    assert (rows["verify"].escapes, rows["verify"].escape_rate,
+            rows["verify"].prune_candidate) == (2, 2 / 6, False)
+    assert rows["fail_only"].escapes == 0
+    assert rows["bypass_only"].escapes == 0
+
+    unattributed = projection.model_copy(update={"escape_attributions": ()})
+    assert all(row.escapes == 0 for row in project_scorecard(unattributed).surfaces)
+
+
 def test_scorecard_sorting_rendering_and_projection_are_deterministic_and_pure(monkeypatch):
     projection = window((
         event(key="check/one/0", result=invoice(check("zeta"), check("alpha", "fail"))),

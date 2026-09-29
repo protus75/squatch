@@ -47,7 +47,8 @@ from squatch.notify import NotificationReconciler
 from squatch.providers import (CliClient, ProviderError, ProviderRuntime, Registry, RoutingError,
                                child_env, conduct_files)
 from squatch.redact import Redactor
-from squatch.retro import Retro, RetroConstructionError, Window
+from squatch.retro import (Retro, RetroConstructionError, Window,
+                           load_escape_attributions_from_state)
 from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
 from squatch.runner import (EXIT_OK, EXIT_REFUSED, EXIT_TICKET, PipelineFactory,
@@ -190,8 +191,10 @@ def _status(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
         raise Refusal(f"cannot load retro spec: {e}",
                       "repair the engine retro spec at specs/retro.md, then re-run `status`") from None
     try:
-        scorecard = project_scorecard(
-            Window(events, clock()).projection(sha=head_sha, spec_version=retro_spec.version))
+        attributions = asyncio.run(load_escape_attributions_from_state(
+            state_dir, git, cwd, clock=clock))
+        scorecard = project_scorecard(Window(events, clock()).projection(
+            sha=head_sha, spec_version=retro_spec.version, escape_attributions=attributions))
         status = project(events, repo=cwd, state_dir=state_dir, scorecard=scorecard)
     except BoxCorruption as e:
         raise Refusal(f"box corruption: {e}",

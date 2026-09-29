@@ -36,22 +36,33 @@ def project_scorecard(window: "RetroWindow") -> Scorecard:
     for observation in window.check_observations:
         observations[observation[1]].append(observation)
 
+    escapes: dict[str, int] = defaultdict(int)
+    seen_escapes: set[tuple[str, str, str]] = set()
+    for signature, ticket in window.escape_attributions:
+        for observed_ticket, surface, verdict, bypassed in window.check_observations:
+            if observed_ticket != ticket or verdict != "pass" or bypassed:
+                continue
+            identity = (signature, ticket, surface)
+            if identity not in seen_escapes:
+                seen_escapes.add(identity)
+                escapes[surface] += 1
+
     rows = []
     for surface in sorted(observations):
         values = observations[surface]
         catches = sum(verdict == "fail" and not bypassed
                       for _ticket, _code, verdict, bypassed in values)
         evaluated_tickets = len({ticket for ticket, _code, _verdict, _bypassed in values})
-        escapes = 0
+        escaped = escapes[surface]
         rows.append(SurfaceScorecardRow(
             surface=surface,
             evaluated_tickets=evaluated_tickets,
             catches=catches,
-            escapes=escapes,
+            escapes=escaped,
             bypass_count=sum(bypassed for _ticket, _code, _verdict, bypassed in values),
             catch_rate=catches / len(values) if values else 0,
-            escape_rate=0,
-            prune_candidate=evaluated_tickets >= 25 and catches == 0 and escapes == 0,
+            escape_rate=escaped / len(values) if values else 0,
+            prune_candidate=evaluated_tickets >= 25 and catches == 0 and escaped == 0,
         ))
     return Scorecard(
         boundary=window.boundary,
