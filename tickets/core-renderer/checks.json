@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "b7c2aabcf63f23872dda1882f1fe70b917014df5",
+  "produced_at_sha": "20429638d28701433990d764bc35f148df373f3c",
   "stem": "core-renderer",
   "branch": "core-renderer",
-  "base": "b0b28251e6250ada8e4e02f7d700dbbc3f3ac9ff",
-  "head": "b7c2aabcf63f23872dda1882f1fe70b917014df5",
+  "base": "bbc4d18a4e9e24b2d8f14fb48e822b9841698962",
+  "head": "20429638d28701433990d764bc35f148df373f3c",
   "changed_files": [
     "squatch/__main__.py",
     "squatch/hostfiles.py",
