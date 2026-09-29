@@ -19,14 +19,17 @@ from pathlib import Path
 
 import pytest
 
+import squatch.__main__ as main_module
 from squatch.__main__ import main
 from squatch.artifacts import Cost
 from squatch.box import Box
 from squatch.diagnose import DiagnosisRecord
-from squatch.journal import read_events
+from squatch.doctor import Check, Report
+from squatch.journal import Journal, read_events
 from squatch.lockfile import LockHeld, Lockfile
+from squatch.retro import RetroConstructionError
 from squatch.runner import EXIT_OK, EXIT_REFUSED, EXIT_TICKET
-from squatch.seams import LocalFilesystem
+from squatch.seams import ExecutableNotFound, LocalFilesystem
 from squatch.stages import Delivery
 from squatch.tickets import PLAN_FILE, TEMPLATE, lint_ticket
 
@@ -189,7 +192,7 @@ def test_python_m_squatch_is_the_entry_and_help_exits_0(checkout):
                           capture_output=True, text=True)
     assert proc.returncode == 0
     assert all(verb in proc.stdout
-               for verb in ("status", "new", "run", "confirm", "reject"))
+               for verb in ("status", "doctor", "retro", "new", "run", "confirm", "reject"))
 
 
 def test_python_m_squatch_status_runs_in_a_foreign_checkout(checkout):
@@ -497,3 +500,140 @@ def test_triage_is_refused_when_the_lockfile_is_held(checkout):
         holder.release()
     assert rc == EXIT_REFUSED and "other-daemon" in out
     assert list(read_events(checkout / STATE)) == []
+
+
+def test_retro_is_refused_with_the_standard_lock_rendering(checkout):
+    holder = Lockfile(checkout / STATE, instance_id="other-daemon", clock=clock)
+    holder.acquire()
+    try:
+        rc, out = cli(checkout, "retro", pipeline=FakePipeline("ok"))
+    finally:
+        holder.release()
+    assert rc == EXIT_REFUSED
+    assert out.startswith("refused:") and "other-daemon" in out and "paved road:" in out
+
+
+@pytest.mark.parametrize(("failed", "expected_rc", "summary"), [
+    (False, EXIT_OK, "doctor: ok"),
+    (True, EXIT_REFUSED, "doctor: failed"),
+])
+def test_doctor_cli_renders_all_checks_exactly_and_maps_zero_or_two(
+        checkout, monkeypatch, failed, expected_rc, summary):
+    checks = tuple(Check(name, not (failed and name == "lock"),
+                         "available" if name == "lock" else "readable")
+                   for name in ("venv", "git", "config", "lock", "journal"))
+
+    class ScriptedDoctor:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def run(self):
+            return Report(checks)
+
+    monkeypatch.setattr(main_module, "Doctor", ScriptedDoctor)
+    rc, out = cli(checkout, "doctor")
+
+    expected = summary + "\n" + "".join(
+        f"{'PASS' if check.passed else 'FAIL'} {check.name}: {check.detail}\n"
+        for check in checks)
+    assert rc == expected_rc
+    assert out == expected
+
+
+def test_doctor_reports_a_live_holder_without_taking_or_refusing_the_lock(checkout):
+    holder = Lockfile(checkout / STATE, instance_id="other-daemon", clock=clock)
+    holder.acquire()
+    try:
+        rc, out = cli(checkout, "doctor")
+    finally:
+        holder.release()
+
+    assert rc == EXIT_REFUSED
+    assert out.startswith("doctor: failed\n")
+    assert "PASS lock: held by other-daemon\n" in out
+    assert "refused:" not in out
+
+
+@pytest.mark.parametrize(("committed", "expected_rc", "expected"), [
+    (True, EXIT_OK, "retro: committed tickets/retro/000001.md\n"),
+    (False, EXIT_TICKET,
+     "retro: no report committed; inspect status and the Suggestion Box\n"),
+])
+def test_retro_cli_exact_operator_output_and_zero_or_one_exit(
+        checkout, monkeypatch, committed, expected_rc, expected):
+    with Journal(checkout / STATE, clock=clock) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+    calls = []
+
+    class ScriptedRetro:
+        async def run(self, trigger, *, forced):
+            calls.append((trigger, forced))
+            return committed
+
+    monkeypatch.setattr(main_module, "_compose_retro", lambda *_args, **_kwargs: ScriptedRetro())
+    rc, out = cli(checkout, "retro")
+
+    assert rc == expected_rc
+    assert out == expected
+    assert calls == [("manual", True)]
+
+
+def test_retro_config_construction_git_and_journal_refusals_keep_exit_two(
+        checkout, monkeypatch):
+    (checkout / "config.yaml").write_text("schema_version: impossible\n")
+    rc, out = cli(checkout, "retro")
+    assert rc == EXIT_REFUSED and out.startswith("refused: config:")
+
+    (checkout / "config.yaml").write_text(CONFIG)
+    with Journal(checkout / STATE, clock=clock) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+    monkeypatch.setattr(
+        main_module, "_compose_retro",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RetroConstructionError("broken")))
+    rc, out = cli(checkout, "retro")
+    assert rc == EXIT_REFUSED and out.startswith("refused: broken\n")
+    assert "paved road:" in out
+
+    class MissingGit:
+        async def run(self, *_args, **_kwargs):
+            raise ExecutableNotFound("git")
+
+    out_stream = StringIO()
+    rc = main(["retro"], cwd=checkout, env=git_env(checkout.parent), out=out_stream,
+              process=MissingGit())
+    assert rc == EXIT_REFUSED
+    assert out_stream.getvalue().startswith("refused: git is not on PATH\n")
+
+    journal_dir = checkout / STATE / "journal"
+    for path in journal_dir.glob("*.jsonl"):
+        path.unlink()
+    (journal_dir / "000001-20260925.jsonl").write_text("not json\n")
+    rc, out = cli(checkout, "retro")
+    assert rc == EXIT_REFUSED and out.startswith("refused: journal corruption:")
+
+
+def test_retro_pipeline_construction_exception_is_a_refusal(checkout):
+    with Journal(checkout / STATE, clock=clock) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+
+    def broken(_journal):
+        raise ValueError("construction failed")
+
+    stream = StringIO()
+    rc = main(["retro"], cwd=checkout, env=git_env(checkout.parent), out=stream,
+              pipeline=broken, clock=clock)
+    out = stream.getvalue()
+    assert rc == EXIT_REFUSED
+    assert out.startswith("refused: cannot construct production retro: construction failed;")
+    assert "paved road:" in out
+
+
+def test_retro_journal_io_failure_is_a_refusal(checkout, monkeypatch):
+    def broken(_state_dir):
+        raise OSError("journal unavailable")
+
+    monkeypatch.setattr(main_module, "read_events", broken)
+    rc, out = cli(checkout, "retro")
+    assert rc == EXIT_REFUSED
+    assert out.startswith("refused: retro storage: journal unavailable\n")
+    assert "paved road:" in out

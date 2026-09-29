@@ -2,13 +2,17 @@
 
 from io import StringIO
 
+import pytest
+
 from test_cli import STATE, T0, checkout, git_env  # noqa: F401
 from test_drain import FakeClock, Scripted, committed, drain, git
 
+import squatch.__main__ as main_module
 from squatch.__main__ import main
 from squatch.box import Box
+from squatch.doctor import Check, Report
 from squatch.journal import Journal, read_events
-from squatch.lockfile import Lockfile
+from squatch.lockfile import LockHeld, Lockfile
 from squatch.runner import EXIT_OK, EXIT_REFUSED
 from squatch.seams import LocalFilesystem
 from squatch.tickets import stamp
@@ -19,6 +23,73 @@ def verdict(checkout, verb: str, stem: str, *, pipeline=None):
     rc = main([verb, stem], cwd=checkout, env=git_env(checkout.parent), out=out,
               pipeline=pipeline, clock=FakeClock())
     return rc, out.getvalue()
+
+
+def test_operator_verb_surface_includes_provider_free_doctor_and_manual_retro():
+    parser = main_module._parser()
+    subparsers = next(action for action in parser._actions
+                      if hasattr(action, "choices") and action.choices)
+    assert {"doctor", "retro"} <= set(subparsers.choices)
+
+
+def test_doctor_dispatches_without_pipeline_provider_or_writer_lock(
+        checkout, monkeypatch):
+    calls = []
+
+    class RecordingDoctor:
+        def __init__(self, **kwargs):
+            calls.append(("init", kwargs))
+
+        async def run(self):
+            calls.append(("run",))
+            return Report(tuple(Check(name, True, "ok") for name in (
+                "venv", "git", "config", "lock", "journal")))
+
+    def forbidden_pipeline(_journal):
+        raise AssertionError("doctor constructed a pipeline or provider session")
+
+    monkeypatch.setattr(main_module, "Doctor", RecordingDoctor)
+    holder = Lockfile(checkout / STATE, instance_id="live-engine", clock=FakeClock())
+    holder.acquire()
+    try:
+        out = StringIO()
+        rc = main(["doctor"], cwd=checkout, env=git_env(checkout.parent), out=out,
+                  pipeline=forbidden_pipeline, clock=FakeClock())
+    finally:
+        holder.release()
+
+    assert rc == EXIT_OK
+    assert out.getvalue().startswith("doctor: ok\n")
+    assert [call[0] for call in calls] == ["init", "run"]
+
+
+def test_manual_retro_dispatches_under_lock_with_manual_forced_contract(
+        checkout, monkeypatch):
+    with Journal(checkout / STATE, clock=FakeClock()) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+    scripted = Scripted({})
+    captured = {}
+
+    class RecordingRetro:
+        def __init__(self, **kwargs):
+            captured["init"] = kwargs
+
+        async def run(self, trigger, *, forced):
+            captured["run"] = (trigger, forced)
+            probe = Lockfile(checkout / STATE, instance_id="probe", clock=FakeClock())
+            with pytest.raises(LockHeld):
+                probe.acquire()
+            return False
+
+    monkeypatch.setattr(main_module, "Retro", RecordingRetro)
+    out = StringIO()
+    rc = main(["retro"], cwd=checkout, env=git_env(checkout.parent), out=out,
+              pipeline=scripted, clock=FakeClock())
+
+    assert rc == 1
+    assert captured["run"] == ("manual", True)
+    assert captured["init"]["driver"] is scripted.stages.driver
+    assert captured["init"]["providers"] is not None
 
 
 def signal_bodies(checkout, stem: str, *kinds: str):

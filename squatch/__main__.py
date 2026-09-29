@@ -1,7 +1,8 @@
 """`python -m squatch <verb>`: the module entry (SQUATCH_PLAN.md section 18).
 
-stdlib argparse, the bootstrap verbs -- `status`, `new <stem>`, `run <stem>`,
-`drain [--parked <stem>]...`, `serve`, and `triage` -- plus the section 18 exit-code contract: 0
+stdlib argparse, the bootstrap verbs -- `status`, `doctor`, `retro`, `new
+<stem>`, `run <stem>`, `drain [--parked <stem>]...`, `serve`, and `triage` --
+plus the section 18 exit-code contract: 0
 settled or quiescent, 1 a non-ok ticket terminal or a ceiling-halted drain,
 2 an engine-plane refusal. Nothing reaches the operator as a raw traceback:
 every refusal prints its message and paved road. The checkout root is the
@@ -32,6 +33,7 @@ from squatch.control import ControlRequest, publish_control
 from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
                             compose_daemon_restart, compose_daemon_storm_producer,
                             StormDispatchHold)
+from squatch.doctor import Doctor
 from squatch.drain import Drain
 from squatch.driver import Driver
 from squatch.enginelog import EngineLog
@@ -46,14 +48,15 @@ from squatch.redact import Redactor
 from squatch.retro import Retro, RetroConstructionError, Window
 from squatch.merge import compose_pipeline
 from squatch.mergequeue import AdmissionHold
-from squatch.runner import EXIT_OK, EXIT_REFUSED, PipelineFactory, Refusal, Runner
+from squatch.runner import (EXIT_OK, EXIT_REFUSED, EXIT_TICKET, PipelineFactory,
+                            RecoveredSession, Refusal, Runner)
 from squatch.seams import (Clock, ExecutableNotFound, LocalFilesystem, ProcessExec,
                            SubprocessExec, SubprocessNotifications)
 from squatch.serve import Serve
 from squatch.scorecard import project_scorecard
 from squatch.status import project, render
 from squatch.specs import load_spec
-from squatch.tickets import new_ticket
+from squatch.tickets import IntakeResult, new_ticket
 from squatch.triage import Triage
 
 ENGINE_ROOT = Path(squatch.__file__).resolve().parent.parent
@@ -70,6 +73,8 @@ def _parser() -> argparse.ArgumentParser:
                    help="config file (default: config.yaml at the invocation cwd)")
     sub = p.add_subparsers(dest="verb", required=True)
     sub.add_parser("status", help="project current state from the journal (read-only)")
+    sub.add_parser("doctor", help="run read-only mechanical diagnostics")
+    sub.add_parser("retro", help="force one retrospective over the current window")
     new = sub.add_parser("new", help="template tickets/<stem>/ticket.md and lint it")
     new.add_argument("stem")
     run = sub.add_parser("run", help="drive one ticket through intake, the lock, and dispatch")
@@ -109,7 +114,8 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
     except SystemExit as e:  # argparse already printed usage or help
         return int(e.code or 0)
     try:
-        return {"status": _status, "new": _new, "run": _run, "confirm": _confirm,
+        return {"status": _status, "doctor": _doctor, "retro": _retro,
+                "new": _new, "run": _run, "confirm": _confirm,
                 "reject": _reject, "drain": _drain, "serve": _serve, "triage": _triage,
                 "pause": _control, "resume": _control, "kill": _control}[args.verb](
             args, cwd, env, out, pipeline, clock, process)
@@ -148,6 +154,87 @@ def _status(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
                       "repair or remove the named corrupt box message, then re-run `status`") from None
     out.write(render(status))
     return 0
+
+
+def _doctor(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    report = asyncio.run(Doctor(
+        repo=cwd, config_path=args.config, process=process, env=env).run())
+    out.write(report.render())
+    return report.exit_code
+
+
+def _compose_retro(runner, session, *, cwd: Path, config, git: Git, clock: Clock, env):
+    """Build the sole CLI/drain adapter over the existing governed Retro."""
+    try:
+        pipeline = runner.retro_pipeline(session.journal)
+    except (GitError, JournalCorruption, RetroConstructionError):
+        raise
+    except Exception as error:
+        raise RetroConstructionError(
+            f"cannot construct production retro: {error}; "
+            f"paved road: {RetroConstructionError.paved_road}") from error
+    try:
+        driver = pipeline.stages.driver
+    except (AttributeError, TypeError) as error:
+        raise RetroConstructionError(
+            "production retro requires pipeline.stages.driver; "
+            f"paved road: {RetroConstructionError.paved_road}") from error
+    if not isinstance(driver, Driver):
+        raise RetroConstructionError(
+            "production retro requires pipeline.stages.driver to be a Driver; "
+            f"paved road: {RetroConstructionError.paved_road}")
+    try:
+        spec = load_spec(ENGINE_ROOT / "specs" / "retro.md")
+    except Exception as error:
+        raise RetroConstructionError(
+            f"cannot construct production retro: {error}; "
+            f"paved road: {RetroConstructionError.paved_road}") from error
+    fs = LocalFilesystem()
+    return Retro(
+        repo=cwd, journal=session.journal, clock=clock, fs=fs, git=git,
+        effects=Effects(session.journal),
+        box=Box(cwd / config.state_dir, fs=fs, clock=clock,
+                rereport_callback=journal_rereport_callback(session.journal)),
+        driver=driver, providers=session.providers, spec=spec,
+        redact=Redactor.from_config(config, env))
+
+
+def _retro(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    async def run(runner, config, git, control):
+        async with runner.retro_session() as session:
+            if session is None:
+                print("retro: no merge since the latest completed report", file=out)
+                return EXIT_OK
+            try:
+                window = Window(tuple(session.journal.read()), clock())
+            except JournalCorruption as error:
+                raise Refusal(f"journal corruption: {error}",
+                              "repair the named journal segment before re-running `retro`") from None
+            try:
+                retro = _compose_retro(runner, session, cwd=cwd, config=config,
+                                       git=git, clock=clock, env=env)
+            except RetroConstructionError as error:
+                raise Refusal(str(error), RetroConstructionError.paved_road) from None
+            before = len(tuple(session.journal.read()))
+            try:
+                committed = await retro.run("manual", forced=True)
+                added = tuple(session.journal.read())[before:]
+            except JournalCorruption as error:
+                raise Refusal(f"journal corruption: {error}",
+                              "repair the named journal segment before re-running `retro`") from None
+            if committed:
+                seq = f"{window.sequence + 1:06d}"
+                print(f"retro: committed tickets/retro/{seq}.md", file=out)
+                return EXIT_OK
+            # Only this invocation's failure can classify the exit.  A prior
+            # suppression must remain the ordinary selected-run result.
+            if any(event.type == "signal" and event.body.get("kind") == "retro_failed"
+                   and event.body.get("error_code") == "GitError" for event in added):
+                raise Refusal("git: retrospective report operation failed",
+                              "inspect the checkout; the failing argv is in the engine log")
+            print("retro: no report committed; inspect status and the Suggestion Box", file=out)
+            return EXIT_TICKET
+    return _locked(args, cwd, env, out, pipeline, clock, process, run)
 
 
 def _new(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
@@ -199,35 +286,9 @@ def _drain(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
 
         if config.notify is None:
             report("warning: push notifications are off; escalations remain status-only")
-        fs = LocalFilesystem()
-        redact = Redactor.from_config(config, env)
-
         def retro_factory(session):
-            pipeline = runner.retro_pipeline(session.journal)
-            try:
-                driver = pipeline.stages.driver
-            except (AttributeError, TypeError) as error:
-                raise RetroConstructionError(
-                    "production retro requires pipeline.stages.driver; "
-                    f"paved road: {RetroConstructionError.paved_road}") from error
-            if not isinstance(driver, Driver):
-                raise RetroConstructionError(
-                    "production retro requires pipeline.stages.driver to be a Driver; "
-                    f"paved road: {RetroConstructionError.paved_road}")
-            try:
-                spec = load_spec(ENGINE_ROOT / "specs" / "retro.md")
-            except Exception as error:
-                raise RetroConstructionError(
-                    f"cannot construct production retro: {error}; "
-                    f"paved road: {RetroConstructionError.paved_road}") from error
-            retro = Retro(
-                repo=cwd, journal=session.journal, clock=clock, fs=fs, git=git,
-                effects=Effects(session.journal),
-                box=Box(
-                    cwd / config.state_dir, fs=fs, clock=clock,
-                    rereport_callback=journal_rereport_callback(session.journal)),
-                driver=driver,
-                providers=session.providers, spec=spec, redact=redact)
+            retro = _compose_retro(runner, session, cwd=cwd, config=config, git=git,
+                                   clock=clock, env=env)
 
             async def invoke(trigger, forced):
                 return await retro.run(trigger, forced=forced)
@@ -453,8 +514,43 @@ class _RestartRunner(Runner):
         return None
 
     def session(self):
+        return self._provider_session(super().session())
+
+    @asynccontextmanager
+    async def retro_session(self):
+        # Manual inspection must not intake tickets, reconcile work, or open a
+        # journal writer when the locked window has no merge.
+        lock = Lockfile(self.state_dir, instance_id=self._instance_id, clock=self._clock)
+        try:
+            lock.acquire()
+        except LockHeld as error:
+            raise Refusal(str(error), "wait for the holding process to exit; the kernel frees the "
+                          "lock when it dies, so no stale lock needs reclaiming") from None
+        try:
+            window = Window(tuple(read_events(self.state_dir)), self._clock())
+            if not window.has_merge:
+                yield None
+                return
+
+            @asynccontextmanager
+            async def journal_session():
+                with Journal(self.state_dir, clock=self._clock) as journal:
+                    yield RecoveredSession(journal, IntakeResult((), ()))
+
+            async with self._provider_session(journal_session()) as session:
+                yield session
+        except JournalCorruption as error:
+            raise Refusal(f"journal corruption: {error}",
+                          "repair the named journal segment before re-running `retro`") from None
+        except OSError as error:
+            raise Refusal(f"retro storage: {error}",
+                          "restore access to the state directory and checkout, then re-run `retro`") from None
+        finally:
+            lock.release()
+
+    def _provider_session(self, session):
         restarted = compose_daemon_restart(
-            session=super().session(), registry=self._provider_registry, clock=self._clock)
+            session=session, registry=self._provider_registry, clock=self._clock)
 
         @asynccontextmanager
         async def active():
@@ -473,8 +569,7 @@ class _RestartRunner(Runner):
 
 def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None, clock: Clock,
             process: ProcessExec, verb) -> int:
-    """The two scaffold verbs' shared composition: config, git, engine log,
-    the runner over the stage-dispatch factory; `verb` runs under its lock."""
+    """Shared config, Git, runner, and lock composition for writer verbs."""
     def config_supplier():
         return _config(args, cwd)
 
@@ -535,7 +630,8 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
             repo=cwd, config=config, git=git,
             fs=LocalFilesystem(), clock=clock,
             instance_id=instance_id, pipeline=factory, log=log,
-            report=lambda line: print(line, file=out))
+            report=(lambda _line: None) if getattr(args, "verb", None) == "retro"
+            else (lambda line: print(line, file=out)))
         return await verb(runner, config, git, control)
 
     try:

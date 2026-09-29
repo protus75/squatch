@@ -238,6 +238,120 @@ def test_unforced_not_due_is_silent_and_never_invents_a_trigger(tmp_path):
         assert Box(state, fs=LocalFilesystem(), clock=clock).pending() == []
 
 
+def test_manual_retro_without_a_merge_prints_the_quiescent_operator_result(tmp_path):
+    repo = checkout(tmp_path)
+    scripted = Scripted({})
+    out = StringIO()
+    before = {path.relative_to(repo): path.read_bytes()
+              for path in repo.rglob("*") if path.is_file()}
+
+    rc = main(["retro"], cwd=repo, env=git_env(tmp_path), out=out,
+              pipeline=scripted, clock=Clock())
+
+    assert rc == 0
+    assert out.getvalue() == "retro: no merge since the latest completed report\n"
+    assert scripted.retro_llm is None
+    after = {path.relative_to(repo): path.read_bytes()
+             for path in repo.rglob("*") if path.is_file()
+             and path.name != "squatch.lock"}
+    assert after == before
+
+
+def test_manual_retro_commits_through_the_governed_retro_path(tmp_path):
+    repo = checkout(tmp_path)
+    with Journal(repo / ".squatch/state", clock=Clock()) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+    scripted = Scripted({})
+    out = StringIO()
+
+    rc = main(["retro"], cwd=repo, env=git_env(tmp_path), out=out,
+              pipeline=scripted, clock=Clock())
+
+    assert rc == 0
+    assert out.getvalue() == "retro: committed tickets/retro/000001.md\n"
+    assert [request.surface for request in scripted.retro_llm.requests] == ["retro"]
+    assert (repo / "tickets/retro/000001.md").is_file()
+    events = tuple(main_module.read_events(repo / ".squatch/state"))
+    completions = [event for event in events
+                   if event.type == "effect_completion" and event.key == "retro/000001"]
+    assert len(completions) == 1
+    report = repo / completions[0].body["result"]["path"]
+    assert "- Trigger: `manual`" in report.read_text()
+    out = StringIO()
+    assert main(["retro"], cwd=repo, env=git_env(tmp_path), out=out,
+                pipeline=scripted, clock=Clock()) == 0
+    assert out.getvalue() == "retro: no merge since the latest completed report\n"
+    assert tuple(main_module.read_events(repo / ".squatch/state")) == events
+    assert len(scripted.retro_llm.requests) == 1
+
+
+def test_manual_retro_selected_model_failure_is_exit_one_and_commits_no_report(tmp_path):
+    repo = checkout(tmp_path)
+    with Journal(repo / ".squatch/state", clock=Clock()) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+    scripted = Scripted({})
+
+    def failing_retro(journal):
+        value = scripted(journal)
+        scripted.retro_llm._script = ["not json"]
+        return value
+
+    out = StringIO()
+    rc = main(["retro"], cwd=repo, env=git_env(tmp_path), out=out,
+              pipeline=failing_retro, clock=Clock())
+
+    assert rc == 1
+    assert out.getvalue() == (
+        "retro: no report committed; inspect status and the Suggestion Box\n")
+    assert [request.surface for request in scripted.retro_llm.requests] == ["retro"]
+    assert not (repo / "tickets/retro").exists()
+
+
+def test_manual_retro_prior_git_suppression_is_not_this_runs_refusal(tmp_path):
+    repo = checkout(tmp_path)
+    with Journal(repo / ".squatch/state", clock=Clock()) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+        journal.append("signal", {
+            "kind": "retro_failed", "window_boundary": "origin",
+            "trigger": "quiescence", "error_code": "GitError",
+        }, key="retro-failed/origin/quiescence")
+    scripted = Scripted({})
+    out = StringIO()
+
+    rc = main(["retro"], cwd=repo, env=git_env(tmp_path), out=out,
+              pipeline=scripted, clock=Clock())
+
+    assert rc == 1
+    assert out.getvalue() == (
+        "retro: no report committed; inspect status and the Suggestion Box\n")
+    assert scripted.retro_llm.requests == []
+    assert not (repo / "tickets/retro").exists()
+
+
+class FailingRetroCommitProcess:
+    def __init__(self):
+        self._real = SubprocessExec()
+
+    async def run(self, argv, **kwargs):
+        if argv[0] == "git" and "commit" in argv and "tickets/retro/000001.md" in argv:
+            return 1, "", "scripted retro commit failure"
+        return await self._real.run(argv, **kwargs)
+
+
+def test_manual_retro_git_failure_retains_refusal_rendering_and_exit_two(tmp_path):
+    repo = checkout(tmp_path)
+    with Journal(repo / ".squatch/state", clock=Clock()) as journal:
+        journal.append("state_transition", {"to": "merged"}, ticket="feature")
+    out = StringIO()
+
+    rc = main(["retro"], cwd=repo, env=git_env(tmp_path), out=out,
+              pipeline=Scripted({}), clock=Clock(), process=FailingRetroCommitProcess())
+
+    assert rc == 2
+    assert out.getvalue().startswith("refused: git: retrospective report operation failed\n")
+    assert "paved road:" in out.getvalue()
+
+
 def test_failure_is_exactly_once_boxed_and_suppresses_the_window(tmp_path):
     clock = Clock()
     state = tmp_path / "state"
@@ -376,13 +490,17 @@ def test_main_drain_binds_shared_driver_and_commits_retro_under_writer_lock(tmp_
     assert process.retro_commits == 1
 
 
+@pytest.mark.parametrize("verb", ["drain", "retro"])
 def test_production_retro_pipeline_shares_the_session_provider_payload(
-        tmp_path, monkeypatch):
+        tmp_path, monkeypatch, verb):
     repo = checkout(tmp_path)
     ticket = repo / "tickets/widget-module/ticket.md"
     ticket.unlink()
     ticket.parent.rmdir()
     ticket.parent.parent.rmdir()
+    if verb == "retro":
+        with Journal(repo / ".squatch/state", clock=Clock()) as journal:
+            journal.append("state_transition", {"to": "merged"}, ticket="feature")
     captured = {"compose": [], "runs": []}
 
     def compose(**kwargs):
@@ -401,12 +519,13 @@ def test_production_retro_pipeline_shares_the_session_provider_payload(
     monkeypatch.setattr(main_module, "compose_" + "pipeline", compose)
     monkeypatch.setattr(main_module, "Retro", RecordingRetro)
     assert main(
-        ["drain"], cwd=repo, env=git_env(tmp_path), out=StringIO(),
-        clock=Clock()) == 0
+        [verb], cwd=repo, env=git_env(tmp_path), out=StringIO(),
+        clock=Clock()) == (0 if verb == "drain" else 1)
 
     [(providers, driver)] = captured["compose"]
     assert captured["retro"] == (providers, driver)
-    assert captured["runs"] == [(None, False), ("quiescence", True)]
+    assert captured["runs"] == ([(None, False), ("quiescence", True)] if verb == "drain"
+                                else [("manual", True)])
 
 
 def test_runner_composes_retro_once_and_a_fresh_pipeline_for_every_dispatch(tmp_path):
