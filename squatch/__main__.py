@@ -39,6 +39,7 @@ from squatch.driver import Driver
 from squatch.enginelog import EngineLog
 from squatch.effects import Effects
 from squatch.git import Git, GitError
+from squatch import hostfiles
 from squatch.journal import Journal, JournalCorruption, read_events
 from squatch.ladder import effective, rungs
 from squatch.lockfile import Holder, LOCK_NAME, LockHeld, Lockfile
@@ -73,6 +74,7 @@ def _parser() -> argparse.ArgumentParser:
                    help="config file (default: config.yaml at the invocation cwd)")
     sub = p.add_subparsers(dest="verb", required=True)
     sub.add_parser("status", help="project current state from the journal (read-only)")
+    sub.add_parser("core", help="render managed conduct blocks for routed CLIs")
     sub.add_parser("doctor", help="run read-only mechanical diagnostics")
     sub.add_parser("retro", help="force one retrospective over the current window")
     new = sub.add_parser("new", help="template tickets/<stem>/ticket.md and lint it")
@@ -114,7 +116,7 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
     except SystemExit as e:  # argparse already printed usage or help
         return int(e.code or 0)
     try:
-        return {"status": _status, "doctor": _doctor, "retro": _retro,
+        return {"core": _core, "status": _status, "doctor": _doctor, "retro": _retro,
                 "new": _new, "run": _run, "confirm": _confirm,
                 "reject": _reject, "drain": _drain, "serve": _serve, "triage": _triage,
                 "pause": _control, "resume": _control, "kill": _control}[args.verb](
@@ -123,6 +125,42 @@ def main(argv: Sequence[str] | None = None, *, cwd: Path | None = None,
         print(f"refused: {e.message}", file=out)
         print(f"  paved road: {e.paved_road}", file=out)
         return EXIT_REFUSED
+
+
+def _core(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    config = _config(args, cwd)
+    fs = LocalFilesystem()
+    try:
+        registry = Registry(config)
+        names = sorted({
+            "CLAUDE.md" if resolved.provider.name == "claude" else "AGENTS.md"
+            for route in config.routing
+            for resolved in registry.candidates(route.tier, route.surface)
+            if resolved.provider.kind == "cli"
+        })
+        pending = []
+        # Validate every target before publishing any, so a corrupt second
+        # file cannot leave an otherwise refused invocation half adopted.
+        for name in names:
+            path = cwd / name
+            try:
+                before = fs.read(path)
+            except FileNotFoundError:
+                before = b""
+            after = hostfiles.render(before.decode("utf-8", errors="surrogateescape")).encode(
+                "utf-8", errors="surrogateescape")
+            pending.append((path, before, after))
+        for path, before, after in pending:
+            if after != before:
+                fs.write(path, after)
+            print(f"core: {path.name} {'rendered' if after != before else 'current'}", file=out)
+    except (ConfigError, RoutingError, hostfiles.ManagedBlockRefusal, OSError) as error:
+        raise Refusal(f"core: {error}",
+                      "repair the named config, file or markers and rerun `core`; "
+                      "preserve all project-owned text") from None
+    if not names:
+        print("core: no routed CLI conduct files", file=out)
+    return EXIT_OK
 
 
 def _status(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:

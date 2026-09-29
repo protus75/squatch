@@ -29,7 +29,7 @@ def test_operator_verb_surface_includes_provider_free_doctor_and_manual_retro():
     parser = main_module._parser()
     subparsers = next(action for action in parser._actions
                       if hasattr(action, "choices") and action.choices)
-    assert {"doctor", "retro"} <= set(subparsers.choices)
+    assert {"core", "doctor", "retro"} <= set(subparsers.choices)
 
 
 def test_doctor_dispatches_without_pipeline_provider_or_writer_lock(

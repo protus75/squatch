@@ -637,3 +637,85 @@ def test_retro_journal_io_failure_is_a_refusal(checkout, monkeypatch):
     assert rc == EXIT_REFUSED
     assert out.startswith("refused: retro storage: journal unavailable\n")
     assert "paved road:" in out
+
+
+def core_config(checkout, routed=("claude",)):
+    import yaml
+    providers = [{"name": name, "kind": "cli",
+                  "models_by_tier": dict.fromkeys(("low", "medium", "high", "max"), "model"),
+                  "limits": {"concurrency": 1, "est_cost_per_call_usd": 0}}
+                 for name in ("claude", "codex")]
+    (checkout / "config.yaml").write_text(yaml.safe_dump({
+        "schema_version": 1, "state_dir": str(STATE), "providers": providers,
+        "routing": [{"tier": "medium", "surface": "review",
+                     "candidates": [{"provider": name} for name in routed]}]
+        if routed else []}))
+
+
+def core_without_process(checkout):
+    class NoProcess:
+        async def run(self, *_args, **_kwargs):
+            raise AssertionError("core must never invoke Git or another process")
+
+    def no_pipeline(_journal):
+        raise AssertionError("core must never construct a provider pipeline")
+
+    out = StringIO()
+    rc = main(["core"], cwd=checkout, out=out, process=NoProcess(), pipeline=no_pipeline)
+    return rc, out.getvalue()
+
+
+@pytest.mark.parametrize(("routed", "targets"), [
+    (("claude",), ("CLAUDE.md",)), (("codex",), ("AGENTS.md",)),
+    (("claude", "codex"), ("AGENTS.md", "CLAUDE.md")), ((), ()),
+])
+def test_core_first_adoption_targets_only_routed_clis_and_preserves_bytes(checkout, routed, targets):
+    from squatch.hostfiles import managed_block
+    core_config(checkout, routed)
+    project = b"# Host\r\nretain \xff and trailing spaces  "
+    for name in targets:
+        (checkout / name).write_bytes(project)
+    rc, out = core_without_process(checkout)
+    assert rc == EXIT_OK, out
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        if name in targets:
+            assert (checkout / name).read_bytes() == managed_block().encode() + b"\n" + project
+            assert f"core: {name} rendered\n" in out
+        else:
+            assert not (checkout / name).exists()
+    assert not (checkout / STATE).exists()
+
+
+def test_core_creates_missing_file_and_rerun_is_byte_identical_without_write(checkout, monkeypatch):
+    core_config(checkout)
+    assert core_without_process(checkout)[0] == EXIT_OK
+    before = (checkout / "CLAUDE.md").read_bytes()
+
+    def no_write(*_args):
+        raise AssertionError("current files must not be written")
+
+    monkeypatch.setattr(LocalFilesystem, "write", no_write)
+    assert core_without_process(checkout) == (EXIT_OK, "core: CLAUDE.md current\n")
+    assert (checkout / "CLAUDE.md").read_bytes() == before
+
+
+def test_core_refuses_malformed_markers_before_writing_any_target(checkout):
+    core_config(checkout, ("claude", "codex"))
+    malformed = b"# Project\n<!-- squatch:core begin -->\n"
+    (checkout / "CLAUDE.md").write_bytes(malformed)
+    rc, out = core_without_process(checkout)
+    assert rc == EXIT_REFUSED
+    assert "malformed" in out and "paved road:" in out
+    assert (checkout / "CLAUDE.md").read_bytes() == malformed
+    assert not (checkout / "AGENTS.md").exists()
+
+
+def test_core_uses_filesystem_seam_and_reports_storage_refusals(checkout, monkeypatch):
+    core_config(checkout)
+
+    def unreadable(_self, path):
+        raise PermissionError(f"cannot read {path.name}")
+
+    monkeypatch.setattr(LocalFilesystem, "read", unreadable)
+    rc, out = core_without_process(checkout)
+    assert rc == EXIT_REFUSED and "cannot read CLAUDE.md" in out
