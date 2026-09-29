@@ -1,38 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "c0bc479cb852788c408a084db661bbc5f5ac43ac",
+  "produced_at_sha": "96a66eae17c2c4fdc00508aef52ac17e45ec9b9c",
   "stem": "phase5-continue-03",
   "branch": "phase5-continue-03",
-  "base": "cef9892065193464bf435d7ba8271d4e96de3754",
-  "head": "c0bc479cb852788c408a084db661bbc5f5ac43ac",
+  "base": "54c137ab4b66746a235065b2836399c2d1b658aa",
+  "head": "96a66eae17c2c4fdc00508aef52ac17e45ec9b9c",
   "changed_files": [
     "tests/test_seeded_phase5_03.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase5-continue-04/ticket.md",
-      "sha": "68f770c850b97a57540773fe06715297d6c44ccd",
+      "sha": "32903249c4cef9f2497db118758cf634c0a457e4",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-04/ticket.md",
-          "line": 1511,
-          "message": "Section 20's 'Phase 5 exit evidence disposition' says `phase5-exit` cites sections 19 and 20. The ticket's first criterion requires `tests/test_seeded_phase5_04.py` to pin that citation together with a max-effort render within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM` (120,000 chars). The implement spec renders every cited section in full. Section 19 (lines 1447-1510) is too large to read in one pass, at about 36k tokens or roughly 145k characters. Section 20 is already more than 55k characters. The plan's own Phase 3 registry records that section 19 plus Context measured 186,586 characters, over the 160,000 hard bound. The two criteria cannot both hold.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase5-continue-04/ticket.md",
-          "line": 1511,
-          "message": "Section 20's 'Phase 6 boundary registry' requires `core-renderer` and `core-drift-classifier` to cite sections 8, 15, 19, and 20, and `phase6-continue` to cite sections 19 and 20. It also requires `tests/test_seeded_phase6_core.py` to pin bounded render headroom. This ticket carries those citations and the headroom pin into the exit's authored requirements. Every one of these seeds would render full section 19, so every one would exceed the 120,000-character headroom. The requirement is unsatisfiable as the plan states it.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -40,7 +25,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/retro-doctor-cli/ticket.md",
-      "sha": "298128805cf9c3ae58ffd31abe08930bcd80a1ef",
+      "sha": "6fd0c0a141c5c94a68db89fbd22eaea488a67def",
       "bypassed": false,
       "findings": [],
       "commands": []
