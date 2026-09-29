@@ -1,15 +1,16 @@
 ## Outcome
-ok
+implemented
 
 ## Surprises / judgment calls
-Status uses the engine's shipped `specs/retro.md`, matching production retro construction, so status remains available to minimal foreign checkouts.
+The branch did not contain the prior attempt's implementation, so the complete status projection was reconstructed. HEAD resolution failures are converted to the established refusal surface.
 
 ## Dead ends
+None.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI GPT-5
+OpenAI Codex / GPT-5
 
 ## Predicted vs actual
-Expected: 75m. Actual: about 20m.
+Expected: 75m. Actual: about 45m.
