@@ -280,7 +280,10 @@ def test_phase6_remaining_registry_closes_contracts_paths_and_edges():
     assert "Phase 6 remaining-row contracts (DECIDED)" in section20
     assert "The exact remaining admission rows and direct edges are therefore" in section20
     assert "alone and terminal" in section20
-    assert "`squatch/merge.py`, `tests/test_gates.py`, and `tests/test_merge.py` are measured on-demand exceptions" in section20
+    assert "`squatch/providers.py`, `squatch/__main__.py`" in section20
+    assert "both `_core` and `core_drift` call that function" in section20
+    assert "replaces `test_classifier_is_unreachable_from_production_gates`" in section20
+    assert "`test_rendering_has_no_git_or_commit_effect` remains" in section20
     assert "The sole supported older schema is version 0" in section20
     assert "changes only that scalar to integer 1 and keeps every other key byte-for-byte" in section20
     assert "A valid current version-1 file is a byte-identical no-op" in section20

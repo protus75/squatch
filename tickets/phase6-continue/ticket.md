@@ -55,16 +55,26 @@ paths are never Context.
 
 `core-drift-activation` depends on `core-drift-classifier` and owns/fences
 `squatch/hostfiles.py`, `squatch/gates.py`, `squatch/config.py`,
-`squatch/merge.py`, `tests/test_hostfiles.py`, `tests/test_gates.py`, and
-`tests/test_merge.py`. It activates the engine-shipped hard `core_drift`
+`squatch/merge.py`, `squatch/providers.py`, `squatch/__main__.py`,
+`tests/test_hostfiles.py`, `tests/test_gates.py`, `tests/test_merge.py`,
+`tests/test_providers.py`, and `tests/test_cli.py`. It activates the
+engine-shipped hard `core_drift`
 gate on conduct-file paths resolved from routing, compares each committed
 managed block with a fresh branch-version render, preserves project-owned
 remainder, refuses malformed, duplicate, or partial marker text, and joins the
-merge-time mechanical rerun set. Existing `squatch/merge.py`,
-`tests/test_gates.py`, and `tests/test_merge.py` are measured on-demand
-exceptions; every other existing fence path is Context. This exact partition
-keeps the base Implement render under headroom; `tests/test_gates.py` is read
-from the worktree only when needed and is never embedded.
+merge-time mechanical rerun set. Move the complete resolver from inline
+`_core` logic into one `squatch/providers.py` function and make both `_core`
+and `core_drift` call it; the provider-to-`CLAUDE.md`/`AGENTS.md` mapping must
+have one owner and no copied path. Replace
+`test_classifier_is_unreachable_from_production_gates` with coverage proving
+the gate reaches `hostfiles.classify` and both invokers share the resolver.
+Keep `test_rendering_has_no_git_or_commit_effect`; `squatch/hostfiles.py`
+retains its exact pure import set. Existing `squatch/merge.py`,
+`squatch/providers.py`, `squatch/__main__.py`, `tests/test_gates.py`,
+`tests/test_merge.py`, `tests/test_providers.py`, and `tests/test_cli.py` are
+measured on-demand exceptions; every other existing fence path is Context.
+Every named exception is read from the worktree only when needed and is never
+embedded, keeping the base Implement render under headroom.
 
 `migrate-config` depends on `core-renderer` and owns/fences
 `squatch/config.py`, `squatch/__main__.py`, `tests/test_config.py`,
