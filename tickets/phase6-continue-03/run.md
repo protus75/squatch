@@ -4,11 +4,11 @@ premise_failed
 
 ## Surprises / judgment calls
 
-The prior delimiter issue is repaired by the current partition, but the live `bug-gate-grammar` render still exceeds the configured headroom. I did not move a required Context path because that would change the cited section-20 contract.
+The prior bug-gate overflow is repaired: its live render is 105362 characters. The current `report-inbox-triage` partition still overflows, so I did not move its required `squatch/triage.py` Context path because that would change the cited section-20 contract.
 
 ## Dead ends
 
-I authored the requested row in the worktree and ran its real max-effort render. `bug-gate-grammar`, with the section-20-required Context `squatch/tickets.py`, `squatch/gates.py`, and `tests/test_gates.py`, rendered at 144142 characters. The configured `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM` is 120000. Moving a required Context path to measured on-demand is the paved road, but violates the fixed ticket and section-20 partition contract, so I discarded the partial authored files.
+I authored the requested row in the worktree and ran its real max-effort renders. The required `report-inbox-triage` Context (`squatch/box.py`, `squatch/triage.py`, and `tests/test_box.py`) rendered at 128724 characters; the configured `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM` limit is 120000. Removing `squatch/triage.py` from embedded Context is necessary to fit, but violates the ticket and section-20 contract, so I discarded the partial authored files.
 
 ## Second problems filed
 
@@ -19,4 +19,4 @@ OpenAI Codex (model identity not exposed).
 
 ## Predicted vs actual
 
-Expected 75m; stopped after approximately 15m when the remaining live render contradiction was confirmed.
+Expected 75m; stopped after approximately 20m when the remaining live render contradiction was confirmed.
