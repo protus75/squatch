@@ -1,16 +1,14 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Bound the replay read by its real size before reading any bytes: stat the file through the Filesystem seam, or read at most REPLAY_LIMIT+1 bytes. Remove the dead `len(replay) > REPLAY_LIMIT` branch that runs after the equality check.",
-    "The actual-oversize test must declare a valid small `replay_bytes` while the file on disk is larger than REPLAY_LIMIT. Assert the refusal and that the Box stays empty. The current test only trips metadata validation.",
-    "Isolate each report. A malformed report must be quarantined or refused (moved aside, or filed as a Box message) so the other reports still process and `triage.run` always runs. Never let one ReportError stall the consumer loop.",
-    "Pick reports by an explicit rule, such as a `*.report.json` suffix or excluding replay files that a report references. Do not skip JSON that lacks `schema_version`: that path fails open.",
-    "Wire `inbox_consumer` into production from inside the fence, e.g. make the daemon.py function the box task already calls build and consume the Inbox. If the wiring provably needs serve.py (outside the fence), stop and report it; do not ship an unwired consumer.",
-    "Enforce custody in `Box.enqueue`: evidence must name an existing file under box/evidence whose SHA-256 matches `replay_sha256`. Or store and enqueue in one Box method. Update tests/test_triage.py to store its evidence through the Box."
+    "The only gate finding is the run record: `## Outcome` must be exactly one closed value. After a successful implementation, write `ok`, never `implemented`. Keep all six required sections in tickets/report-inbox-triage/run.md.",
+    "The code already addresses the prior lessons: stat-before-read replay cap, per-report quarantine, `*.report.json` selection, custody check in Box.enqueue, and daemon wiring. Keep that diff and do not rework it unless verification fails.",
+    "Before finishing, rerun all three verification commands and confirm they are green. The previous attempt reported 1,646 passing tests, but the harness did not capture that output as evidence.",
+    "In daemon.box_consumer, avoid reaching into private Triage attributes (`_repo`, `_config`, `_box`, `_fs`) behind an isinstance guard. Pass the Inbox in explicitly (e.g. reuse inbox_consumer) if you can do it inside the fence. This is a nit, not a gate failure."
   ],
-  "reason": "Review snags are specific, fixable in place, and each comes with a paved road. The one fence doubt (serve.py wiring) may be solvable inside daemon.py.",
+  "reason": "The gate failed only on a closed-vocabulary run-record value ('implemented' instead of 'ok'). This is a fixable oversight at the same capability.",
   "detail": null
 }
