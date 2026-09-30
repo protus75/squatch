@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "member": "machine_ticket_merge",
+      "observable": "control/f5cc7a02-4333-43f8-ab79-d7f44a20894c+supervised-release/6ed780bc-e14e-4b84-bd1c-6c650473d9c6+merged:2d3a713960ed9ad9745602c216303d48a78f6181",
+      "producing_run": "fixture-deterministic-app/0",
+      "scenario": "fixture-deterministic-app"
+    },
+    {
+      "member": "machine_ticket_merge",
+      "observable": "control/b55f9633-0aef-41ce-989e-d41fa0f1282c+supervised-release/5c9de212-7a81-4a1a-9ad1-27469a0c97c9+merged:efc0306571fc01be7d77e1f1b68009cf198a35a6",
+      "producing_run": "fixture-regression-fix/0",
+      "scenario": "fixture-regression-fix"
+    },
+    {
+      "member": "machine_ticket_merge",
+      "observable": "control/00f37e62-c405-4ed1-bf97-a4e5b16dd801+supervised-release/0c89ce1e-2aaf-4973-83a6-54cb283bff73+merged:eacc1e95f7337059d6db23ef3a7aa0375249c7ec",
+      "producing_run": "fixture-machine-escape/0",
+      "scenario": "fixture-machine-escape"
+    },
+    {
+      "member": "report_to_regression_bug_loop",
+      "observable": "2026-09-30T06:53:45.797637+00:00:report-inbox->triage->fixture-regression-fix->merged",
+      "producing_run": "fixture-regression-fix/0",
+      "scenario": "report-to-regression"
+    },
+    {
+      "member": "escape_attribution",
+      "observable": "2026-09-30T06:53:47.264051+00:00:first-parent:eacc1e95f7337059d6db23ef3a7aa0375249c7ec:squatch-ticket=fixture-machine-escape",
+      "producing_run": "fixture-machine-escape/0",
+      "scenario": "machine-introduced-escape"
+    }
+  ],
+  "produced_at_sha": "f69a5b2aeb5c95362c40cf25b82256dfbf8b1692",
+  "schema_version": 1
+}
