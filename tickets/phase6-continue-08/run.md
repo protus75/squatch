@@ -1,24 +1,21 @@
 ## Outcome
 
-premise_failed
+ok
 
 ## Surprises / judgment calls
 
-The ticket linter requires every acceptance criterion to name its fenced test,
-so each terminal-artifact assertion is explicitly bound to
-`tests/test_phase6_exit.py`.
+The terminal seed uses the plan's corrected Context partition: artifacts and
+the committed GO-grade report are embedded, while the producer and writer
+registry are measured on demand.
 
 ## Dead ends
 
-`uv run pytest -q` failed in unchanged
-`tests/test_host_loop.py::test_real_serve_drives_machine_confirms_triage_bug_loop_and_escape_attribution`:
-the fixture serve timed out waiting for expected journal evidence in
-`eval/host_loop.py::_wait_for`. The focused required command passed.
+The first focused run exposed only a too-specific seeded-test text assertion;
+the contract itself was unchanged and the assertion was corrected.
 
 ## Second problems filed
 
-- Unchanged fixture-host-loop integration test timeout described above; the
-  authored diff does not touch `eval/host_loop.py` or `tests/test_host_loop.py`.
+
 
 ## Resolved engine/model
 
@@ -26,4 +23,4 @@ OpenAI Codex (model identifier unavailable).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 10m.
+Expected 75m; actual approximately 12m.
