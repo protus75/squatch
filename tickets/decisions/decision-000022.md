@@ -1,0 +1,10 @@
+---
+id: decision-000022
+kind: decision
+link: box-000022-4a43419d
+reopen_after_days: 90
+message: box-000022-4a43419d
+---
+No action needed. The plan already answers this, and the code follows it. Section 6 does not limit its env rule to provider keys. It sets one base environment for every child process, INHERIT-MINUS-SECRETS: the child gets the parent's full environment, including HOME and PATH, minus every variable that any provider's `auth` names. A git child is a child process, so it inherits PATH, HOME (and so the global git config) and any GIT_AUTHOR_/GIT_COMMITTER_ variables the operator has set. Squash and ticket-plane commits therefore use the operator's own git identity. The engine sets no identity of its own. `providers.child_env` implements this rule, and every production `Git(...)` construction already passes `env=child_env(env, auth_names)`: `__main__.py:181` and `:655`, `merge.py:750`, `doctor.py:135`, `box.py:472`, `audit.py:205`. The Phase 1 composition that the message says is still missing has merged. The hermetic env in tests/test_git.py is only test isolation; it is not a production spec. An allowlist of inherited variables or an engine-set committer identity would be a second env policy for one class of child. The no-dual-path law rules that out, and no incident has earned it under the anti-bloat law. No rendered ticket or decision covers git child env, so a tombstone would be wrong.
+
+Evidence: SQUATCH_PLAN.md:1082 (section 6: 'The child base environment is INHERIT-MINUS-SECRETS: every child gets the parent's full environment (an ambient-login CLI needs HOME and PATH) minus every env var any provider's `auth` names'); squatch/providers.py:378-381 `child_env`; production Git constructions with env=child_env(...) at squatch/__main__.py:181, squatch/__main__.py:655, squatch/merge.py:750, squatch/doctor.py:135, squatch/box.py:472, squatch/audit.py:205. Reopen if a squash or ticket-plane commit fails in a daemon environment that has no git identity configured, or if a git child is found running with an env other than child_env's output.
