@@ -425,6 +425,38 @@ async def test_invalid_artifact_reprompts_the_same_workspace_with_findings(tmp_p
     assert [e["call_seq"] for e in reprompts] == [1, 2]
 
 
+async def test_single_json_markdown_fence_is_only_a_transport_wrapper(tmp_path):
+    fenced = f"```json\n{echo_json('ok')}\n```"
+    result = await run(driver(tmp_path, FakeLLM(fenced)), stage())
+
+    assert result.outcome == "ok"
+    assert result.artifact.text == "ok"
+    assert result.cost.attempts == 1
+
+
+@pytest.mark.parametrize("response", [
+    f"prose\n```json\n{echo_json('no')}\n```",
+    f"```json\n{echo_json('no')}\n```\nmore",
+])
+async def test_one_json_fence_may_have_cli_status_prose(tmp_path, response):
+    result = await run(driver(tmp_path, FakeLLM(response)), stage())
+
+    assert result.outcome == "ok"
+    assert result.artifact.text == "no"
+    assert result.cost.attempts == 1
+
+
+@pytest.mark.parametrize("response", [
+    f"```JSON\n{echo_json('no')}\n```",
+    f"```json\n{echo_json('no')}\n```\n```json\n{echo_json('extra')}\n```",
+])
+async def test_json_fence_does_not_admit_prose_or_other_wrappers(tmp_path, response):
+    result = await run(driver(tmp_path, FakeLLM(response), retry_cap=0), stage())
+
+    assert result.outcome == "invalid_artifact"
+    assert result.cost.attempts == 1
+
+
 async def test_hard_gate_failure_reprompts_then_passes(tmp_path):
     gate = StubGate("fail", "pass")
     renders = Renders()

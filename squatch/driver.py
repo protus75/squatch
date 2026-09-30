@@ -208,8 +208,18 @@ def _parse(stage: LLMStage, text: str, provenance: dict
     """The model emits the artifact as one JSON object; the driver stamps
     provenance (invariant 1) and validates. Any defect is a finding fed back."""
     road = f"emit exactly one JSON object with the fields of {stage.emits.__name__}"
+    stripped = text.strip()
+    # Agent CLIs commonly wrap the requested object in one Markdown JSON fence
+    # and may add a short status sentence around it. Treat one such block as the
+    # transport payload, while rejecting ambiguous responses with extra fences.
+    marker = "```json\n"
+    if stripped.count(marker) == 1:
+        before, _, remainder = stripped.partition(marker)
+        payload, closing, after = remainder.partition("\n```")
+        if closing and "```" not in before and "```" not in after:
+            stripped = payload
     try:
-        data = json.loads(text)
+        data = json.loads(stripped)
     except ValueError as e:
         return None, (_finding(f"output is not JSON: {e}", road),)
     if not isinstance(data, dict):
