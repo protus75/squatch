@@ -10,8 +10,6 @@ agent_effort: medium
 - go-grade-machinery
 
 ## Context
-- eval/harness.py
-- squatch/artifacts.py
 
 ## Plan contract
 - section 20
@@ -33,7 +31,9 @@ The report embeds mechanically recorded GO-or-NO-GO verdict signal identity,
 planted-defect count, spend, authored tickets, and dependency graph. Only the
 operator may turn an earned result into GO; this machine run must not invoke
 `--record-go`, and NO-GO is valid. Preserve the fixed USD 5.00 cap.
-Embedded Context: `eval/harness.py`, `squatch/artifacts.py`; measured on-demand: none.
+Embedded Context: none; measured on-demand: `eval/harness.py`,
+`squatch/artifacts.py`. Read the merged public entry point and report schema
+from the worktree only when needed; their post-machinery size is not embedded.
 
 ## Scope out
 No code changes, production GO recording, host-loop execution, or successor authoring.
