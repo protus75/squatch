@@ -33,6 +33,10 @@ host-loop harness. It launches `serve` against `hosts/fixture/`, drives machine-
 three machine-ticket merges, the report-to-regression bug loop, and escape
 attribution. The machinery never produces terminal artifacts during its
 own build.
+Add the fixture `triage` route in `hosts/fixture/config.yaml` and its
+deterministic triage response in `hosts/fixture/bin/codex`, so real inbox
+reports become regression-bearing Author tickets and later escape attribution
+through the production Serve/triage path rather than fabricated entries.
 
 Embedded Context: `squatch/artifacts.py`, `tests/test_gates.py`. Measured
 on-demand worktree reads: `squatch/stages.py`, `tests/test_stages.py`,
@@ -51,10 +55,13 @@ or produce terminal artifacts during this build.
 - tests/test_host_loop.py
 - tests/test_gates.py
 - tests/test_stages.py
+- hosts/fixture/config.yaml
+- hosts/fixture/bin/codex
 
 ## Acceptance criteria
 - `tests/test_host_loop.py` proves both closed artifact schemas and ordinary-lane writer registration, including unknown-field refusal.
 - `tests/test_host_loop.py` proves the supervised fixture-host harness drives control-inbox confirms and records member, scenario, observable, and producing-run evidence for three machine-ticket merges, the report-to-regression bug loop, and escape attribution.
+- `tests/test_host_loop.py` proves the scripted fixture `triage` route drives those report-to-ticket and escape loops through the real inbox/Serve path.
 - `tests/test_host_loop.py`, `tests/test_gates.py`, and `tests/test_stages.py` prove construction produces no terminal host-loop or exit receipt artifact.
 
 ## Verification
