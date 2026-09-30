@@ -88,16 +88,21 @@ def merge_of(h: Harness, git: Git | None = None) -> Merge:
                  clock=h.clock, env=h.env)
 
 
-def composed_pipeline_of(h: Harness) -> Pipeline:
-    inbox = ControlInbox(h.state, journal=h.journal, fs=LocalFilesystem())
-    hold = AdmissionHold(inbox, h.journal)
+def composed_pipeline_of(h: Harness, *, journal=None, supervised=False,
+                         release_terminal=None) -> Pipeline:
+    journal = journal or h.journal
+    lifecycle = ControlInbox.active_lifecycle(journal)
+    inbox = ControlInbox(
+        h.state, journal=journal, fs=LocalFilesystem(), lifecycle=lifecycle)
+    inbox.rehydrate_holds()
+    hold = AdmissionHold(inbox, journal)
     return compose_pipeline(
         control_inbox=inbox, admission_hold=hold, repo=h.repo, config=h.config,
-        env=h.env, journal=h.journal, clock=h.clock, process=SubprocessExec(),
+        env=h.env, journal=journal, clock=h.clock, process=SubprocessExec(),
         fs=LocalFilesystem(), git=h.git,
         providers=ProviderRuntime(
-            Registry(h.config), timers=Timers(journal=h.journal, clock=h.clock),
-            clock=h.clock))
+            Registry(h.config), timers=Timers(journal=journal, clock=h.clock),
+            clock=h.clock), supervised=supervised, release_terminal=release_terminal)
 
 
 class SettledStages:
@@ -203,8 +208,11 @@ async def test_every_admission_step_is_a_run_scoped_effect(repo, env):
     h = Harness(repo, env, agent)
     d = await deliver(h)
     a = await merge_of(h).admit(ticket_of(h), d, run_seq=0)
-    assert h.completions()[-4:] == [f"rebase/{STEM}/0", f"regate/{STEM}/0", f"merge/{STEM}/0",
-                                    f"retire/{STEM}/0"]
+    rebased = next(e.body["result"] for e in h.journal.read()
+                   if e.type == "effect_completion" and e.key == f"rebase/{STEM}/0")
+    assert h.completions()[-4:] == [
+        f"rebase/{STEM}/0", f"regate/{STEM}/0/{rebased['base']}",
+        f"merge/{STEM}/0", f"retire/{STEM}/0"]
     done = {e.key: e for e in h.journal.read() if e.type == "effect_completion"}
     assert all(done[k].ticket == STEM for k in h.completions()[-4:])
     assert done[f"merge/{STEM}/0"].body["result"] == {"commit": a.commit}
@@ -254,12 +262,13 @@ async def test_output_only_admission_replays_check_evidence_and_retires_once(
     assert f"merge/{STEM}/0" not in h.completions()
     assert not branch_exists(h) and not h.worktree().exists()
     regate = next(e.body["result"] for e in h.journal.read()
-                  if e.type == "effect_completion" and e.key == f"regate/{STEM}/0")
+                  if e.type == "effect_completion" and e.key == f"regate/{STEM}/0/{before}")
     assert regate["changed_files"] == []
     assert all(c["verdict"] == "pass" for c in regate["checks"])
     # Effect replay must neither rerun verification in a retired tree nor retire twice.
     await merge_of(h)._retire(STEM, h.worktree(), 0)
-    invoice = await merge_of(h)._regate(ticket_of(h), delivery.slip, h.worktree(), 0)
+    candidate = delivery.slip.model_copy(update={"base": before})
+    invoice = await merge_of(h)._regate(ticket_of(h), candidate, h.worktree(), 0)
     assert invoice.passed
     assert h.completions().count(f"retire/{STEM}/0") == 1
     assert len(transitions(h)) == 1

@@ -610,6 +610,7 @@ class Delivery:
     stage: str
     reason: str | None
     cost: Cost
+    admission_state: Literal["SETTLED", "HELD"] = "SETTLED"
 
 
 class Stages:

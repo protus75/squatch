@@ -471,13 +471,18 @@ def _producing_event(evidence: _Evidence) -> Event:
 
 
 def _passed_invoice(evidence: _Evidence, step: str, stem: str, run_seq: int) -> bool:
-    event = next((item for item in evidence.events
-                  if item.type == "effect_completion"
-                  and item.key == f"{step}/{stem}/{run_seq}"), None)
+    prefix = f"{step}/{stem}/{run_seq}"
+    event = next((item for item in reversed(evidence.events)
+                  if item.type == "effect_completion" and item.key is not None
+                  and (item.key.startswith(prefix + "/") if step == "regate"
+                       else item.key == prefix)), None)
     if event is None:
         return False
     result = event.body.get("result")
     invoice = result.get("invoice") if step == "check" and isinstance(result, dict) else result
+    if step == "regate" and (
+            not isinstance(invoice, dict) or event.key != f"{prefix}/{invoice.get('base')}"):
+        return False
     checks = invoice.get("checks") if isinstance(invoice, dict) else None
     return isinstance(checks, list) and not any(
         check.get("verdict") == "fail" and check.get("severity") == "hard"

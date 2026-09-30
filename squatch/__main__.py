@@ -29,7 +29,7 @@ from uuid import UUID
 import squatch
 from squatch.box import Box, BoxCorruption, journal_rereport_callback
 from squatch.config import ConfigError, load, migrate
-from squatch.control import ControlRequest, publish_control
+from squatch.control import ControlRequest, publish_control, supervised_merge_holds
 from squatch.daemon import (DrainControl, compose_daemon_control, compose_daemon_dispatch,
                             compose_daemon_restart, compose_daemon_storm_producer,
                             StormDispatchHold)
@@ -305,6 +305,31 @@ def _run(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
 
 
 def _confirm(args, cwd: Path, env, out: TextIO, pipeline, clock, process) -> int:
+    config = _config(args, cwd)
+    state_dir = cwd / config.state_dir
+    lock = Lockfile(state_dir, instance_id="confirm", clock=clock)
+    try:
+        lock.acquire()
+    except LockHeld as held:
+        lifecycle = _published_lifecycle(state_dir, held.holder)
+        if lifecycle is None:
+            raise Refusal("the lock holder is not a live control consumer",
+                          "wait for its next control boundary, then repeat the command") from None
+        try:
+            hold = supervised_merge_holds(read_events(state_dir)).get(args.stem)
+        except JournalCorruption as error:
+            raise Refusal(f"journal corruption: {error}",
+                          "repair the named journal record before confirming") from None
+        if hold is None:
+            raise Refusal(f"{args.stem} has no supervised merge hold",
+                          "wait for its checked admission to reach HELD, then repeat confirm")
+        request = ControlRequest(action="confirm", lifecycle=lifecycle,
+                                 hold_id=hold.hold_id, stem=args.stem, actor="operator")
+        publish_control(state_dir, request, LocalFilesystem())
+        print(f"published confirm: hold id {hold.hold_id}", file=out)
+        return EXIT_OK
+    else:
+        lock.release()
     return _locked(args, cwd, env, out, pipeline, clock, process,
                    lambda runner, config, git, control: runner.confirm(args.stem))
 
@@ -641,12 +666,19 @@ def _locked(args, cwd: Path, env, out: TextIO, pipeline: PipelineFactory | None,
         else:
             assert runner is not None
             pause, _wait = control(journal)
+
+            async def release_terminal(ticket, delivery, composed, run_seq):
+                await runner.finish_release(
+                    ticket, delivery, journal, composed, run_seq=run_seq)
+
             composed = compose_pipeline(
                 repo=cwd, config=config, env=env, journal=journal,
                 clock=clock, process=process, fs=LocalFilesystem(), git=git,
                 control_inbox=pause.inbox, admission_hold=pause.admission_hold,
                 providers=runner.providers,
-                watchdog=getattr(args, "verb", None) in {"drain", "serve"})
+                watchdog=getattr(args, "verb", None) in {"drain", "serve"},
+                supervised=getattr(args, "verb", None) == "serve",
+                release_terminal=release_terminal)
             if bind_abort:
                 pause.bind_abort(composed.stages.abort_active)
         return composed

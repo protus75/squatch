@@ -16,15 +16,18 @@ Serve selects daemon admission, which keeps the immutable delivery checks
 here and delegates rebase through integration to the serial MergeQueue.
 """
 
-from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Literal
+from uuid import uuid4
 
 from squatch.artifacts import Finding
+import squatch.baseline as baseline
 from squatch.box import Box, journal_rereport_callback
 from squatch.config import Config
-from squatch.control import ControlInbox
+from squatch.control import (ControlInbox, ControlRequest, SupervisedMergeHold,
+                             supervised_merge_holds)
 from squatch.diagnose import Diagnoser, DiagnosisRecord
 from squatch.effects import Effects, effect_key
 from squatch.enginelog import EngineLog
@@ -83,6 +86,7 @@ class Admission:
     findings: list[Finding]
     commit: str | None
     reviewed_sha: str | None
+    state: Literal["SETTLED", "HELD"] = "SETTLED"
 
 
 class CodeLane:
@@ -233,20 +237,36 @@ class Merge:
                               run_seq=run_seq)
         queued, commit, soft = await queue.admit_delivery(
             candidate, ticket=ticket, delivery=delivery, reviewed_head=reviewed)
+        hold = supervised_merge_holds(self._journal.read()).get(stem)
+        if hold is not None:
+            self._log.event("merge", ticket=stem, run_seq=run_seq, outcome="HELD",
+                            hold_id=str(hold.hold_id), reviewed_sha=reviewed)
+            return Admission(delivery.outcome, soft, None, reviewed, state="HELD")
         if queued.outcome != "integrated":
-            findings = list(queued.findings)
-            if queued.outcome == "rework":
-                paths = queued.conflict_facts.paths
-                findings.append(Finding(
-                    code=REGATE, path=paths[0] if len(paths) == 1 else None,
-                    paved_road=REWORK_ROAD,
-                    message=(f"unresolved rebase conflicts require Rework"
-                             f"{': ' + ', '.join(paths) if paths else ''}")))
+            findings = self._queue_findings(queued)
             self._log.event("merge", ticket=stem, run_seq=run_seq,
                             outcome="gate_failed",
                             findings=[finding.model_dump() for finding in findings])
             return Admission("gate_failed", findings, None, reviewed)
 
+        return await self._finish_daemon(
+            ticket, delivery, run_seq=run_seq, commit=commit, reviewed=reviewed, soft=soft)
+
+    def _queue_findings(self, queued) -> list[Finding]:
+        findings = list(queued.findings)
+        if queued.outcome == "rework":
+            paths = queued.conflict_facts.paths
+            findings.append(Finding(
+                code=REGATE, path=paths[0] if len(paths) == 1 else None,
+                paved_road=REWORK_ROAD,
+                message=(f"unresolved rebase conflicts require Rework"
+                         f"{': ' + ', '.join(paths) if paths else ''}")))
+        return findings
+
+    async def _finish_daemon(self, ticket: Ticket, delivery: Delivery, *, run_seq: int,
+                             commit: str | None, reviewed: str | None,
+                             soft: list[Finding]) -> Admission:
+        stem = ticket.stem
         await self._retire(stem, delivery.worktree, run_seq)
         self._journal.append("state_transition", {
             "to": "merged", "run_seq": run_seq, "commit": commit,
@@ -372,7 +392,8 @@ class Merge:
                             findings=[f.model_dump() for f in invoice.hard_findings])
             return invoice.model_dump(mode="json")
 
-        data = await self._effects.run(action, key=effect_key("regate", stem, run_seq), ticket=stem)
+        key = effect_key("regate", stem, run_seq, candidate.base)
+        data = await self._effects.run(action, key=key, ticket=stem)
         return Invoice.model_validate(data)
 
     def _seed_lift(self, stem: str, run_seq: int):
@@ -484,11 +505,13 @@ AdmissionMode = Literal["inline", "daemon"]
 class Pipeline:
     """Implement -> Check -> Review -> selected admission behind the runner seam."""
 
-    def __init__(self, stages: Stages, merge: Merge, merge_queue: MergeQueue | None = None):
+    def __init__(self, stages: Stages, merge: Merge, merge_queue: MergeQueue | None = None,
+                 *, control_inbox: ControlInbox | None = None):
         self.stages = stages
         self.merge = merge
         self.merge_queue = merge_queue
         self.admission_mode: AdmissionMode = "inline"
+        self.control_inbox = control_inbox
         self.diagnoser = Diagnoser(stages)
 
     def select_daemon_admission(self) -> None:
@@ -507,20 +530,33 @@ class Pipeline:
         else:
             admission = await self.merge.admit(ticket, delivery, run_seq=run_seq)
         return replace(delivery, outcome=admission.outcome, findings=admission.findings,
-                       stage="merge", reason=None)
+                       stage="merge", reason=None, admission_state=admission.state)
+
+    async def confirm_hold(self, hold: SupervisedMergeHold, *, actor: str = "operator") -> None:
+        if self.control_inbox is None:
+            raise ValueError("supervised admission requires the shared control inbox")
+        decision = await self.control_inbox.confirm(hold.stem, hold.hold_id, actor=actor)
+        if decision.outcome != "accepted" or not decision.applied:
+            raise ValueError(decision.reason or decision.outcome)
 
     async def diagnose(self, ticket: Ticket, delivery: Delivery, *,
                        run_seq: int) -> DiagnosisRecord:
         return await self.diagnoser.diagnose(ticket, delivery, run_seq=run_seq)
 
 
+ReleaseTerminal = Callable[[Ticket, Delivery, Pipeline, int], Awaitable[None]]
+
+
 def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], journal: Journal,
                      clock: Clock, process: ProcessExec, fs: Filesystem, git: Git,
                      control_inbox: ControlInbox, admission_hold: AdmissionHold,
                      providers: ProviderRuntime,
-                     watchdog: bool = False) -> Pipeline:
+                     watchdog: bool = False, supervised: bool = False,
+                     release_terminal: ReleaseTerminal | None = None) -> Pipeline:
     """The production composition: the stages over the routed provider, the
     admission over the same journal, git, and redactor."""
+    if supervised and release_terminal is None:
+        raise ValueError("supervised admission requires the runner terminal handler")
     repo = Path(repo)
     stages = compose(repo=repo, config=config, env=env, journal=journal, clock=clock,
                      process=process, fs=fs, git=git, providers=providers,
@@ -569,6 +605,25 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
                     if state.reviewed_head is not None else [])
         if findings:
             raise ValueError(findings[0].message)
+        if (supervised and not state.releasing
+                and baseline.supervised_merge_required(
+                    config, journal.read(), specs_dir=repo / "specs")):
+            assert state.delivery is not None
+            hold_id = uuid4()
+            head = await git.rev_parse(candidate.worktree, "HEAD")
+            body = {
+                "kind": "control_hold", "hold_id": str(hold_id), "released": False,
+                "lifecycle": str(control_inbox.lifecycle), "trigger": "supervised_merge",
+                "state": "HELD", "stem": candidate.stem, "run_seq": candidate.run_seq,
+                "worktree": str(candidate.worktree), "reviewed_sha": state.reviewed_head,
+                "candidate_sha": head, "outcome": state.outcome,
+                "verdict": state.verdict, "summary": state.summary,
+                "base": state.delivery.base, "cost": asdict(state.delivery.cost),
+            }
+            journal.append("signal", body, ticket=candidate.stem,
+                           key=f"supervised-merge/{candidate.stem}/{candidate.run_seq}")
+            control_inbox.rehydrate_holds()
+            return
         if state.reviewed_head is not None and state.invoice.changed_files:
             state.commit = (await merge._squash(
                 state.ticket, state.invoice, state.reviewed_head, candidate.run_seq))["commit"]
@@ -579,7 +634,61 @@ def compose_pipeline(*, repo: Path, config: Config, env: Mapping[str, str], jour
         repo=repo, config=config, env=env, journal=journal, process=process, fs=fs, git=git,
         control_inbox=control_inbox, admission_hold=admission_hold,
         regate=regate, integration_check=integration_check, integrate=integrate)
-    return Pipeline(stages, merge, queue)
+    pipeline = Pipeline(stages, merge, queue, control_inbox=control_inbox)
+
+    async def release(request: ControlRequest) -> None:
+        assert request.stem is not None and request.hold_id is not None
+        hold = supervised_merge_holds(journal.read()).get(request.stem)
+        if hold is None or hold.hold_id != request.hold_id:
+            return
+        if any(event.type == "state_transition" and event.ticket == hold.stem
+               and event.body.get("to") == "merged" for event in journal.read()):
+            return
+        release_key = f"supervised-release/{hold.hold_id}"
+        if not any(event.type == "signal" and event.key == release_key
+                   for event in journal.read()):
+            journal.append("signal", {
+                "kind": "supervised_merge_release", "hold_id": str(hold.hold_id),
+                "stem": hold.stem, "run_seq": hold.run_seq, "actor": request.actor,
+                "request_id": str(request.request_id),
+            }, ticket=hold.stem, key=release_key)
+        path = repo / TICKETS_DIR / hold.stem / TICKET_FILE
+        plan = repo / PLAN_FILE
+        ticket = lint_ticket(
+            path.read_text(), stem=hold.stem, repo=repo,
+            plan=plan.read_text() if plan.is_file() else None,
+            resolve_stem=lambda stem: (repo / TICKETS_DIR / stem / TICKET_FILE).is_file())
+        candidate = Candidate(stem=hold.stem, branch=hold.stem,
+                              worktree=hold.worktree, run_seq=hold.run_seq)
+        delivery = Delivery(
+            outcome=hold.outcome, findings=[], slip=PackingSlip(
+                stem=hold.stem, verdict=hold.verdict, summary=hold.summary,
+                branch=hold.stem, base=hold.base, head=hold.candidate_sha,
+                produced_by_spec_version=MERGE_VERSION,
+                produced_at_sha=hold.candidate_sha),
+            invoice=None, review=None,
+            worktree=hold.worktree, base=hold.base, stage="merge", reason=None,
+            cost=hold.cost)
+        result, commit, soft = await queue.admit_delivery(
+            candidate, ticket=ticket, delivery=delivery,
+            reviewed_head=hold.reviewed_sha, releasing=True)
+        control_inbox.discard_hold(hold.hold_id)
+        if result.outcome != "integrated":
+            findings = merge._queue_findings(result)
+            merge._log.event(
+                "merge", ticket=hold.stem, run_seq=hold.run_seq, outcome="gate_failed",
+                findings=[finding.model_dump() for finding in findings])
+            assert release_terminal is not None
+            await release_terminal(
+                ticket, replace(delivery, outcome="gate_failed", findings=findings),
+                pipeline, hold.run_seq)
+            return
+        await merge._finish_daemon(
+            ticket, delivery, run_seq=hold.run_seq, commit=commit,
+            reviewed=hold.reviewed_sha, soft=soft)
+
+    control_inbox.bind_confirm(release)
+    return pipeline
 
 
 @dataclass
@@ -591,6 +700,9 @@ class _AdmissionState:
     commit: str | None = None
     verdict: str = "implemented"
     summary: str = ""
+    outcome: str = "ok"
+    releasing: bool = False
+    delivery: Delivery | None = None
 
 
 class _ReviewedMergeQueue(MergeQueue):
@@ -609,12 +721,14 @@ class _ReviewedMergeQueue(MergeQueue):
             self.admission_state.pop(key, None)
 
     async def admit_delivery(self, candidate: Candidate, *, ticket: Ticket,
-                             delivery: Delivery, reviewed_head: str | None):
+                             delivery: Delivery, reviewed_head: str | None,
+                             releasing: bool = False):
         key = candidate.stem, candidate.run_seq
         assert delivery.slip is not None
         state = _AdmissionState(
             reviewed_head=reviewed_head, ticket=ticket, verdict=delivery.slip.verdict,
-            summary=delivery.slip.summary)
+            summary=delivery.slip.summary, outcome=delivery.outcome,
+            releasing=releasing, delivery=delivery)
         self.admission_state[key] = state
         try:
             result = await super().admit(candidate)

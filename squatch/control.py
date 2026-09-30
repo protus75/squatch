@@ -1,6 +1,7 @@
 """Typed durable requests for the journal lock holder."""
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterable
+from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Literal
@@ -8,12 +9,14 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
+from squatch.artifacts import Cost
 from squatch.journal import Journal
 from squatch.seams import Filesystem
 
 
-Action = Literal["pause", "release", "kill"]
+Action = Literal["pause", "release", "confirm", "kill"]
 Outcome = Literal["accepted", "stale", "conflict", "invalid"]
+Actor = Literal["operator", "machine"]
 
 
 class ControlRequest(BaseModel):
@@ -26,12 +29,76 @@ class ControlRequest(BaseModel):
     action: Action
     lifecycle: UUID
     hold_id: UUID | None = None
+    stem: str | None = None
+    actor: Actor | None = None
 
     @model_validator(mode="after")
     def release_names_exactly_one_hold(self) -> "ControlRequest":
-        if (self.action == "release") != (self.hold_id is not None):
-            raise ValueError("hold_id is required only for release requests")
+        bound = self.action in {"release", "confirm"}
+        if bound != (self.hold_id is not None):
+            raise ValueError("hold_id is required only for release and confirm requests")
+        if self.action == "confirm":
+            if not self.stem or self.actor not in {"operator", "machine"}:
+                raise ValueError("confirm requires a stem and actor")
+        elif self.stem is not None or self.actor is not None:
+            raise ValueError("stem and actor are valid only for confirm requests")
         return self
+
+
+@dataclass(frozen=True)
+class SupervisedMergeHold:
+    """The durable authority needed to resume one checked admission."""
+
+    hold_id: UUID
+    lifecycle: UUID
+    stem: str
+    run_seq: int
+    worktree: Path
+    reviewed_sha: str | None
+    candidate_sha: str
+    outcome: str
+    verdict: str
+    summary: str
+    base: str
+    cost: Cost
+
+
+def supervised_merge_holds(events: Iterable) -> dict[str, SupervisedMergeHold]:
+    """Project active HELD admissions, with a merged terminal closing custody."""
+    active: dict[UUID, SupervisedMergeHold] = {}
+    merged: set[str] = set()
+    for event in events:
+        body = getattr(event, "body", {})
+        if (getattr(event, "type", None) == "state_transition"
+                and body.get("to") == "merged" and event.ticket is not None):
+            merged.add(event.ticket)
+            continue
+        if getattr(event, "type", None) != "signal" or body.get("kind") != "control_hold":
+            continue
+        try:
+            hold_id = UUID(body["hold_id"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if body.get("released") is True:
+            active.pop(hold_id, None)
+            continue
+        if body.get("released") is not False or body.get("trigger") != "supervised_merge":
+            continue
+        try:
+            record = SupervisedMergeHold(
+                hold_id=hold_id, lifecycle=UUID(body["lifecycle"]), stem=body["stem"],
+                run_seq=body["run_seq"], worktree=Path(body["worktree"]),
+                reviewed_sha=body.get("reviewed_sha"), candidate_sha=body["candidate_sha"],
+                outcome=body["outcome"], verdict=body["verdict"], summary=body["summary"],
+                base=body["base"], cost=Cost(**body["cost"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if (type(record.stem) is str and record.stem and type(record.run_seq) is int
+                and record.run_seq >= 0 and type(record.candidate_sha) is str
+                and type(record.outcome) is str and type(record.verdict) is str
+                and type(record.summary) is str and type(record.base) is str):
+            active[hold_id] = record
+    return {record.stem: record for record in active.values() if record.stem not in merged}
 
 
 class ControlDecision(BaseModel):
@@ -70,6 +137,11 @@ class ControlInbox:
         self._fs = fs
         self.lifecycle = lifecycle or uuid4()
         self._holds: set[UUID] = set()
+        self._confirm: Mutation | None = None
+
+    def bind_confirm(self, confirm: Mutation) -> None:
+        """Bind the one production admission path that a confirm may resume."""
+        self._confirm = confirm
 
     @property
     def holds(self) -> frozenset[UUID]:
@@ -205,9 +277,20 @@ class ControlInbox:
         if request.lifecycle != self.lifecycle:
             decision = ControlDecision(
                 outcome="stale", request=request, reason="lifecycle does not match")
-        elif request.action == "release" and request.hold_id not in releasable:
+        elif request.action in {"release", "confirm"} and request.hold_id not in releasable:
             decision = ControlDecision(
                 outcome="stale", request=request, reason="hold does not match")
+        elif request.action == "release" and any(
+                record.hold_id == request.hold_id
+                for record in supervised_merge_holds(self._journal.read()).values()):
+            decision = ControlDecision(
+                outcome="invalid", request=request,
+                reason="supervised merge holds require confirm")
+        elif request.action == "confirm" and (
+                (hold := supervised_merge_holds(self._journal.read()).get(request.stem))
+                is None or hold.hold_id != request.hold_id):
+            decision = ControlDecision(
+                outcome="stale", request=request, reason="stem does not match hold")
         else:
             decision = ControlDecision(outcome="accepted", request=request)
         self._append(request_id, decision)
@@ -223,6 +306,25 @@ class ControlInbox:
             assert request.hold_id is not None
             self.discard_hold(request.hold_id)
         await mutate(request)
+        if request.action == "confirm":
+            if self._confirm is None:
+                raise RuntimeError("supervised confirm has no admission consumer")
+            assert request.hold_id is not None
+            await self._confirm(request)
+            self.discard_hold(request.hold_id)
+
+    async def confirm(self, stem: str, hold_id: UUID, *, actor: Actor) -> ControlDecision:
+        """Apply a direct, lock-held confirm through the same durable inbox path."""
+        request = ControlRequest(action="confirm", lifecycle=self.lifecycle,
+                                 hold_id=hold_id, stem=stem, actor=actor)
+        publish_control(self._directory.parent, request, self._fs)
+
+        async def no_other_mutation(_request: ControlRequest) -> None:
+            return None
+
+        return await self._consume(
+            self._directory / f"{request.request_id}.json", self._decisions(),
+            frozenset(self._holds), no_other_mutation)
 
     def _append(self, request_id: str, decision: ControlDecision) -> None:
         self._journal.append(

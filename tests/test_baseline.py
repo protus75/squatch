@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from squatch.baseline import ABSENT, GO, NO_GO, REVOKED, BaselineResolution, resolve_baseline
+from squatch.baseline import (ABSENT, GO, NO_GO, REVOKED, BaselineResolution,
+                              resolve_baseline, supervised_merge_required)
 from squatch.config import parse
 from squatch.journal import Event
 from squatch.providers import Registry
@@ -52,6 +53,14 @@ def test_closed_precedence_and_only_go_binds(tmp_path):
     no_go = event({"kind": "review_baseline", "verdict": "NO_GO"})
     assert resolve_baseline(cfg, (go(cfg), no_go), specs_dir=directory) == BaselineResolution(NO_GO, False)
     assert resolve_baseline(cfg, (no_go, go(cfg)), specs_dir=directory) == BaselineResolution(GO, True)
+
+
+def test_only_a_current_go_lifts_supervised_merge(tmp_path):
+    cfg, directory = config(), specs(tmp_path)
+    assert supervised_merge_required(cfg, (), specs_dir=directory)
+    assert not supervised_merge_required(cfg, (go(cfg),), specs_dir=directory)
+    assert supervised_merge_required(
+        cfg, (go(cfg, spec_major={"review": 2, "author": 1}),), specs_dir=directory)
 
 
 def test_registry_and_spec_identity_are_explicit(tmp_path):

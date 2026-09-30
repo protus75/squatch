@@ -45,6 +45,12 @@ def resolve_baseline(config: Config, events: Iterable[Event], *, specs_dir: Path
     return BaselineResolution(GO, True)
 
 
+def supervised_merge_required(
+        config: Config, events: Iterable[Event], *, specs_dir: Path) -> bool:
+    """Fail closed to operator admission unless the current baseline binds."""
+    return not resolve_baseline(config, events, specs_dir=specs_dir).binds
+
+
 def _matches(config: Config, body: dict, specs_dir: Path) -> bool:
     try:
         tiers = body["tiers"]

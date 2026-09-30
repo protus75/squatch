@@ -63,6 +63,7 @@ from squatch.artifacts import OUTCOMES
 from squatch.caps import (PREMISE_BOUNCE_CAP, CapFold, RETRY_CAP, consume,
                           fold as fold_caps, remaining, spent)
 from squatch.config import Config
+from squatch.control import supervised_merge_holds
 from squatch.daemon import ConsumerCallback, DispatchPause, DrainControl
 from squatch.effects import run_sequence
 from squatch.git import Git
@@ -106,6 +107,7 @@ class Fold:
     terminals: Mapping[str, Mapping]  # stem -> latest terminal body
     confirmed: frozenset[str]        # operator confirm after the latest transition
     rejects: Mapping[str, Arrival]    # unresolved Reject-queue arrivals
+    held_admissions: frozenset[str]   # live supervised admissions, never dispatchable
 
 
 def fold(events: Iterable[Event]) -> Fold:
@@ -136,7 +138,8 @@ def fold(events: Iterable[Event]) -> Fold:
               and e.body.get("actor") == "operator"):
             confirmed.add(e.ticket)
     return Fold(frozenset(merged), latest, first, fold_caps(events), commits,
-                frozenset(edited), terminals, frozenset(confirmed), awaiting(events))
+                frozenset(edited), terminals, frozenset(confirmed), awaiting(events),
+                frozenset(supervised_merge_holds(events)))
 
 
 def sort_key(fold: Fold) -> Callable[[Ticket], tuple]:
@@ -346,6 +349,7 @@ class Drain:
         ready = [t for t in plane.tickets.values()
                  if (facts.latest.get(t.stem) in (None, "abandoned")
                      or self._released(facts, t.stem))
+                 and t.stem not in facts.held_admissions
                  and t.stem not in facts.rejects
                  and all(d in facts.merged for d in t.depends)]
         return sorted(ready, key=sort_key(facts))
@@ -364,7 +368,8 @@ class Drain:
 
     def _reoffers(self, plane: Plane, facts: Fold) -> list[Ticket]:
         offers = [plane.tickets[s] for s in self._parked(plane, facts)
-                  if s not in facts.rejects
+                  if s not in facts.held_admissions
+                  and s not in facts.rejects
                   if facts.latest.get(s) != PREMISE
                   and spent(self._config, facts.cap_drawn, s) is None
                   and all(d in facts.merged for d in plane.tickets[s].depends)]
@@ -485,6 +490,8 @@ class Drain:
         return EXIT_TICKET
 
     def _tail(self, plane: Plane, facts: Fold) -> None:
+        for stem in sorted(facts.held_admissions):
+            self._report(f"held: {stem} awaits `squatch confirm {stem}` for merge admission")
         for stem, arrival in sorted(facts.rejects.items()):
             if stem not in plane.tickets:
                 continue

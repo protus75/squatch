@@ -127,11 +127,14 @@ def lifecycle_durations(events):
 
 
 def passed_invoice(events, step, stem, run_seq):
-    event = next(event for event in events
-                 if event.type == "effect_completion"
-                 and event.key == f"{step}/{stem}/{run_seq}")
+    event = next(event for event in reversed(events)
+                 if event.type == "effect_completion" and event.key is not None
+                 and (event.key.startswith(f"{step}/{stem}/{run_seq}/")
+                      if step == "regate" else event.key == f"{step}/{stem}/{run_seq}"))
     result = event.body["result"]
     invoice = result["invoice"] if step == "check" else result
+    if step == "regate":
+        assert event.key == f"regate/{stem}/{run_seq}/{invoice['base']}"
     return not any(check["verdict"] == "fail" and check["severity"] == "hard"
                    for check in invoice["checks"])
 
@@ -269,3 +272,25 @@ def test_every_closed_field_comes_from_its_member_local_production_evidence(
                         if member != entry.member for event in events]
         assert not any(event.ticket == stem and event.body.get("run_seq") == run_seq
                        for event in other_events)
+
+
+def test_passed_invoice_uses_latest_candidate_base_regate_identity():
+    from types import SimpleNamespace
+    from eval.daemon_soak import _passed_invoice
+    from squatch.journal import Event
+
+    def invoice(base, verdict):
+        return Event(1, "effect_completion", "2026-09-29T00:00:00+00:00",
+                     "candidate", f"regate/candidate/2/{base}",
+                     {"result": {"base": base, "checks": [
+                         {"verdict": verdict, "severity": "hard"}]}})
+
+    green = invoice("a" * 40, "pass")
+    red = invoice("b" * 40, "fail")
+    evidence = SimpleNamespace(events=(green,))
+    assert _passed_invoice(evidence, "regate", "candidate", 2)
+    evidence.events = (green, red)
+    assert not _passed_invoice(evidence, "regate", "candidate", 2)
+    assert not _passed_invoice(evidence, "regate", "candidate", 3)
+    evidence.events += (invoice("c" * 40, "pass"),)
+    assert _passed_invoice(evidence, "regate", "candidate", 2)

@@ -33,6 +33,7 @@ from squatch.artifacts import OUTCOMES, Finding
 from squatch.box import Box, journal_rereport_callback
 from squatch.caps import INFRA_CAP, PREMISE_BOUNCE_CAP, consume
 from squatch.config import Config
+from squatch.control import SupervisedMergeHold, supervised_merge_holds
 from squatch.diagnose import DIAGNOSIS_FILE, DiagnosisRecord
 from squatch.effects import Effects, run_sequence
 from squatch.enginelog import EngineLog
@@ -83,6 +84,8 @@ class Pipeline(Protocol):
     async def diagnose(self, ticket: Ticket, delivery: Delivery, *,
                        run_seq: int) -> DiagnosisRecord: ...
 
+    async def confirm_hold(self, hold: SupervisedMergeHold, *, actor: str) -> None: ...
+
 
 # The journal is opened under the lock, so the pipeline over it is built there.
 PipelineFactory = Callable[[Journal], Pipeline]
@@ -116,10 +119,30 @@ class RecoveredSession:
 class Dispatched:
     run_seq: int
     outcome: str
+    held: bool = False
 
     @property
     def settled(self) -> bool:
-        return self.outcome in SETTLED
+        return not self.held and self.outcome in SETTLED
+
+
+class _ReconcileJournal:
+    """Project only orphan-eligible runs into reconciliation."""
+
+    def __init__(self, journal: Journal, protected: frozenset[str]):
+        self._journal = journal
+        self._protected = protected
+
+    def read(self):
+        return tuple(event for event in self._journal.read()
+                     if event.ticket not in self._protected)
+
+    @property
+    def closed(self) -> bool:
+        return self._journal.closed
+
+    def append(self, *args, **kwargs):
+        return self._journal.append(*args, **kwargs)
 
 
 class Runner:
@@ -160,8 +183,10 @@ class Runner:
                               "a corrupt record is never skipped; inspect the named segment "
                               "line and repair it from the engine log before re-running") from None
             with journal:
+                protected = frozenset(supervised_merge_holds(journal.read()))
                 await reconcile(repo=self._repo, config=self._config, git=self._git,
-                                journal=journal, log=self._log, report=self._report)
+                                journal=_ReconcileJournal(journal, protected),
+                                log=self._log, report=self._report)
                 intake = Intake(repo=self._repo, git=self._git, journal=journal, fs=self._fs)
                 result = await intake.run()
                 self._report_intake(result)
@@ -181,6 +206,12 @@ class Runner:
             events = tuple(session.journal.read())
             self._identity(stem, events)
             self._verdictable(stem, events)
+            hold = supervised_merge_holds(events).get(stem)
+            if hold is not None:
+                pipeline = self._pipeline(session.journal)
+                await pipeline.confirm_hold(hold, actor="operator")
+                self._report(f"confirmed: {stem} admitted held merge {hold.hold_id}")
+                return EXIT_OK
             sha = await self._ticket_sha(stem)
             path = self._path(stem)
             if path.is_file():
@@ -346,6 +377,24 @@ class Runner:
             raise
         except Exception as e:
             raise self._fault(stem, run_seq, e) from None
+        return await self._finish_delivery(
+            ticket, delivery, journal, pipeline=pipeline, run_seq=run_seq, started=started)
+
+    async def finish_release(self, ticket: Ticket, delivery: Delivery, journal: Journal,
+                             pipeline: Pipeline, *, run_seq: int) -> Dispatched:
+        """Route a resumed admission through the same terminal owner as dispatch."""
+        return await self._finish_delivery(
+            ticket, delivery, journal, pipeline=pipeline,
+            run_seq=run_seq, started=self._clock())
+
+    async def _finish_delivery(self, ticket: Ticket, delivery: Delivery, journal: Journal,
+                               *, pipeline: Pipeline, run_seq: int,
+                               started) -> Dispatched:
+        stem = ticket.stem
+        outcome = delivery.outcome
+        if delivery.admission_state == "HELD":
+            self._report(f"held: {stem} run {run_seq} awaits supervised merge confirm")
+            return Dispatched(run_seq, outcome, held=True)
         if outcome in SETTLED:
             self._report(f"settled: {stem} run {run_seq} ended {outcome}")
             return Dispatched(run_seq, outcome)
@@ -410,6 +459,7 @@ class Runner:
                 "diagnosis": diagnosis.model_dump(mode="json")}
         if harvest_error is not None:
             body["harvest_error"] = harvest_error
+        tier, effort = effective(ticket, rungs(journal.read(), stem))
         routing = route(self._config, journal.read(), stem, outcome, diagnosis,
                         current=Rung(tier, effort), delivery=delivery)
         if routing.routed is not None:
@@ -495,6 +545,10 @@ class Runner:
         if ticket.stem in merged:
             raise Refusal(f"{ticket.stem} is already merged",
                           "a merged stem never re-runs; author a new ticket for further work")
+        hold = supervised_merge_holds(journal.read()).get(ticket.stem)
+        if hold is not None:
+            raise Refusal(f"{ticket.stem} is held for supervised merge",
+                          f"release hold {hold.hold_id} with `squatch confirm {ticket.stem}`")
         unmerged = [d for d in ticket.depends if d not in merged]
         if unmerged:
             raise Refusal(f"{ticket.stem} depends on unmerged {', '.join(unmerged)}",
