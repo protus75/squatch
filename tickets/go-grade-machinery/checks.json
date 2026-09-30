@@ -1,16 +1,17 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "06f4de6a8339f9b0adc144bb3b1a36b7b4c33551",
+  "produced_at_sha": "48814d4961962972caf5d49e8cd14b676c0bfff4",
   "stem": "go-grade-machinery",
   "branch": "go-grade-machinery",
-  "base": "7b21b1a12c19f846377b764a6b555dd9440c3924",
-  "head": "06f4de6a8339f9b0adc144bb3b1a36b7b4c33551",
+  "base": "f13577a60886417b843957915c684ea22076fda7",
+  "head": "48814d4961962972caf5d49e8cd14b676c0bfff4",
   "changed_files": [
     "eval/harness.py",
     "squatch/artifacts.py",
     "squatch/stages.py",
-    "tests/test_go_grade.py"
+    "tests/test_go_grade.py",
+    "tests/test_stages.py"
   ],
   "checks": [
     {
