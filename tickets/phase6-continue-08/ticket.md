@@ -29,6 +29,10 @@ Render every authored seed at max effort within
 and preserve section 20's compact-render sentinels. Embed only merged Context;
 never embed new or sibling-new paths.
 
+If the full suite alone reports the unchanged fixture-host-loop integration
+timeout, rerun that exact test once and then rerun the full suite; treat it as
+a premise defect only when the unchanged failure reproduces.
+
 Carry this exact terminal admission:
 ```yaml
 - [phase6-exit]
