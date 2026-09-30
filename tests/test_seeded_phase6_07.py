@@ -86,10 +86,14 @@ def test_continuation_pins_terminal_exit_custody():
         "tests/test_phase6_exit.py", "committed GO-grade report",
         "embedded verdict identity", "latest current-build matching\n`review_baseline` journal signal",
         "signal `GO` maps to receipt enum `GO`", "signal `NO-GO` maps to receipt enum `NO_GO`",
-        "three closed\nhost-loop members", "exact schema-validated host-loop report bytes",
+        "`go-grade-machinery` owns that schema and writer", "`go-grade-run` produced",
+        "`machine_ticket_merge` entries", "`report_to_regression_bug_loop`",
+        "`escape_attribution`", "exact schema-validated host-loop report bytes",
         "`squatch/stages.py` `KNOWN_ARTIFACTS`", "no engine-code edit",
         "forbidden exit inputs"))
-    assert "Embedded Context: none; measured on-demand: none." in scope
+    assert "Embedded Context: `squatch/artifacts.py` and" in scope
+    assert "`tickets/go-grade-run/review-baseline-report.json`; measured on-demand:" in scope
+    assert "`eval/host_loop.py` and `squatch/stages.py`." in scope
     assert "The terminal row contains `phase6-exit` alone, has no successor" in scope
     assert "continuation tail." in scope
     assert "phase6-continue-09" not in scope and not (REPO / TICKETS_DIR / "phase6-continue-09").exists()

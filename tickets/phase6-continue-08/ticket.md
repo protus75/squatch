@@ -42,19 +42,25 @@ It authors no successor and owns/fences only
 It runs the registered `eval/host_loop.py` `run()` producer and reads the
 committed GO-grade report at
 `tickets/go-grade-run/review-baseline-report.json` through
-`ReviewBaselineReport` / `REVIEW_BASELINE_REPORT`. It resolves the report's
+`ReviewBaselineReport` / `REVIEW_BASELINE_REPORT`.
+`go-grade-machinery` owns that schema and writer; `go-grade-run` produced the
+committed file. It resolves the report's
 embedded verdict identity against the latest current-build matching
 `review_baseline` journal signal:
 signal `GO` maps to receipt enum `GO`, while
 signal `NO-GO` maps to receipt enum `NO_GO`; missing or mismatched signal
-identity rejects the exit. It proves the three closed
-host-loop members. Its `host_loop_digest` is lowercase SHA-256 over the
+identity rejects the exit. It proves the closed `HostLoopReport` members in
+schema order: at least three distinct-run `machine_ticket_merge` entries,
+then `report_to_regression_bug_loop`, then `escape_attribution`. Its
+`host_loop_digest` is lowercase SHA-256 over the
 exact schema-validated host-loop report bytes. `squatch/artifacts.py` owns the
 artifact names and schemas; `squatch/stages.py` `KNOWN_ARTIFACTS` registers
 their ordinary-lane writers. It makes no engine-code edit.
 Live-host K>=10 and real-host bug-loop evidence are forbidden exit inputs.
 
-`phase6-exit` partition: Embedded Context: none; measured on-demand: none.
+`phase6-exit` partition: Embedded Context: `squatch/artifacts.py` and
+`tickets/go-grade-run/review-baseline-report.json`; measured on-demand:
+`eval/host_loop.py` and `squatch/stages.py`.
 
 The terminal row contains `phase6-exit` alone, has no successor, and authors no
 continuation tail.
