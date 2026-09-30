@@ -2,15 +2,16 @@
 ok
 
 ## Surprises / judgment calls
-Kept the established fixture evaluator as the ordinary NO-GO path and added a separate runtime-planted GO-grade path. The harness-local Author returns the report's ticket graph; it never renders the production Author prompt.
+The prior attempt's runtime corpus used marker-only diffs, so each defect class now carries a concrete logic, credential-leak, acceptance, or scope-fence violation. Spend is checked after the Author and each Review result before another call is allowed.
 
 ## Dead ends
 None.
 
 ## Second problems filed
+None.
 
 ## Resolved engine/model
-OpenAI Codex (GPT-5).
+OpenAI Codex (model identity not exposed to the implementer).
 
 ## Predicted vs actual
-Expected: 75m. Actual: approximately 20m.
+Expected 75m; actual about 25m.
