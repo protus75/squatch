@@ -4,11 +4,15 @@ ok
 
 ## Surprises / judgment calls
 
-The terminal seed is ticket-plane output and remains uncommitted for the engine lift; only its fenced seeded-contract test was committed.
+The retry findings required naming merged report, schema, producer, and writer
+provenance while preserving the contract's empty embedded and measured
+Context partition. They are recorded as ordinary merged-worktree reads.
 
 ## Dead ends
 
-The first ticket draft used wrapped acceptance bullets, which the ticket grammar rejects; each criterion was made a single observable `tests/test_phase6_exit.py` bullet.
+The initial focused assertion looked for forbidden-input wording in `## Scope
+in`; that wording belongs to `## Scope out`, so the test now checks the whole
+ticket for it.
 
 ## Second problems filed
 
@@ -19,4 +23,4 @@ Codex / GPT-5
 
 ## Predicted vs actual
 
-75m expected; approximately 12m actual.
+75m expected; approximately 20m actual.
