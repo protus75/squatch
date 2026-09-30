@@ -1,9 +1,16 @@
 {
-  "run_seq": 7,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 8,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Requisition review failed on the authored tickets/phase6-exit/ticket.md criterion 1, not on the test. The merged eval/host_loop.py run() returns a validated HostLoopReport and never writes it; the caller serializes it. Do not claim that run() writes through a registered writer.",
+    "Reword the seed's criterion 1 and the matching Scope-in sentence. The exit's Implement calls run(), serializes the returned model to tickets/phase6-exit/host-loop-report.json, and tests/test_phase6_exit.py proves those bytes validate through KNOWN_ARTIFACTS[HOST_LOOP_REPORT].",
+    "Treat exit-receipt.json the same way: the exit's Implement writes it, and the test validates it through KNOWN_ARTIFACTS[EXIT_RECEIPT]. KNOWN_ARTIFACTS entries are lane validators applied when the OUTBOX is lifted, not writers that producers call.",
+    "Keep the member order pinned: at least three distinct-run machine_ticket_merge entries, then report_to_regression_bug_loop, then escape_attribution. Keep the GO->GO / NO-GO->NO_GO mapping, the SHA-256 digest wording, and no engine-code edits.",
+    "Read eval/host_loop.py run() and its docstring, and the KNOWN_ARTIFACTS entries in squatch/stages.py, before writing any criterion that says what they do.",
+    "Update tests/test_seeded_phase6_08.py so its phrase pins follow the reworded criteria. Keep everything that already passed: the terminal row alone, the exact fence, the Context partition, high/high, section-20-only max rendering, and no successor."
+  ],
+  "reason": "The attempt's own seed text overstated the merged run() contract; the fix is a rewording inside the ticket fence that follows the given paved road, with no plan or engine change needed.",
+  "detail": null
 }
