@@ -449,15 +449,28 @@ def _run_seq(journal: Journal) -> int:
 
 
 class _BudgetedLLMEffect:
-    """Apply the live remaining run cap to every request, including re-prompts."""
+    """Apply the live cap and retain the largest completed review cost.
+
+    A review can include a re-prompt, so its observed floor is the whole
+    driver invocation rather than one model call.
+    """
 
     def __init__(self, effect: LLMEffect):
         self._effect = effect
         self.stuck_seconds = effect.stuck_seconds
         self.spend = 0.0
+        self._review_floor: float | None = None
 
     def require_remaining(self) -> float:
         return _remaining_budget(self.spend)
+
+    def can_start_review(self) -> bool:
+        remaining = self.require_remaining()
+        return self._review_floor is None or remaining >= self._review_floor
+
+    def finish_review(self, started_at: float) -> None:
+        review_spend = round(self.spend - started_at, 6)
+        self._review_floor = max(self._review_floor or 0.0, review_spend)
 
     async def call(self, req: LLMRequest, *, stem: str, run_seq: int, attempt: int,
                    call_seq: int) -> LLMResult:
@@ -506,22 +519,46 @@ async def run_go_grade(*, config: Config, seams: "Seams", root: Path = ROOT,
         scores = []
         stage = review_stage(spec)
         for attempt, fixture in enumerate(fixtures, start=1):
-            call.require_remaining()
-            result = await driver.run(
-                stage, ReviewInput(produced_by_spec_version="fixture", produced_at_sha=sha,
-                                   ticket=fixture.ticket, diff=fixture.diff, check_report=NO_CHECKS),
-                ticket="go-grade", run_seq=run_seq, attempt=attempt, workspace=root, sha=sha)
+            try:
+                can_start = call.can_start_review()
+            except Unscored:
+                if scores:
+                    break
+                raise
+            if not can_start:
+                if scores:
+                    break
+                raise Unscored(
+                    "GO grade cannot start its first review within the fixed $5.00 cap; "
+                    "fix the harness route and retry")
+            review_started_at = call.spend
+            try:
+                result = await driver.run(
+                    stage, ReviewInput(produced_by_spec_version="fixture", produced_at_sha=sha,
+                                       ticket=fixture.ticket, diff=fixture.diff,
+                                       check_report=NO_CHECKS),
+                    ticket="go-grade", run_seq=run_seq, attempt=attempt, workspace=root, sha=sha)
+            except Unscored:
+                if scores:
+                    break
+                raise
             if result.outcome not in ("ok", "invalid_artifact"):
-                call.require_remaining()
+                try:
+                    call.require_remaining()
+                except Unscored:
+                    if scores:
+                        break
+                    raise
                 raise Unscored(f"fixture {fixture.name} did not reach a scorable terminal")
             scores.append(score(fixture, result))
+            call.finish_review(review_started_at)
         spend = call.spend
         measured = summarize(scores)
         body = ReviewBaselineSignal(kind=SIGNAL_KIND, verdict=VERDICT, tiers=(tier,), identity=identity,
             spec_version=versions, spec_major=majors, fixture_authors=(), summary=measured,
             scores=tuple(scores), produced_at_sha=sha, spool=str(spool.root / stage.surface))
         journal.append("signal", body.model_dump(mode="json"))
-    print(f"go-grade: {len(fixtures)} planted defects, ${spend:.2f}", file=out)
+    print(f"go-grade: {len(scores)}/{len(fixtures)} planted defects scored, ${spend:.2f}", file=out)
     return ReviewBaselineReport(schema_version=1, produced_at_sha=sha,
         planted_defect_count=len(fixtures), spend_usd=spend,
         authored_tickets=author_result.artifact.authored_tickets,
@@ -548,6 +585,10 @@ def write_go_grade_report(*, workspace: Path, stem: str, report: ReviewBaselineR
 def record_go(*, config: Config, seams: "Seams", report: ReviewBaselineReport,
               root: Path = ROOT) -> ReviewBaselineSignal:
     """The sole GO writer, reserved for explicit operator judgment."""
+    if not _is_complete_go_grade(report):
+        raise Unscored(
+            "GO grade report is incomplete; an operator may record GO only after every "
+            "planted defect has a scorable review")
     identity = report.verdict_signal_identity
     state = config.state_dir if config.state_dir.is_absolute() else Path(root) / config.state_dir
     with Journal(state, clock=seams.clock) as journal:
@@ -559,6 +600,11 @@ def record_go(*, config: Config, seams: "Seams", report: ReviewBaselineReport,
             produced_at_sha=report.produced_at_sha, spool="operator")
         journal.append("signal", body.model_dump(mode="json"))
     return body
+
+
+def _is_complete_go_grade(report: ReviewBaselineReport) -> bool:
+    summary = report.scored_summary
+    return summary.known_bad + summary.clean == report.planted_defect_count
 
 
 # ---- the run -------------------------------------------------------------

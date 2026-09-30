@@ -73,7 +73,7 @@ async def test_go_grade_runs_local_author_under_cap_and_records_graph(tmp_path):
             if event.type == "signal"} == {"NO-GO"}
 
 
-async def test_running_cap_counts_author_and_refuses_before_another_review(tmp_path):
+async def test_cap_exhaustion_before_any_review_remains_unscored(tmp_path):
     cfg = config(tmp_path)
     author = json.dumps({"authored_tickets": ["a"], "dependency_graph": {"a": []}})
     llm = FakeLLM(_result(author, 5.00))
@@ -85,6 +85,53 @@ async def test_running_cap_counts_author_and_refuses_before_another_review(tmp_p
                   if event.type == "effect_completion")
     assert charged == 5.00 <= GO_SPEND_CAP_USD
     assert not list(tmp_path.rglob(REVIEW_BASELINE_REPORT))
+
+
+async def test_cap_exhaustion_mid_review_returns_partial_no_go_without_another_call(tmp_path):
+    cfg = config(tmp_path)
+    author = json.dumps({"authored_tickets": ["a"], "dependency_graph": {"a": []}})
+    llm = FakeLLM(
+        _result(author, 0.05),
+        _result(reply("snag", "src/planted_01.py"), 0.05),
+        _result("{}", 4.90),
+    )
+
+    report = await run_go_grade(config=cfg, seams=seams(tmp_path), root=tmp_path, llm=llm)
+
+    assert [request.surface for request in llm.requests] == ["author", "review", "review"]
+    assert [request.max_budget_usd for request in llm.requests] == pytest.approx(
+        [5.00, 4.95, 4.90])
+    assert report.spend_usd == pytest.approx(5.00)
+    assert report.scored_summary.known_bad + report.scored_summary.clean == 1
+    charged = sum(event.body["cost"]["usd"]
+                  for event in Journal(cfg.state_dir, clock=TickingClock()).read()
+                  if event.type == "effect_completion")
+    assert charged == pytest.approx(5.00)
+    assert charged <= GO_SPEND_CAP_USD
+    signals = [event.body for event in Journal(cfg.state_dir, clock=TickingClock()).read()
+               if event.type == "signal"]
+    assert [signal["verdict"] for signal in signals] == ["NO-GO"]
+    assert len(signals[0]["scores"]) == 1
+    with pytest.raises(harness.Unscored, match="report is incomplete"):
+        record_go(config=cfg, seams=seams(tmp_path), root=tmp_path, report=report)
+    assert [event.body["verdict"] for event in Journal(cfg.state_dir, clock=TickingClock()).read()
+            if event.type == "signal"] == ["NO-GO"]
+
+
+async def test_review_floor_counts_the_whole_reprompted_review(tmp_path):
+    cfg = config(tmp_path)
+    author = json.dumps({"authored_tickets": ["a"], "dependency_graph": {"a": []}})
+    llm = FakeLLM(
+        _result(author, 4.60),
+        _result("{}", 0.10),
+        _result(reply("snag", "src/planted_01.py"), 0.20),
+    )
+
+    report = await run_go_grade(config=cfg, seams=seams(tmp_path), root=tmp_path, llm=llm)
+
+    assert len(llm.requests) == 3
+    assert report.spend_usd == pytest.approx(4.90)
+    assert report.scored_summary.known_bad + report.scored_summary.clean == 1
 
 
 async def test_author_reprompt_gets_budget_remaining_after_first_call(tmp_path):
