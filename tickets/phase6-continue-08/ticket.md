@@ -57,9 +57,13 @@ identity rejects the exit. It proves the closed `HostLoopReport` members in
 schema order: at least three distinct-run `machine_ticket_merge` entries,
 then `report_to_regression_bug_loop`, then `escape_attribution`. Its
 `host_loop_digest` is lowercase SHA-256 over the
-exact schema-validated host-loop report bytes. `squatch/artifacts.py` owns the
-artifact names and schemas; `squatch/stages.py` `KNOWN_ARTIFACTS` registers
-their ordinary-lane writers. It makes no engine-code edit.
+exact schema-validated host-loop report bytes. The exit Implement serializes
+the model returned by `run()` to its fenced host-loop JSON, constructs and
+serializes the receipt to its fenced receipt JSON, and proves those OUTBOX
+bytes validate through `KNOWN_ARTIFACTS[HOST_LOOP_REPORT]` and
+`KNOWN_ARTIFACTS[EXIT_RECEIPT]`. These entries are lane validators, not
+writers the producer calls. `squatch/artifacts.py` owns their names and
+schemas. It makes no engine-code edit.
 Live-host K>=10 and real-host bug-loop evidence are forbidden exit inputs.
 
 `phase6-exit` partition: Embedded Context: `squatch/artifacts.py` and
