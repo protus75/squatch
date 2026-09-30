@@ -1,16 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "serve sends inbox reports to the Suggestion Box as bug_report (squatch/inbox.py:150). Only the triage LLM surface can turn one into an Author ticket (squatch/triage.py).",
-    "hosts/fixture/config.yaml routes only author, implement, and review. hosts/fixture/bin/codex:121 fails any other surface, including triage. So serve can never turn the fixture report into the bug ticket.",
-    "hosts/fixture/ is outside the scope fence, so no implementer can add a triage route or a fixture triage response. Hardcoding the bug-loop and escape entries instead is the fabricated evidence the ticket forbids.",
-    "Escape attribution depends on the same path: a later escape report has to go through inbox, triage, and author. It is unreachable for the same reason.",
-    "Fix the ticket: add hosts/fixture/config.yaml and hosts/fixture/bin/codex to the fence and require a scripted triage surface, or depend on a ticket that adds fixture triage first.",
-    "Keep the closed HostLoopEntry, HostLoopReport, and ExitReceipt schemas and their KNOWN_ARTIFACTS registration; review found them sound. The criterion-3 test in test_gates must run real gate or lift code, not assert on an empty tmp_path."
-  ],
-  "reason": "Both the report-to-regression loop and escape attribution need the triage surface, which the fixture adapter refuses, and the fixture is outside the scope fence, so the ticket cannot be met without fabricating evidence.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
