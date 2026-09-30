@@ -1,17 +1,20 @@
 {
-  "run_seq": 4,
+  "run_seq": 5,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "escalate",
   "lessons": [
-    "Full `uv run pytest -q` exited 1, but the harvest does not name the failing test. Run the full suite to completion before claiming implemented. Likely suspects: tests/test_fixture_host.py or config/routing tests that pin the fixture's surface set or config shape after the triage additions.",
-    "FixtureHostLoop launches `python bin/fixture-serve`, a launcher that does not exist in hosts/fixture/. Launch the real `squatch serve` CLI (squatch/__main__.py / squatch/serve.py) on the tmp host copy, using an argv list.",
-    "No machine-actor confirm is sent. Supervised merges hold (squatch/merge.py, control.py). Write identity-bound confirm requests through the real control-inbox writer for each held stem, or serve never merges.",
-    "Tests only feed hand-built Event tuples to report_from_events. That is fabricated evidence. At least one test must run FixtureHostLoop.run() end to end on tmp_path (fake only the clock/process/fs/provider seams) and assert the journal-derived entries.",
-    "report_from_events hardcodes the stem names and matches on invented signal bodies (kind=triage_pass, triaged.authored). Read squatch/triage.py, inbox.py and journal.py for the real event types and bodies before projecting. Take producing_run from real run records.",
-    "The fixture triage reply {verdict, summary, kind, priority, goal, why} was not validated against the triage spec's output schema. Read specs/triage.md and squatch/triage.py and emit exactly the closed fields, with ## Regression-bearing evidence surviving to Author.",
-    "Keep the closed HostLoopEntry, HostLoopReport and ExitReceipt schemas and the KNOWN_ARTIFACTS registration, plus the config.yaml triage route. Criterion 3 still needs no-terminal-artifact assertions in test_gates.py and test_stages.py after running the real construction/lift path."
+    "Keep the closed HostLoopEntry, HostLoopReport and ExitReceipt schemas, their KNOWN_ARTIFACTS registration, and the config.yaml triage route. Review found them sound.",
+    "eval/host_loop.py must launch the real `squatch serve` CLI (squatch/serve.py) with an argv list on a tmp copy of hosts/fixture/. A projection over caller-supplied events is not the harness.",
+    "Send machine-actor confirm requests for each held stem through the real control-inbox writer (squatch/control.py). Emit a machine_ticket_merge entry only when the journal shows that confirm.",
+    "Derive escape attribution from the escape ticket's first-parent merge trailers via git.py and check it names fixture-machine-escape. A caller-supplied string is fabricated evidence.",
+    "Hard-coded observables like 'journal merged after machine confirm' are fabricated. Read each observable and producing_run from the journal and run records that serve writes in the tmp host.",
+    "Before projecting, read squatch/triage.py, inbox.py, journal.py and specs/triage.md for the real event types and triage output schema. Invented signal bodies such as kind=triage_pass are not real.",
+    "The ExitReceipt unknown-field test must pass schema_version=1 and assert an extra_forbidden error. Without the required field, the test proves nothing about unknown-field refusal.",
+    "Criterion 4 requires edits to tests/test_gates.py and tests/test_stages.py. Run the real gate, stage or lift path plus FixtureHostLoop.run(), then assert that no host-loop-report.json or exit-receipt.json exists.",
+    "At least one test must run the harness end to end on tmp_path, faking only the clock, process, fs and provider seams. It must exercise the fixture codex triage branch to cover the report-to-regression and escape loops.",
+    "The last attempt used about 25 of 75 budgeted minutes and again skipped the serve integration. Use the budget to read serve, control and inbox before writing code."
   ],
-  "reason": "The fence now allows fixture triage, so the ticket is satisfiable; this attempt failed on an unreported full-suite test failure and still drives synthetic events instead of real serve/confirm, which are fixable oversights.",
+  "reason": "Five attempts have repeatedly skipped the real serve/control-inbox integration and substituted fabricated evidence even when steered by lessons, which points to a capability gap rather than an oversight.",
   "detail": null
 }
