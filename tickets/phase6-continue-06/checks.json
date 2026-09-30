@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "e5b85e376491f755e70a3b18519902ce2de80cce",
+  "produced_at_sha": "766042e55c1567ed8ff378ab98f9eee1090aec96",
   "stem": "phase6-continue-06",
   "branch": "phase6-continue-06",
-  "base": "73356ec68cd014adb8adbb6823599a833a21c794",
-  "head": "e5b85e376491f755e70a3b18519902ce2de80cce",
+  "base": "c9b19e6ed640ed504bc630f252631be302cc31e2",
+  "head": "766042e55c1567ed8ff378ab98f9eee1090aec96",
   "changed_files": [
     "tests/test_seeded_phase6_06.py"
   ],
@@ -15,29 +15,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/go-grade-machinery/ticket.md",
-      "sha": "8e17b3b4f3774b1785d86d716708357e67da21a2",
+      "sha": "4a41bf486d9b7f3648837899ba30153af24e0c98",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/go-grade-machinery/ticket.md",
-          "line": 58,
-          "message": "The harness reads committed fixtures from `eval/fixtures/`, which holds 18 fixture directories, and some of them are clean. Reaching 50 planted defects therefore needs either new committed fixtures under `eval/fixtures/` or a harness-local Author prompt plus runtime planting. The ticket names neither location. `eval/fixtures/` and any separate prompt file are outside the fence, so an implementer who follows the most natural route will escape scope.",
-          "paved_road": "State that the harness-local Author prompt is inline in `eval/harness.py` and that the defects are planted at runtime, so no fixture or prompt file is added. Otherwise, add the exact fixture or prompt paths to the Scope fence."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/go-grade-machinery/ticket.md",
-          "line": 283,
-          "message": "Today `harness.run` appends a `review_baseline` NO-GO signal on every scored run. `test_run_scores_every_fixture_and_journals_the_no_go_signal` and `test_rerun_after_a_recorded_verdict_takes_a_fresh_sequence_and_calls_again` assert this, and `run_seq` is derived from the count of those signals. The ticket says only that operator-only `--record-go` appends the signal. It does not say whether ordinary runs keep journaling NO-GO. If they stop, a re-run would reuse the same effect keys and replay cached calls, which contradicts the rerun test. The ticket names neither of these tests for migration or preservation.",
-          "paved_road": "State explicitly that ordinary runs still append the NO-GO signal, `run_seq` keying is unchanged, and `--record-go` only appends an operator GO body. Otherwise, name the two tests to migrate and give the new `run_seq` source."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/go-grade-machinery/ticket.md",
-          "line": 54,
-          "message": "The criterion 'preserve the required identity and reader boundary' cannot be checked as written. `resolve_baseline` binds only when the GO body has `tiers`, an `identity` keyed exactly `{review, author}` per tier matching `Registry(config)`, and integer `spec_major` for both surfaces equal to the majors of `specs/review.md` and `specs/author.md`. The harness's `ReviewBaselineSignal.verdict` is currently `Literal[\"NO-GO\"]`. `tests/test_baseline.py` is not in Verification, so nothing guards the unfenced reader.",
-          "paved_road": "Rewrite the criterion to say that a `--record-go` body resolves to `GO`/`binds=true` through the unchanged `resolve_baseline`, that a non-operator path cannot write `verdict: GO`, and that the recorded `review_baseline` signal identity equals the report's verdict-signal identity. Add `tests/test_baseline.py` to Verification as a preservation suite."
+          "line": null,
+          "message": "invalid requisition_review reply: '```json\\n{\"verdict\": \"snag\", \"summary\": \"The ticket can be built against the merged harness and the unchanged resolve_baseline reader. One problem: an acceptance criterion depends on tests/test_baseline.py, which is not in the fence.\", \"findings\": [{\"code\": \"requisition_review\", \"path\": \"tests/test_baseline.py\", \"line\": null, \"message\": \"The third acceptance criterion requires `tests/test_go_grade.py` and `tests/test_baseline.py` to prove that an operator `--record-go` body resolves to GO with bi'",
+          "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
       "commands": []
@@ -47,7 +33,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/go-grade-run/ticket.md",
-      "sha": "d3b6f94043ddce9567e898ab9772df7e09cfce8d",
+      "sha": "41e1feacc820b677a812da0df2206b0274e55009",
       "bypassed": false,
       "findings": [],
       "commands": []
@@ -57,7 +43,7 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/phase6-continue-07/ticket.md",
-      "sha": "c997fa0c93b09e8bff5afa4b1d525c4aff1fb6df",
+      "sha": "ba5a2c9ca8be51de6a29e9074a7034111a7c4c21",
       "bypassed": false,
       "findings": [],
       "commands": []
