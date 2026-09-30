@@ -1,9 +1,17 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Don't treat Claude's error_max_budget_usd as a free refusal before a model turn. That call ran a model turn and its cost was dropped. Remove the _budget_refused break and its string-match test.",
+    "Before each fixture, check that remaining budget covers a per-review floor, e.g. the largest review cost journaled so far in this run. If it doesn't, break to the measured partial NO-GO through require_remaining, so the CLI never gets a budget it can overrun.",
+    "Replace test_claude_remaining_cap_refusal_is_not_a_model_turn with a test showing the floor check stops before the review call, with no extra FakeLLM request.",
+    "Keep the parts the reviewer accepted: the partial NO-GO return after at least one scorable review, and the record_go refusal of incomplete reports via _is_complete_go_grade.",
+    "Commit the harness fix first, then execute the harness exactly once from committed code, so produced_at_sha matches head. Never resume or stitch together an earlier journaled run.",
+    "In run.md, state plainly that earlier invocations spent money off-ledger: two refused calls journaled at usd 0.0 after ~0.1 remained. The operator must see the real cost.",
+    "squatch/providers.py parse drops total_cost_usd on error results. It is outside the fence, so file it to the Suggestion Box, list it under Second problems filed, and don't fix it here."
+  ],
+  "reason": "Review snag with an in-fence paved road: the pre-call floor replaces the false budget-refusal premise, then one clean execution from committed code; the ticket is not shown to be unsatisfiable.",
+  "detail": null
 }
