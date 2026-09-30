@@ -20,7 +20,9 @@ FENCES = {
         "eval/harness.py", "squatch/artifacts.py", "squatch/stages.py", "squatch/llm.py",
         "squatch/providers.py", "tests/test_eval_harness.py", "tests/test_stages.py",
         "tests/test_providers.py", "tests/test_go_grade.py"),
-    "go-grade-run": ("tickets/go-grade-run/review-baseline-report.json",),
+    "go-grade-run": (
+        "eval/harness.py", "tests/test_go_grade.py",
+        "tickets/go-grade-run/review-baseline-report.json"),
     "phase6-continue-07": ("tickets", "tests/test_seeded_phase6_07.py"),
 }
 CONTEXT = {
@@ -107,9 +109,10 @@ def test_row_six_identity_edges_tier_fence_and_partition():
     embedded, measured = run_partition.split("; measured on-demand:", 1)
     assert _paths(embedded) == ()
     assert _paths(measured.split(". Read", 1)[0]) == (
-        "eval/harness.py", "squatch/artifacts.py")
+        "eval/harness.py", "squatch/artifacts.py", "tests/test_go_grade.py")
     assert all(phrase in run for phrase in (
-        "changes no code", "merged harness once", "uncommitted for ordinary-lane",
+        "merged harness once", "uncommitted for ordinary-lane",
+        "measured partial result as", "valid NO-GO evidence", "can never become GO",
         "GO-or-NO-GO verdict signal identity", "NO-GO is valid",
         "Only the", "operator may turn an earned result into GO", "must not invoke"))
 
