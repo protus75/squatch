@@ -28,7 +28,7 @@ Author confirmed source-seed `go-grade-machinery`, `go-grade-run`, and
 and continuation cites section 20 alone and starts medium/medium unless
 KNOWN-DEEP or KNOWN-HARD high/high. Render every authored seed at max effort
 within `RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM`; never render section
-19. The sole Context is merged `tests/test_seeded_phase6_04.py`; do not embed
+19, and preserve section 20's compact-render sentinels. The sole Context is merged `tests/test_seeded_phase6_04.py`; do not embed
 new or sibling-new paths.
 
 Carry this exact shrinking suffix:
