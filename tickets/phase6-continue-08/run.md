@@ -4,27 +4,27 @@ premise_failed
 
 ## Surprises / judgment calls
 
-Section 20's repaired terminal contract supplies the baseline-signal identity,
-enum mapping, digest, and writer provenance, so the authored seed records those
-closed inputs directly.
+Authored the terminal seed from section 20's repaired identity, enum, digest,
+and ordinary-lane writer contract; it has no embedded Context.
 
 ## Dead ends
 
-The required full suite fails outside this ticket's scope fence in
-`tests/test_seeded_phase6_02.py::test_every_emitted_ticket_renders_with_real_context_at_max_effort`:
-the unchanged `phase6-continue-03` render is 120651 characters against a
-120000-character limit. Its ticket, seeded test, and the plan surface are not
-permitted edits for this ticket.
+`uv run pytest -q` fails at
+`tests/test_seeded_phase5_02.py::test_phase6_remaining_registry_closes_contracts_paths_and_edges`.
+That test requires the plan's section 20 to contain the backticked path
+`tickets/phase6-exit/exit-receipt.json`, but the unchanged plan does not. The
+plan is outside this ticket's scope fence, so the required full verification
+cannot exit 0 here.
 
 ## Second problems filed
 
-The Phase 6 row-2 render-bound regression above remains for its owner; no
-adjacent path was changed here.
+The missing backticked terminal receipt path in section 20 is a plan-owned
+render-contract defect; no out-of-fence path was changed.
 
 ## Resolved engine/model
 
-Unknown.
+OpenAI Codex (model identifier unavailable).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 12m.
+Expected 75m; actual approximately 10m.
