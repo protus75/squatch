@@ -84,7 +84,7 @@ def test_continuation_pins_terminal_exit_custody():
         "transitively depends on", "authors no successor",
         "tickets/phase6-exit/host-loop-report.json", "tickets/phase6-exit/exit-receipt.json",
         "tests/test_phase6_exit.py", "committed GO-grade report",
-        "embedded verdict identity", "latest matching `review_baseline` journal signal",
+        "embedded verdict identity", "latest current-build matching\n`review_baseline` journal signal",
         "signal `GO` maps to receipt enum `GO`", "signal `NO-GO` maps to receipt enum `NO_GO`",
         "three closed\nhost-loop members", "exact schema-validated host-loop report bytes",
         "`squatch/stages.py` `KNOWN_ARTIFACTS`", "no engine-code edit",

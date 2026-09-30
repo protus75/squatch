@@ -43,7 +43,8 @@ It runs the registered `eval/host_loop.py` `run()` producer and reads the
 committed GO-grade report at
 `tickets/go-grade-run/review-baseline-report.json` through
 `ReviewBaselineReport` / `REVIEW_BASELINE_REPORT`. It resolves the report's
-embedded verdict identity against the latest matching `review_baseline` journal signal:
+embedded verdict identity against the latest current-build matching
+`review_baseline` journal signal:
 signal `GO` maps to receipt enum `GO`, while
 signal `NO-GO` maps to receipt enum `NO_GO`; missing or mismatched signal
 identity rejects the exit. It proves the three closed
