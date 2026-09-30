@@ -17,8 +17,9 @@ ROW = ("go-grade-machinery", "go-grade-run", "phase6-continue-07")
 SUFFIX = (ROW, ("exit-receipt-machinery", "phase6-continue-08"), ("phase6-exit",))
 FENCES = {
     "go-grade-machinery": (
-        "eval/harness.py", "squatch/artifacts.py", "squatch/stages.py",
-        "tests/test_eval_harness.py", "tests/test_stages.py", "tests/test_go_grade.py"),
+        "eval/harness.py", "squatch/artifacts.py", "squatch/stages.py", "squatch/llm.py",
+        "squatch/providers.py", "tests/test_eval_harness.py", "tests/test_stages.py",
+        "tests/test_providers.py", "tests/test_go_grade.py"),
     "go-grade-run": ("tickets/go-grade-run/review-baseline-report.json",),
     "phase6-continue-07": ("tickets", "tests/test_seeded_phase6_07.py"),
 }
@@ -85,8 +86,10 @@ def test_row_six_identity_edges_tier_fence_and_partition():
     for phrase in (
         "at least 50 planted defects", "USD 5.00 cap", "harness-local Author prompt is inline",
         "planted at runtime", "never uses production `specs/author.md`",
+        "optional per-call USD ceiling", "`--max-budget-usd`",
+        "refuses before spawn", "remaining run budget",
         "closed `review-baseline-report.json`", "planted-defect count", "spend",
-        "authored tickets", "dependency graph", "verdict-signal identity",
+        "authored tickets", "dependency graph", "measured scored summary", "verdict-signal identity",
         "`KNOWN_ARTIFACTS`", "`completed_output_lift`", "operator-only `--record-go`",
         "NO-GO", "run_seq keying is unchanged", "No non-operator path can write verdict GO",
         "test_run_scores_every_fixture_and_journals_the_no_go_signal",
