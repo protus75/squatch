@@ -1,18 +1,20 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "7f2a89dc02debe2d84fef6b70a24fa3125001208",
+  "produced_at_sha": "2c8e31d012e5d903e5023c9afce88a24d159eb4c",
   "stem": "exit-receipt-machinery",
   "branch": "exit-receipt-machinery",
-  "base": "680e0b761cfd5496e4709eaafb7eef48853eb496",
-  "head": "7f2a89dc02debe2d84fef6b70a24fa3125001208",
+  "base": "581dacbfbb65ffc455538ff53ea9a99357c9159b",
+  "head": "2c8e31d012e5d903e5023c9afce88a24d159eb4c",
   "changed_files": [
     "eval/host_loop.py",
     "hosts/fixture/bin/codex",
     "hosts/fixture/config.yaml",
     "squatch/artifacts.py",
     "squatch/stages.py",
-    "tests/test_host_loop.py"
+    "tests/test_gates.py",
+    "tests/test_host_loop.py",
+    "tests/test_stages.py"
   ],
   "checks": [
     {
