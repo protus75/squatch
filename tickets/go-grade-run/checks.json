@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "269d8eae18d6150379212e4e4d642e24f431a7af",
+  "produced_at_sha": "c400dbf979bac54e00a65b4e2bd4e259a765062f",
   "stem": "go-grade-run",
   "branch": "go-grade-run",
-  "base": "d32cfaa08e0f62c121a064d2210b208ad70669c0",
-  "head": "269d8eae18d6150379212e4e4d642e24f431a7af",
+  "base": "3a1189f47ba12607a3f4998d9cc2777f1bbd8dcd",
+  "head": "c400dbf979bac54e00a65b4e2bd4e259a765062f",
   "changed_files": [
     "eval/harness.py",
     "tests/test_go_grade.py"
