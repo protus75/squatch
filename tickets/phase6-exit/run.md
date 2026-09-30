@@ -4,9 +4,11 @@ ok
 
 ## Surprises / judgment calls
 
-The prior attempt's identity mismatch is no longer blocking because the amended
-ticket maps the committed incomplete GO-grade report directly to `NO_GO`. The
-report scores 41 of 50 planted defects, so I did not read a journal verdict.
+The prior attempt already produced the validated OUTBOX artifacts, but its test
+did not bind the committed report to the registered fixture producer. I reused
+one module-scoped producer run, compared the stable member/scenario/run-stem
+identity, and proved that schema-valid unregistered scenario and live-host run
+identities fail that same provenance check.
 
 ## Dead ends
 
@@ -20,4 +22,4 @@ OpenAI Codex / GPT-5
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 20m.
+Expected: 75m. Actual: about 8m for this retry.
