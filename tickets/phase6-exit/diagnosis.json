@@ -1,9 +1,16 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Keep the passing receipt, digest, incomplete-grade NO_GO, identity-mapping, fence and no-successor tests unchanged. Only one acceptance clause is unmet.",
+    "Bind the committed host-loop-report.json to the registered producer. Run host_loop.run() once in a module-scoped fixture, then assert that the committed entries' (member, scenario) pairs and producing_run stems equal the fixture report's.",
+    "Or, at minimum, assert that every committed entry's stem and scenario comes from host_loop.STEMS / host_loop.INITIAL_SCENARIOS.",
+    "Add a negative case: a report with the right shape but scenarios or producing_run stems outside the fixture registry must fail that same check. This proves fabricated or live-host evidence is rejected.",
+    "A static scan of the test's own source for journal imports does not prove evidence provenance. Put the provenance check on the OUTBOX artifact bytes.",
+    "Write only inside the fence: the two tickets/phase6-exit JSON files and tests/test_phase6_exit.py. Make no engine-code edits."
+  ],
+  "reason": "All gates passed, and review flagged one fixable gap in the test (the committed host-loop report is never checked against the registered fixture producer), with a concrete fix.",
+  "detail": null
 }
