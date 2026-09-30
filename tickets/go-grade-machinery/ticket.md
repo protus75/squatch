@@ -53,6 +53,8 @@ Embedded Context: none. Measured on-demand worktree reads:
 `tests/test_eval_harness.py`, `tests/test_stages.py`. Read these before editing;
 their combined size exceeds render headroom. New `tests/test_go_grade.py` is
 not Context. Read `squatch/baseline.py` only to observe its unchanged public reader.
+The downstream `go-grade-run` embeds no Context and reads the expanded
+`eval/harness.py` and `squatch/artifacts.py` on demand after this dependency merges.
 
 ## Scope out
 Do not modify the baseline reader, production Author prompt, or fixture files; do not execute the real run or record production GO during construction.
