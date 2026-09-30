@@ -4,14 +4,22 @@ premise_failed
 
 ## Surprises / judgment calls
 
-The required `go-grade-run` closed report cannot enter the ordinary output-lift lane without registering `review-baseline-report.json` in `squatch/stages.py::KNOWN_ARTIFACTS`.
+The corrected section-20 contract includes `squatch/stages.py` and
+`tests/test_stages.py` in the GO-grade machinery fence, so the prior ordinary-
+lane lift contradiction is resolved. I authored the report registration as a
+required seed obligation.
 
 ## Dead ends
 
-The ticket and section-20 row fence `go-grade-machinery` to `eval/harness.py`, `squatch/artifacts.py`, `tests/test_eval_harness.py`, and `tests/test_go_grade.py`; it forbids the required `squatch/stages.py` registration. The current registry lacks that report name and `completed_output_lift` excludes unregistered names, so authoring the requested seeds would preserve a report that cannot be validated, lifted, or read by the terminal exit. The paved road is to correct the plan and regenerate the affected seed contract before retrying.
+The required full suite exits 1 because unchanged
+`tests/test_seeded_phase5_02.py` and `tests/test_seeded_phase5_03.py` require
+section-20 wording absent from the unchanged `SQUATCH_PLAN.md`. The mismatch is
+present at `HEAD`; those paths are outside this ticket's scope fence.
 
 ## Second problems filed
 
+`tests/test_seeded_phase5_02.py` and `tests/test_seeded_phase5_03.py` have
+stale compact-render wording expectations for `SQUATCH_PLAN.md`.
 
 ## Resolved engine/model
 
@@ -19,4 +27,5 @@ OpenAI / GPT-5
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: approximately 5m to confirm the fence contradiction.
+Expected: 75m. Actual: approximately 15m to author the corrected row-6 seeds,
+pin them, and identify the pre-existing full-suite failures.
