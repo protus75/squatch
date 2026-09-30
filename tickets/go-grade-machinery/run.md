@@ -2,16 +2,16 @@
 ok
 
 ## Surprises / judgment calls
-The prior attempt's runtime corpus used marker-only diffs, so each defect class now carries a concrete logic, credential-leak, acceptance, or scope-fence violation. Spend is checked after the Author and each Review result before another call is allowed.
+The prior implementation commit was no longer in branch history, so its accepted report/schema/operator-path work was restored before fixing the carried findings. The strict pre-call reservation uses the largest observed call cost as the conservative bound, including Author spend.
 
 ## Dead ends
-None.
+The prior post-call cap check allowed the call that crossed USD 5.00 and was replaced with a pre-call reservation. The prior fixed run_seq reused ordinary baseline effect keys and was replaced with the shared journal-derived sequence.
 
 ## Second problems filed
 None.
 
 ## Resolved engine/model
-OpenAI Codex (model identity not exposed to the implementer).
+OpenAI / GPT-5 Codex.
 
 ## Predicted vs actual
-Expected 75m; actual about 25m.
+Expected 75m; actual approximately 15m for reconstruction, both correctness fixes, full verification, and commit.
