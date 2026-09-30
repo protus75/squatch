@@ -36,6 +36,7 @@ class LLMRequest:
     effort: Effort
     ticket: str | None
     worktree: Path | None
+    max_budget_usd: float | None = None
 
     def __post_init__(self):
         if self.surface not in LLM_SURFACES:
@@ -44,6 +45,8 @@ class LLMRequest:
             raise ValueError(f"tier {self.tier!r} is not an agent tier")
         if self.effort not in EFFORTS:
             raise ValueError(f"effort {self.effort!r} is not an agent effort")
+        if self.max_budget_usd is not None and self.max_budget_usd < 0:
+            raise ValueError("max_budget_usd must be non-negative")
 
 
 @dataclass(frozen=True)

@@ -144,9 +144,12 @@ class ClaudeAdapter(_Adapter):
         ("model_error", "model is not available"),
     )
 
-    def argv(self, *, model: str, effort: str, grant: Grant) -> list[str]:
+    def argv(self, *, model: str, effort: str, grant: Grant,
+             max_budget_usd: float | None = None) -> list[str]:
         # --verbose: print mode refuses stream-json without it.
         base = ["claude", "-p", "--output-format", "stream-json", "--verbose", "--model", model]
+        if max_budget_usd is not None:
+            base += ["--max-budget-usd", f"{max_budget_usd:.6f}"]
         if grant == "write":
             return base + ["--permission-mode", "bypassPermissions"]
         return base + ["--allowedTools", "Read", "Grep", "Glob", "LS"]
@@ -197,7 +200,8 @@ class CodexAdapter(_Adapter):
         ("model_error", "model is not supported"),
     )
 
-    def argv(self, *, model: str, effort: str, grant: Grant) -> list[str]:
+    def argv(self, *, model: str, effort: str, grant: Grant,
+             max_budget_usd: float | None = None) -> list[str]:
         base = ["codex", "exec", "--json", "-m", model, "-c", f"model_reasoning_effort={effort}"]
         if grant == "write":
             base += ["--dangerously-bypass-approvals-and-sandbox"]
@@ -408,6 +412,11 @@ class CliClient:
             raise RoutingError(f"route ({req.tier}, {req.surface}) -> {provider.name} still "
                                f"carries the placeholder `{PLACEHOLDER}`; {PREREQUISITE}")
         adapter = ADAPTERS[provider.name]
+        if (req.max_budget_usd is not None and not adapter.reports_cost
+                and provider.limits.est_cost_per_call_usd > req.max_budget_usd):
+            raise RoutingError(
+                f"provider `{provider.name}` flat estimate ${provider.limits.est_cost_per_call_usd:.2f} "
+                f"exceeds requested call ceiling ${req.max_budget_usd:.2f}; refuse before spawn")
         # The write grant is derived from the surface allowlist, never passed in.
         grant: Grant = "write" if req.surface in WRITING_SURFACES else "read"
         if grant == "write" and req.worktree is None:
@@ -427,7 +436,8 @@ class CliClient:
         prompt = (self._spools / (req.ticket or req.surface) / "cli"
                   / f"{self._seq:06d}-{req.surface}-prompt.md")
         self._fs.write(prompt, self._redact(req.rendered).encode())
-        argv = adapter.argv(model=model, effort=req.effort, grant=grant)
+        argv = adapter.argv(model=model, effort=req.effort, grant=grant,
+                           max_budget_usd=req.max_budget_usd)
         process_kwargs = {
             "cwd": cwd, "env": env, "timeout": self._timeout, "stdin_path": prompt,
             "on_spawn": self._bind,

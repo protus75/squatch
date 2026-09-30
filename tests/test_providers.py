@@ -125,9 +125,24 @@ def client(tmp_path, exec_, *, reg=None, env=ENV, redact=None):
 
 
 def request(surface="review", *, tier="medium", effort="high", ticket="t-1",
-            worktree=None, rendered="do the thing"):
+            worktree=None, rendered="do the thing", max_budget_usd=None):
     return LLMRequest(surface=surface, rendered=rendered, tier=tier, effort=effort,
-                      ticket=ticket, worktree=worktree)
+                      ticket=ticket, worktree=worktree, max_budget_usd=max_budget_usd)
+
+
+async def test_claude_receives_requested_budget_ceiling(tmp_path):
+    ex = ScriptedExec((0, claude_stream("ok"), ""))
+    await client(tmp_path, ex).call(request(max_budget_usd=0.75))
+    assert ex.calls[0]["argv"][-9:] == ["--model", "c-max", "--max-budget-usd", "0.750000",
+                                         "--allowedTools", "Read", "Grep", "Glob", "LS"]
+
+
+async def test_non_cost_provider_over_budget_refuses_before_spawn(tmp_path):
+    ex = ScriptedExec()
+    with pytest.raises(RoutingError, match="exceeds requested call ceiling"):
+        await client(tmp_path, ex).call(request("implement", worktree=tmp_path / "wt",
+                                                max_budget_usd=0.5))
+    assert ex.calls == []
 
 
 def claude_stream(text="done", *, usd=0.42, in_tokens=100, out_tokens=20, subtype="success",

@@ -39,9 +39,10 @@ import yaml
 from pydantic import Field, model_validator
 
 import squatch
-from squatch.artifacts import (DAEMON_SOAK_REPORT, RELIABILITY_BATTERY_REPORT, OUTCOMES,
-                               Artifact, ClosedModel, Cost, DaemonSoakReport, Finding,
-                               ReliabilityBatteryReport, StageResult)
+from squatch.artifacts import (DAEMON_SOAK_REPORT, OUTCOMES, RELIABILITY_BATTERY_REPORT,
+                               REVIEW_BASELINE_REPORT, Artifact, ClosedModel, Cost,
+                               DaemonSoakReport, Finding, ReliabilityBatteryReport,
+                               ReviewBaselineReport, StageResult)
 from squatch.box import Box, journal_rereport_callback
 from squatch.config import Config, Severity
 from squatch.driver import Driver, LLMStage, Spool
@@ -89,6 +90,7 @@ KNOWN_ARTIFACTS = {
     REPORT_NAME: ShakeoutReport.model_validate_json,
     DAEMON_SOAK_REPORT: DaemonSoakReport.model_validate_json,
     RELIABILITY_BATTERY_REPORT: ReliabilityBatteryReport.model_validate_json,
+    REVIEW_BASELINE_REPORT: ReviewBaselineReport.model_validate_json,
 }
 
 

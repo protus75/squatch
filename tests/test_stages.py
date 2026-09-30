@@ -21,7 +21,7 @@ import pytest
 
 from squatch import specs as specs_module
 from squatch import stages as stages_module
-from squatch.artifacts import Finding
+from squatch.artifacts import REVIEW_BASELINE_REPORT, Finding, ReviewBaselineReport
 from squatch.box import Box
 from squatch.config import load
 from squatch.effects import Effects
@@ -1152,3 +1152,40 @@ def test_the_shipped_specs_lint_and_name_their_gates():
     assert implement.slots == ("workspace", "ticket", "prior_attempts", "context")
     assert implement.optional == frozenset({"prior_attempts"})
     assert load_spec(SPECS_DIR / "review.md").surface == "review"
+
+
+def _baseline_report(*, unknown=False) -> str:
+    body = ReviewBaselineReport(
+        schema_version=1, produced_at_sha="fixture", planted_defect_count=50, spend_usd=5,
+        authored_tickets=("a",), dependency_graph={"a": ()},
+        scored_summary={"known_bad": 50, "clean": 0, "caught": 50, "false_approve": 0,
+                        "unmatched": 0, "false_snag": 0, "catch_rate": 1,
+                        "false_approve_rate": 0, "usd": 5},
+        verdict_signal_identity={"tiers": ("medium",), "identity": {
+            "review": {"medium": {"provider": "claude", "model": "b"}},
+            "author": {"medium": {"provider": "claude", "model": "b"}}},
+            "spec_major": {"review": 1, "author": 1}}).model_dump()
+    if unknown:
+        body["unknown"] = True
+    return json.dumps(body)
+
+
+async def test_ordinary_lift_validates_and_counts_review_baseline_report(repo, env):
+    output = (f"tickets/{STEM}/{REVIEW_BASELINE_REPORT}", _baseline_report())
+    h = Harness(repo, env, Agent(answer("implemented"), review("approve"),
+                                actions=[writes(output)]))
+    delivery = await h.run(verify=GREEN)
+    assert delivery.outcome == "ok", delivery.findings
+    assert (repo / output[0]).is_file()
+    lifted = stages_module.completed_output_lift(h.journal, STEM, 0, checked=True)
+    assert output[0] in lifted
+
+
+async def test_ordinary_lift_refuses_unknown_review_baseline_report_field(repo, env):
+    output = (f"tickets/{STEM}/{REVIEW_BASELINE_REPORT}", _baseline_report(unknown=True))
+    h = Harness(repo, env, Agent(answer("implemented"), actions=[writes(output)]))
+    delivery = await h.run(verify=GREEN)
+    assert delivery.outcome == "invalid_artifact"
+    assert any(f.code == "invalid_artifact" and REVIEW_BASELINE_REPORT in f.message
+               for f in delivery.findings)
+    assert not (repo / output[0]).exists()

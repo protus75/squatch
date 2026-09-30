@@ -39,6 +39,8 @@ ReliabilityBatteryMemberName = Literal[
     "unclassified_failure_preservation",
 ]
 
+REVIEW_BASELINE_REPORT = "review-baseline-report.json"
+
 StageName = Literal["author", "implement", "check", "review", "rework", "merge", "triage", "retro"]
 STAGE_NAMES: frozenset[str] = frozenset(StageName.__args__)
 SUBSTEP_NAMES: frozenset[str] = frozenset({"diagnose"})
@@ -160,6 +162,68 @@ class ReliabilityBatteryReport(ClosedModel):
             raise ValueError(
                 "entries must contain the closed member list in order: "
                 f"{RELIABILITY_BATTERY_MEMBERS}")
+        return self
+
+
+class VerdictSignalIdentity(ClosedModel):
+    """The identity a GO-grade report and the operator signal share."""
+
+    tiers: tuple[str, ...] = Field(min_length=1)
+    identity: dict[str, dict[str, dict[str, str]]]
+    spec_major: dict[str, int]
+
+    @model_validator(mode="after")
+    def _complete_baseline_identity(self):
+        if set(self.identity) != {"review", "author"}:
+            raise ValueError("identity must name exactly review and author")
+        if set(self.spec_major) != {"review", "author"}:
+            raise ValueError("spec_major must name exactly review and author")
+        if any(not isinstance(value, int) or isinstance(value, bool)
+               for value in self.spec_major.values()):
+            raise ValueError("spec_major values must be integers")
+        for surface in ("review", "author"):
+            if set(self.identity[surface]) != set(self.tiers):
+                raise ValueError("each identity surface must cover exactly the exercised tiers")
+            for row in self.identity[surface].values():
+                if set(row) != {"provider", "model"} or not all(
+                        isinstance(value, str) and value for value in row.values()):
+                    raise ValueError("identity rows contain nonempty provider and model only")
+        return self
+
+
+class ReviewBaselineSummary(ClosedModel):
+    """Measured aggregate retained with GO-grade evidence and its GO signal."""
+
+    known_bad: int = Field(ge=0)
+    clean: int = Field(ge=0)
+    caught: int = Field(ge=0)
+    false_approve: int = Field(ge=0)
+    unmatched: int = Field(ge=0)
+    false_snag: int = Field(ge=0)
+    catch_rate: float = Field(ge=0, le=1)
+    false_approve_rate: float = Field(ge=0, le=1)
+    usd: float = Field(ge=0, le=5.00)
+
+
+class ReviewBaselineReport(ClosedModel):
+    """Closed ordinary-lane evidence from the bounded GO-grade harness."""
+
+    schema_version: Literal[1]
+    produced_at_sha: str = Field(min_length=1)
+    planted_defect_count: int = Field(ge=50)
+    spend_usd: float = Field(ge=0, le=5.00)
+    authored_tickets: tuple[str, ...] = Field(min_length=1)
+    dependency_graph: dict[str, tuple[str, ...]]
+    scored_summary: ReviewBaselineSummary
+    verdict_signal_identity: VerdictSignalIdentity
+
+    @model_validator(mode="after")
+    def _authored_graph_is_closed(self):
+        tickets = set(self.authored_tickets)
+        if len(tickets) != len(self.authored_tickets) or set(self.dependency_graph) != tickets:
+            raise ValueError("dependency_graph keys must be the unique authored tickets")
+        if any(not set(dependencies) <= tickets for dependencies in self.dependency_graph.values()):
+            raise ValueError("dependency_graph dependencies must be authored tickets")
         return self
 
 

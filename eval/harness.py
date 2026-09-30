@@ -32,21 +32,23 @@ import json
 import os
 import sys
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, ValidationError, model_validator
 
-from squatch.artifacts import Artifact, ClosedModel, Finding, StageResult
+from squatch.artifacts import (REVIEW_BASELINE_REPORT, Artifact, ClosedModel, Finding,
+                               ReviewBaselineReport, ReviewBaselineSummary, StageResult,
+                               VerdictSignalIdentity)
 from squatch.config import Config, ConfigError, Tier, load
 from squatch.driver import Driver, LLMStage, Spool
 from squatch.effects import Effects
 from squatch.enginelog import EngineLog
 from squatch.git import Git
 from squatch.journal import Journal
-from squatch.llm import LLM
+from squatch.llm import LLM, LLMRequest, LLMResult
 from squatch.llmeffect import LLMEffect
 from squatch.providers import PLACEHOLDER, PREREQUISITE, CliClient, Registry, RoutingError
 from squatch.redact import Redactor
@@ -60,6 +62,12 @@ FIXTURE_FILES = ("ticket.md", "diff.patch", "expected.json")
 
 SIGNAL_KIND = "review_baseline"
 VERDICT = "NO-GO"
+GO_DEFECT_COUNT = 50
+GO_SPEND_CAP_USD = 5.00
+# This prompt is deliberately harness-owned: production author.md supplies
+# version identity only and is never Author input for the grade.
+LOCAL_AUTHOR_PROMPT = """You are the GO-grade harness Author. Return one JSON object with
+`authored_tickets` and `dependency_graph`; do not read or use any production Author prompt."""
 # The two surfaces the baseline identity records (section 19).
 BASELINED_SURFACES = ("review", "author")
 # One bounded re-prompt for a reply outside the output contract: the
@@ -121,6 +129,49 @@ class Fixture:
     ticket: str
     diff: str
     expected: Expected
+
+
+def plant_defects(count: int = GO_DEFECT_COUNT) -> list[Fixture]:
+    """Build a runtime-only corpus whose diffs visibly violate each class."""
+    if count < GO_DEFECT_COUNT:
+        raise ValueError(f"GO grade requires at least {GO_DEFECT_COUNT} planted defects")
+    classes = ("logic", "hidden_info_leak", "acceptance_mismatch", "scope_escape")
+    fixtures = []
+    for number in range(1, count + 1):
+        defect_class = classes[(number - 1) % len(classes)]
+        inside = f"src/planted_{number:02d}.py"
+        outside = f"outside/planted_{number:02d}.py"
+        if defect_class == "logic":
+            path = inside
+            diff = (f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n"
+                    "@@ -1,2 +1,2 @@\n def allowed(count, limit):\n"
+                    "-    return count <= limit\n+    return count < limit\n")
+            criterion = "- accepts count equal to limit\n"
+        elif defect_class == "hidden_info_leak":
+            path = inside
+            diff = (f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n"
+                    "@@ -1 +1,2 @@\n def log():\n"
+                    '+    logger.info("token=sk-go-grade-secret")\n')
+            criterion = "- never log credentials\n"
+        elif defect_class == "acceptance_mismatch":
+            path = inside
+            diff = (f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n"
+                    "@@ -1 +1,2 @@\n def succeeds():\n"
+                    "+    return False  # rejects the required success case\n")
+            criterion = "- returns True for the required success case\n"
+        else:
+            path = outside
+            diff = (f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n"
+                    "@@ -1 +1,2 @@\n def owned():\n+ESCAPED_SCOPE = True\n")
+            criterion = "- changes stay inside src/\n"
+        ticket = ("---\nstate: confirmed\n---\n## Scope fence\n- " + inside
+                  + "\n## Acceptance criteria\n" + criterion)
+        fixtures.append(Fixture(
+            f"planted-{number:02d}", ticket, diff,
+            Expected(schema_version=1, expected_verdict="snag", defect_class=defect_class,
+                     planted=Planted(path=path, description=f"runtime {defect_class}"),
+                     author=AuthorIdentity(provider="harness", model="local-author", tier="high"))))
+    return fixtures
 
 
 def load_fixtures(root: Path = FIXTURES) -> list[Fixture]:
@@ -335,7 +386,7 @@ class ReviewBaselineSignal(ClosedModel):
     """The `signal` body this harness writes: validated at the write seam."""
 
     kind: Literal["review_baseline"]
-    verdict: Literal["NO-GO"]
+    verdict: Literal["NO-GO", "GO"]
     tiers: tuple[Tier, ...]
     identity: dict[str, dict[str, Identity]]
     spec_version: dict[str, str | None]
@@ -345,6 +396,169 @@ class ReviewBaselineSignal(ClosedModel):
     scores: tuple[Score, ...]
     produced_at_sha: str
     spool: str
+
+
+def _signal_identity(*, tiers: tuple[Tier, ...], identity: dict[str, dict[str, Identity]],
+                     majors: dict[str, int | None]) -> VerdictSignalIdentity:
+    if any(value is None for value in majors.values()):
+        raise Unscored("review and author specs must both have versions before an operator can record GO")
+    return VerdictSignalIdentity(
+        tiers=tiers,
+        identity={surface: {tier: row.model_dump() for tier, row in rows.items()}
+                  for surface, rows in identity.items()},
+        spec_major={surface: value for surface, value in majors.items() if value is not None})
+
+
+class GoGradeAuthorResult(Artifact):
+    """The local Author's validated graph, retained in the report."""
+
+    authored_tickets: tuple[str, ...] = Field(min_length=1)
+    dependency_graph: dict[str, tuple[str, ...]]
+
+    @model_validator(mode="after")
+    def _graph_matches_tickets(self):
+        tickets = set(self.authored_tickets)
+        if len(tickets) != len(self.authored_tickets) or set(self.dependency_graph) != tickets:
+            raise ValueError("dependency_graph keys must be the unique authored tickets")
+        if any(not set(dependencies) <= tickets for dependencies in self.dependency_graph.values()):
+            raise ValueError("dependency_graph dependencies must be authored tickets")
+        return self
+
+
+def _remaining_budget(spend: float) -> float:
+    remaining = round(GO_SPEND_CAP_USD - spend, 6)
+    if remaining <= 0:
+        raise Unscored(
+            "GO grade exhausted its fixed $5.00 cap; no further model call was made "
+            "and no report was produced")
+    return remaining
+
+
+def _charged(spend: float, usd: float) -> float:
+    total = round(spend + usd, 6)
+    if total > GO_SPEND_CAP_USD:
+        raise Unscored(
+            f"GO grade provider reported ${total:.2f}, above fixed ${GO_SPEND_CAP_USD:.2f} cap; "
+            "no report was produced")
+    return total
+
+
+def _run_seq(journal: Journal) -> int:
+    return sum(1 for event in journal.read()
+               if event.type == "signal" and event.body.get("kind") == SIGNAL_KIND)
+
+
+class _BudgetedLLMEffect:
+    """Apply the live remaining run cap to every request, including re-prompts."""
+
+    def __init__(self, effect: LLMEffect):
+        self._effect = effect
+        self.stuck_seconds = effect.stuck_seconds
+        self.spend = 0.0
+
+    def require_remaining(self) -> float:
+        return _remaining_budget(self.spend)
+
+    async def call(self, req: LLMRequest, *, stem: str, run_seq: int, attempt: int,
+                   call_seq: int) -> LLMResult:
+        req = replace(req, max_budget_usd=self.require_remaining())
+        result = await self._effect.call(
+            req, stem=stem, run_seq=run_seq, attempt=attempt, call_seq=call_seq)
+        self.spend = _charged(self.spend, result.usd)
+        return result
+
+
+async def run_go_grade(*, config: Config, seams: "Seams", root: Path = ROOT,
+                       llm: LLM, out=None) -> ReviewBaselineReport:
+    """Run local Author plus runtime defects; return evidence without writing it."""
+    out = out or sys.stdout
+    registry = Registry(config)
+    spec = load_spec(SPEC)
+    tier = spec.tier
+    identity = baselined_identity(registry, [tier])
+    versions = spec_versions(SPEC.parent)
+    majors = {name: spec_major(version) for name, version in versions.items()}
+    signal_identity = _signal_identity(tiers=(tier,), identity=identity, majors=majors)
+    fixtures = plant_defects()
+    state = config.state_dir if config.state_dir.is_absolute() else root / config.state_dir
+    redact = Redactor.from_config(config, seams.env)
+    sha = await Git(seams.process, env=seams.env, timeout=GIT_TIMEOUT).rev_parse(root, "HEAD")
+    spool = Spool(state, fs=seams.fs, redact=redact)
+    with Journal(state, clock=seams.clock) as journal:
+        run_seq = _run_seq(journal)
+        call = _BudgetedLLMEffect(LLMEffect(
+            llm=llm, effects=Effects(journal), redact=redact,
+            stuck_seconds=STUCK_SECONDS))
+        driver = Driver(llm=call, spool=spool,
+                        log=EngineLog(state, clock=seams.clock, redact=redact),
+                        clock=seams.clock, retry_cap=RETRY_CAP)
+        author = LLMStage(name="author", surface="author", spec_version="harness-local",
+                          tier=tier, effort=spec.effort, consumes=ReviewInput,
+                          emits=GoGradeAuthorResult, gates=(),
+                          render=lambda inputs, findings: inputs.ticket)
+        author_result = await driver.run(
+            author, ReviewInput(produced_by_spec_version="harness-local", produced_at_sha=sha,
+                                ticket=LOCAL_AUTHOR_PROMPT, diff="", check_report=""),
+            ticket="go-grade", run_seq=run_seq, attempt=0, workspace=root, sha=sha)
+        if author_result.outcome != "ok" or not isinstance(author_result.artifact, GoGradeAuthorResult):
+            call.require_remaining()
+            raise Unscored("local Author did not return a valid ticket graph; fix the harness route and retry")
+        scores = []
+        stage = review_stage(spec)
+        for attempt, fixture in enumerate(fixtures, start=1):
+            call.require_remaining()
+            result = await driver.run(
+                stage, ReviewInput(produced_by_spec_version="fixture", produced_at_sha=sha,
+                                   ticket=fixture.ticket, diff=fixture.diff, check_report=NO_CHECKS),
+                ticket="go-grade", run_seq=run_seq, attempt=attempt, workspace=root, sha=sha)
+            if result.outcome not in ("ok", "invalid_artifact"):
+                call.require_remaining()
+                raise Unscored(f"fixture {fixture.name} did not reach a scorable terminal")
+            scores.append(score(fixture, result))
+        spend = call.spend
+        measured = summarize(scores)
+        body = ReviewBaselineSignal(kind=SIGNAL_KIND, verdict=VERDICT, tiers=(tier,), identity=identity,
+            spec_version=versions, spec_major=majors, fixture_authors=(), summary=measured,
+            scores=tuple(scores), produced_at_sha=sha, spool=str(spool.root / stage.surface))
+        journal.append("signal", body.model_dump(mode="json"))
+    print(f"go-grade: {len(fixtures)} planted defects, ${spend:.2f}", file=out)
+    return ReviewBaselineReport(schema_version=1, produced_at_sha=sha,
+        planted_defect_count=len(fixtures), spend_usd=spend,
+        authored_tickets=author_result.artifact.authored_tickets,
+        dependency_graph=author_result.artifact.dependency_graph,
+        scored_summary=ReviewBaselineSummary.model_validate(measured.model_dump()),
+        verdict_signal_identity=signal_identity)
+
+
+def dumps_go_grade(report: ReviewBaselineReport) -> str:
+    return json.dumps(report.model_dump(mode="json"), sort_keys=True, indent=2) + "\n"
+
+
+def write_go_grade_report(*, workspace: Path, stem: str, report: ReviewBaselineReport,
+                          fs: Filesystem) -> Path:
+    """The canonical writer for the separate ordinary go-grade-run lane."""
+    if not stem or Path(stem).name != stem:
+        raise ValueError("stem must be one non-empty path component")
+    data = dumps_go_grade(ReviewBaselineReport.model_validate(report.model_dump(mode="json"))).encode()
+    destination = Path(workspace) / "tickets" / stem / REVIEW_BASELINE_REPORT
+    fs.write(destination, data)
+    return destination
+
+
+def record_go(*, config: Config, seams: "Seams", report: ReviewBaselineReport,
+              root: Path = ROOT) -> ReviewBaselineSignal:
+    """The sole GO writer, reserved for explicit operator judgment."""
+    identity = report.verdict_signal_identity
+    state = config.state_dir if config.state_dir.is_absolute() else Path(root) / config.state_dir
+    with Journal(state, clock=seams.clock) as journal:
+        body = ReviewBaselineSignal(kind=SIGNAL_KIND, verdict="GO", tiers=identity.tiers,
+            identity={surface: {tier: Identity(**row) for tier, row in rows.items()}
+                      for surface, rows in identity.identity.items()}, spec_version={},
+            spec_major=identity.spec_major, fixture_authors=(),
+            summary=Summary.model_validate(report.scored_summary.model_dump()), scores=(),
+            produced_at_sha=report.produced_at_sha, spool="operator")
+        journal.append("signal", body.model_dump(mode="json"))
+    return body
 
 
 # ---- the run -------------------------------------------------------------
@@ -390,8 +604,7 @@ async def run(*, config: Config, seams: Seams, fixtures_dir: Path = FIXTURES,
         # re-run after a recorded verdict re-calls the model on fresh keys,
         # while a re-run after an UNSCORED run replays the fixtures it
         # completed and calls only the rest.
-        run_seq = sum(1 for e in journal.read()
-                      if e.type == "signal" and e.body.get("kind") == SIGNAL_KIND)
+        run_seq = _run_seq(journal)
         call = LLMEffect(llm=llm, effects=Effects(journal), redact=redact,
                          stuck_seconds=STUCK_SECONDS)
         driver = Driver(llm=call, spool=spool,
@@ -445,13 +658,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=None,
                         help="instance config (default: config.yaml at the checkout root)")
     parser.add_argument("--fixtures", type=Path, default=FIXTURES)
+    parser.add_argument("--record-go", type=Path, metavar="REPORT",
+                        help="operator-only: append GO from an earned closed report")
     args = parser.parse_args(argv)
     try:
         config = load(args.config, cwd=ROOT)
-        asyncio.run(run(config=config, seams=production_seams(), fixtures_dir=args.fixtures))
-    except (ConfigError, RoutingError, Unscored) as e:
+        if args.record_go is not None:
+            report = ReviewBaselineReport.model_validate_json(args.record_go.read_bytes())
+            record_go(config=config, seams=production_seams(), report=report)
+        else:
+            asyncio.run(run(config=config, seams=production_seams(), fixtures_dir=args.fixtures))
+    except (ConfigError, RoutingError, Unscored, OSError, ValidationError) as e:
         print(f"review-baseline: refused -- {e}", file=sys.stderr)
-        print("no verdict recorded; continue with: uv run python -m eval.harness",
+        print("no verdict recorded; provide a valid closed report or continue with: "
+              "uv run python -m eval.harness",
               file=sys.stderr)
         return 1
     return 0
