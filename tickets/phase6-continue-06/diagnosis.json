@@ -1,9 +1,14 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "The plan's section 20 row fences go-grade-machinery to eval/harness.py, squatch/artifacts.py, tests/test_eval_harness.py and tests/test_go_grade.py, and tests/test_seeded_phase6_02.py pins that fence. It omits squatch/stages.py, which the new closed report needs.",
+    "Without KNOWN_ARTIFACTS registration in squatch/stages.py, completed_output_lift neither validates nor counts go-grade-run's review-baseline-report.json, so phase6-exit has no closed committed report to read.",
+    "Fix the plan first by adding squatch/stages.py (and its test) to the go-grade-machinery fence, following the daemon-soak/ReliabilityBatteryReport precedent. Then regenerate the phase6 seed tickets and the pinning tests, including test_seeded_phase6_02.py.",
+    "Retrying against the unchanged plan would faithfully reproduce the same defective fence. The authored row-6 test and tickets otherwise passed the suite (1692 tests)."
+  ],
+  "reason": "Requisition review showed the plan-pinned go-grade-machinery fence can't register its report artifact, so the ticket as written can't be satisfied until the plan changes.",
+  "detail": null
 }
