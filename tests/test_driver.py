@@ -447,8 +447,22 @@ async def test_one_json_fence_may_have_cli_status_prose(tmp_path, response):
 
 
 @pytest.mark.parametrize("response", [
+    f"status first\n\n{echo_json('ok')}",
+    f"status first\n\n{echo_json('ok')}\nstatus last",
+])
+async def test_one_bare_json_object_may_have_cli_status_prose(tmp_path, response):
+    result = await run(driver(tmp_path, FakeLLM(response)), stage())
+
+    assert result.outcome == "ok"
+    assert result.artifact.text == "ok"
+    assert result.cost.attempts == 1
+
+
+@pytest.mark.parametrize("response", [
     f"```JSON\n{echo_json('no')}\n```",
     f"```json\n{echo_json('no')}\n```\n```json\n{echo_json('extra')}\n```",
+    f"status\n{echo_json('no')}\n{echo_json('extra')}",
+    f"status {{ambiguous}}\n{echo_json('no')}",
 ])
 async def test_json_fence_does_not_admit_prose_or_other_wrappers(tmp_path, response):
     result = await run(driver(tmp_path, FakeLLM(response), retry_cap=0), stage())

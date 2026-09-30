@@ -218,6 +218,20 @@ def _parse(stage: LLMStage, text: str, provenance: dict
         payload, closing, after = remainder.partition("\n```")
         if closing and "```" not in before and "```" not in after:
             stripped = payload
+    elif not stripped.startswith("{") and "{" in stripped:
+        # Some CLIs emit the same short status prose but omit the fence. Accept
+        # one raw-decodable object only when the surrounding prose contains no
+        # braces, so two objects or ambiguous brace-bearing text stays invalid.
+        start = stripped.find("{")
+        try:
+            _, end = json.JSONDecoder().raw_decode(stripped[start:])
+        except ValueError:
+            pass
+        else:
+            before, after = stripped[:start], stripped[start + end:]
+            if ("```" not in before + after
+                    and not any(char in before + after for char in "{}")):
+                stripped = stripped[start:start + end]
     try:
         data = json.loads(stripped)
     except ValueError as e:
