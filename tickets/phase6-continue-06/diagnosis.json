@@ -1,16 +1,15 @@
 {
-  "run_seq": 6,
+  "run_seq": 7,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Check failed only on requisition_review findings against the authored tickets/go-grade-machinery/ticket.md. The row-6 test, the three seeds, the max-effort renders and the full suite (1692 tests) passed. Keep that approach and tighten the authored ticket text.",
-    "go-grade-machinery must say where the 50 defects come from. State that the harness-local Author prompt is inline in eval/harness.py and defects are planted at runtime, so no eval/fixtures/ or prompt file is added. Do not widen the fence beyond what the plan's section 20 row allows.",
-    "State that ordinary harness runs still append the NO-GO review_baseline signal and that run_seq keying is unchanged, and that operator-only --record-go only appends a GO body. Name test_run_scores_every_fixture_and_journals_the_no_go_signal and the rerun test as preserved.",
-    "Replace the vague 'identity and reader boundary' criterion with checkable ones. A --record-go body must resolve to GO/binds=true through the unchanged resolve_baseline (tiers, {review, author} identity, spec_major matching specs).",
-    "Also require that no non-operator path can write verdict GO, and that the recorded review_baseline signal identity equals the report's verdict-signal identity. Add uv run pytest tests/test_baseline.py -q to the ticket's Verification as a preservation suite.",
-    "Keep squatch/stages.py and tests/test_stages.py in the go-grade-machinery and exit-receipt-machinery fences. Keep every phrase that tests/test_seeded_phase6_06.py pins; add clarifications around those phrases instead of rewording them."
+    "Check failed only on requisition_review of tickets/go-grade-machinery/ticket.md. The reviewer returned a 'snag': the third acceptance criterion needs tests/test_baseline.py to prove that an operator --record-go body resolves to GO, but that file is outside the fence.",
+    "Fix the criterion so tests/test_go_grade.py (in the fence) alone observes that --record-go resolves to GO/binds=true through the unchanged resolve_baseline. Keep tests/test_baseline.py only as a preservation command in Verification, never as a proving test.",
+    "Do not widen the go-grade-machinery fence to cover tests/test_baseline.py. The plan's section 20 row does not allow it, and the pinning tests quote that fence exactly.",
+    "Update the pin in tests/test_seeded_phase6_06.py so it matches the reworded criterion. Keep every other pinned phrase and the three-seed approach: the pinned phrases, the max-effort renders and the full suite (1692 tests) all passed.",
+    "The reviewer wrapped its JSON reply in a ```json code fence, so the engine logged it as an 'invalid reply'. If a clean ticket still gets this finding, the reply parser is the problem. File it as a separate engine defect; it is not the implementer's fault."
   ],
-  "reason": "The check gate's requisition review flagged three fixable ambiguities in the implementer-authored go-grade-machinery ticket text; the paved roads can be applied inside the tickets fence at the same capability.",
+  "reason": "The ticket needs a fixable text change: one acceptance criterion cites a test file outside the fence, and the rest of the attempt passed.",
   "detail": null
 }
