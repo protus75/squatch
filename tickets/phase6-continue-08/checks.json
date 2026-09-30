@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "165e22416be410e1a5ee05e897d9d143c4f4a731",
+  "produced_at_sha": "3c61e50f774ece9bdae3e574ede7ada10da6515d",
   "stem": "phase6-continue-08",
   "branch": "phase6-continue-08",
-  "base": "482cc7d151e644094460ca03b2a8f0e84faaae57",
-  "head": "165e22416be410e1a5ee05e897d9d143c4f4a731",
+  "base": "9447b16620297a69d33e90ebaa30f6d7e50aebfc",
+  "head": "3c61e50f774ece9bdae3e574ede7ada10da6515d",
   "changed_files": [
     "tests/test_seeded_phase6_08.py"
   ],
@@ -15,29 +15,29 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase6-exit/ticket.md",
-      "sha": "9342968fb4503dd4f6050b5ebfa0c035f800db97",
+      "sha": "c1a4e5872c1e98783a3021901ffab4159eced960",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase6-exit/ticket.md",
           "line": null,
-          "message": "The criteria read the committed GO-grade report and its embedded verdict identity but never name the report path, its registered schema (`ReviewBaselineReport` / `REVIEW_BASELINE_REPORT` in `squatch/artifacts.py`), its machinery ticket (`go-grade-machinery`), or its producer ticket (`go-grade-run`). A committed-report read must name both machinery and producer.",
-          "paved_road": "Name `tickets/go-grade-run/review-baseline-report.json` (1,033 bytes, exists on main) in Scope in and the acceptance criteria, credit `go-grade-machinery` as machinery and `go-grade-run` as producer, and add the report to Context."
+          "message": "Criterion 2 and the Scope-in require the committed GO-grade report to 'accept only GO or NO-GO', and the receipt verdict must come from it. The merged `ReviewBaselineReport` schema (squatch/artifacts.py:214-224) and the committed report have no verdict field: only defect count, spend, tickets, graph, scored_summary and `verdict_signal_identity`. The harness hard-codes `VERDICT = \"NO-GO\"` (eval/harness.py:64). A GO exists only as an operator-recorded `review_baseline` journal signal via `--record-go`, which is not a committed artifact. Section 20 says the exit 'reads the committed GO-grade report and its embedded verdict identity, accepts GO or NO-GO' but never defines how the verdict is derived. As written, `go_grade_verdict` can only be invented, which the ticket's own Definition of rejected forbids.",
+          "paved_road": "fix the plan, then re-author the ticket"
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase6-exit/ticket.md",
-          "line": null,
-          "message": "The ticket says only 'run the registered host-loop producer'. It never names the producer module `eval/host_loop.py` (its `run()` entry returns `HostLoopReport`), the closed writers for `host-loop-report.json` and `exit-receipt.json` in `squatch/artifacts.py`, or their emitting ticket `exit-receipt-machinery`. The three closed host-loop members and the digest are therefore unanchored to any merged emitter.",
-          "paved_road": "Name `eval/host_loop.py` and its `run()` entry as the producer, and name the `HostLoopReport` / `HOST_LOOP_REPORT` / `EXIT_RECEIPT` writers in `squatch/artifacts.py` as the machinery landed by `exit-receipt-machinery`. The criteria should require the two fenced `tickets/phase6-exit/*.json` outputs to come from those writers."
+          "line": 274,
+          "message": "The merged `ExitReceipt.go_grade_verdict` is `Literal[\"GO\", \"NO_GO\"]`, but the criteria and Scope-in say 'GO or NO-GO', which matches the harness spelling `NO-GO`. A test written to the ticket's wording would fail against the merged receipt schema. The ticket also never defines the algorithm for `host_loop_digest`.",
+          "paved_road": "fix the plan, then re-author the ticket"
         },
         {
           "code": "requisition_review",
           "path": "tickets/phase6-exit/ticket.md",
-          "line": null,
-          "message": "Context is empty even though the criteria depend on the contents of `squatch/artifacts.py` (11,787 chars: the report, receipt, and baseline schemas plus the closed host-loop member order), `eval/host_loop.py` (14,554 chars), and the committed baseline report. Without them the implementer cannot learn the closed member names or the verdict-identity field it must assert. Embedding all three adds about 27k chars to the 84,238 measured, which stays below the 120,000-char headroom.",
-          "paved_road": "Add `squatch/artifacts.py`, `eval/host_loop.py`, and `tickets/go-grade-run/review-baseline-report.json` to Context. Alternatively, name any of them as measured on-demand reads. Do not add them to the fence, because this ticket makes no engine-code edit."
+          "line": 95,
+          "message": "The ticket says the `HOST_LOOP_REPORT` / `EXIT_RECEIPT` closed ordinary-lane writers are in `squatch/artifacts.py`. In fact artifacts.py holds only the names and schemas; they are registered as writers in `squatch/stages.py`'s `KNOWN_ARTIFACTS` (lines 95-96).",
+          "paved_road": "fix the plan, then re-author the ticket"
         }
       ],
       "commands": []
