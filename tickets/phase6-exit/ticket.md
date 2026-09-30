@@ -35,11 +35,14 @@ engine-code edit.
 
 Read the committed `tickets/go-grade-run/review-baseline-report.json` through
 `ReviewBaselineReport` and `REVIEW_BASELINE_REPORT`. `go-grade-machinery` owns
-that schema and its writer; `go-grade-run` produced the committed file. Resolve
-its embedded verdict identity against the latest current-build matching
-`review_baseline` journal signal: signal `GO` maps to receipt enum `GO`, and
-signal `NO-GO` maps to receipt enum `NO_GO`; an absent or mismatched identity
-rejects the exit.
+that schema and its writer; `go-grade-run` produced the committed file. If
+`scored_summary.known_bad + scored_summary.clean < planted_defect_count`, the
+report is incomplete, cannot record GO, and maps directly to receipt enum
+`NO_GO` without reading a journal signal. Only a complete report resolves its
+embedded verdict identity against the latest matching current-build
+`review_baseline` signal: `GO` maps to receipt enum `GO`, `NO-GO` maps to
+`NO_GO`, and an absent or mismatched identity rejects that complete-report
+exit.
 
 Prove the closed `HostLoopReport` members in schema order: at least three
 distinct-run `machine_ticket_merge` entries, then
@@ -69,8 +72,8 @@ invent a writer call in the producer, or author a successor.
 
 ## Acceptance criteria
 - `tests/test_phase6_exit.py` proves `run()` returns the registered `HostLoopReport`, the exit serializes both fenced OUTBOX files, and their bytes validate through `KNOWN_ARTIFACTS[HOST_LOOP_REPORT]` and `KNOWN_ARTIFACTS[EXIT_RECEIPT]`.
-- `tests/test_phase6_exit.py` proves the closed host-loop member order, lowercase SHA-256 digest, committed GO-grade report custody, and matching current-build journal identity mapping of `GO` to `GO` and `NO-GO` to `NO_GO`.
-- `tests/test_phase6_exit.py` rejects absent or mismatched verdict identity and forbidden live-host inputs, preserves the terminal fence, and proves no engine-code edit or successor.
+- `tests/test_phase6_exit.py` proves the closed host-loop member order, lowercase SHA-256 digest, and that the committed incomplete GO-grade report maps to `NO_GO` without a journal read.
+- `tests/test_phase6_exit.py` proves a complete report requires matching current-build identity, maps `GO` to `GO` and `NO-GO` to `NO_GO`, rejects absent or mismatched identity and forbidden live-host inputs, preserves the terminal fence, and proves no engine-code edit or successor.
 
 ## Verification
 ```
@@ -80,7 +83,8 @@ uv run pytest -q
 
 ## Definition of rejected
 Reject fabricated or unregistered evidence, an invalid OUTBOX artifact, a
-missing or mismatched verdict identity, overflow, or a successor.
+complete report's missing or mismatched verdict identity, overflow, or a
+successor.
 
 ## Time budget
 - expected: 75m

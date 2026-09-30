@@ -48,12 +48,13 @@ committed GO-grade report at
 `tickets/go-grade-run/review-baseline-report.json` through
 `ReviewBaselineReport` / `REVIEW_BASELINE_REPORT`.
 `go-grade-machinery` owns that schema and writer; `go-grade-run` produced the
-committed file. It resolves the report's
-embedded verdict identity against the latest current-build matching
-`review_baseline` journal signal:
-signal `GO` maps to receipt enum `GO`, while
-signal `NO-GO` maps to receipt enum `NO_GO`; missing or mismatched signal
-identity rejects the exit. It proves the closed `HostLoopReport` members in
+committed file. When `scored_summary.known_bad + scored_summary.clean` is less
+than `planted_defect_count`, the report is incomplete, cannot record GO, and
+maps directly to receipt enum `NO_GO` without a journal read. Only a complete
+report resolves its embedded verdict identity against the latest matching
+current-build `review_baseline` signal: signal `GO` maps to receipt enum `GO`,
+signal `NO-GO` maps to `NO_GO`, and absent or mismatched identity rejects that
+complete-report exit. It proves the closed `HostLoopReport` members in
 schema order: at least three distinct-run `machine_ticket_merge` entries,
 then `report_to_regression_bug_loop`, then `escape_attribution`. Its
 `host_loop_digest` is lowercase SHA-256 over the
