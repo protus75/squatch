@@ -36,12 +36,11 @@ providers:
 # (agent_tier, llm_surface) -> ordered candidates; the first serves (Phase 1).
 # A surface with no row of its own inherits the `review` row.
 routing:
-  # REVIEW: claude pinned to its strongest model at every tier -- a different
-  # provider than the implementer is the preferred diversity setting, not a
-  # gate; the hard requirement (separate sessions) is the driver's.
+  # REVIEW: Claude stays separate from the Codex implementer. High uses Sonnet
+  # so the fixed-$5 GO grade can score all 50 defects; max retains Opus.
   - {tier: low,    surface: review, candidates: [{provider: claude, model: opus}]}
   - {tier: medium, surface: review, candidates: [{provider: claude, model: opus}]}
-  - {tier: high,   surface: review, candidates: [{provider: claude, model: opus}]}
+  - {tier: high,   surface: review, candidates: [{provider: claude, model: sonnet}]}
   - {tier: max,    surface: review, candidates: [{provider: claude, model: opus}]}
   # AUTHOR: claude, inheriting models_by_tier[tier].
   - {tier: low,    surface: author, candidates: [{provider: claude}]}

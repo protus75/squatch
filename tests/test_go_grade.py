@@ -204,6 +204,22 @@ def test_closed_report_registration_and_canonical_ordinary_writer(tmp_path):
     assert target.name == REVIEW_BASELINE_REPORT and target.read_text() == dumps_go_grade(report)
 
 
+def test_go_grade_cli_writes_the_requested_closed_report(tmp_path, monkeypatch):
+    cfg = tmp_path / "config.yaml"
+    text = (Path(harness.ROOT) / "config.yaml").read_text()
+    text = text.replace("state_dir: .squatch/state", f"state_dir: {tmp_path / 'state'}")
+    cfg.write_text(text)
+    output = tmp_path / REVIEW_BASELINE_REPORT
+
+    async def fake_run_go_grade(**_kwargs):
+        return _report()
+
+    monkeypatch.setattr(harness, "run_go_grade", fake_run_go_grade)
+
+    assert harness.main(["--config", str(cfg), "--go-grade-out", str(output)]) == 0
+    assert ReviewBaselineReport.model_validate_json(output.read_bytes()) == _report()
+
+
 async def test_only_operator_path_writes_go_and_it_binds_the_report_identity(tmp_path):
     cfg = config(tmp_path)
     ordinary = FakeLLM(*[reply("snag", "src/app.py")] * 3)

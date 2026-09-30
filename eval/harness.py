@@ -704,7 +704,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=None,
                         help="instance config (default: config.yaml at the checkout root)")
     parser.add_argument("--fixtures", type=Path, default=FIXTURES)
-    parser.add_argument("--record-go", type=Path, metavar="REPORT",
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--go-grade-out", type=Path, metavar="REPORT",
+                        help="run the bounded GO grade and write its closed report")
+    action.add_argument("--record-go", type=Path, metavar="REPORT",
                         help="operator-only: append GO from an earned closed report")
     args = parser.parse_args(argv)
     try:
@@ -712,6 +715,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.record_go is not None:
             report = ReviewBaselineReport.model_validate_json(args.record_go.read_bytes())
             record_go(config=config, seams=production_seams(), report=report)
+        elif args.go_grade_out is not None:
+            seams = production_seams()
+            registry = Registry(config)
+            state = config.state_dir if config.state_dir.is_absolute() else ROOT / config.state_dir
+            redact = Redactor.from_config(config, seams.env)
+            llm = CliClient(registry, process=seams.process, fs=seams.fs, env=seams.env,
+                            redact=redact, state_dir=state, cwd=ROOT)
+            report = asyncio.run(run_go_grade(config=config, seams=seams, llm=llm))
+            seams.fs.write(args.go_grade_out, dumps_go_grade(report).encode())
         else:
             asyncio.run(run(config=config, seams=production_seams(), fixtures_dir=args.fixtures))
     except (ConfigError, RoutingError, Unscored, OSError, ValidationError) as e:

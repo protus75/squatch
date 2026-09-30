@@ -395,7 +395,7 @@ def test_main_reports_a_refusal_and_exits_one_without_a_verdict(tmp_path, capsys
     cfg = tmp_path / "config.yaml"
     text = (Path(harness.ROOT) / "config.yaml").read_text()
     text = text.replace("state_dir: .squatch/state", f"state_dir: {tmp_path / 'state'}")
-    text = text.replace("model: opus", "model: OPERATOR-SETS-THIS")
+    text = text.replace("model: sonnet", "model: OPERATOR-SETS-THIS", 1)
     cfg.write_text(text)
     assert harness.main(["--config", str(cfg), "--fixtures", str(fixtures_dir(tmp_path))]) == 1
     err = capsys.readouterr().err
