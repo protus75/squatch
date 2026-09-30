@@ -1,0 +1,10 @@
+---
+id: decision-000034
+kind: decision
+link: box-000034-72feac7c
+reopen_after_days: 1
+message: box-000034-72feac7c
+---
+No action. The message is right that `flock` has no Windows equivalent. But a platform refusal would be a new startup gate that no incident has earned, and the anti-bloat law rules that out. The plan already assumes Linux. Section 1's bootstrap starts from 'Given only this file on a Linux box', and v1 instances run as single-machine Linux installs, as the message itself says. The engine also already fails closed on a platform without `fcntl`. Both squatch/lockfile.py:12 and squatch/doctor.py:4 run `import fcntl` at module top, so an unsupported platform gets an ImportError the moment the lockfile or doctor module is imported, before any lock is taken or any git state changes. A named refusal would only change the error text. The trigger the message waits for has also passed: the drain entry composition has merged (decision-000032 cites `go()` in squatch/__main__.py). This matches decision-000020, which turned down a git-version startup gate for the same reason (a fail-closed primitive with no incident behind it). The open ticket `startup-interpreter-floor` covers only the D1 interpreter floor, not the OS, so tombstoning against it would be wrong. No other rendered work or decision covers platform support. Reopen if the plan adds a non-Linux target, or if an operator reports a confusing failure from running squatch on a platform without `fcntl`. The fix then belongs with the D1 startup refusal in squatch/__main__.py, in the same change as a plan line that pins the platform floor.
+
+Evidence: squatch/lockfile.py:12 and squatch/doctor.py:4 import `fcntl` at module top (lockfile.py:69 and doctor.py:68 call `fcntl.flock`). SQUATCH_PLAN.md:19 says 'Given only this file on a Linux box'. No `sys.platform` check exists under squatch/. The drain entry has merged (decision-000032). Precedent: decision-000020. The open ticket startup-interpreter-floor is interpreter-only.
