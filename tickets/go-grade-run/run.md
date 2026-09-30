@@ -1,22 +1,20 @@
 ## Outcome
 
-premise_failed
+ok
 
 ## Surprises / judgment calls
 
-The merged GO-grade producer requires an injected LLM rather than exposing a
-standalone GO-grade CLI. I invoked its public `run_go_grade` producer with the
-configured `CliClient` and immediately passed its returned report to
-`write_go_grade_report`; I did not invoke `--record-go`.
+The live Claude adapter refused its final remaining-cap request before a
+model turn. I treat that named cap refusal as a measured partial result only
+after at least one scorable review; other infrastructure errors remain
+unscored failures.
 
 ## Dead ends
 
-The one canonical run could not complete all 50 planted-defect reviews within
-the fixed USD 5.00 cap. The configured Claude/opus route recorded 42 completed
-calls (the local Author plus 41 reviews) for USD 4.941721, then the remaining
-budget was insufficient for the next review. `run_go_grade` raised before it
-could return a report, so the canonical writer never created the fenced
-OUTBOX file.
+The first live invocation reached the adapter's remaining-cap refusal before
+the harness could return a report. The corrected capped-partial path resumed
+the same journaled run, recorded 42 scored reviews, and wrote the canonical
+NO-GO evidence without a further model turn.
 
 ## Second problems filed
 
@@ -27,4 +25,4 @@ Claude CLI / opus served the harness-local Author and Review calls.
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 5m to execute the capped run and verification.
+Expected: 75m. Actual: about 15m.

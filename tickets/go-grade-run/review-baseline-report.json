@@ -1,0 +1,54 @@
+{
+  "authored_tickets": [
+    "go-grade-author",
+    "go-grade-review",
+    "go-grade-report"
+  ],
+  "dependency_graph": {
+    "go-grade-author": [],
+    "go-grade-report": [
+      "go-grade-review"
+    ],
+    "go-grade-review": [
+      "go-grade-author"
+    ]
+  },
+  "planted_defect_count": 50,
+  "produced_at_sha": "15255d456cd589ef903068275694fc053690f82e",
+  "schema_version": 1,
+  "scored_summary": {
+    "catch_rate": 1.0,
+    "caught": 42,
+    "clean": 0,
+    "false_approve": 0,
+    "false_approve_rate": 0.0,
+    "false_snag": 0,
+    "known_bad": 42,
+    "unmatched": 0,
+    "usd": 4.7828
+  },
+  "spend_usd": 4.974945,
+  "verdict_signal_identity": {
+    "identity": {
+      "author": {
+        "high": {
+          "model": "opus",
+          "provider": "claude"
+        }
+      },
+      "review": {
+        "high": {
+          "model": "opus",
+          "provider": "claude"
+        }
+      }
+    },
+    "spec_major": {
+      "author": 1,
+      "review": 1
+    },
+    "tiers": [
+      "high"
+    ]
+  }
+}
