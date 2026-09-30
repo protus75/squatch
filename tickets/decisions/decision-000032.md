@@ -1,0 +1,10 @@
+---
+id: decision-000032
+kind: decision
+link: box-000032-d8d9700f
+reopen_after_days: 90
+message: box-000032-d8d9700f
+---
+No action needed. The message is out of date. It says the drain entry composition has no rule for resolving `instance_id`, but that composition has merged and already resolves it with one call. `go()` in squatch/__main__.py:701 sets `instance_id = await git.describe(ENGINE_ROOT)` before it builds the runner (line 711). The runner then passes that value to `Lockfile` (runner.py:172). `Git.describe` (squatch/git.py:229-230) runs `git describe --tags --always --dirty`. On a checkout sitting exactly at a release tag, that command prints the bare tag. On an untagged or modified dev checkout, it prints the describe string or the sha, with `-dirty` added when there are local changes. So the one call already produces both forms that section 6 names, and there is nothing to decide about which case applies. The engine runs from its own checkout (ENGINE_ROOT), so no separate way of detecting an 'installed release' exists or is needed. Adding a second resolution path, such as reading package metadata, would be a dual path, and no incident calls for it. That rules it out under the no-dual-path and anti-bloat laws. The fixed ids used by one-shot verbs (`box-ingest` at box.py:507, `confirm` at __main__.py:310, `control` at __main__.py:469) only label who holds the lock in diagnostics. The plan says correctness comes from `flock`, not from these fields. No rendered ticket or decision covers instance_id resolution, so a tombstone would be wrong.
+
+Evidence: squatch/__main__.py:701 (instance_id = await git.describe(ENGINE_ROOT)), :711; squatch/git.py:229-230 (describe --tags --always --dirty); squatch/runner.py:172; SQUATCH_PLAN.md:1011 (holder identity is diagnostic; correctness from flock). Reopen if squatch is installed some way other than from a git checkout of the engine (so ENGINE_ROOT has no .git), or if the lockfile holder id is reported as wrong or unreadable.
