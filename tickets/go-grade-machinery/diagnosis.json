@@ -1,17 +1,9 @@
 {
-  "run_seq": 3,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "escalate",
-  "lessons": [
-    "Give run_go_grade its own effect-key namespace, such as ticket='go-grade' or a distinct stem. Otherwise an UNSCORED ordinary run at the same run_seq replays its cached replies. Test: an ordinary run ends UNSCORED, then run_go_grade still calls the model for every planted fixture.",
-    "Do not use the largest cost seen so far as the cap bound; a later, more expensive call can still overspend. Reserve against a fixed per-call upper bound from config (tier max tokens times price) and refuse before any call whose bound exceeds the remaining headroom.",
-    "Add a cap test in which a later call would cost more than every earlier call. Assert that the call is never issued, recorded spend stays at or below 5.00, and no report is returned. This replaces the earlier lesson that suggested bounding by the largest cost seen.",
-    "record_go must not invent a summary. The current code writes caught=0, catch_rate=0, spec_version={} and scores=(). Carry the measured summary instead: add the scored summary to the closed report fields and copy it into the GO body.",
-    "Add a test asserting that the recorded GO summary equals the report's measured summary. Keep the existing tests that check resolve_baseline binds, that identity is exactly {review, author}, that spec_major matches, and that no non-operator path writes GO.",
-    "Keep what review accepted: the closed ReviewBaselineReport, KNOWN_ARTIFACTS registration, plant_defects, the shared _run_seq helper, and the --record-go refusal path. Change only the key namespace, the cap bound, and the GO summary, plus their tests.",
-    "Before reporting ok, map each review finding and each acceptance criterion to a specific test assertion. This is the third attempt to claim ok well under budget with correctness defects still open."
-  ],
-  "reason": "Third attempt with recurring correctness defects (effect-key collision, a cap that can overspend, a fabricated GO summary) that need design judgment the current capability keeps missing.",
-  "detail": null
+  "run_seq": 4,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
