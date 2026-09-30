@@ -2,14 +2,15 @@
 ok
 
 ## Surprises / judgment calls
-The fixture loop is a supervised seam: it launches the supplied live serve task and records only the observations returned after machine confirms. Report persistence remains an explicit ordinary-lane operation.
+The fixture's scripted adapter has no triage surface, so the harness seeds the three closed fixture scenarios and uses the real report inbox as report evidence; each merge is still implemented and released by the real serve/control path.
 
 ## Dead ends
+The first report-driven attempt waited for triage to author the regression ticket, but the fixture adapter intentionally refuses that unsupported surface.
 
 ## Second problems filed
 
 ## Resolved engine/model
-OpenAI / Codex (model identifier not exposed).
+OpenAI / Codex
 
 ## Predicted vs actual
-Expected: 75m. Actual: approximately 18m.
+Expected 75m; actual about 25m.
