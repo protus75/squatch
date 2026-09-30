@@ -1,0 +1,10 @@
+---
+id: decision-000015
+kind: decision
+link: box-000015-3cbbd725
+reopen_after_days: 90
+message: box-000015-3cbbd725
+---
+No action for now. The aliasing the message describes is real, but no current caller is exposed to it. `Effects.run` (squatch/effects.py:56-57, 64) stores the object the action returned and hands that same object to any later same-process call on the key, so a caller that mutated its result would change what a later in-process replay sees. Every current consumer converts or copies the result before using it. merge.py:396-397 does `Invoice.model_validate(data)`, requisition.py:172-175 does `LLMResult(**data)`, stages.py:962-963 does `Invoice.model_validate(...)` and `dict(data["reviewed_seeds"])`, and the lift, rebase, merge, retire, push, notify and retro keys either return fresh values or discard the result. The message's own fix is conditional on a consumer that holds results across calls, and no such consumer exists. A defensive deep copy with no incident behind it is the speculative work the anti-bloat law rules out. The suggested `json.loads(json.dumps(result))` also cannot move the non-JSON check ahead of the action, because the result only exists once the action has run. decision-000012 already covers that orphan path. No rendered work covers result aliasing. `effects-completion-result-corruption` is the read-side missing-`result` defect and decision-000014 is concurrent same-key execution, so a tombstone would be wrong.
+
+Evidence: squatch/effects.py:57 returns `self._completed[key]` by reference and line 64 stores the live `result`. The constructor at line 46 stores the journal-decoded value, which is why a replay after restart differs. The consumers at merge.py:396-397, requisition.py:172-175 and stages.py:962-963 all rebuild the result into a new model or dict before using it. Reopen if a caller mutates an `Effects.run` result in place (a mutable container returned by the action and edited after return), or if an in-process replay disagrees with the journaled `effect_completion` result. The fix is then to return a JSON round-trip copy from both the stored and the replay paths in `run`.
