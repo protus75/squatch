@@ -53,10 +53,11 @@ turn an earned result into GO, and NO-GO is valid.
 `go-grade-run` partition: Embedded Context: `eval/harness.py`,
 `squatch/artifacts.py`; measured on-demand: none.
 
-`exit-receipt-machinery` depends on `go-grade-run` and owns/fences `squatch/artifacts.py`, new `eval/host_loop.py`, new `tests/test_host_loop.py`, and `tests/test_gates.py`. It registers closed writers for `host-loop-report.json` and `exit-receipt.json`; its harness launches supervised `serve` against `hosts/fixture/`, drives machine-actor confirms through the control inbox, records per-member `(member, driven scenario, observable, producing run)` evidence for at least three machine-ticket merges, report-to-regression bug loop, and escape attribution, and never produces terminal artifacts during its build.
+`exit-receipt-machinery` depends on `go-grade-run` and owns/fences `squatch/artifacts.py`, `squatch/stages.py`, new `eval/host_loop.py`, new `tests/test_host_loop.py`, `tests/test_gates.py`, and `tests/test_stages.py`. It registers closed writers for `host-loop-report.json` and `exit-receipt.json`; its harness launches supervised `serve` against `hosts/fixture/`, drives machine-actor confirms through the control inbox, records per-member `(member, driven scenario, observable, producing run)` evidence for at least three machine-ticket merges, report-to-regression bug loop, and escape attribution, and never produces terminal artifacts during its build.
 
 `exit-receipt-machinery` partition: Embedded Context: `squatch/artifacts.py`,
-`tests/test_gates.py`; measured on-demand: `hosts/fixture/`.
+`tests/test_gates.py`; measured on-demand: `squatch/stages.py`,
+`tests/test_stages.py`, `hosts/fixture/`.
 
 `phase6-exit` depends on `exit-receipt-machinery`, transitively depends on every Phase 6 payload, and is last row's sole KNOWN-HARD high/high seed. It authors no successor and owns/fences only `tickets/phase6-exit/host-loop-report.json`, `tickets/phase6-exit/exit-receipt.json`, and new `tests/test_phase6_exit.py`. It reads GO-grade verdict, accepts GO or NO-GO, proves three members, writes receipt digest, makes no engine-code edit; live-host K>=10 and real-host bug-loop evidence are forbidden exit inputs.
 
