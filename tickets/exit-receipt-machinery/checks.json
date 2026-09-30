@@ -1,18 +1,18 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "721a599d45e33a8333e644e24319964142b1038f",
+  "produced_at_sha": "06780007885b0f505b7eb9dc668480abbd1964df",
   "stem": "exit-receipt-machinery",
   "branch": "exit-receipt-machinery",
-  "base": "c9186aeb681addedbc82b8430a1bfb25e6b8f454",
-  "head": "721a599d45e33a8333e644e24319964142b1038f",
+  "base": "2fbabf7a8cc7f279c21216c412025400fd5f2c92",
+  "head": "06780007885b0f505b7eb9dc668480abbd1964df",
   "changed_files": [
     "eval/host_loop.py",
+    "hosts/fixture/bin/codex",
+    "hosts/fixture/config.yaml",
     "squatch/artifacts.py",
     "squatch/stages.py",
-    "tests/test_gates.py",
-    "tests/test_host_loop.py",
-    "tests/test_stages.py"
+    "tests/test_host_loop.py"
   ],
   "checks": [
     {
@@ -27,12 +27,20 @@
     },
     {
       "code": "verification",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": null,
       "sha": null,
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "verification",
+          "path": null,
+          "line": null,
+          "message": "verification command exit 1: `uv run pytest -q`\nwarning: `VIRTUAL_ENV=/home/djp/source/squatch/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead",
+          "paved_road": "make every `## Verification` command exit 0 on the committed branch"
+        }
+      ],
       "commands": [
         {
           "argv": [
@@ -54,7 +62,7 @@
             "pytest",
             "-q"
           ],
-          "attribution": null,
+          "attribution": "branch",
           "filed": null
         }
       ]
