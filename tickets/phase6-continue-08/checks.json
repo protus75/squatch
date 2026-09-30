@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "236ace93526bdaef7e73943b28c57c36fe5fe9ef",
+  "produced_at_sha": "c0051488af047e663040c67885954bf3349434b1",
   "stem": "phase6-continue-08",
   "branch": "phase6-continue-08",
-  "base": "24c184eda968e63e87f7668adc90264424da1ce9",
-  "head": "236ace93526bdaef7e73943b28c57c36fe5fe9ef",
+  "base": "fc6e85e837b6adfbfce9ef32f69c2b1d2d762e07",
+  "head": "c0051488af047e663040c67885954bf3349434b1",
   "changed_files": [
     "tests/test_seeded_phase6_08.py"
   ],
@@ -15,43 +15,15 @@
       "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase6-exit/ticket.md",
-      "sha": "48abb446849732d96ea70b9416e0237b2389dd50",
+      "sha": "7632851bec0b5d4190fc94f91911bbadd5efdc27",
       "bypassed": false,
       "findings": [
         {
           "code": "requisition_review",
           "path": "tickets/phase6-exit/ticket.md",
-          "line": null,
-          "message": "Scope in and the criteria require calling `eval/host_loop.py::run` and proving its registered producer. That module exists on main after the merged dependency `exit-receipt-machinery`, but the ticket declares 'Embedded Context: none; measured on-demand: none', so the implementer has no sanctioned read of the producer's signature or return type.",
-          "paved_road": "Add `eval/host_loop.py` to Context. If embedding it would breach REQ_RENDER_HEADROOM, name it as a measured on-demand exception."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase6-exit/ticket.md",
-          "line": null,
-          "message": "The criteria validate the report through `HostLoopReport`, `ReviewBaselineReport`, `HOST_LOOP_REPORT`, `EXIT_RECEIPT` and `REVIEW_BASELINE_REPORT`, and they fix the receipt's `GO`/`NO_GO` enum and `host_loop_digest` field. Those closed schemas are owned by `squatch/artifacts.py`, which is omitted from Context, so the receipt fields and the report's `tiers`/`identity`/`spec_major` shape cannot be read.",
-          "paved_road": "Embed `squatch/artifacts.py` as Context. The current render is 85,299 chars against a 120,000-char headroom, so there is room."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase6-exit/ticket.md",
-          "line": null,
-          "message": "The criteria require proving ordinary-lane validation through the writers that `squatch/stages.py::KNOWN_ARTIFACTS` registers. That module is neither Context nor a named on-demand exception, and section 20 allows only named large roots to be read on demand.",
-          "paved_road": "Name `squatch/stages.py` as a measured on-demand exception, or embed the `KNOWN_ARTIFACTS` owner."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase6-exit/ticket.md",
-          "line": null,
-          "message": "Exit-read closure fails. The ticket reads the committed GO-grade report, but that report is not in Context, and the ticket does not name both its machinery (`go-grade-machinery`) and its producer (`go-grade-run`) as the check requires for a committed-report read.",
-          "paved_road": "Embed the committed report as Context, as `phase4-exit` did with its reliability report. State that `go-grade-machinery` owns the schema/writer and `go-grade-run` produced the file."
-        },
-        {
-          "code": "requisition_review",
-          "path": "tickets/phase6-exit/ticket.md",
-          "line": null,
-          "message": "The goal and the first criterion say 'Prove the three closed host-loop members' and 'exact closed host-loop members' without naming them. The plan describes three machine merges, the report-to-regression loop, and escape attribution, which leaves the member identity and order ambiguous.",
-          "paved_road": "List the exact closed `HostLoopReport` member names, in their schema order, as read from `squatch/artifacts.py`, and pin them in the criterion."
+          "line": 278,
+          "message": "Acceptance criterion 1 requires tests/test_phase6_exit.py to prove that `eval/host_loop.py` `run()` writes the closed `HostLoopReport` through its registered ordinary-lane writer. The merged `run(**kwargs) -> HostLoopReport` only returns the validated model; its docstring says 'the caller alone may serialize the report'. The HOST_LOOP_REPORT entry in `squatch/stages.py` `KNOWN_ARTIFACTS` is the lane's validator, applied when the OUTBOX is lifted. It is not called by run(). The ticket forbids engine edits, so this criterion cannot be met as written.",
+          "paved_road": "Reword criterion 1 (and the matching Scope-in sentence) to follow the merged contract. The exit's own Implement calls `run()`, serializes the returned `HostLoopReport` to `tickets/phase6-exit/host-loop-report.json` in its worktree OUTBOX, and the test proves those bytes validate through `KNOWN_ARTIFACTS[HOST_LOOP_REPORT]` with the required members in schema order (at least three distinct-run `machine_ticket_merge`, then `report_to_regression_bug_loop`, then `escape_attribution`). Treat `exit-receipt.json` the same way through `KNOWN_ARTIFACTS[EXIT_RECEIPT]`."
         }
       ],
       "commands": []
