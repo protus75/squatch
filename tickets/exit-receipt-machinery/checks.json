@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "073103c29a3840c70c4808ecc97ddaf03a1b016d",
+  "produced_at_sha": "721a599d45e33a8333e644e24319964142b1038f",
   "stem": "exit-receipt-machinery",
   "branch": "exit-receipt-machinery",
-  "base": "5267d11d19910ba3404a36ff3370203fa776636f",
-  "head": "073103c29a3840c70c4808ecc97ddaf03a1b016d",
+  "base": "c9186aeb681addedbc82b8430a1bfb25e6b8f454",
+  "head": "721a599d45e33a8333e644e24319964142b1038f",
   "changed_files": [
     "eval/host_loop.py",
     "squatch/artifacts.py",
