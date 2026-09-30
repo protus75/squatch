@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "03363db3ad22556078fd6a019689ad1efa9dab6c",
+  "produced_at_sha": "0d592367dea08894a089b169a28c51cd32345363",
   "stem": "phase6-exit",
   "branch": "phase6-exit",
-  "base": "39d298aa745b94b78ae64acbd0ace8d0c9c6f315",
-  "head": "03363db3ad22556078fd6a019689ad1efa9dab6c",
+  "base": "caa59c5b869ecb6fb7fe745ccf41157d2350f522",
+  "head": "0d592367dea08894a089b169a28c51cd32345363",
   "changed_files": [
     "tests/test_phase6_exit.py"
   ],
