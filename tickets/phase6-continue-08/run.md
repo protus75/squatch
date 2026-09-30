@@ -1,26 +1,28 @@
 ## Outcome
 
-ok
+premise_failed
 
 ## Surprises / judgment calls
 
-The retry findings required naming merged report, schema, producer, and writer
-provenance while preserving the contract's empty embedded and measured
-Context partition. They are recorded as ordinary merged-worktree reads.
+The merged `ReviewBaselineReport` records only `verdict_signal_identity`; it
+does not carry the GO or NO-GO verdict that `ExitReceipt.go_grade_verdict`
+requires. The only GO source is an operator journal signal, which is not a
+committed report input.
 
 ## Dead ends
 
-The initial focused assertion looked for forbidden-input wording in `## Scope
-in`; that wording belongs to `## Scope out`, so the test now checks the whole
-ticket for it.
+Authoring `phase6-exit` would require inventing a verdict, selecting an
+unplanned journal lookup despite the pinned empty partition, or changing
+section 20 and the receipt schema spelling/digest contract outside this
+ticket's scope fence. None is permitted by the ticket.
 
 ## Second problems filed
 
 
 ## Resolved engine/model
 
-Codex / GPT-5
+Unknown.
 
 ## Predicted vs actual
 
-75m expected; approximately 20m actual.
+Expected 75m; actual approximately 5m to establish the contract conflict.
