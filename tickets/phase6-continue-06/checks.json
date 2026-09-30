@@ -1,31 +1,23 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "fbdb14da036a4bc27bf6cce56a08e1c0eb0b7ba9",
+  "produced_at_sha": "debde4eb79da57c3e18d73fa56c350e46fe60fe7",
   "stem": "phase6-continue-06",
   "branch": "phase6-continue-06",
-  "base": "06a90f68ba2a02b89d6782154a4fc084ab2f9118",
-  "head": "fbdb14da036a4bc27bf6cce56a08e1c0eb0b7ba9",
+  "base": "da49972f2ab674d4919273a27fb44a9fc3a4615a",
+  "head": "debde4eb79da57c3e18d73fa56c350e46fe60fe7",
   "changed_files": [
     "tests/test_seeded_phase6_06.py"
   ],
   "checks": [
     {
       "code": "requisition_review",
-      "verdict": "fail",
+      "verdict": "pass",
       "severity": "hard",
       "path": "tickets/go-grade-machinery/ticket.md",
-      "sha": "3564fc41cb498830446f3316b3cc1d36d15df662",
+      "sha": "517a9fa782d569ef39bd2d03188639c0f05607a3",
       "bypassed": false,
-      "findings": [
-        {
-          "code": "requisition_review",
-          "path": "tickets/go-grade-machinery/ticket.md",
-          "line": 88,
-          "message": "The new closed report has to be registered in `squatch/stages.py::KNOWN_ARTIFACTS` so the ordinary lane can validate and lift it. The merged precedents do this: daemon-soak's 'Stages registers it in KNOWN_ARTIFACTS', and `ReliabilityBatteryReport` is registered there too. `completed_output_lift` (squatch/stages.py:105) only counts lifted paths whose name is in `KNOWN_ARTIFACTS`. So when the no-code `go-grade-run` writes `tickets/go-grade-run/review-baseline-report.json` to its OUTBOX, that file is neither schema-validated nor counted as a completed lift. `phase6-exit` then has no closed committed report to read. The section 20 row fences only `eval/harness.py`, `squatch/artifacts.py`, `tests/test_eval_harness.py`, and `tests/test_go_grade.py`, and `tests/test_seeded_phase6_02.py` pins that exact fence. The author therefore cannot add `squatch/stages.py`.",
-          "paved_road": "fix the plan, then re-author the ticket"
-        }
-      ],
+      "findings": [],
       "commands": []
     },
     {
@@ -33,19 +25,27 @@
       "verdict": "pass",
       "severity": "hard",
       "path": "tickets/go-grade-run/ticket.md",
-      "sha": "3acb7bbac40c622ea201cdd899aebea32644a278",
+      "sha": "68ed2e3a6a0770ffba3eef658d41019a7abb61a9",
       "bypassed": false,
       "findings": [],
       "commands": []
     },
     {
       "code": "requisition_review",
-      "verdict": "pass",
+      "verdict": "fail",
       "severity": "hard",
       "path": "tickets/phase6-continue-07/ticket.md",
-      "sha": "8b06d91aea145517a347775542e76e455aaa1dec",
+      "sha": "4a2178adc7e2667ce793a926a897bb3b78bf8061",
       "bypassed": false,
-      "findings": [],
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/phase6-continue-07/ticket.md",
+          "line": 88,
+          "message": "exit-receipt-machinery must register closed writers for host-loop-report.json and exit-receipt.json. Every merged closed report (shakeout, daemon-soak, reliability-battery) is registered in squatch/stages.py KNOWN_ARTIFACTS, and that registry is what validates outbox bytes before the ticket-plane lift (stages.py:1174) and scopes completed_output_lift (stages.py:105). Section 20 fixes the exact exit-receipt-machinery fence as squatch/artifacts.py, eval/host_loop.py, tests/test_host_loop.py, and tests/test_gates.py. That fence has no squatch/stages.py, so the seed this ticket must author verbatim cannot register the writers without escaping its fence. By contrast, go-grade-machinery's registry row does fence squatch/stages.py and tests/test_stages.py for the same kind of registration. The author cannot fix this because the plan pins the fence exactly.",
+          "paved_road": "fix the plan, then re-author the ticket"
+        }
+      ],
       "commands": []
     },
     {
