@@ -21,6 +21,9 @@ routing:
   - tier: medium
     surface: review
     candidates: [{provider: codex}]
+  - tier: medium
+    surface: triage
+    candidates: [{provider: codex}]
 review:
   mechanical:
     - code: fixture-replay

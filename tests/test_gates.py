@@ -14,7 +14,9 @@ import squatch.__main__ as main_module
 from squatch import gates, hostfiles, providers
 from squatch.artifacts import (
     ARTIFACT_SCHEMA_VERSION,
+    EXIT_RECEIPT,
     GATE_CODES,
+    HOST_LOOP_REPORT,
     OUTCOMES,
     STAGE_NAMES,
     Artifact,
@@ -321,6 +323,8 @@ async def test_runner_runs_every_gate_and_hands_the_artifact_through(tmp_path):
     run = await run_gates([Recorder(failing()), Recorder(passing())], artifact, tmp_path)
     assert seen == [(artifact, tmp_path)] * 2
     assert [r.report.verdict for r in run.results] == ["fail", "pass"]
+    assert not list(tmp_path.rglob(HOST_LOOP_REPORT))
+    assert not list(tmp_path.rglob(EXIT_RECEIPT))
 
 
 async def test_runner_refuses_to_run_a_gate_that_fails_lint(tmp_path):

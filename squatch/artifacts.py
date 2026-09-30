@@ -41,6 +41,12 @@ ReliabilityBatteryMemberName = Literal[
 
 REVIEW_BASELINE_REPORT = "review-baseline-report.json"
 
+HOST_LOOP_REPORT = "host-loop-report.json"
+EXIT_RECEIPT = "exit-receipt.json"
+HostLoopMemberName = Literal[
+    "machine_ticket_merge", "report_to_regression_bug_loop", "escape_attribution",
+]
+
 StageName = Literal["author", "implement", "check", "review", "rework", "merge", "triage", "retro"]
 STAGE_NAMES: frozenset[str] = frozenset(StageName.__args__)
 SUBSTEP_NAMES: frozenset[str] = frozenset({"diagnose"})
@@ -225,6 +231,47 @@ class ReviewBaselineReport(ClosedModel):
         if any(not set(dependencies) <= tickets for dependencies in self.dependency_graph.values()):
             raise ValueError("dependency_graph dependencies must be authored tickets")
         return self
+
+
+class HostLoopEntry(ClosedModel):
+    """One execution-derived observation from the supervised fixture host."""
+
+    member: HostLoopMemberName
+    scenario: str = Field(min_length=1)
+    observable: str = Field(min_length=1)
+    producing_run: str = Field(pattern=r"^[^/]+/\d+$")
+
+
+class HostLoopReport(ClosedModel):
+    """Closed evidence used by the Phase 6 exit, never a terminal receipt."""
+
+    schema_version: Literal[1]
+    produced_at_sha: str = Field(min_length=1)
+    entries: tuple[HostLoopEntry, ...]
+
+    @model_validator(mode="after")
+    def _complete_host_loop(self):
+        merges = [entry for entry in self.entries if entry.member == "machine_ticket_merge"]
+        other = tuple(entry.member for entry in self.entries
+                      if entry.member != "machine_ticket_merge")
+        if len(merges) < 3 or len({entry.producing_run for entry in merges}) < 3:
+            raise ValueError("machine_ticket_merge requires three distinct producing runs")
+        if other != ("report_to_regression_bug_loop", "escape_attribution"):
+            raise ValueError("host loop requires the bug-loop and escape entries in order")
+        identities = {(entry.member, entry.scenario, entry.producing_run)
+                      for entry in self.entries}
+        if len(identities) != len(self.entries):
+            raise ValueError("host loop entries must be distinct evidence observations")
+        return self
+
+
+class ExitReceipt(ClosedModel):
+    """The closed Phase 6 terminal digest written only by the exit ticket."""
+
+    schema_version: Literal[1]
+    produced_at_sha: str = Field(min_length=1)
+    host_loop_digest: str = Field(min_length=1)
+    go_grade_verdict: Literal["GO", "NO_GO"]
 
 
 class Finding(ClosedModel):

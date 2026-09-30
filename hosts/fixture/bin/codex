@@ -25,25 +25,39 @@ def fail(message: str) -> None:
 
 
 def scenario_from(prompt: str) -> str:
+    if "scenario-output/regression_check.py" in prompt:
+        return "report-to-regression"
+    signatures = {
+        "fixture:wrong-classification:Squatch:1.0": "report-to-regression",
+        "fixture:containment-escape:machine-escape:1.0": "machine-introduced-escape",
+    }
+    from_report = {scenario for signature, scenario in signatures.items()
+                   if signature in prompt}
+    if len(from_report) == 1:
+        return next(iter(from_report))
     markers = set(re.findall(r"fixture-scenario:\s*([a-z0-9-]+)", prompt))
     if len(markers) != 1 or next(iter(markers), None) not in SCENARIOS:
         fail("unknown or ambiguous fixture scenario")
     return next(iter(markers))
 
 
-def ticket(scenario: str) -> dict[str, str]:
+def ticket(scenario: str, prompt: str) -> dict[str, str]:
     stem = SCENARIOS[scenario]
     bug = scenario == "report-to-regression"
     command = ("python scenario-output/regression_check.py" if bug else
                "python bin/fixture-replay")
     paths = ["app.py", "scenario-output/"] if scenario != "deterministic-app" else [
         "scenario-output/"]
+    custody = re.search(r"replay custody:\s*([^\s]+)", prompt) if bug else None
+    why = "The deterministic host loop needs a machine-authored merge."
+    if custody is not None:
+        why += f" Preserve replay evidence custody {custody.group(1)}."
     body = [
         "---", "priority: P1", f"kind: {'bug' if bug else 'feature'}",
         "agent_tier: medium", "agent_effort: medium", "---",
         "## Depends on", "- none", "", "## Context", "- app.py", "",
         "## Goal", f"Run the closed fixture-scenario: {scenario}.", "",
-        "## Why", "The deterministic host loop needs a machine-authored merge.", "",
+        "## Why", why, "",
         "## Scope in", f"Apply only the canned {scenario} fixture change.", "",
         "## Scope out", "No engine or configuration changes.", "", "## Scope fence",
         *(f"- {path}" for path in paths), "", "## Acceptance criteria",
@@ -53,7 +67,8 @@ def ticket(scenario: str) -> dict[str, str]:
     if bug:
         body += ["", "## Regression", "```",
                  command, "```",
-                 "- carries: scenario-output/regression_check.py"]
+                 "- carries: scenario-output/regression_check.py",
+                 "- carries: scenario-output/report-to-regression.txt"]
     body += ["", "## Definition of rejected", "Reject changes outside the listed paths.", "",
              "## Time budget", "- expected: 5m", "- stuck: 10m", ""]
     return {"stem": stem, "ticket": "\n".join(body)}
@@ -118,13 +133,27 @@ async def commit(cwd: Path, paths: list[str], scenario: str) -> None:
 
 prompt = sys.stdin.read()
 header = prompt.splitlines()[0] if prompt.splitlines() else ""
-match = re.fullmatch(r"squatch prompt: surface=(author|implement|review) spec_version=\S+", header)
+match = re.fullmatch(
+    r"squatch prompt: surface=(author|implement|review|triage|requisition_review) "
+    r"spec_version=\S+", header)
 if match is None:
     fail("unknown fixture surface")
 surface = match.group(1)
 scenario = scenario_from(prompt)
-if surface == "author":
-    answer = ticket(scenario)
+if surface == "triage":
+    if "fixture:" not in prompt:
+        fail("fixture triage requires a durable report signature")
+    if scenario == "machine-introduced-escape":
+        answer = {"verdict": "tombstone", "link": SCENARIOS[scenario],
+                  "reopen_after_days": 1,
+                  "rationale": "The report attributes an escape to the merged fixture ticket."}
+    else:
+        answer = {"verdict": "author", "summary": f"triage fixture {scenario}",
+                  "kind": "bug", "priority": "P1",
+                  "goal": f"Repair fixture-scenario: {scenario}.",
+                  "why": "The durable fixture report has replay evidence."}
+elif surface == "author":
+    answer = ticket(scenario, prompt)
 elif surface == "implement":
     answer = implement(scenario)
 else:

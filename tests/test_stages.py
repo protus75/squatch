@@ -21,7 +21,8 @@ import pytest
 
 from squatch import specs as specs_module
 from squatch import stages as stages_module
-from squatch.artifacts import REVIEW_BASELINE_REPORT, Finding, ReviewBaselineReport
+from squatch.artifacts import (EXIT_RECEIPT, HOST_LOOP_REPORT, REVIEW_BASELINE_REPORT,
+                               Finding, ReviewBaselineReport)
 from squatch.box import Box
 from squatch.config import load
 from squatch.effects import Effects
@@ -471,6 +472,8 @@ async def test_delivers_ok_with_every_artifact_lifted_committed_and_stamped(repo
     # The branch carries code only; the outbox never rides it.
     assert h.branch_diff_names() == ["squatch/widget.py"]
     assert d.worktree == h.worktree() and d.worktree.is_dir()
+    assert not list(repo.rglob(HOST_LOOP_REPORT))
+    assert not list(repo.rglob(EXIT_RECEIPT))
 
 
 async def test_outbox_lift_carries_nested_evidence_and_never_ticket_md(repo, env):
