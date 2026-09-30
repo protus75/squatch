@@ -14,20 +14,20 @@
     ]
   },
   "planted_defect_count": 50,
-  "produced_at_sha": "c400dbf979bac54e00a65b4e2bd4e259a765062f",
+  "produced_at_sha": "3533dc8a199a651442093a3d606309c8e2560f62",
   "schema_version": 1,
   "scored_summary": {
     "catch_rate": 1.0,
-    "caught": 41,
+    "caught": 50,
     "clean": 0,
     "false_approve": 0,
     "false_approve_rate": 0.0,
     "false_snag": 0,
-    "known_bad": 41,
+    "known_bad": 50,
     "unmatched": 0,
-    "usd": 4.758803
+    "usd": 2.84947
   },
-  "spend_usd": 4.940854,
+  "spend_usd": 3.032764,
   "verdict_signal_identity": {
     "identity": {
       "author": {
@@ -38,7 +38,7 @@
       },
       "review": {
         "high": {
-          "model": "opus",
+          "model": "sonnet",
           "provider": "claude"
         }
       }
