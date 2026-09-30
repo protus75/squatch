@@ -1,0 +1,16 @@
+{
+  "run_seq": 0,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "The harness must launch the real squatch serve (squatch/serve.py) on a tmp copy of hosts/fixture/. Injecting serve/confirm as caller callables that return literal strings is fabricated evidence and gets rejected.",
+    "Send machine-actor confirm requests through the real control-inbox writer (squatch/control.py). Take each observable and producing_run from the journal entries and run records that serve writes in the tmp host. Only the clock, process, filesystem and provider seams may be faked.",
+    "Record each of the at least three machine-ticket merges as its own entry with its own scenario, observable and producing_run. The validator should require at least three distinct producing runs for machine_ticket_merges, not exactly one entry per member.",
+    "Criterion 3: in test_host_loop, test_stages and test_gates, run the real construction path (FixtureHostLoop.run(), stage runs, ordinary lift). Then assert that no host-loop-report.json or exit-receipt.json exists under the repo, the workspace or tickets/*.",
+    "Read squatch/serve.py, squatch/control.py and the hosts/fixture/ scenarios before writing the harness. The last attempt used 18 of 75 budgeted minutes and skipped the engine integration that the ticket requires.",
+    "Keep the closed HostLoopEntry, HostLoopReport and ExitReceipt schemas and their KNOWN_ARTIFACTS registration; review found them sound. Change only the entry cardinality."
+  ],
+  "reason": "Review findings name concrete, fixable gaps with paved roads (a stubbed harness, one entry covering all merges, no-artifact tests that check nothing). The attempt used a fraction of its budget, so this was a shortcut, not a capability limit.",
+  "detail": null
+}
