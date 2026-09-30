@@ -24,7 +24,7 @@ FENCES = {
 }
 CONTEXT = {
     "go-grade-machinery": (),
-    "go-grade-run": ("eval/harness.py", "squatch/artifacts.py"),
+    "go-grade-run": (),
     "phase6-continue-07": ("tests/test_seeded_phase6_05.py",),
 }
 REMAINING_FENCES = {
@@ -100,6 +100,11 @@ def test_row_six_identity_edges_tier_fence_and_partition():
     assert "tests/test_baseline.py" not in acceptance
     assert "uv run pytest tests/test_baseline.py -q" in machinery.split("## Verification", 1)[1]
     run = _scope("go-grade-run")
+    run_partition = run.split("Embedded Context:", 1)[1]
+    embedded, measured = run_partition.split("; measured on-demand:", 1)
+    assert _paths(embedded) == ()
+    assert _paths(measured.split(". Read", 1)[0]) == (
+        "eval/harness.py", "squatch/artifacts.py")
     assert all(phrase in run for phrase in (
         "changes no code", "merged harness once", "uncommitted for ordinary-lane",
         "GO-or-NO-GO verdict signal identity", "NO-GO is valid",
