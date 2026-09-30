@@ -1,9 +1,17 @@
 {
-  "run_seq": 0,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 1,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "plant_defects must plant real defects per class: logic = inverted condition or off-by-one; leak = literal token in a log or URL; acceptance = a diff that contradicts a fixture criterion; scope_escape = a path outside the fixture's fence. Test that each class's diff contains its defect.",
+    "Enforce the USD 5.00 cap as a running total: count Author spend first, then check before each Review call and raise Unscored before any call that would exceed it. Add a test where an over-cap run stops making calls and returns no report.",
+    "tests/test_stages.py is in the fence and AC2 requires it. Add lift tests: a valid tickets/<stem>/review-baseline-report.json is validated and counted by completed_output_lift, and a report with an unknown field is refused by the same lift.",
+    "In test_go_grade.py, assert resolve_baseline(...).binds is True, not only state == GO. Compare the recorded body's tiers, identity and spec_major field by field with report.verdict_signal_identity. Assert identity keys == {review, author} and spec_major == the current specs' majors.",
+    "Prove no non-operator path writes GO: assert every signal that run() and run_go_grade journal has verdict NO-GO. Widening ReviewBaselineSignal.verdict to allow GO is not a proof on its own. Consider keeping GO reachable only through record_go.",
+    "--record-go must catch OSError and ValidationError on the report read. It prints a refusal naming the report path and the rule that failed, returns the refused exit code, and appends nothing.",
+    "Do not report this run as ok and done in ~20m of a 75m budget while acceptance criteria are unmet. Before finishing, check each acceptance criterion against a specific test assertion."
+  ],
+  "reason": "Review found fixable oversights (placeholder defects, a cap checked only after spending, missing test_stages lift tests, partial GO/binds proofs, uncaught errors on the record-go path), each with a concrete fix; the ticket's fence now includes stages.py, so it is satisfiable as written.",
+  "detail": null
 }
