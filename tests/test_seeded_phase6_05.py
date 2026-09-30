@@ -38,7 +38,8 @@ ON_DEMAND = FENCES["supervised-merge-hold"][:-1]
 REMAINING = {
     "go-grade-machinery": (
         "at least 50 planted defects", "USD 5.00 cap", "operator-only `--record-go`",
-        "never uses production `specs/author.md`"),
+        "never uses production `specs/author.md`", "review-baseline-report.json",
+        "verdict-signal identity", "`review_baseline` signal", "`resolve_baseline`"),
     "go-grade-run": ("changes no code", "GO-or-NO-GO verdict signal identity", "NO-GO is valid"),
     "exit-receipt-machinery": (
         "closed writers for `host-loop-report.json` and `exit-receipt.json`", "supervised `serve`",
