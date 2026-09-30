@@ -2,15 +2,16 @@
 ok
 
 ## Surprises / judgment calls
-The closed host-loop report represents three separately observed machine merges followed by the two inbox-driven loops. The harness returns evidence only; Phase 6 exit remains the sole terminal-artifact producer.
+The fixture triage response derives its scenario from the durable report signature and preserves the Author-visible replay-custody reference for bug tickets.
 
 ## Dead ends
-The full-suite command was run after the focused command; its output observation was truncated after continued green progress by the command runner.
+None.
 
 ## Second problems filed
+None.
 
 ## Resolved engine/model
 OpenAI / Codex
 
 ## Predicted vs actual
-Expected 75m; approximately 35m.
+Expected 75m; actual approximately 25m.
