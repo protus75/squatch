@@ -2,10 +2,10 @@
 premise_failed
 
 ## Surprises / judgment calls
-The fixture's `triage` call would inherit its `review` routing row, but its scripted `codex` executable accepts only author, implement, and review surfaces. I treated the real serve-to-inbox-to-triage path as required evidence rather than fabricating a bug-loop or escape observation.
+The fixture now routes triage and requisition review through its scripted provider. The host-loop producer is deliberately return-only: it registers the terminal schemas but does not write either terminal artifact.
 
 ## Dead ends
-The report-to-regression loop cannot be driven through real `serve`: after inbox intake it invokes the triage surface, which `hosts/fixture/bin/codex` rejects. Adding a triage route/response requires edits to `hosts/fixture/config.yaml` and `hosts/fixture/bin/codex`, both outside the scope fence.
+The live fixture harness did not reach a third supervised merge through the report-to-triage-to-Author path, so its execution-derived proof is not complete. The full-suite command also exceeded the available command observation window after progressing through its existing suite.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The report-to-regression loop cannot be driven through real `serve`: after inbox
 OpenAI / Codex
 
 ## Predicted vs actual
-Expected 75m; stopped during premise audit after approximately 8m.
+Expected 75m; approximately 70m before the live-host blocker.
