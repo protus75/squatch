@@ -1,15 +1,16 @@
 {
-  "run_seq": 5,
-  "outcome": "infra_error",
+  "run_seq": 6,
+  "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "abandon-human",
+  "verdict": "retry",
   "lessons": [
-    "Attempt 5 ended in infra_error during implement after 175s. It used zero tokens, cost $0.00, produced no provider or model, and left an empty diff. The agent never did any work, so no implementer oversight exists to steer.",
-    "The only spool tail is the prompt, and no stderr or provider log was harvested. Before redispatching, a human should check agent-CLI launch, credentials, rate limits and workspace state.",
-    "The run_record reports ok in about 20m, which contradicts this 175s zero-token infra_error. It is probably stale from an earlier attempt, so do not trust it as evidence for this run.",
-    "Commit e6513ce fixed the plan fence, but tickets/phase6-continue-06/ticket.md is still modified and uncommitted in the checkout. Confirm the regenerated ticket is committed before the next dispatch.",
-    "Once the environment works, reuse the prior approach: pin row 6 in tests/test_seeded_phase6_06.py and author the three seeds with max-effort renders. Keep squatch/stages.py and tests/test_stages.py in both machinery fences."
+    "Check failed only on requisition_review findings against the authored tickets/go-grade-machinery/ticket.md. The row-6 test, the three seeds, the max-effort renders and the full suite (1692 tests) passed. Keep that approach and tighten the authored ticket text.",
+    "go-grade-machinery must say where the 50 defects come from. State that the harness-local Author prompt is inline in eval/harness.py and defects are planted at runtime, so no eval/fixtures/ or prompt file is added. Do not widen the fence beyond what the plan's section 20 row allows.",
+    "State that ordinary harness runs still append the NO-GO review_baseline signal and that run_seq keying is unchanged, and that operator-only --record-go only appends a GO body. Name test_run_scores_every_fixture_and_journals_the_no_go_signal and the rerun test as preserved.",
+    "Replace the vague 'identity and reader boundary' criterion with checkable ones. A --record-go body must resolve to GO/binds=true through the unchanged resolve_baseline (tiers, {review, author} identity, spec_major matching specs).",
+    "Also require that no non-operator path can write verdict GO, and that the recorded review_baseline signal identity equals the report's verdict-signal identity. Add uv run pytest tests/test_baseline.py -q to the ticket's Verification as a preservation suite.",
+    "Keep squatch/stages.py and tests/test_stages.py in the go-grade-machinery and exit-receipt-machinery fences. Keep every phrase that tests/test_seeded_phase6_06.py pins; add clarifications around those phrases instead of rewording them."
   ],
-  "reason": "Zero-token infra_error with an empty diff means the environment or workspace failed, not the implementation, and nothing harvested shows a retry would fix it.",
+  "reason": "The check gate's requisition review flagged three fixable ambiguities in the implementer-authored go-grade-machinery ticket text; the paved roads can be applied inside the tickets fence at the same capability.",
   "detail": null
 }
