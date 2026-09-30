@@ -1,15 +1,9 @@
 {
-  "run_seq": 1,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Plan defect, not an implementer slip: section 20 says phase6-exit reads the committed GO-grade report and accepts GO or NO-GO, but it never says how the verdict is derived. Fix section 20 first, then re-author the phase6-exit seed.",
-    "The merged ReviewBaselineReport (squatch/artifacts.py) has no verdict field, only verdict_signal_identity. The harness hard-codes NO-GO, and GO exists only as an operator --record-go journal signal. The plan must name the verdict source, such as resolving the journal signal by identity.",
-    "Spelling conflict: ExitReceipt.go_grade_verdict is Literal['GO','NO_GO'], while the ticket and harness say 'NO-GO'. The plan must pick one spelling and state it. It must also define the host_loop_digest algorithm.",
-    "Writer provenance: HOST_LOOP_REPORT and EXIT_RECEIPT names and schemas live in squatch/artifacts.py, but they are registered as writers in squatch/stages.py KNOWN_ARTIFACTS. Credit stages.py for the writers.",
-    "The test file tests/test_seeded_phase6_08.py passed. Once the plan is fixed, pin the new verdict source, the enum spelling and the digest wording in it, not the old 'GO or NO-GO' phrase."
-  ],
-  "reason": "Requisition review showed the section 20 contract cannot be met as written: the committed report has no verdict to read, the enum spellings conflict, and the digest is undefined. Only a plan fix and re-author can clear it.",
-  "detail": null
+  "run_seq": 2,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
