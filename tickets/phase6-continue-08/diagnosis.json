@@ -1,16 +1,9 @@
 {
-  "run_seq": 5,
-  "outcome": "gate_failed",
-  "call": "ok",
-  "verdict": "reject",
-  "lessons": [
-    "Requisition review failed on tickets/phase6-exit/ticket.md, not on the test. Every finding asks for Context or on-demand reads, but the ticket and section 20 pin 'Embedded Context: none; measured on-demand: none'. No implementer fix can satisfy both.",
-    "Fix section 20's phase6-exit partition first: embed squatch/artifacts.py and tickets/go-grade-run/review-baseline-report.json. The review measured 85,299 chars of 120,000 headroom.",
-    "In the same section 20 edit, name eval/host_loop.py and squatch/stages.py (KNOWN_ARTIFACTS) as measured on-demand exceptions, then re-author the seed and update the partition pin in tests/test_seeded_phase6_08.py.",
-    "Exit-read closure: for the committed baseline report, state that go-grade-machinery owns the ReviewBaselineReport schema and writer and that go-grade-run produced the file, as phase4-exit did with its reliability report.",
-    "Name the three closed HostLoopReport members exactly and in schema order, read from squatch/artifacts.py rather than guessed. Pin them in the plan, the seed criteria, and the seeded test in place of the phrase 'three closed host-loop members'.",
-    "Keep what already passed: the terminal row alone, the exact three-path exit fence, high/high KNOWN-HARD, section-20-only rendering under the max bound, no section 19, no successor, and the GO->GO / NO-GO->NO_GO mapping plus the SHA-256 digest wording."
-  ],
-  "reason": "Requisition review requires Context for the producer, the schemas, and the baseline report, but the ticket and section 20 fix the partition at none, so the ticket as written cannot pass and the plan must change first.",
-  "detail": null
+  "run_seq": 7,
+  "outcome": "premise_failed",
+  "call": "skipped",
+  "verdict": null,
+  "lessons": [],
+  "reason": null,
+  "detail": "premise_failed terminals are not diagnosed"
 }
