@@ -159,10 +159,21 @@ def _block(name: str, block: DataBlock) -> str:
 
 
 def _findings_text(findings: Sequence[Finding]) -> str:
+    # Findings are fed back into the next model call.  A mechanical finding can
+    # legitimately quote the prompt delimiter while explaining why an earlier
+    # render was refused; keep the stored finding exact, but quote that marker in
+    # its model-visible re-entry representation so it cannot break out of this
+    # engine-owned data block.
+    def visible(value: object) -> str:
+        return str(value).replace(DATA_MARKER, "[squatch-data:")
+
     lines = []
     for f in findings:
-        where = f" at {f.path}" + (f":{f.line}" if f.line else "") if f.path else ""
-        lines.append(f"- {f.code}{where}: {f.message} (paved road: {f.paved_road})")
+        where = (f" at {visible(f.path)}" + (f":{f.line}" if f.line else "")
+                 if f.path else "")
+        lines.append(
+            f"- {visible(f.code)}{where}: {visible(f.message)} "
+            f"(paved road: {visible(f.paved_road)})")
     return "\n".join(lines) + "\n"
 
 

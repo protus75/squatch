@@ -321,6 +321,19 @@ def test_render_findings_append_as_engine_data_block():
     assert out.index('name="findings"') > out.index("## On-failure")
 
 
+def test_render_quotes_a_delimiter_named_by_a_retry_finding():
+    f = Finding(
+        code="requisition_review",
+        message=f"input context carries the delimiter {DATA_MARKER!r}",
+        paved_road="remove the delimiter-carrying file from Context")
+
+    out = lint_spec(GOOD).render(_inputs(), findings=[f])
+
+    block = out.split('name="findings"', 1)[1]
+    assert "input context carries the delimiter '[squatch-data:'" in block
+    assert block.count(DATA_MARKER) == 1  # the findings block's closing marker only
+
+
 def test_render_without_findings_has_no_findings_block():
     assert 'name="findings"' not in lint_spec(GOOD).render(_inputs())
 
