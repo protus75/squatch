@@ -1,0 +1,10 @@
+---
+id: decision-000014
+kind: decision
+link: box-000014-96a8caac
+reopen_after_days: 90
+message: box-000014-96a8caac
+---
+No action for now. The defect is real but no code path is known to reach it. `Effects.run` (squatch/effects.py:56-64) checks `key in self._completed` and then awaits the action with no in-flight guard, so two overlapping same-key calls in one process would both run. It also assigns `self._completed[key] = result` (last completion wins), while the constructor's journal scan uses `setdefault` (first completion wins, line 46). The concurrency the message treated as future work now exists: the daemon, timers and background consumers all spawn tasks. Even so, dispatch goes through the single-flight admission boundary, the scheduler runs one ticket at a time, and the section 6 key domains scope effect keys so that same-key calls are serialized by construction. No caller is known to issue the same key concurrently, and no incident or stranded-key alert points to one. Switching to `setdefault` alone would not fix the real hazard, which is the action running twice. An in-flight await set is concurrency machinery with no incident behind it, so the anti-bloat law defers it. No rendered work covers this. The open ticket `effects-completion-result-corruption` is a read-side missing-`result` defect, and decision-000012 covers non-JSON results, so a tombstone would be wrong. Reopen if any journal holds two `effect_intent` or two `effect_completion` events for the same key, or if a ticket introduces concurrent `Effects.run` callers that can share a key domain. The fix should then add the in-flight set and `setdefault` in `run` together.
+
+Evidence: squatch/effects.py:46 uses setdefault in the journal scan (first completion wins); effects.py:56-64 has an unguarded check-then-await and assigns with = (last completion wins). Task spawning exists in squatch/daemon.py:111,232,440, squatch/timers.py:71,93 and squatch/scheduler.py:35, but merged dispatch-admission-boundary and daemon-scheduler enforce single-flight, one-ticket-at-a-time dispatch. No rendered open work, merged work or decision covers overlapping same-key execution.
