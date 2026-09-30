@@ -1,12 +1,13 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "fd271211d0fabd0a2554194fcb7f115b3bca9801",
+  "produced_at_sha": "339ff47f9774a15ba355559e71d5106a68428339",
   "stem": "supervised-merge-hold",
   "branch": "supervised-merge-hold",
-  "base": "c9af536624f0c3bc302007719f49466858a7ab91",
-  "head": "fd271211d0fabd0a2554194fcb7f115b3bca9801",
+  "base": "e432a608e6ce9b480f77358566841f3cc4df7042",
+  "head": "339ff47f9774a15ba355559e71d5106a68428339",
   "changed_files": [
+    "eval/daemon_soak.py",
     "squatch/__main__.py",
     "squatch/baseline.py",
     "squatch/control.py",
@@ -15,6 +16,7 @@
     "squatch/runner.py",
     "squatch/stages.py",
     "tests/test_baseline.py",
+    "tests/test_daemon_soak_runner.py",
     "tests/test_merge.py",
     "tests/test_supervised_merge_hold.py"
   ],
@@ -48,6 +50,7 @@
             "tests/test_control_cli.py",
             "tests/test_cli.py",
             "tests/test_drain.py",
+            "tests/test_daemon_soak_runner.py",
             "tests/test_supervised_merge_hold.py",
             "-q"
           ],
