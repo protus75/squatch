@@ -106,6 +106,12 @@ def test_continuation_pins_remaining_contracts_and_terminal_custody():
     assert "starts medium/medium unless" in scope and "KNOWN-DEEP or KNOWN-HARD high/high" in scope
     for stem, phrases in REMAINING.items():
         assert all(phrase in scope for phrase in phrases), stem
+    [exit_line] = [line for line in scope.splitlines()
+                   if line.startswith("`exit-receipt-machinery` depends on ")]
+    exit_fence = exit_line.split("owns/fences", 1)[1].split(". It", 1)[0]
+    assert _paths(exit_fence) == (
+        "squatch/artifacts.py", "squatch/stages.py", "eval/host_loop.py",
+        "tests/test_host_loop.py", "tests/test_gates.py", "tests/test_stages.py")
     for stem, depends, context in (
         ("phase6-continue-07", ("go-grade-machinery", "go-grade-run"), "tests/test_seeded_phase6_05.py"),
         ("phase6-continue-08", ("exit-receipt-machinery",), "tests/test_seeded_phase6_06.py"),
