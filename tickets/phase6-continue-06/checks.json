@@ -1,0 +1,124 @@
+{
+  "artifact_schema_version": 1,
+  "produced_by_spec_version": "1.0",
+  "produced_at_sha": "fbdb14da036a4bc27bf6cce56a08e1c0eb0b7ba9",
+  "stem": "phase6-continue-06",
+  "branch": "phase6-continue-06",
+  "base": "06a90f68ba2a02b89d6782154a4fc084ab2f9118",
+  "head": "fbdb14da036a4bc27bf6cce56a08e1c0eb0b7ba9",
+  "changed_files": [
+    "tests/test_seeded_phase6_06.py"
+  ],
+  "checks": [
+    {
+      "code": "requisition_review",
+      "verdict": "fail",
+      "severity": "hard",
+      "path": "tickets/go-grade-machinery/ticket.md",
+      "sha": "3564fc41cb498830446f3316b3cc1d36d15df662",
+      "bypassed": false,
+      "findings": [
+        {
+          "code": "requisition_review",
+          "path": "tickets/go-grade-machinery/ticket.md",
+          "line": 88,
+          "message": "The new closed report has to be registered in `squatch/stages.py::KNOWN_ARTIFACTS` so the ordinary lane can validate and lift it. The merged precedents do this: daemon-soak's 'Stages registers it in KNOWN_ARTIFACTS', and `ReliabilityBatteryReport` is registered there too. `completed_output_lift` (squatch/stages.py:105) only counts lifted paths whose name is in `KNOWN_ARTIFACTS`. So when the no-code `go-grade-run` writes `tickets/go-grade-run/review-baseline-report.json` to its OUTBOX, that file is neither schema-validated nor counted as a completed lift. `phase6-exit` then has no closed committed report to read. The section 20 row fences only `eval/harness.py`, `squatch/artifacts.py`, `tests/test_eval_harness.py`, and `tests/test_go_grade.py`, and `tests/test_seeded_phase6_02.py` pins that exact fence. The author therefore cannot add `squatch/stages.py`.",
+          "paved_road": "fix the plan, then re-author the ticket"
+        }
+      ],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/go-grade-run/ticket.md",
+      "sha": "3acb7bbac40c622ea201cdd899aebea32644a278",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "requisition_review",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": "tickets/phase6-continue-07/ticket.md",
+      "sha": "8b06d91aea145517a347775542e76e455aaa1dec",
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "scope_fence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "verification",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": [
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "tests/test_seeded_phase6_06.py",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        },
+        {
+          "argv": [
+            "uv",
+            "run",
+            "pytest",
+            "-q"
+          ],
+          "attribution": null,
+          "filed": null
+        }
+      ]
+    },
+    {
+      "code": "run_record",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "diff_budget",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    },
+    {
+      "code": "bug_evidence",
+      "verdict": "pass",
+      "severity": "hard",
+      "path": null,
+      "sha": null,
+      "bypassed": false,
+      "findings": [],
+      "commands": []
+    }
+  ]
+}
