@@ -1,11 +1,11 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "4555f5e5df32bc264876c7e4aa990361d9e16cd8",
+  "produced_at_sha": "f47f02cb2f4baa32b142ab8f2a7b004f50c2168a",
   "stem": "go-grade-machinery",
   "branch": "go-grade-machinery",
-  "base": "63619ffdd10a3d02f31e3ca7429d236a27d1615b",
-  "head": "4555f5e5df32bc264876c7e4aa990361d9e16cd8",
+  "base": "183b32292267b488c4ba163f2db82c9c91d1a0d3",
+  "head": "f47f02cb2f4baa32b142ab8f2a7b004f50c2168a",
   "changed_files": [
     "eval/harness.py",
     "squatch/artifacts.py",
