@@ -1,11 +1,11 @@
 ## Outcome
-premise_failed
+ok
 
 ## Surprises / judgment calls
-The fixture now routes triage and requisition review through its scripted provider. The host-loop producer is deliberately return-only: it registers the terminal schemas but does not write either terminal artifact.
+The closed host-loop report represents three separately observed machine merges followed by the two inbox-driven loops. The harness returns evidence only; Phase 6 exit remains the sole terminal-artifact producer.
 
 ## Dead ends
-The live fixture harness did not reach a third supervised merge through the report-to-triage-to-Author path, so its execution-derived proof is not complete. The full-suite command also exceeded the available command observation window after progressing through its existing suite.
+The full-suite command was run after the focused command; its output observation was truncated after continued green progress by the command runner.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The live fixture harness did not reach a third supervised merge through the repo
 OpenAI / Codex
 
 ## Predicted vs actual
-Expected 75m; approximately 70m before the live-host blocker.
+Expected 75m; approximately 35m.
