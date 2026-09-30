@@ -1,9 +1,16 @@
 {
-  "run_seq": 4,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 5,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "escalate",
+  "lessons": [
+    "Only defect left: the call_budget ceiling is set once per driver.run, so a re-prompt (RETRY_CAP=1) gets the same full remaining budget as the first call. The Author call has the same bug. Charged spend can exceed $5.00.",
+    "Compute each LLMRequest's max_budget_usd when the request is created: GO_SPEND_CAP_USD minus everything charged so far, including earlier calls in the same driver.run. One way is a harness wrapper around llm that tallies result cost per call. Refuse before the call when headroom <= 0.",
+    "With a per-request remaining ceiling passed as --max-budget-usd, drop the earlier 'fixed per-call bound' idea. Cost is capped by the provider, so the remaining headroom is itself the bound.",
+    "Add a test in test_go_grade.py where a Review reply is invalid, forcing a re-prompt. Assert the second request's max_budget_usd equals the first minus the first call's cost, and total charged <= 5.00. Add the same re-prompt case for Author.",
+    "Keep everything review accepted: closed report, KNOWN_ARTIFACTS registration, plant_defects, _run_seq, the go-grade key namespace, the record_go measured summary, --record-go refusal, and the provider --max-budget-usd path. Change only budget propagation and its tests.",
+    "Before reporting ok, map each acceptance criterion and review finding to a specific test assertion. Every prior attempt claimed ok well under budget with an open cap defect."
+  ],
+  "reason": "Fifth-plus attempt at the same capability. Each fix for the spend cap has left a new way to overspend, and each run claimed ok early, so more capability is needed to close the cap invariant.",
+  "detail": null
 }
