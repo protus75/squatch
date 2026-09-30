@@ -4,13 +4,16 @@ ok
 
 ## Surprises / judgment calls
 
-The committed run stopped at the observed per-review cost floor after 40
-scorable reviews. It wrote a partial NO-GO report with $4.981962 spend and
-the journaled `review_baseline` signal identity; no `--record-go` path ran.
+The single run stopped at the observed whole-review cost floor after 41
+scorable reviews. It wrote a partial NO-GO report with $4.940854 spend and
+the journaled `review_baseline` signal identity. I invoked `record_go` only
+afterward as a refusal check; it rejected the incomplete report before any GO
+signal write.
 
 ## Dead ends
 
-None.
+The first verification run exposed only a malformed chained test assertion;
+I split it into separate equality and cap assertions before the green rerun.
 
 ## Second problems filed
 
@@ -24,4 +27,4 @@ Claude CLI / opus for the harness-local Author and Review calls.
 
 ## Predicted vs actual
 
-Expected: 75m. Actual: about 20m.
+Expected: 75m. Actual: about 15m.

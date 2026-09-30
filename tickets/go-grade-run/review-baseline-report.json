@@ -1,34 +1,33 @@
 {
   "authored_tickets": [
-    "go-grade-harness-route",
-    "go-grade-review-fixtures",
-    "go-grade-report-writer"
+    "go-grade-fixtures",
+    "go-grade-review-run",
+    "go-grade-report"
   ],
   "dependency_graph": {
-    "go-grade-harness-route": [],
-    "go-grade-report-writer": [
-      "go-grade-harness-route",
-      "go-grade-review-fixtures"
+    "go-grade-fixtures": [],
+    "go-grade-report": [
+      "go-grade-review-run"
     ],
-    "go-grade-review-fixtures": [
-      "go-grade-harness-route"
+    "go-grade-review-run": [
+      "go-grade-fixtures"
     ]
   },
   "planted_defect_count": 50,
-  "produced_at_sha": "269d8eae18d6150379212e4e4d642e24f431a7af",
+  "produced_at_sha": "c400dbf979bac54e00a65b4e2bd4e259a765062f",
   "schema_version": 1,
   "scored_summary": {
     "catch_rate": 1.0,
-    "caught": 40,
+    "caught": 41,
     "clean": 0,
     "false_approve": 0,
     "false_approve_rate": 0.0,
     "false_snag": 0,
-    "known_bad": 40,
+    "known_bad": 41,
     "unmatched": 0,
-    "usd": 4.616424
+    "usd": 4.758803
   },
-  "spend_usd": 4.981962,
+  "spend_usd": 4.940854,
   "verdict_signal_identity": {
     "identity": {
       "author": {
