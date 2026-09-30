@@ -1,9 +1,17 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "retry",
+  "lessons": [
+    "Full `uv run pytest -q` exited 1, but the harvest does not name the failing test. Run the full suite to completion before claiming implemented. Likely suspects: tests/test_fixture_host.py or config/routing tests that pin the fixture's surface set or config shape after the triage additions.",
+    "FixtureHostLoop launches `python bin/fixture-serve`, a launcher that does not exist in hosts/fixture/. Launch the real `squatch serve` CLI (squatch/__main__.py / squatch/serve.py) on the tmp host copy, using an argv list.",
+    "No machine-actor confirm is sent. Supervised merges hold (squatch/merge.py, control.py). Write identity-bound confirm requests through the real control-inbox writer for each held stem, or serve never merges.",
+    "Tests only feed hand-built Event tuples to report_from_events. That is fabricated evidence. At least one test must run FixtureHostLoop.run() end to end on tmp_path (fake only the clock/process/fs/provider seams) and assert the journal-derived entries.",
+    "report_from_events hardcodes the stem names and matches on invented signal bodies (kind=triage_pass, triaged.authored). Read squatch/triage.py, inbox.py and journal.py for the real event types and bodies before projecting. Take producing_run from real run records.",
+    "The fixture triage reply {verdict, summary, kind, priority, goal, why} was not validated against the triage spec's output schema. Read specs/triage.md and squatch/triage.py and emit exactly the closed fields, with ## Regression-bearing evidence surviving to Author.",
+    "Keep the closed HostLoopEntry, HostLoopReport and ExitReceipt schemas and the KNOWN_ARTIFACTS registration, plus the config.yaml triage route. Criterion 3 still needs no-terminal-artifact assertions in test_gates.py and test_stages.py after running the real construction/lift path."
+  ],
+  "reason": "The fence now allows fixture triage, so the ticket is satisfiable; this attempt failed on an unreported full-suite test failure and still drives synthetic events instead of real serve/confirm, which are fixable oversights.",
+  "detail": null
 }
