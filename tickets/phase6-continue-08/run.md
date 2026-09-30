@@ -4,14 +4,14 @@ ok
 
 ## Surprises / judgment calls
 
-The terminal seed uses the plan's corrected Context partition: artifacts and
-the committed GO-grade report are embedded, while the producer and writer
-registry are measured on demand.
+`eval/host_loop.py::run()` returns a validated model and does not write an
+artifact. The terminal seed therefore assigns serialization to the exit and
+describes `KNOWN_ARTIFACTS` as the ordinary-lane validator registry.
 
 ## Dead ends
 
-The first focused run exposed only a too-specific seeded-test text assertion;
-the contract itself was unchanged and the assertion was corrected.
+The initial seeded contract test used wrapped-string assertions that did not
+match the ticket's prose wrapping; the assertions were made semantic instead.
 
 ## Second problems filed
 
@@ -19,8 +19,8 @@ the contract itself was unchanged and the assertion was corrected.
 
 ## Resolved engine/model
 
-OpenAI Codex (model identifier unavailable).
+OpenAI Codex (GPT-5).
 
 ## Predicted vs actual
 
-Expected 75m; actual approximately 12m.
+Expected 75m; actual approximately 14m.
