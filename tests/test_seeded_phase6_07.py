@@ -18,7 +18,8 @@ SUFFIX = (ROW, ("phase6-exit",))
 FENCES = {
     "exit-receipt-machinery": (
         "squatch/artifacts.py", "squatch/stages.py", "eval/host_loop.py",
-        "tests/test_host_loop.py", "tests/test_gates.py", "tests/test_stages.py"),
+        "tests/test_host_loop.py", "tests/test_gates.py", "tests/test_stages.py",
+        "hosts/fixture/config.yaml", "hosts/fixture/bin/codex"),
     "phase6-continue-08": ("tickets", "tests/test_seeded_phase6_08.py"),
 }
 CONTEXT = {
@@ -66,6 +67,7 @@ def test_host_loop_identity_tier_fence_and_partition():
         "closed ordinary-lane writers", "supervised `serve`",
         "control inbox", "at least\nthree machine-ticket merges",
         "report-to-regression bug loop", "escape\nattribution",
+        "fixture `triage` route", "production Serve/triage path",
         "never produces terminal artifacts"))
     assert set(CONTEXT["exit-receipt-machinery"]).isdisjoint(ON_DEMAND)
     assert all(path in scope for path in ON_DEMAND)
