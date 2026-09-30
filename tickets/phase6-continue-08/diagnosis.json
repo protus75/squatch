@@ -1,16 +1,15 @@
 {
-  "run_seq": 0,
+  "run_seq": 1,
   "outcome": "gate_failed",
   "call": "ok",
-  "verdict": "retry",
+  "verdict": "reject",
   "lessons": [
-    "Requisition review rejected the authored tickets/phase6-exit/ticket.md for unanchored evidence, not the test. Rewrite the seed so Scope in and criteria name concrete merged artifacts, then keep tests/test_seeded_phase6_08.py pinning them.",
-    "Name tickets/go-grade-run/review-baseline-report.json as the committed GO-grade report. Credit go-grade-machinery as machinery and go-grade-run as producer, and cite ReviewBaselineReport/REVIEW_BASELINE_REPORT in squatch/artifacts.py for the verdict-identity field.",
-    "Name eval/host_loop.py run() -> HostLoopReport as the registered producer. Require both fenced tickets/phase6-exit/*.json outputs to come from the HOST_LOOP_REPORT/EXIT_RECEIPT writers in squatch/artifacts.py, landed by exit-receipt-machinery.",
-    "Conflict: the ticket pins the partition 'Embedded Context: none; measured on-demand: none'. Name artifacts.py, host_loop.py, and the baseline report as ordinary merged worktree reads in prose, and do not change the partition line or add them to the fence.",
-    "Read squatch/artifacts.py and eval/host_loop.py before writing, so the closed host-loop member names and verdict-identity field quoted in the seed are real, not guessed.",
-    "If review still demands embedded Context or on-demand reads despite the pinned 'none' partition, the plan contract is the defect. Report this as a plan conflict and don't break the ticket's stated partition."
+    "Plan defect, not an implementer slip: section 20 says phase6-exit reads the committed GO-grade report and accepts GO or NO-GO, but it never says how the verdict is derived. Fix section 20 first, then re-author the phase6-exit seed.",
+    "The merged ReviewBaselineReport (squatch/artifacts.py) has no verdict field, only verdict_signal_identity. The harness hard-codes NO-GO, and GO exists only as an operator --record-go journal signal. The plan must name the verdict source, such as resolving the journal signal by identity.",
+    "Spelling conflict: ExitReceipt.go_grade_verdict is Literal['GO','NO_GO'], while the ticket and harness say 'NO-GO'. The plan must pick one spelling and state it. It must also define the host_loop_digest algorithm.",
+    "Writer provenance: HOST_LOOP_REPORT and EXIT_RECEIPT names and schemas live in squatch/artifacts.py, but they are registered as writers in squatch/stages.py KNOWN_ARTIFACTS. Credit stages.py for the writers.",
+    "The test file tests/test_seeded_phase6_08.py passed. Once the plan is fixed, pin the new verdict source, the enum spelling and the digest wording in it, not the old 'GO or NO-GO' phrase."
   ],
-  "reason": "Check failed only on requisition-review findings that the authored seed omitted concrete artifact, producer, and machinery names. Each finding has a paved road that is a fixable oversight at the same capability.",
+  "reason": "Requisition review showed the section 20 contract cannot be met as written: the committed report has no verdict to read, the enum spellings conflict, and the digest is undefined. Only a plan fix and re-author can clear it.",
   "detail": null
 }
