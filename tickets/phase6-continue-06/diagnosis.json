@@ -1,9 +1,14 @@
 {
-  "run_seq": 3,
-  "outcome": "premise_failed",
-  "call": "skipped",
-  "verdict": null,
-  "lessons": [],
-  "reason": null,
-  "detail": "premise_failed terminals are not diagnosed"
+  "run_seq": 4,
+  "outcome": "gate_failed",
+  "call": "ok",
+  "verdict": "reject",
+  "lessons": [
+    "Section 20 fences exit-receipt-machinery to squatch/artifacts.py, eval/host_loop.py, tests/test_host_loop.py, tests/test_gates.py. That fence omits squatch/stages.py, so it cannot register host-loop-report.json or exit-receipt.json in KNOWN_ARTIFACTS.",
+    "This is the same class of defect already fixed for go-grade-machinery. Fix the plan first: add squatch/stages.py and tests/test_stages.py to the exit-receipt-machinery fence, following the daemon-soak/reliability-battery precedent.",
+    "After the plan fix, regenerate this ticket and every Phase 6 pinning test that quotes the exit-receipt-machinery fence. Do not hand-patch the continuation seed.",
+    "Otherwise the row-6 work passed: the pinning test, three authored seeds, max-effort renders and full suite. Reuse that approach after the plan and ticket are regenerated."
+  ],
+  "reason": "The ticket requires authoring exit-receipt-machinery with a plan-pinned fence that cannot register its closed writers, and review proved this; only a plan change can fix it.",
+  "detail": null
 }
