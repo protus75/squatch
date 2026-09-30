@@ -1,17 +1,16 @@
 {
-  "run_seq": 1,
+  "run_seq": 2,
   "outcome": "gate_failed",
   "call": "ok",
   "verdict": "retry",
   "lessons": [
-    "Don't treat Claude's error_max_budget_usd as a free refusal before a model turn. That call ran a model turn and its cost was dropped. Remove the _budget_refused break and its string-match test.",
-    "Before each fixture, check that remaining budget covers a per-review floor, e.g. the largest review cost journaled so far in this run. If it doesn't, break to the measured partial NO-GO through require_remaining, so the CLI never gets a budget it can overrun.",
-    "Replace test_claude_remaining_cap_refusal_is_not_a_model_turn with a test showing the floor check stops before the review call, with no extra FakeLLM request.",
-    "Keep the parts the reviewer accepted: the partial NO-GO return after at least one scorable review, and the record_go refusal of incomplete reports via _is_complete_go_grade.",
-    "Commit the harness fix first, then execute the harness exactly once from committed code, so produced_at_sha matches head. Never resume or stitch together an earlier journaled run.",
-    "In run.md, state plainly that earlier invocations spent money off-ledger: two refused calls journaled at usd 0.0 after ~0.1 remained. The operator must see the real cost.",
-    "squatch/providers.py parse drops total_cost_usd on error results. It is outside the fence, so file it to the Suggestion Box, list it under Second problems filed, and don't fix it here."
+    "Keep what was accepted: the pre-review floor check, the partial NO-GO return, and the _is_complete_go_grade refusal in record_go. The only gap left is the cap running out partway through a review.",
+    "In run_go_grade, wrap driver.run, and the require_remaining call after a non-scorable outcome, in a try/except Unscored. If scores is non-empty, break and journal/return the partial NO-GO. Re-raise only when scores is empty.",
+    "Leave the interrupted review out of scores. Its spend still counts toward spend_usd, and the total must stay at or under $5.00.",
+    "Track the review floor as the total cost of one whole driver.run review, re-prompts included, not the cost of a single call.",
+    "Add a test in tests/test_go_grade.py: a cheap author call, a scorable first review, then a second review that runs out the cap partway (via a re-prompt or an overrun). Assert a partial NO-GO report, no extra FakeLLM request, and that record_go refuses the report.",
+    "Commit the fix first. Then run the harness exactly once from committed code so produced_at_sha matches head. Leave the report uncommitted for the lift, and never stitch it together from earlier runs."
   ],
-  "reason": "Review snag with an in-fence paved road: the pre-call floor replaces the false budget-refusal premise, then one clean execution from committed code; the ticket is not shown to be unsatisfiable.",
+  "reason": "The review found one fixable gap: running out of cap partway through a review still raises Unscored. The reviewer gave a concrete paved road, so re-running at the same capability should fix it.",
   "detail": null
 }
