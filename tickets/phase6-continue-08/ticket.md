@@ -19,7 +19,7 @@ agent_effort: medium
 Author the terminal fixed Phase 6 admission.
 
 ## Why
-The host-loop machinery must merge before its receipt can close Phase 6.
+The registered host-loop machinery must merge before its receipt can close Phase 6.
 
 ## Scope in
 Author confirmed source-seed `phase6-exit` plus new
