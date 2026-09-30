@@ -84,8 +84,11 @@ def test_continuation_pins_terminal_exit_custody():
         "transitively depends on", "authors no successor",
         "tickets/phase6-exit/host-loop-report.json", "tickets/phase6-exit/exit-receipt.json",
         "tests/test_phase6_exit.py", "committed GO-grade report",
-        "embedded verdict identity", "accepts GO or NO-GO", "three closed\nhost-loop members",
-        "writes the receipt digest", "no engine-code edit", "forbidden exit inputs"))
+        "embedded verdict identity", "latest matching `review_baseline` journal signal",
+        "signal `GO` maps to receipt enum `GO`", "signal `NO-GO` maps to receipt enum `NO_GO`",
+        "three closed\nhost-loop members", "exact schema-validated host-loop report bytes",
+        "`squatch/stages.py` `KNOWN_ARTIFACTS`", "no engine-code edit",
+        "forbidden exit inputs"))
     assert "Embedded Context: none; measured on-demand: none." in scope
     assert "The terminal row contains `phase6-exit` alone, has no successor" in scope
     assert "continuation tail." in scope

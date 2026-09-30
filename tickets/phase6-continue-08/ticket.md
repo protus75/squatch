@@ -39,9 +39,18 @@ every Phase 6 payload, and is the last row's sole KNOWN-HARD high/high seed.
 It authors no successor and owns/fences only
 `tickets/phase6-exit/host-loop-report.json`,
 `tickets/phase6-exit/exit-receipt.json`, and new `tests/test_phase6_exit.py`.
-It runs the registered host-loop producer, reads the committed GO-grade report
-and its embedded verdict identity, accepts GO or NO-GO, proves the three closed
-host-loop members, writes the receipt digest, and makes no engine-code edit.
+It runs the registered `eval/host_loop.py` `run()` producer and reads the
+committed GO-grade report at
+`tickets/go-grade-run/review-baseline-report.json` through
+`ReviewBaselineReport` / `REVIEW_BASELINE_REPORT`. It resolves the report's
+embedded verdict identity against the latest matching `review_baseline` journal signal:
+signal `GO` maps to receipt enum `GO`, while
+signal `NO-GO` maps to receipt enum `NO_GO`; missing or mismatched signal
+identity rejects the exit. It proves the three closed
+host-loop members. Its `host_loop_digest` is lowercase SHA-256 over the
+exact schema-validated host-loop report bytes. `squatch/artifacts.py` owns the
+artifact names and schemas; `squatch/stages.py` `KNOWN_ARTIFACTS` registers
+their ordinary-lane writers. It makes no engine-code edit.
 Live-host K>=10 and real-host bug-loop evidence are forbidden exit inputs.
 
 `phase6-exit` partition: Embedded Context: none; measured on-demand: none.
