@@ -38,10 +38,11 @@ Carry this exact shrinking suffix:
 - [phase6-exit]
 ```
 
-`go-grade-machinery` depends on both `supervised-merge-hold` and `fixture-host-scaffold` and owns/fences `eval/harness.py`, `squatch/artifacts.py`, `tests/test_eval_harness.py`, and new `tests/test_go_grade.py`. It extends the committed harness to at least 50 planted defects under fixed USD 5.00 cap, runs the harness-local Author prompt, records tickets and dependency graph in one closed report, adds operator-only `--record-go`, and never uses production `specs/author.md`.
+`go-grade-machinery` depends on both `supervised-merge-hold` and `fixture-host-scaffold` and owns/fences `eval/harness.py`, `squatch/artifacts.py`, `squatch/stages.py`, `tests/test_eval_harness.py`, `tests/test_stages.py`, and new `tests/test_go_grade.py`. It extends the committed harness to at least 50 planted defects under fixed USD 5.00 cap, runs the harness-local Author prompt, and never uses production `specs/author.md`. It registers closed `review-baseline-report.json` fields for planted-defect count, spend, authored tickets, dependency graph, and verdict-signal identity; operator-only `--record-go` appends the `review_baseline` signal read by `resolve_baseline`.
 
 `go-grade-machinery` partition: Embedded Context: none; measured on-demand:
-`eval/harness.py`, `squatch/artifacts.py`, `tests/test_eval_harness.py`.
+`eval/harness.py`, `squatch/artifacts.py`, `squatch/stages.py`,
+`tests/test_eval_harness.py`, `tests/test_stages.py`.
 
 `go-grade-run` depends on `go-grade-machinery`, changes no code, and
 owns/fences only `tickets/go-grade-run/review-baseline-report.json`. It executes
