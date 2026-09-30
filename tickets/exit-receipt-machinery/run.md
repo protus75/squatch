@@ -1,11 +1,11 @@
 ## Outcome
-ok
+premise_failed
 
 ## Surprises / judgment calls
-The fixture's scripted adapter has no triage surface, so the harness seeds the three closed fixture scenarios and uses the real report inbox as report evidence; each merge is still implemented and released by the real serve/control path.
+The fixture's `triage` call would inherit its `review` routing row, but its scripted `codex` executable accepts only author, implement, and review surfaces. I treated the real serve-to-inbox-to-triage path as required evidence rather than fabricating a bug-loop or escape observation.
 
 ## Dead ends
-The first report-driven attempt waited for triage to author the regression ticket, but the fixture adapter intentionally refuses that unsupported surface.
+The report-to-regression loop cannot be driven through real `serve`: after inbox intake it invokes the triage surface, which `hosts/fixture/bin/codex` rejects. Adding a triage route/response requires edits to `hosts/fixture/config.yaml` and `hosts/fixture/bin/codex`, both outside the scope fence.
 
 ## Second problems filed
 
@@ -13,4 +13,4 @@ The first report-driven attempt waited for triage to author the regression ticke
 OpenAI / Codex
 
 ## Predicted vs actual
-Expected 75m; actual about 25m.
+Expected 75m; stopped during premise audit after approximately 8m.
