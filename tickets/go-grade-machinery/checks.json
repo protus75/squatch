@@ -1,16 +1,19 @@
 {
   "artifact_schema_version": 1,
   "produced_by_spec_version": "1.0",
-  "produced_at_sha": "c7ebe4d5349dee5ad36807cd74b0d7d99851196a",
+  "produced_at_sha": "4555f5e5df32bc264876c7e4aa990361d9e16cd8",
   "stem": "go-grade-machinery",
   "branch": "go-grade-machinery",
-  "base": "c0227788bd48f66c8e224ff8b8df84b707d0873d",
-  "head": "c7ebe4d5349dee5ad36807cd74b0d7d99851196a",
+  "base": "63619ffdd10a3d02f31e3ca7429d236a27d1615b",
+  "head": "4555f5e5df32bc264876c7e4aa990361d9e16cd8",
   "changed_files": [
     "eval/harness.py",
     "squatch/artifacts.py",
+    "squatch/llm.py",
+    "squatch/providers.py",
     "squatch/stages.py",
     "tests/test_go_grade.py",
+    "tests/test_providers.py",
     "tests/test_stages.py"
   ],
   "checks": [
@@ -41,6 +44,7 @@
             "tests/test_go_grade.py",
             "tests/test_eval_harness.py",
             "tests/test_stages.py",
+            "tests/test_providers.py",
             "-q"
           ],
           "attribution": null,
