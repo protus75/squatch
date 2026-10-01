@@ -1,0 +1,10 @@
+---
+id: decision-000019
+kind: decision
+link: box-000019-1844062b
+reopen_after_days: 30
+message: box-000019-1844062b
+---
+No ticket. The message's central claim, that git.py has no way to undo a conflicted squash, is wrong on HEAD. `squatch/git.py:173` already defines `restore(cwd, paths, *, source)`, which runs `git restore --source <src> --staged --worktree`. That is one of the two undo commands the message itself names, and merge.py, stages.py and author.py already call it with `source="HEAD"`. So a dirty main index and worktree can already be cleaned through git.py. The failure is also hard to reach. `Merge._squash` (`squatch/merge.py:407-419`) runs `merge_squash` only after the candidate has been rebased onto main and has passed the merge-candidate tests. The serial merge queue and the single-writer lock keep main from moving between that rebase and the squash, so the squash applies onto the exact base it was rebased to and cannot conflict. If an operator has dirty files in the main checkout, git refuses `merge --squash` before writing anything, so nothing is left half-applied. The message comes from bootstrap-ingest with `evidence: None` and cites no run where a squash conflicted or where admission refused on a dirty main checkout. Under D10 an addition must cite the incident that earned it. A tombstone does not fit: no rendered open work, merged Goal or decision covers undoing a squash merge. merge-queue and shakeout-merge cover rebase conflict and abort on the branch worktree, not the squash on main.
+
+Evidence: squatch/git.py:173-178 (restore with --staged --worktree, and merge_squash); squatch/merge.py:407-419 (the squash runs after the rebase and the candidate test, then a pathspec commit); merged merge-queue and shakeout-merge cover rebase conflicts only. I did not test whether `merge --squash` can conflict after a successful rebase onto an unchanged main. Reopen if any run journals a GitError from merge_squash, if admission refuses or stalls on a dirty main checkout after a failed squash, or if the merge queue stops being serial or stops rebasing right before the squash.
