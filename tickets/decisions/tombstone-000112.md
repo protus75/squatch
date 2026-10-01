@@ -1,0 +1,8 @@
+---
+id: tombstone-000112
+kind: tombstone
+link: decision-000104
+reopen_after_days: 30
+message: box-000112-546eae80
+---
+decision-000104 already covers this. It is about the same section 19 prompt 2 gap (SQUATCH_PLAN.md:380-382): the plan does not say whether a fixture author outside the routing table records a tier, or how the author-versus-REVIEW diversity rule applies to such an author. It also lists this message's scenario as a reopen condition: 'the AUTHOR route gets real model ids and fixtures start being authored through the routing table.' Its operator action already asks the plan to choose between a routed-author rule and a non-routed-author rule. That is the same choice this message asks for: routed AUTHOR, where AUTHOR and REVIEW must differ at the exercised tier, or an author identity outside the table. One part of the message is out of date. The current config.yaml does not send AUTHOR and REVIEW to the same identity at tier high. REVIEW at high is (claude, sonnet) (config.yaml:43), and AUTHOR at high inherits models_by_tier.high, which is opus (config.yaml:21, :48). So a GO-grade fixture set authored through the routed AUTHOR surface at high would not hit the same-identity refusal in check_author_diversity (eval/harness.py:363-380) today, although both routes are still the claude family. Nothing new needs a ticket. The remaining question is plan prose, and decision-000104 already sends it to the operator. Reopen if the operator settles the plan in a way that requires routed fixture authoring, or if config.yaml routes AUTHOR and REVIEW to the same (provider, model) at the exercised tier.
