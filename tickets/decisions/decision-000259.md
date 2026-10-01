@@ -1,0 +1,10 @@
+---
+id: decision-000259
+kind: decision
+link: box-000259-e6a78c4e
+reopen_after_days: 30
+message: box-000259-e6a78c4e
+---
+No ticket. The report has nothing in it that anyone could act on. It came from verification-attribution, which re-ran a red `## Verification` command at the merge base of phase3-continue-23 and filed it as a pre-existing base failure. The excerpt it captured is only uv's environment-setup stderr: the VIRTUAL_ENV mismatch warning, interpreter selection, creating the worktree-local `.venv`, building squatch, and installing 13 packages. All of that is normal output for a fresh base worktree. The excerpt has no pytest output: no failing test id, no assertion, no collection error, no traceback. So the cause can't be found from this message, and a bug ticket would be guesswork. The report is also stale. phase3-continue-23 is in merged_work, and so are phase3-exit and every later phase through phase6-exit. Every merged ticket since then passed the Check stage running the same suite, so whatever red existed at that base did not survive on main. That red was excused at the time, as designed, and charged to neither the Check nor any cap. Nothing in open_work or decisions covers verification-failure capture, and no rendered work matches this failure, so a tombstone doesn't fit.
+
+Evidence: message box-000259-e6a78c4e: failure_report, origin phase3-continue-23, evidence None. The detail holds only uv venv-creation and build/install lines from `.squatch/state/worktrees/phase3-continue-23-base-3` and no pytest result. phase3-continue-23, phase3-exit and phase4-exit through phase6-exit are all in merged_work. verification-attribution (merged) defines the base-red excuse-and-file path that produced this message. Reopen if `uv run pytest -q` goes red on current main, if another base-failure report from a later ticket shows a reproducible failing test, or if base-failure reports keep arriving with only uv setup output and no pytest output, since that would mean the captured excerpt drops the stream holding the actual failure.
