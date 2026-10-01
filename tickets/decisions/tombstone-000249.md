@@ -1,0 +1,8 @@
+---
+id: tombstone-000249
+kind: tombstone
+link: shakeout-providers
+reopen_after_days: 90
+message: box-000249-441d386e
+---
+Both sides of the overlap the message describes have already merged, so the Phase 3 re-litigation it warns about cannot happen. shakeout-providers is in merged_work. Its rendered Goal says it adds the one `auth_error` classification the Phase 2 auth-expiry member needs to the adapter base. thresh-runtime, the Phase 3 classification work for classified and unclassified CLI failures and THRESH, is also merged. The shipped code has one closed vocabulary that contains both grains: `rate_limited`, `quota_exhausted`, `outage`, `auth_error`, `model_error`, `unclassified` (squatch/providers.py:44). `auth_error` maps to the CLI's re-auth paved road (squatch/providers.py:131, :140, :196). The Phase 3 seed took the existing `auth_error` class as it was and added the rest beside it, so it did not re-decide that class. Phase 3 and every later phase through phase6-exit have closed. Rewording section 19's Phase 2 or Phase 3 bullet now would describe completed seeding, which section 17 counts as change history in spec prose. The message gives no evidence and comes from bootstrap-ingest, so under D10 that edit would be speculative. Reopen if shakeout-providers or thresh-runtime is regenerated and its review flags the `auth_error` class as out of its phase's scope, if the failure-class vocabulary in squatch/providers.py is ever split across two definitions, or if section 19's Phase 2 or Phase 3 bullet is edited for another reason and the grain can be named at no extra cost.
