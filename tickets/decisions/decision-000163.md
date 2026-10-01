@@ -1,0 +1,10 @@
+---
+id: decision-000163
+kind: decision
+link: box-000163-f3043b3d
+reopen_after_days: 90
+message: box-000163-f3043b3d
+---
+No ticket. Tests above the module level already cover what the message says is missing, so the remaining gap is a narrow duplicate that no incident has earned (D10). `_run` (squatch/__main__.py:302-304) calls `runner.run` directly, and `_drain` (:342+) drives the same Runner through `Drain`. So one runner settlement path serves both verbs, and three groups of tests pin it at CLI level. (1) tests/test_cli.py:422-433 runs `run base` with a settling pipeline. It exits 0 and the journal holds only `[{to: running, run_seq: 0}]`, so the runner adds no terminal for a settled outcome. (2) tests/test_drain.py:197-206, :263, :276, :667 and :698 go through `main(["drain"])` and assert the transitions are exactly `["running", "merged"]`, so `merged` is the only terminal. (3) tests/test_seeds.py:143 and tests/test_seed_successor.py:155 pin the same `[running, merged]` pair through the real seed lift, intake and merge path. The message is right that test_production_run_dispatches_through_the_real_pipeline (test_cli.py:501-509) covers only the infra_error path. The only thing left uncovered is the `run` verb reaching `merged` through the real pipeline with a routed fake provider. That repeats what the drain and seed tests already prove, the message cites no evidence, and Phases 2-6 merged on today's suite. No rendered work or decision covers this coverage question, so a tombstone would be wrong.
+
+Evidence: squatch/__main__.py:302-304 (`run` -> runner.run), :342-371 (`drain` -> Drain over the same runner); tests/test_cli.py:432 (settled `run` journals only `running`), :501-509 (real-pipeline infra_error only); tests/test_drain.py:204-205 (`[running, merged]` via `main(["drain"])`); tests/test_seeds.py:143 and tests/test_seed_successor.py:155 (real-path `[running, merged]`). Reopen if a run journal shows a second terminal after `merged`, if a `run` verb settlement diverges from the drain path, or if a regeneration routes `run` around the shared Runner.
