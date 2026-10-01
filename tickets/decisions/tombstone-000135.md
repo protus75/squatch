@@ -1,0 +1,8 @@
+---
+id: tombstone-000135
+kind: tombstone
+link: shakeout-reconcile
+reopen_after_days: 90
+message: box-000135-07d1a254
+---
+Both concerns in this message are already handled, and merged work owns them. First, the claim that an exception escaping the seam produces a raw traceback is out of date. In squatch/runner.py:376-379, `_locked` re-raises a `Refusal` and turns any other exception into `self._fault(...)` (:494-506). `_fault` writes the traceback to the engine log and returns a named `Refusal` with a paved road (`fix the cause, then squatch run <stem>`), so the operator gets a named stop and never a traceback. The diagnosis seam does the same at :451-454. Second, the replay window is closed. The session reconciles on entry before intake (runner.py:171, :187, `from squatch.reconcile import reconcile`), so a `running` with no terminal is reaped as `abandoned` before the next dispatch picks a run_seq. The bootstrap ordering the message worried about (prompt 10 landing after prompt 9) is history now. shakeout-reconcile (merged) pins this exact path: an engine death mid-call leaves a `running` with no terminal, the next entry harvests and reaps it `abandoned`, and the stem re-enters findings-fed with a FRESH run sequence, which is the 'never a replay' property the message asks for. restart-timers and worker-recovery-disposition (merged) add the pre-dispatch reap and the durable recovery alert. Reopen if a seam exception reaches the operator as a raw traceback, if a re-run after a fault reuses the dead run's run_seq or effect keys, or if a regeneration moves reconcile after intake or dispatch.
