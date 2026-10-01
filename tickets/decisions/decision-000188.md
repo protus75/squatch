@@ -1,0 +1,10 @@
+---
+id: decision-000188
+kind: decision
+link: box-000188-8d72c02c
+reopen_after_days: 90
+message: box-000188-8d72c02c
+---
+No ticket. The engine already has a single seam shape. `main` and `_locked` in squatch/__main__.py (lines 106 and 642) accept only `pipeline: PipelineFactory | None`, and `_locked` calls `pipeline(journal)` at line 665. Nothing in engine code accepts a bare `Pipeline`, so the no-dual-path rule is already met where it applies. The bare-pipeline wrapping the message points at is a local adapter inside one test helper: `cli()` in tests/test_cli.py:169-173 passes `lambda journal: pipeline`. That keeps roughly 15 call sites in that file short. Other suites (test_drain, test_drain_upgrade, test_drain_reentry, test_terminal's `Drive`, test_retro, test_storm_*) already pass factories directly. Moving test_cli onto the `Drive` harness through a shared conftest would be a test-only refactor. It would change no behavior, gate, or assertion, and the message itself presents it as a 'cleaner end state' conditional on a conftest that does not exist yet. Under D10 that is speculative churn with no incident behind it (evidence: None). No rendered open ticket, merged Goal line, or decision covers test-harness consolidation, so a tombstone would be invented. Reopen if `main` or `_locked` ever accepts a bare `Pipeline` alongside a factory, or if a shared tests/conftest.py harness is introduced for another reason. At that point test_cli's adapter should fold into it in the same change.
+
+Evidence: squatch/__main__.py:106 `pipeline: PipelineFactory | None`; :642 `_locked(..., pipeline: PipelineFactory | None, ...)`; :664-665 `if pipeline is not None: composed = pipeline(journal)`. tests/test_cli.py:169-173 `cli()` wraps with `lambda journal: pipeline` (test-local adapter). Factory callables are already used directly in tests/test_drain.py:99, tests/test_drain_upgrade.py:60, tests/test_drain_reentry.py:110, tests/test_terminal.py:92-123 (`Drive` passes `self._factory`) and :950, and tests/test_storm_notification_activation.py:110.
