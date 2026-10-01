@@ -1,0 +1,8 @@
+---
+id: tombstone-000246
+kind: tombstone
+link: suggestion-box
+reopen_after_days: 180
+message: box-000246-18b15a3e
+---
+suggestion-box is merged, and the one-time ingestion it covers is finished. Its rendered Goal includes ingesting `bootstrap/suggestions.md` once as the box's first messages and deleting that file in the same diff. Both have happened: the source file is gone, and this message carries origin `bootstrap-ingest`. The difference the message points to is real. Section 19 (SQUATCH_PLAN.md:1471) says each message takes 'the line text as its summary'. `ingest` (squatch/box.py:457-458) instead strips the leading list marker with `_LIST_MARKER` to build `summary` and keeps the raw line in `detail`. tests/test_box.py:133 (`test_ingest_is_marker_aware_and_idempotent`) pins that marker-aware behavior. The difference has no effect: dedup signs over `detail`, which is the raw line (squatch/box.py:251), and every summary produced was a readable form of its line. Ingestion cannot run again because the source file no longer exists. Changing the plan sentence now would add change history for finished work. Changing the code would mean regenerating a merged deliverable with no failure behind it. The message gives no evidence and comes from bootstrap-ingest, so under D10 either edit would be speculative. Reopen if suggestion-box is regenerated and its review flags the marker-stripping summary as diverging from section 19, if `ingest` gains another caller beyond the retired bootstrap file, or if section 19's ingestion sentence is edited for another reason and can be made exact at no extra cost.
