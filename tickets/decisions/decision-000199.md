@@ -1,0 +1,10 @@
+---
+id: decision-000199
+kind: decision
+link: box-000199-b83d53ce
+reopen_after_days: 90
+message: box-000199-b83d53ce
+---
+No ticket. The message's premise doesn't hold in the current code. It says `Effects.journal` is public only so `Stages._prior_attempts` can reach `latest_terminal`, but many other engine call sites read that attribute directly. In squatch/stages.py, `_prior_attempts` is only one user (:825, :850). The others are the rereport callback (:644), harvest (:926), the seed config fold (:973), consume (:1060), the reversed event scan (:1084), and a direct `append` (:1116). squatch/diagnose.py reads it three times (:135, :142, :177), and squatch/requisition.py:295 reads it through `self._llm.effects.journal`. Making the attribute private would therefore mean either adding a second `Journal` parameter to `Stages`, `Diagnose`, and the requisition reviewer, or adding a fold method to `Effects` for each of these different reads. Either way the one object that already carries the journal would be split into two parallel handles, which the no-dual-path rule weighs against. Both objects also wrap the same journal instance, so encapsulation would gain nothing. Section 15's injectable seams concern clock, exec, filesystem, and notifications, and the plan says nothing about the effect ledger hiding its journal. The message reports no failure (evidence: None), and its `bootstrap-ingest` origin dates it to before most of these readers existed. Under D10 a refactor-only seam change is speculative. A tombstone does not fit, because no rendered open ticket, merged Goal line, or decision covers how the journal is exposed through `Effects`. Reopen if a defect is traced to engine code mutating the journal through `Effects.journal` outside `Effects.run`, or if the plan adds a rule that the effect ledger must own its journal exclusively.
+
+Evidence: squatch/effects.py:40 `self.journal = journal`. Engine readers other than `_prior_attempts` include squatch/stages.py:644, 926, 973, 1060, 1084 and 1116 (an append); squatch/diagnose.py:135, 142 and 177; and squatch/requisition.py:295. The message carries no evidence of a failure.
