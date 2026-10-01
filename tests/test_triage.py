@@ -244,6 +244,28 @@ def test_later_pass_authors_a_recorded_verdict_without_triaging_again(checkout):
     assert len(keys) == 2 and keys[1].startswith("llm/requisition_review/later-ticket/")
 
 
+def test_later_pass_ignores_recorded_requisition_review_annotation(checkout):
+    box, ids = _enqueue(checkout)
+    recorded = TriageAuthor(
+        produced_by_spec_version="1.0", produced_at_sha="abc", verdict="author",
+        summary="rewrite", kind="feature", priority="P2", goal="ship it", why="useful")
+    triage = recorded.model_dump(mode="json")
+    triage["requisition_review"] = {
+        "verdict": "snag", "summary": "needs another pass", "findings": []}
+    box.record_triage(ids[0], triage)
+    with Journal(checkout / STATE, clock=lambda: T0) as journal:
+        journal.append("signal", {"kind": "triage_pass", "pass": 0,
+                                  "triaged": {}, "skipped": [ids[0]]})
+    llm = FakeLLM(
+        json.dumps({"stem": "later-ticket", "ticket": GOOD.format(depends="none")}),
+        _review_reply())
+
+    _run(checkout, llm)
+
+    assert [request.surface for request in llm.requests] == ["author", "requisition_review"]
+    assert box.get(ids[0]).status == "authored"
+
+
 def test_author_commit_failure_does_not_abort_the_pass(checkout, monkeypatch):
     box, ids = _enqueue(checkout, 2)
     original = Intake.commit

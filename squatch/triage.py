@@ -209,7 +209,16 @@ class Triage:
         author_spec = load_spec(Path(spec.source).with_name("author.md"))
         for message in messages:
             if isinstance(message.triage, dict) and message.triage.get("verdict") == "author":
-                verdict = TriageAuthor.model_validate(message.triage)
+                # Author keeps the latest requisition-review feedback beside the
+                # original triage artifact so operators can inspect why a pending
+                # message did not produce a ticket.  That durable annotation is
+                # not part of the closed TriageAuthor artifact, so project only
+                # its fields when a later pass resumes authoring.
+                verdict = TriageAuthor.model_validate({
+                    name: message.triage[name]
+                    for name in TriageAuthor.model_fields
+                    if name in message.triage
+                })
                 stem = await author.run(author_spec, message, verdict,
                                         pass_number=pass_number,
                                         sha=await self._git.rev_parse(self._repo, "HEAD"))
