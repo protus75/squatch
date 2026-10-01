@@ -1,0 +1,10 @@
+---
+id: decision-000156
+kind: decision
+link: box-000156-94e4b049
+reopen_after_days: 90
+message: box-000156-94e4b049
+---
+No ticket. The message is right about the coupling, and its own 'third module' trigger was passed long ago: 14 test modules now import harness pieces from tests/test_stages.py, not just test_merge.py. These include test_harvest, test_seeds, test_terminal, test_drain_reentry, test_mergequeue, test_retro, test_shakeout, test_daemon_composition, test_daemon_soak, test_audit, test_provider_cooldown_failover, test_supervised_merge_hold, test_watchdog_activation and test_requisition. There is no tests/conftest.py and no tests/harness.py. Importing from test_stages is how the suite is built, and it works. pytest collects test_stages.py once. The other modules import fixtures and helpers (marked `# noqa: F401`), not test functions, so no test runs twice. Phases 2 to 6 all merged on this layout. Moving the harness would touch 15 test files, and no incident calls for that: the message cites none (`evidence: None`), and no failure or flake traces back to this coupling. Under the build-the-simplest-thing rule (D10), that makes it a speculative refactor. The same reasoning declined the composition-sharing refactor in decision-000155. Moving only test_merge.py's imports would leave two harness homes, which the no-dual-path rule forbids. A tombstone would be wrong because no rendered work or decision covers where the test harness lives.
+
+Evidence: Grep of tests/ for `from test_stages import` finds 14 importing modules (test_merge.py:17, test_terminal.py:25, test_shakeout.py:20, test_daemon_soak.py:13, test_requisition.py:6, and others). Glob finds no tests/conftest.py or tests/harness.py. Reopen if a test_stages.py edit breaks an importing module's run, if a fixture is collected or run twice because of the cross-module imports, if a ticket's fence needs harness changes that are blocked by test_stages.py ownership, or if the operator asks for a shared test-harness module.
