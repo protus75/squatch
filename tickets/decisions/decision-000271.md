@@ -1,0 +1,10 @@
+---
+id: decision-000271
+kind: decision
+link: box-000271-1a2d5f48
+reopen_after_days: 30
+message: box-000271-1a2d5f48
+---
+No ticket. This is a scope note that phase6-continue filed about exit-receipt-machinery, and its text is cut off after the semicolon, so it states no defect and asks for no work. exit-receipt-machinery has merged, and so has phase6-exit, so Phase 6 is closed and no admitted dispatch depends on how this ticket handles Context. The ticket I read does not put `hosts/fixture/` in its `## Context` block, which lists only `squatch/artifacts.py` and `tests/test_gates.py`. It names the directory only in `## Scope in`, as a measured on-demand worktree read, and says plainly that the fixture directory is never embedded Context. Its scope fence names only the two fixture files it edits (`hosts/fixture/config.yaml` and `hosts/fixture/bin/codex`). Regenerating or annotating a finished deliverable with no failure behind it would be change history, and under D10 it would be speculative because the message carries `evidence: None`. A tombstone does not fit, because no rendered open work or decision covers how a seed names directory-valued on-demand reads; decision-000254 and decision-000253 are about different seed-fixture concerns. Reopen if exit-receipt-machinery or phase6-exit is regenerated or re-dispatched, if a Context-closure or render-bound check is found to treat a directory named in `## Scope in` as embedded Context, or if the full text of this message turns up and names a concrete defect.
+
+Evidence: tickets/exit-receipt-machinery/ticket.md: `## Context` (lines 12-14) lists only squatch/artifacts.py and tests/test_gates.py. Lines 41-45 name `hosts/fixture/` as a measured on-demand worktree read and state that 'the fixture directory is never embedded Context'. The scope fence (lines 51-59) names only hosts/fixture/config.yaml and hosts/fixture/bin/codex. exit-receipt-machinery and phase6-exit are both in merged_work. The message summary and detail are both truncated and carry no evidence. Not checked: the full text of the original message, and whether any closure test resolves directory-valued Scope-in reads.
