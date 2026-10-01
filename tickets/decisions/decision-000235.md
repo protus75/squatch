@@ -1,0 +1,10 @@
+---
+id: decision-000235
+kind: decision
+link: box-000235-26fdfe84
+reopen_after_days: 1
+message: box-000235-26fdfe84
+---
+No ticket. The gap the message describes is real but cost nothing in the only run that happened. eval/diagnose.py defaults `--state` to `<config.state_dir>/eval-diagnose`, which it resolves against the checkout it runs from (decision-000227 confirms this). The shipped config sets `state_dir: .squatch/state`, which is relative. The seed command in tickets/diagnosis-eval-run/ticket.md:29 passes no `--state`. So a failed attempt's replay journal would be wiped along with its worktree, and the next attempt would pay for every fixture again. That never happened. diagnosis-eval-run finished in one attempt: there is no `tickets/diagnosis-eval-run/attempts/` directory, and its git history is one run-record, checks and review commit with no harvest. The committed eval/reports/diagnosis-eval.json records `stopped: null` and a total `summary.usd` of about $1.27 against `usd_cap` 5.0, with all 12 fixtures scored (decision-000226). The seed has merged and its report is on main. Pinning `--state` or adding a spend bound to the seed now would mean regenerating finished work with no failure behind it. The message gives no evidence and comes from bootstrap-ingest, so under D10 the change would be speculative. A tombstone does not fit: neither diagnosis-eval-run nor diagnosis-eval-harness appears in the rendered merged_work or open_work projections, and decision-000227 covers state placement for eval/harness.py, not this retry-spend case. Reopen if diagnosis-eval-run is regenerated or re-dispatched, if any eval/diagnose.py run inside a ticket worktree ends in a non-ok terminal and is retried, or if the summed spend across one ticket's attempts at the diagnosis eval goes over a single `USD_CAP`.
+
+Evidence: tickets/diagnosis-eval-run/ticket.md:29 (seed command, no --state); no tickets/diagnosis-eval-run/attempts/ dir; git log for tickets/diagnosis-eval-run shows one run-record/checks/review sequence; eval/reports/diagnosis-eval.json: usd_cap 5.0, stopped null, summary.usd 1.273199; decision-000226, decision-000227
