@@ -1,0 +1,8 @@
+---
+id: tombstone-000190
+kind: tombstone
+link: shakeout-drain
+reopen_after_days: 90
+message: box-000190-4a617200
+---
+Merged work already covers this. The message dates from the bootstrap ingest window, before prompt 13 and the Phase 2 spine existed. Both changes it asks for are now in the current code. (1) Premise park: `Drain._reoffers` (squatch/drain.py:369-377) drops any stem whose latest terminal is `premise_failed` (`facts.latest.get(s) != PREMISE`, line 373). `Drain._parked` (364-367) keeps the stem parked until `_released` (357-362) sees a later ticket-plane `ticket.md` commit with `premise_bounce` budget left. The module docstring (drain.py:35-41) says a premise park draws nothing and is never re-offered. So a `premise_failed` stem is no longer re-asked unchanged, and it no longer draws retry. shakeout-drain (merged) pins this behavior: a premise-failed stem is skipped across invocations until its committed `ticket.md` changes. (2) Infra terminals: spine-caps (merged) added the `infra` cap (squatch/caps.py:15, part of SPINE_CAPS at :27). Every `infra_error` and `timeout` terminal now draws from it, and a pre-dispatch check parks a stem once any spine cap is spent. `_reoffers` gates on `spent(self._config, facts.cap_drawn, s) is None`, which covers all four spine caps, `infra` included. So infra terminals are now bounded by their own cap, as section 11.1 requires. Reopen if a regeneration removes the PREMISE filter from `_reoffers`, if `infra_error`/`timeout` terminals stop drawing `infra`, or if a journal shows a `premise_failed` stem drawing `retry` on a re-offer with no intervening `ticket.md` commit.
