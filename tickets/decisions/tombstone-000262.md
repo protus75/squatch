@@ -1,0 +1,8 @@
+---
+id: tombstone-000262
+kind: tombstone
+link: decision-000260
+reopen_after_days: 30
+message: box-000262-7d001203
+---
+decision-000260 already covers this report, and tombstone-000261 settled a near-identical one. The class, origin and repair pattern are the same; only the seed and the test file differ. This report was filed at phase3-exit, where verification attribution found the red at the merge base too and excused it. The cause is the live-file drift that decision-000260 describes. The test rendered the serve-activation seed (authored by phase3-continue-20) against the live SQUATCH_PLAN.md. Section 20 kept growing after the seed was authored, which pushed the render 135 characters past the 120000-character headroom limit. The repair for this file is on main, but it landed in commit 1ac6344 ('fix(plan): preserve historical seed render bounds'), not in 2eaa0a6. That commit is an ancestor of HEAD and is the last one to touch tests/test_seeded_phase3_20.py. It also pinned test_seeded_phase3_05, _12 and phase4_04 the same way. The file now defines `SECTION_20_CHARS_AT_AUTHORING = 30896` (line 60). `_authoring_plan()` (line 106) swaps section 20 for a placeholder of that size, and `test_authoring_sizes_and_max_effort_headroom` (line 168) renders against that pinned plan (line 170). serve-activation, phase3-continue-20 and every later phase through phase6-exit are merged, so no admitted seed's dispatch depends on this measurement. As with decision-000260, the test was not re-run green in this session. Reopen if this test is red on main after 1ac6344, if a verification-attribution report names it again, or if specs/implement.md or Spec.render grows enough to push the pinned render past the limit.
