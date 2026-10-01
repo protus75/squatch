@@ -1,0 +1,8 @@
+---
+id: tombstone-000245
+kind: tombstone
+link: suggestion-box
+reopen_after_days: 90
+message: box-000245-f2e24f64
+---
+suggestion-box is merged, and the second fix the message proposes is already built: the ingest entry refuses while `squatch.lock` is held. The `python -m squatch.box ingest` entry builds `Lockfile(state_dir, instance_id="box-ingest")` (squatch/box.py:507) on the same `<state_dir>/squatch.lock` flock that fences the drain and daemon (squatch/lockfile.py:3-5, LOCK_NAME at :21). If the engine holds the lock, `LockHeld` is caught and the entry refuses with exit 2 and a paved road telling the operator to wait for the active run or drain to finish (squatch/box.py:510-514). It writes nothing until it has the lock and releases it in a `finally` (:531-532). Because of this, the ingest entry cannot run at the same time as a drain whose harvest hook is live. That means the predicted race cannot happen through this path: two writers minting the same `seq` from `max(...)+1` (squatch/box.py:259) or losing a read-modify-write `reports` increment (:312, :337). Inside the engine, every `enqueue` caller (harvest, triage, verification attribution) runs under the one lock holder, which already serializes them. Adding a seed sentence about the single-writer assumption now would only add change history for finished work. The message gives no evidence and comes from bootstrap-ingest, so under D10 that edit would be speculative. Reopen if any `Box.enqueue` caller is found running outside the instance-lock holder (for example a second process or an unlocked CLI verb), if two box files ever share a `seq`, or if suggestion-box is regenerated without the ingest entry's lock acquisition.
