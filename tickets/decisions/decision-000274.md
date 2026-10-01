@@ -1,0 +1,10 @@
+---
+id: decision-000274
+kind: decision
+link: box-000274-d51c5b16
+reopen_after_days: 30
+message: box-000274-d51c5b16
+---
+No ticket. The message gives no actionable content. Its summary and detail are the same line, and that line is cut off after a semicolon. It mentions a fixture-host-loop integration test timeout as 'described above', but the description it points to is not in the message. It names no test id, no timeout value, no command, no failing run, and no cause, and it has `evidence: None`. A bug ticket written from this would be guesswork. Under D10 it would also be speculative, because no incident is cited. The message was filed from phase6-continue-08. That ticket is merged, and so are exit-receipt-machinery and phase6-exit, the work that built and read the fixture-host loop evidence. Phase 6 is closed, and no admitted dispatch depends on this test. 'Unchanged' suggests the filer saw the timeout as pre-existing and outside its own fence, then filed it and left it alone, as it should have. A tombstone does not fit: no rendered open work, merged Goal, or decision covers a fixture-host-loop test timeout. seams-kill-transport-timeout and seams-kill-poll-flake are about subprocess kill bounds and polling in tests/test_seams.py, not a fixture-host integration test. decision-000271 is about a different truncated note on exit-receipt-machinery's Context.
+
+Evidence: Message id box-000274-d51c5b16, origin phase6-continue-08, evidence None. Summary and detail are the same truncated line. phase6-continue-08, exit-receipt-machinery, and phase6-exit are all in merged_work. No rendered open work or decision names a fixture-host-loop integration timeout. Not verified: I did not locate or run the fixture-host-loop test in this session, so whether it times out on main is unknown. Reopen if a verification-attribution or failure_report names a specific fixture-host-loop test id with a timeout, if the full text of this message turns up, or if phase6-exit or exit-receipt-machinery is regenerated or re-dispatched.
