@@ -1,0 +1,10 @@
+---
+id: decision-000128
+kind: decision
+link: box-000128-9dbc0714
+reopen_after_days: 90
+message: box-000128-9dbc0714
+---
+No ticket: the gap the message describes is already closed. Both crash classes it names now have intake-level tests that exercise `Intake.run()`. `test_hand_authored_shape_is_refused_at_the_front_door_not_crashed` (tests/test_tickets.py:405-423) is parametrized over four ticket texts. Two of them make `parse_frontmatter` raise: one has no fences and one has an opening fence with no close. That covers the structure-defect path at squatch/tickets.py:735-740. The other two put non-scalar YAML in vocabulary keys: `priority: [P1]` and `state: [x]`. Those cover the vocabulary path through `_human_stamps` (:711) and the lint (:180). For each of the four, the test asserts that nothing is committed, that there is exactly one refusal carrying the `ticket_schema` code with a paved road, that HEAD is unchanged, and that the journal is empty. Lint-level tests also cover non-scalar values for every vocabulary key (:187-194) and missing or unterminated frontmatter (:203-205). The fix the message is waiting on has landed, and it shipped with the per-crash-class intake tests the message asks for. Another ticket would only duplicate them. No rendered work or decision matches closely enough for a tombstone. shakeout-tickets pins a bad-schema refusal at the drain level through an unknown-key ticket, which is a different refusal class, and the open config-*/journal-* drafts do not touch tickets.py.
+
+Evidence: tests/test_tickets.py:405-423 (intake.run over no-fence, unterminated-fence, `priority: [P1]`, `state: [x]`; asserts a refusal with no commit and no journal write); tests/test_tickets.py:187-194, 203-205 (lint-level non-scalar and frontmatter-structure refusals); squatch/tickets.py:733-745 (the run() path catches ValueError from parse_frontmatter and refuses with lint findings). Reopen if a new intake crash class is reported, or if those parametrized cases are removed or narrowed.
