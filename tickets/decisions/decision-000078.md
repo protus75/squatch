@@ -1,0 +1,10 @@
+---
+id: decision-000078
+kind: decision
+link: box-000078-15784679
+reopen_after_days: 90
+message: box-000078-15784679
+---
+No action. The message asks for a rule to be written down, but the code already follows it and the defect that prompted it is fixed. The message rests on two claims, and neither holds. The engine-log defect is closed. `EngineLog.event` runs `_scrub` over the raw record (keys, values, nested lists and dicts, and stringified leaves) before `json.dumps` (squatch/enginelog.py:35, 49-61). Decision-000077 recorded that fix and its regression pin, `test_engine_log_scrubs_before_json_escaping_rewrites_the_secret` (tests/test_driver.py:193-203). There is also no pending journal writer. The writer-site checklist in squatch/redact.py:9-25 says the journal body is scrubbed once when `LLMEffect` receives it, and that `Journal.append` deliberately has no second filter. Every listed site already scrubs captured text at receipt, before any parse, Finding, or serialization. That is the raw-before-encoding rule in practice. The only harvest serialization still to come is named in the checklist itself. Adding a docstring sentence would restate behaviour the checklist and a merged test already pin. The anti-bloat law needs an incident to justify a new addition, and none is open. A tombstone would be wrong: decision-000077 covers engine-log ordering, but no rendered ticket or decision owns wording in redact.py's docstring.
+
+Evidence: squatch/redact.py:9-25 writer-site checklist: each site scrubs 'at receipt' or 'at the write seam', and journal bodies are scrubbed once in LLMEffect with no filter in Journal.append. squatch/enginelog.py:35 calls json.dumps(_scrub(record, ...)), so it scrubs before encoding. decision-000077 records the regression pin at tests/test_driver.py:193-203. Reopen if a new writer site (for example harvest serialization) is added that encodes before it redacts, or if a redaction miss is seen on any encoded stream. In that case, add the raw-before-encoding clause to the redact.py checklist in the same change that fixes the site.
