@@ -1,0 +1,10 @@
+---
+id: decision-000227
+kind: decision
+link: box-000227-aa1205a7
+reopen_after_days: 90
+message: box-000227-aa1205a7
+---
+No ticket. The message asks for a relocation that would only matter if a run executed eval/harness.py in a way that writes the instance journal. go-grade-run is the only ticket that executes the harness. It has already merged, and its baseline is committed. eval/diagnose.py has the harness-owned `--state` default (`<config.state_dir>/eval-diagnose`, :356 and :454) that the message describes. eval/harness.py has no such flag: `run` (:639), `run_go_grade` (:496) and `main` (:721) all open `Journal(config.state_dir)`. They resolve a relative `state_dir` against `root`/`ROOT`, which is the checkout the module runs from. The shipped config sets `state_dir: .squatch/state`, which is relative. So a harness executed inside a ticket worktree opens that worktree's own `.squatch/state`, not the instance journal held under the drain's lock. A second journal can sit beside the drain's only if an operator sets an absolute `state_dir`. No incident shows that this has happened. The message states the risk as conditional ('if ... is ever executed'), gives no evidence, and comes from `bootstrap-ingest`, so under D10 a `--state` relocation would be speculative. A tombstone does not fit. go-grade-machinery and go-grade-run own the harness, but neither rendered Goal covers where its state is placed. No open ticket or decision covers it either.
+
+Evidence: eval/harness.py:496, :639, :721 resolve state as `config.state_dir if absolute else root / config.state_dir`. config.yaml:10 has `state_dir: .squatch/state`, which is relative. eval/diagnose.py:356 and :454 have a harness-owned `--state` default. go-grade-run is merged (commit 8d124f6 'Record complete GO-grade baseline'). Reopen if a new ticket executes eval/harness.py, if an instance config sets an absolute `state_dir` while a harness runs from a ticket, or if an instance journal shows `review_baseline` signals or effect events written by a harness while a drain held the lock.
