@@ -1,0 +1,10 @@
+---
+id: decision-000090
+kind: decision
+link: box-000090-f871776e
+reopen_after_days: 90
+message: box-000090-f871776e
+---
+No action. The message is right that tests/test_echo_stage.py:87 hard-codes `name="review"` next to `surface=spec.surface`. But the test does not claim the name comes from the spec. The module docstring (:6-7) says the LLMStage is derived from the spec's frontmatter. That is a loose summary, and the function's own docstring (:79-81) narrows it to exactly what is derived: surface, tier, effort, version and gate list. The name is not in that list. The spec frontmatter (:42-50) has no name field at all, so 'derive the name from the surface' would add a test-local coupling that production does not have. Decision-000076 already ruled on this: `LLMStage` deliberately does not tie `name` to `surface`, every production construction pairs a literal name with its spec's surface, and test fixtures in tests/test_driver.py and tests/test_llm_effect.py rely on the two being independent. Rewording a Phase 0 exit test's docstring to repeat a narrowing the function docstring already makes would be churn with no incident behind it, which the anti-bloat law rules out. A tombstone would be wrong because no rendered ticket owns this file's wording, and decision-000076 rules on the `LLMStage` validation contract, not on this docstring. Reopen if `LLMStage` gains a name/surface pairing rule (decision-000076 reopened), or if a spec frontmatter field for the stage name is added. In either case, update echo_stage() and both docstrings in the same change.
+
+Evidence: tests/test_echo_stage.py:5-8 (the module docstring: 'derived from that spec's frontmatter'); :78-81 (echo_stage docstring lists surface, tier, effort, version and gate list as frontmatter-derived, not name); :87 (`LLMStage(name="review", surface=spec.surface, ...)`); :42-50 (the ECHO_SPEC frontmatter has `llm_surface: review` and no name key); decision-000076 (`LLMStage.__post_init__` validates name only against `STAGE_NAMES | SUBSTEP_NAMES`; production pairs name and surface by construction; tests depend on them being independent).
