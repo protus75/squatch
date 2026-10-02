@@ -414,8 +414,9 @@ def test_invalid_bug_policy_item_does_not_stop_later_authoring(
     good_id = box.enqueue(
         message_class="suggestion", summary="good", detail="good detail",
         origin="test-good").id
+    current = verdict().model_copy(update={"produced_by_spec_version": "1.1"})
     for message_id in (bad_id, good_id):
-        box.record_triage(message_id, verdict().model_dump(mode="json"))
+        box.record_triage(message_id, current.model_dump(mode="json"))
     pending = [
         box.get(bad_id).model_copy(update={"bug_origin": "robot"}),
         box.get(good_id),
@@ -437,13 +438,15 @@ def test_invalid_bug_policy_item_does_not_stop_later_authoring(
     asyncio.run(go())
 
     first = box.get(bad_id)
-    assert first.status == "pending" and first.triage["verdict"] == "author"
+    assert first.status == "decided" and first.triage["verdict"] == "author"
+    assert "bug_origin" in first.resolution.note
     assert box.get(good_id).status == "authored"
     assert (checkout / "tickets/later-ticket/ticket.md").is_file()
     assert [request.surface for request in llm.requests] == ["author", "requisition_review"]
     [passed] = [event for event in read_events(checkout / STATE)
                 if event.type == "signal" and event.body.get("kind") == "triage_pass"]
-    assert passed.body["skipped"] == [bad_id]
+    assert passed.body["skipped"] == []
+    assert passed.body["triaged"]["decision"] == [bad_id]
     assert passed.body["triaged"]["authored"] == ["later-ticket"]
 
 

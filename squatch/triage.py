@@ -209,6 +209,16 @@ class Triage:
         author_spec = load_spec(Path(spec.source).with_name("author.md"))
         for message in messages:
             if isinstance(message.triage, dict) and message.triage.get("verdict") == "author":
+                if message.triage.get("produced_by_spec_version") != spec.version:
+                    await self._resolve_without_author(
+                        message,
+                        rationale=("The prior author admission predates the current materiality "
+                                   "policy and is quarantined without another model call."),
+                        evidence=("stale triage spec version "
+                                  f"{message.triage.get('produced_by_spec_version')!r}; "
+                                  f"current version is {spec.version!r}"))
+                    triaged["decision"].append(message.id)
+                    continue
                 # Author keeps the latest requisition-review feedback beside the
                 # original triage artifact so operators can inspect why a pending
                 # message did not produce a ticket.  That durable annotation is
@@ -225,7 +235,8 @@ class Triage:
                 if stem is not None:
                     triaged["authored"].append(stem)
                 else:
-                    skipped.append(message.id)
+                    await self._resolve_author_failure(message, author.last_failure)
+                    triaged["decision"].append(message.id)
                 continue
             inputs, links = await self._inputs(message, sha)
             pass_spool.message_id = message.id
@@ -252,11 +263,28 @@ class Triage:
                 if stem is not None:
                     triaged["authored"].append(stem)
                 else:
-                    skipped.append(message.id)
+                    await self._resolve_author_failure(message, author.last_failure)
+                    triaged["decision"].append(message.id)
                 continue
             await self._apply(message, verdict)
         self._journal.append("signal", {"kind": "triage_pass", "pass": pass_number,
                                         "triaged": triaged, "skipped": skipped})
+
+    async def _resolve_author_failure(self, message: Message, failure: str | None) -> None:
+        """Make the local Author allowance a lifetime pre-lineage bound."""
+        evidence = failure or "Author returned no committed ticket without a classified failure"
+        await self._resolve_without_author(
+            message,
+            rationale="Automatic authoring failed and is parked; do not retry on later scans.",
+            evidence=evidence)
+
+    async def _resolve_without_author(
+            self, message: Message, *, rationale: str, evidence: str) -> None:
+        await self._apply(message, TriageDecision(
+            produced_by_spec_version="engine",
+            produced_at_sha=await self._git.rev_parse(self._repo, "HEAD"),
+            verdict="decision", reopen_after_days=1,
+            rationale=rationale, evidence=evidence))
 
     async def _inputs(self, message: Message, sha: str) -> tuple[TriageInput, frozenset[str]]:
         events = tuple(self._journal.read())

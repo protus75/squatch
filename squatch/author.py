@@ -144,15 +144,18 @@ class Author:
         self._log = log
         self._redact = redact
         self._report = report
+        self.last_failure: str | None = None
         self._box = Box(
             self._repo / config.state_dir, fs=fs, clock=clock,
             rereport_callback=journal_rereport_callback(journal))
 
     async def run(self, spec: Spec, message: Message, verdict: TriageAuthor, *,
                   pass_number: int, sha: str) -> str | None:
+        self.last_failure = None
         try:
             bug_origin, has_repro = _policy_inputs(message)
         except ValueError as e:
+            self.last_failure = f"{type(e).__name__}: {e}"
             self._report_failure(message, e)
             return None
         inputs = await self._inputs(message, verdict, sha)
@@ -180,6 +183,7 @@ class Author:
                     and all(finding.code == REVIEW_CODE for finding in result.findings)):
                 self._record_review(message, review.last)
             if isinstance(review.last, RequisitionRMA):
+                self.last_failure = f"requisition_review rma: {review.last.summary}"
                 self._report(
                     f"author: {message.id}: rma; {review.last.summary}; left pending; "
                     f"{AUTHOR_RMA_ROAD}")
@@ -187,6 +191,7 @@ class Author:
             detail = result.reason or result.outcome
             if result.reason == "retry cap spent":
                 detail = f"retry allowance of {self._config.caps.retry} spent"
+            self.last_failure = f"{result.outcome}: {detail}"
             self._report(f"author: {message.id}: {result.outcome}; {detail}; left pending")
             return None
 
@@ -215,6 +220,7 @@ class Author:
                 reopened=message.reopened_from_tombstone,
                 bypass=bool(parsed.gate_bypass), go_binds=resolution.binds)
         except Exception as e:
+            self.last_failure = f"{type(e).__name__}: {e}"
             self._report_failure(message, e)
             return None
 
@@ -233,6 +239,7 @@ class Author:
                     f"author: {message.id}: cleanup failed: "
                     f"{type(cleanup).__name__}: {cleanup}")
             self._report_failure(message, e)
+            self.last_failure = f"{type(e).__name__}: {e}"
             return None
         self._box.resolve(message.id, status="authored", link=authored.stem,
                           note=verdict.summary)

@@ -18,7 +18,7 @@ from squatch.llm import FakeLLM
 from squatch.redact import Redactor
 from squatch.registry import Record, commit as commit_record, load as load_records, write
 from squatch.seams import LocalFilesystem, SubprocessExec
-from squatch.specs import load_spec
+from squatch.specs import DataBlock, load_spec
 from squatch.tickets import Intake, stamp
 from squatch.triage import (TRIAGE_CONTEXT_CHARS, Triage, TriageAuthor, TriageTombstone,
                             _render_projection, triage_stage)
@@ -81,6 +81,14 @@ def test_spec_and_render_contract():
                           "decision": "TriageDecision"}
     assert spec.slots == ("message", "open_work", "merged_work", "decisions")
     assert set(triage_stage(spec).emits_by_verdict) == set(spec.emits)
+    rendered = spec.render({
+        "message": DataBlock("untrusted", "x"),
+        "open_work": DataBlock("engine", "none"),
+        "merged_work": DataBlock("engine", "none"),
+        "decisions": DataBlock("engine", "none"),
+    })
+    assert "materially harmful behavior gap" in rendered
+    assert "plan-wording mismatch" in rendered
 
 
 def test_verdict_models_are_closed():
@@ -193,7 +201,9 @@ def test_bug_report_authors_bug_ticket_retaining_evidence_and_regression(
     ticket_path = checkout / "tickets" / "fixture-bug" / "ticket.md"
     if not retain_evidence:
         assert not ticket_path.exists()
-        assert box.get(message_id).status == "pending"
+        parked = box.get(message_id)
+        assert parked.status == "decided"
+        assert "Automatic authoring failed" in parked.resolution.note
         return
     authored = ticket_path.read_text()
     assert ("kind: bug" in authored and "## Regression" in authored
@@ -220,7 +230,7 @@ def test_bug_report_tombstone_is_resolved_not_left_pending(checkout):
 def test_later_pass_authors_a_recorded_verdict_without_triaging_again(checkout):
     box, ids = _enqueue(checkout)
     recorded = TriageAuthor(
-        produced_by_spec_version="1.0", produced_at_sha="abc", verdict="author",
+        produced_by_spec_version="1.1", produced_at_sha="abc", verdict="author",
         summary="rewrite", kind="feature", priority="P2", goal="ship it", why="useful")
     box.record_triage(ids[0], recorded.model_dump(mode="json"))
     with Journal(checkout / STATE, clock=lambda: T0) as journal:
@@ -247,7 +257,7 @@ def test_later_pass_authors_a_recorded_verdict_without_triaging_again(checkout):
 def test_later_pass_ignores_recorded_requisition_review_annotation(checkout):
     box, ids = _enqueue(checkout)
     recorded = TriageAuthor(
-        produced_by_spec_version="1.0", produced_at_sha="abc", verdict="author",
+        produced_by_spec_version="1.1", produced_at_sha="abc", verdict="author",
         summary="rewrite", kind="feature", priority="P2", goal="ship it", why="useful")
     triage = recorded.model_dump(mode="json")
     triage["requisition_review"] = {
@@ -264,6 +274,24 @@ def test_later_pass_ignores_recorded_requisition_review_annotation(checkout):
 
     assert [request.surface for request in llm.requests] == ["author", "requisition_review"]
     assert box.get(ids[0]).status == "authored"
+
+
+def test_stale_author_admission_is_quarantined_without_a_model_call(checkout):
+    box, ids = _enqueue(checkout)
+    recorded = TriageAuthor(
+        produced_by_spec_version="1.0", produced_at_sha="abc", verdict="author",
+        summary="old admission", kind="feature", priority="P2",
+        goal="ship it", why="formerly useful")
+    box.record_triage(ids[0], recorded.model_dump(mode="json"))
+
+    llm = FakeLLM()
+    _run(checkout, llm)
+
+    message = box.get(ids[0])
+    assert message.status == "decided"
+    assert "predates the current materiality policy" in message.resolution.note
+    assert "stale triage spec version" in message.resolution.note
+    assert llm.requests == []
 
 
 def test_author_commit_failure_does_not_abort_the_pass(checkout, monkeypatch):
@@ -286,14 +314,17 @@ def test_author_commit_failure_does_not_abort_the_pass(checkout, monkeypatch):
 
     _run(checkout, llm)
 
-    assert box.get(ids[0]).status == "pending"
+    failed = box.get(ids[0])
+    assert failed.status == "decided"
+    assert "commit lane unavailable" in failed.resolution.note
     assert not (checkout / "tickets/failed-ticket").exists()
     assert box.get(ids[1]).status == "decided"
     assert [request.surface for request in llm.requests] == [
         "triage", "author", "requisition_review", "triage"]
     passes = [e for e in read_events(checkout / STATE)
               if e.type == "signal" and e.body.get("kind") == "triage_pass"]
-    assert passes[-1].body["skipped"] == [ids[0]]
+    assert passes[-1].body["skipped"] == []
+    assert passes[-1].body["triaged"]["decision"] == [ids[0], ids[1]]
 
 
 def test_exhausted_fake_review_fails_closed_instead_of_approving(checkout):
@@ -308,8 +339,9 @@ def test_exhausted_fake_review_fails_closed_instead_of_approving(checkout):
     assert [request.surface for request in llm.requests] == [
         "triage", "author", "requisition_review"]
     message = box.get(ids[0])
-    assert message.status == "pending"
+    assert message.status == "decided"
     assert message.triage["requisition_review"]["verdict"] == "rma"
+    assert "requisition_review rma" in message.resolution.note
     assert not (checkout / "tickets/unreviewed-ticket").exists()
 
 

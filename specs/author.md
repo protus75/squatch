@@ -20,6 +20,14 @@ tracked tree, and close `Scope fence` over every file the criteria force.
 Write Goal and Why in your own words from the triage judgment; never copy raw
 message text into ticket prose.
 
+Before emitting, mechanically preflight the complete ticket: every prose list
+item begins with `- `; `Depends on` is `- none` or ticket-stem bullets;
+every Acceptance criterion contains, in backticks, either an exact substring
+of a Verification command or an observable repository path; and a bug's
+Regression has exactly one fenced command followed by one or more literal
+`- carries: <path-prefix>` bullets. Repair every supplied finding while
+preserving already-valid sections. Keep the ticket concise.
+
 The untrusted box message:
 <<<squatch:data name="message">>>
 
