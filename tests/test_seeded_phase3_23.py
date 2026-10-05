@@ -69,7 +69,7 @@ def _path(stem):
 def _ticket(stem):
     return lint_ticket(
         _path(stem).read_text(), stem=stem, repo=REPO,
-        plan=(REPO / PLAN_FILE).read_text(),
+        plan=(REPO / "tests/fixtures/squatch_plan_v1.md").read_text(),
         resolve_stem=lambda candidate: _path(candidate).is_file(),
     )
 
@@ -88,13 +88,13 @@ def _yaml(stem):
 
 
 def _phase4_registry():
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     start = plan.index("Phase 4 boundary registry (DECIDED):")
     return plan[start:plan.index("`phase3-continue-23` fences", start)]
 
 
 def _authoring_plan():
-    current = (REPO / PLAN_FILE).read_text()
+    current = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     start = current.index("## 20.")
     end = current.index("\n## ", start + 1) + 1
     heading = current[start:current.index("\n", start) + 1]

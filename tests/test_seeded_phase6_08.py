@@ -28,7 +28,7 @@ def _path(stem=STEM):
 
 def _ticket():
     return lint_ticket(_path().read_text(), stem=STEM, repo=REPO,
-                       plan=(REPO / PLAN_FILE).read_text(),
+                       plan=(REPO / "tests/fixtures/squatch_plan_v1.md").read_text(),
                        resolve_stem=lambda candidate: _path(candidate).is_file())
 
 
@@ -95,7 +95,7 @@ def test_terminal_exit_renders_at_max_effort_from_section_twenty_only():
                                f"run record: tickets/{STEM}/{RUN_RECORD}\n"),
         "ticket": DataBlock("host", _path().read_text()),
         "context": DataBlock("host", context),
-    }, plan=(REPO / PLAN_FILE).read_text(), plan_sections=ticket.plan_sections, effort="max")
+    }, plan=(REPO / "tests/fixtures/squatch_plan_v1.md").read_text(), plan_sections=ticket.plan_sections, effort="max")
     assert ticket.plan_sections == ("20",)
     assert "## 19. Implementation phases" not in rendered
     assert "Phase 5/6 compact-render correction (DECIDED" in rendered

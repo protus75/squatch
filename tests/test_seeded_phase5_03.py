@@ -40,7 +40,7 @@ def _path(stem):
 
 def _ticket(stem):
     return lint_ticket(_path(stem).read_text(), stem=stem, repo=REPO,
-                       plan=(REPO / PLAN_FILE).read_text(),
+                       plan=(REPO / "tests/fixtures/squatch_plan_v1.md").read_text(),
                        resolve_stem=lambda candidate: _path(candidate).is_file())
 
 
@@ -68,7 +68,7 @@ def _context(paths):
 
 
 def _authoring_plan():
-    current = (REPO / PLAN_FILE).read_text()
+    current = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     start = current.index("## 20.")
     end = current.index("\n## ", start + 1) + 1
     heading = current[start:current.index("\n", start) + 1]
@@ -155,7 +155,7 @@ def test_exit_and_phase6_contracts_use_section20_only_and_compact_headroom():
     assert "cites section 20 alone" in scope
     assert "none cites or renders section 19" in scope
     assert "RENDER_BOUND_CHARS['max'] * REQ_RENDER_HEADROOM" in scope
-    section20 = (REPO / PLAN_FILE).read_text()
+    section20 = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     section20 = section20[section20.index("## 20."):]
     for text in (
         "Phase 5/6 compact-render correction", "cite section 20 ALONE",

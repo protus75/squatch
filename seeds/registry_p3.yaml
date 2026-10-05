@@ -1,0 +1,99 @@
+phase: 3
+# Admissions in order. The first is authored by phase2-exit with phase3-continue;
+# each later list is one phase3-continue-<nn> admission (plus its successor tail).
+admissions:
+  - [daemon-scheduler, seed-successor-proof]
+  - [merge-queue]
+  - [rework-stage]
+  - [thresh-runtime]
+  - [dispatch-admission-boundary, dispatch-config-snapshot]
+  - [scheduler-activation]
+  - [merge-queue-activation, rework-activation]
+  - [background-consumers, control-inbox]
+  - [dispatch-pause-boundary, pause-resume-activation]
+  - [admission-holds-activation]
+  - [kill-signal-journal, kill-executor-abort]
+  - [kill-worker-stop, kill-failure-suppression]
+  - [kill-cli-activation]
+  - [heartbeat]
+  - [restart-timers]
+  - [flake-detection, flake-release]
+  - [journal-roll, storm-ledger]
+  - [storm-producer-wiring, storm-notification-activation]
+  - [storm-dispatch-hold]
+  - [checkpoint-push]
+  - [serve-activation]
+  - [serve-merge-admission]
+  - [worker-recovery-disposition]
+  - [outbox-only-admission]
+  - [daemon-soak]
+  - [daemon-soak-runner]
+  - [soak-run]
+  - [phase3-exit]
+seeds:
+  daemon-scheduler: {cite: [9], fence: [squatch/scheduler.py, squatch/watcher.py, tests/test_scheduler.py],
+    does: "Dormant single-flight scheduler plus watcher re-prioritization; dormancy = the 19.L import-closure scan, failing once either module is reachable."}
+  seed-successor-proof: {fence: [tests/test_seed_successor.py],
+    does: "A merged ticket registers its successor through the real lift/intake/rescan path, end to end."}
+  merge-queue: {deep: true, cite: [9, 10], fence: [squatch/mergequeue.py, squatch/merge.py, squatch/git.py, tests/test_mergequeue.py, tests/test_git.py],
+    does: "Dormant serial admission: post-rebase mechanical regate, integration check running the ticket's Verification through the existing gate on the rebased worktree, red-streak pause, tree-hash assert, conflict facts, two typed resolution rungs. git.py adds only public stop-at-conflict, conflicted-path listing, and rebase-continue, preserving rebase/rebase_abort."}
+  rework-stage: {deep: true, cite: [4, 9, 11], fence: [squatch/rework.py, specs/rework.md, squatch/mergequeue.py, tests/test_rework.py],
+    does: "Dormant update/split/escalate plus the supersedes map, consuming the typed conflict handoff only after admission unwinds."}
+  thresh-runtime: {deep: true, cite: [6], fence: [squatch/thresh.py, squatch/providers.py, squatch/config.py, tests/test_thresh.py, tests/test_providers.py],
+    does: "Flat subscriptions, per-provider concurrency caps (limits.concurrency parses here), cli classified/unclassified failures, the breaker."}
+  dispatch-admission-boundary: {cite: [9], fence: [squatch/daemon.py, tests/test_daemon_admission.py],
+    does: "Dormant daemon admission/task boundary."}
+  dispatch-config-snapshot: {cite: [15], depends: [dispatch-admission-boundary], fence: [squatch/daemon.py, squatch/config.py, tests/test_daemon_config.py],
+    does: "Per-dispatch immutable config snapshot."}
+  scheduler-activation: {deep: true, fence: [squatch/daemon.py, squatch/scheduler.py, squatch/watcher.py, squatch/__main__.py, tests/test_scheduler.py, tests/test_daemon_admission.py, tests/test_daemon_composition.py],
+    does: "Daemon core reachable from production; lands the in-process production-composition harness (tests/test_daemon_composition.py); migrates the scheduler dormancy test and the daemon-absence assertion."}
+  merge-queue-activation: {fence: [squatch/merge.py, tests/test_merge.py, tests/test_mergequeue.py, tests/test_daemon_composition.py],
+    does: "Composes the queue into the production pipeline factory and migrates its composition-absence assertion; the bootstrap drain keeps inline Phase 1 admission (daemon-mode routing is serve-merge-admission)."}
+  rework-activation: {depends: [merge-queue-activation], fence: [squatch/daemon.py, squatch/rework.py, squatch/mergequeue.py, tests/test_rework.py, tests/test_daemon_composition.py],
+    does: "Rework consumes handoffs on the lock-owning writer; split stops routing to the Reject queue."}
+  background-consumers: {fence: [squatch/daemon.py, tests/test_daemon_tasks.py],
+    does: "Owned watcher, merge-queue, and box-consumer tasks (DaemonTasks)."}
+  control-inbox: {cite: [20], depends: [background-consumers], fence: [squatch/control.py, squatch/daemon.py, squatch/seams.py, tests/test_control.py],
+    does: "Dormant crash-safe inbox: identity-bound, exactly once, decision journaled before mutation; publication through a tested durable no-overwrite filesystem-seam operation."}
+  dispatch-pause-boundary: {cite: [20], fence: [squatch/daemon.py, squatch/drain.py, tests/test_daemon_pause.py, tests/test_drain.py],
+    does: "Pause precedes ALL durable dispatch accounting, the drain's retry-cap draw included."}
+  pause-resume-activation: {cite: [20], depends: [dispatch-pause-boundary], fence: [squatch/daemon.py, squatch/control.py, squatch/drain.py, squatch/__main__.py, tests/test_daemon_pause.py, tests/test_control_cli.py, tests/test_daemon_composition.py],
+    does: "CLI pause/resume route through the inbox while an engine holds the lock; direct locked behavior unchanged."}
+  admission-holds-activation: {depends: [pause-resume-activation], fence: [squatch/mergequeue.py, squatch/merge.py, squatch/__main__.py, eval/shakeout/bench.py, tests/test_mergequeue.py, tests/test_merge.py, tests/test_daemon_composition.py],
+    does: "Red-streak and tree-hash holds activate with identity-bound resume over ONE shared inbox: the CLI root shares it between the drain control factory and the pipeline factory, every direct compose_pipeline caller supplies it, no fallback constructs a second; minimal MergeQueue construction stays valid."}
+  kill-signal-journal: {cite: [20], fence: [squatch/control.py, squatch/daemon.py, tests/test_kill_signal_journal.py], does: "Dormant kill-signal journaling."}
+  kill-executor-abort: {cite: [6, 20], depends: [kill-signal-journal], fence: [squatch/daemon.py, squatch/driver.py, tests/test_kill_executor_abort.py], does: "Dormant executor abort atomicity."}
+  kill-worker-stop: {cite: [20], fence: [squatch/daemon.py, tests/test_kill_worker_stop.py], does: "Dormant worker stop ordering: executor unwinds before worker cancel."}
+  kill-failure-suppression: {cite: [20], depends: [kill-worker-stop], fence: [squatch/daemon.py, tests/test_kill_failure_suppression.py], does: "Dormant post-kill failure-path suppression."}
+  kill-cli-activation: {deep: true, cite: [20], fence: [squatch/daemon.py, squatch/stages.py, squatch/drain.py, squatch/__main__.py, tests/test_kill_signal_journal.py, tests/test_kill_executor_abort.py, tests/test_kill_cli_activation.py],
+    does: "Adds the kill verb against the live bootstrap drain per section 20; Stages exposes only its Driver abort; worker-stop and failure-suppression stay dormant until serve-activation. Other kill tests are preservation suites."}
+  heartbeat: {cite: [9, 15], fence: [squatch/heartbeat.py, squatch/daemon.py, tests/test_heartbeat.py], does: "Heartbeat file plus external heartbeat."}
+  restart-timers: {deep: true, cite: [6, 15], fence: [squatch/restart.py, squatch/timers.py, squatch/daemon.py, squatch/__main__.py, tests/test_restart_timers.py],
+    does: "Restart-reconcile reaps orphans to abandoned, orphan sweeper, journaled timers armed, persisted, and re-armed at startup -- reap and re-arm before dispatch in the CLI/serve composition roots."}
+  flake-detection: {cite: [11], fence: [squatch/flake.py, squatch/daemon.py, tests/test_flake.py], does: "Section 11.5 detection and quarantine through a dormant daemon composition hook."}
+  flake-release: {cite: [11], depends: [flake-detection], fence: [squatch/flake.py, squatch/daemon.py, tests/test_flake.py], does: "Section 11.5 identity-bound mechanical release."}
+  journal-roll: {cite: [6], fence: [squatch/journal.py, tests/test_journal_roll.py], does: "Roll at 64 MiB or 24h, engine constants."}
+  storm-ledger: {cite: [12], depends: [journal-roll], fence: [squatch/storm.py, tests/test_storm.py], does: "Dormant section 12 occurrence ledger; no trip, message, notification, or hold."}
+  storm-producer-wiring: {cite: [12], fence: [squatch/storm.py, squatch/box.py, squatch/daemon.py, tests/test_storm.py, tests/test_storm_producer.py],
+    does: "Every box arrival, dedup hit included, records one stable occurrence; production stays dormant."}
+  storm-notification-activation: {cite: [12], depends: [storm-producer-wiring], fence: [squatch/storm.py, squatch/box.py, squatch/daemon.py, squatch/__main__.py, tests/test_storm.py, tests/test_drain.py, tests/test_storm_notification_activation.py],
+    does: "Activates the trip signal and its one P0 failure_report; migrates only the drain test's blanket no-box-event assertion to admit storm_occurrence events while still proving the drain never mutates or triages box records. No dispatch suppression."}
+  storm-dispatch-hold: {deep: true, cite: [12, 20], fence: [squatch/storm.py, squatch/control.py, squatch/daemon.py, squatch/drain.py, squatch/__main__.py, tests/test_storm_hold.py],
+    does: "Section 12 dispatch hold and identity-bound resume in the live drain; fences each predecessor storm test carrying a dispatch-absence assertion. Sole production owner of the hold."}
+  checkpoint-push: {cite: [10], fence: [squatch/checkpoint.py, squatch/daemon.py, squatch/git.py, tests/test_checkpoint.py, tests/test_git.py, tests/test_mergequeue.py],
+    does: "Public argv-only push in git.py (migrating only the git public-operation allowlist test); re-fires an incomplete push after restart, never duplicating a completed one."}
+  serve-activation: {deep: true, cite: [18, 20], fence: [squatch/serve.py, squatch/daemon.py, squatch/__main__.py, tests/test_serve.py, tests/test_daemon_composition.py, tests/test_daemon_tasks.py, tests/test_kill_worker_stop.py, tests/test_kill_failure_suppression.py, tests/test_heartbeat.py, tests/test_storm.py],
+    does: "The serve verb and continuous loop composing dispatch, watcher, merge, box, control, heartbeat, restart/timers, storm, checkpoint, and worker tasks; reconciles before dispatch, holds the lock for its lifetime, exits only via kill/signal or a terminal worker failure; activates worker-stop and failure suppression (decision before mutation, executor unwind before worker cancel); tests build the real graph in-process and replace serve-absence assertions."}
+  serve-merge-admission: {deep: true, cite: [9], fence: [squatch/merge.py, squatch/serve.py, tests/test_merge.py, tests/test_mergequeue.py, tests/test_serve.py],
+    does: "Explicit daemon-admission mode selected only by serve composition (drain keeps inline admit, never daemon holds): a settled run passes code-lane and seed-safety prechecks, then offers exactly one candidate to the MergeQueue, which owns rebase, both rungs, regate, integration, and holds; success retires worktree/branch and journals to: merged once with the real commit and reviewed SHA; gate_failed/rework leave main and branch intact. Tests drive the real serve-selected path, never queue admit from a harness."}
+  worker-recovery-disposition: {deep: true, cite: [6, 15], fence: [squatch/reconcile.py, tests/test_reconcile.py],
+    does: "Per reaped orphan, after abandoned and before worktree removal, one run-scoped signal {kind: recovery_alert, disposition: alert, outcome: abandoned, reason}; the terminal prevents re-emission on later restarts; no box mail or routing change."}
+  outbox-only-admission: {deep: true, cite: [10], fence: [squatch/stages.py, squatch/merge.py, tests/test_stages.py, tests/test_merge.py],
+    does: "The 19.L run-lane admission rule, at initial Verification and merge regate."}
+  daemon-soak: {deep: true, fence: [eval/daemon_soak.py, squatch/artifacts.py, squatch/stages.py, tests/test_daemon_soak.py],
+    does: "Closed daemon-soak-report.json schema (member, planted fault, observed terminal/event, disposition, producing run, auditor verdict, green), KNOWN-artifact registration, canonical ordinary-lane writer."}
+  daemon-soak-runner: {deep: true, fence: [eval/daemon_soak.py, tests/test_daemon_soak.py, tests/test_daemon_soak_runner.py],
+    does: "Public deterministic runner driving merged production serve in-process for the three closed members (exit reads above), deriving every field from member-local evidence and returning the report only to the writer."}
+  soak-run: {fence: [tickets/soak-run/daemon-soak-report.json], does: "No code: invokes the merged runner and writer, leaving the report in its OUTBOX."}
+  phase3-exit: {exit: true, fence: [tickets, tests/test_phase3_exit.py, tests/test_seeded_phase4_core.py],
+    does: "Reads the committed soak report's green members through its artifacts schema; authors the 19.P4 core."}

@@ -70,7 +70,7 @@ def _path(stem):
 def _ticket(stem):
     return lint_ticket(
         _path(stem).read_text(), stem=stem, repo=REPO,
-        plan=(REPO / PLAN_FILE).read_text(),
+        plan=(REPO / "tests/fixtures/squatch_plan_v1.md").read_text(),
         resolve_stem=lambda candidate: _path(candidate).is_file(),
     )
 
@@ -101,7 +101,7 @@ def _context(paths):
 
 
 def _authoring_plan():
-    current = (REPO / PLAN_FILE).read_text()
+    current = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     start = current.index("## 20.")
     end = current.index("\n## ", start + 1) + 1
     heading = current[start:current.index("\n", start) + 1]
@@ -233,7 +233,7 @@ def test_baseline_reader_and_remaining_suffix_are_closed_and_terminal():
 
 
 def test_phase5_exit_and_phase6_use_compact_section20_render_surface():
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     section20 = plan[plan.index("## 20."):]
     for text in (
         "Phase 5/6 compact-render correction",
@@ -255,7 +255,7 @@ def test_phase5_exit_and_phase6_use_compact_section20_render_surface():
 
 
 def test_phase6_remaining_registry_closes_contracts_paths_and_edges():
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     section20 = plan[plan.index("## 20."):]
     contracts = {
         "core-drift-activation": ("squatch/hostfiles.py", "core-drift-classifier"),

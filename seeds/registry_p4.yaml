@@ -1,0 +1,23 @@
+phase: 4
+admissions:
+  - [watchdog-event-stream, notify-transport]
+  - [watchdog-detector, watchdog-activation]
+  - [provider-cooldown-failover]
+  - [reliability-battery]
+  - [reliability-run]
+  - [phase4-exit]
+seeds:
+  watchdog-event-stream: {cite: [6, 9, 15], fence: [squatch/watchdog.py, squatch/providers.py, squatch/seams.py, tests/test_watchdog.py, tests/test_providers.py],
+    does: "Dormant in-flight event callback through the process-exec seam to a watchdog consumer seam."}
+  notify-transport: {cite: [6, 13, 15], depends: [watchdog-event-stream], fence: [squatch/notify.py, squatch/config.py, squatch/seams.py, squatch/serve.py, squatch/__main__.py, tests/test_notify.py, tests/test_config.py, tests/test_serve.py],
+    does: "Notifications seam, notify config parse, key domains and reconcile; serve reconciles Effect-backed notifications at startup and each poll, pushing storm and red-streak escalations; unset config warns once and stays status-only."}
+  watchdog-detector: {cite: [9], fence: [squatch/watchdog.py, squatch/notify.py, tests/test_watchdog.py], does: "Dormant spend-without-progress detector and hard-timeout wiring."}
+  watchdog-activation: {cite: [9], depends: [watchdog-detector], fence: [squatch/watchdog.py, squatch/driver.py, squatch/stages.py, squatch/notify.py, squatch/drain.py, squatch/serve.py, squatch/__main__.py, tests/test_watchdog.py, tests/test_watchdog_activation.py, tests/test_daemon_composition.py],
+    does: "Every production driver call watched; proves soft-band notify-once and hard-timeout group kill through the production composition."}
+  provider-cooldown-failover: {deep: true, cite: [6, 15], fence: [squatch/providers.py, squatch/watchdog.py, squatch/timers.py, squatch/runner.py, squatch/restart.py, squatch/daemon.py, squatch/stages.py, squatch/merge.py, squatch/drain.py, squatch/serve.py, squatch/__main__.py, eval/shakeout/bench.py, eval/daemon_soak.py, tests/test_provider_cooldown_failover.py, tests/test_providers.py, tests/test_restart_timers.py, tests/test_stages.py, tests/test_serve.py, tests/test_merge.py, tests/test_mergequeue.py, tests/test_daemon_composition.py],
+    does: "Section 6 cooldown/failover with one registry/cooldown payload and one Timers lifetime per lock-held session, threaded to every provider-client construction site."}
+  reliability-battery: {cite: [6], fence: [eval/reliability_battery.py, squatch/artifacts.py, squatch/stages.py, tests/test_reliability_battery.py],
+    does: "Fault injection, closed report schema and registration, writer, and runner for the three closed members."}
+  reliability-run: {fence: [tickets/reliability-run/reliability-battery-report.json], does: "No code: runs the merged battery once into its OUTBOX."}
+  phase4-exit: {exit: true, fence: [tickets, tests/test_phase4_exit.py, tests/test_seeded_phase5_core.py],
+    does: "Reads the committed report; authors the 19.P5 core."}

@@ -1,0 +1,19 @@
+phase: 5
+admissions:
+  - [retro-drain-invoker]
+  - [retro-box-activation]
+  - [scorecard-reporting]
+  - [status-projection, baseline-binding-reader]
+  - [retro-doctor-cli]
+  - [phase5-exit]
+seeds:
+  retro-drain-invoker: {deep: true, cite: [13, 14], fence: [squatch/retro.py, specs/retro.md, tests/test_retro.py, squatch/drain.py, squatch/driver.py, squatch/stages.py, squatch/__main__.py, squatch/box.py, tests/test_drain.py, tests/test_driver.py, tests/test_stages.py, tests/test_box.py],
+    does: "INVOKER contract plus the sections 13/19 Exit-read window renderer resolution and driver materialization on the same window-projection seam. Transition-risk preservation: every suite reaching `main([\"drain\"])` through to a merge (re-entry, upgrade, kill, storm, restart, provider, watchdog, pause, control) migrates only an assertion its scenario actually forces, else stays unchanged with the non-firing reason recorded in the seeding test."}
+  retro-box-activation: {deep: true, cite: [12], depends: [retro-drain-invoker], fence: [squatch/retro.py, squatch/box.py, squatch/merge.py, squatch/author.py, squatch/triage.py, squatch/policy.py, squatch/stages.py, squatch/runner.py, squatch/daemon.py, squatch/drain.py, squatch/serve.py, squatch/status.py, squatch/__main__.py, tests/test_box.py, tests/test_merge.py, tests/test_author.py, tests/test_triage.py, tests/test_policy.py, tests/test_stages.py, tests/test_daemon_composition.py, tests/test_drain.py, tests/test_serve.py, tests/test_retro_box.py],
+    does: "RETRO -> BOX contract; every production Box constructor with journal access receives the journal-backed rereport callback."}
+  scorecard-reporting: {cite: [14], fence: [squatch/scorecard.py, tests/test_scorecard.py, squatch/retro.py, tests/test_retro.py], does: "SCORECARD contract; tests/test_retro.py assertions are preserved unchanged."}
+  status-projection: {cite: [13], depends: [scorecard-reporting, retro-box-activation], fence: [squatch/status.py, tests/test_status.py, squatch/scorecard.py, tests/test_scorecard.py, squatch/box.py, tests/test_box.py, squatch/retro.py, tests/test_retro.py, squatch/__main__.py, tests/test_cli.py], does: "STATUS contract."}
+  baseline-binding-reader: {cite: [12], depends: [retro-box-activation], fence: [squatch/baseline.py, tests/test_baseline.py, squatch/journal.py, squatch/config.py, squatch/policy.py, tests/test_policy.py, squatch/author.py, tests/test_author.py, tests/test_retro_box.py],
+    does: "BINDING READER contract, migrating any interim go-binding helper into the one reader."}
+  retro-doctor-cli: {cite: [18], fence: [squatch/doctor.py, tests/test_doctor.py, squatch/retro.py, squatch/__main__.py, tests/test_retro.py, tests/test_cli.py], does: "VERBS contract."}
+  phase5-exit: {exit: true, fence: [tickets, tests/test_phase5_exit.py, tests/test_seeded_phase6_core.py], does: "Exit reads above; authors the 19.P6 core."}

@@ -46,7 +46,7 @@ def _path(stem):
 
 def _ticket(stem):
     return lint_ticket(_path(stem).read_text(), stem=stem, repo=REPO,
-                       plan=(REPO / PLAN_FILE).read_text(),
+                       plan=(REPO / "tests/fixtures/squatch_plan_v1.md").read_text(),
                        resolve_stem=lambda candidate: _path(candidate).is_file())
 
 
@@ -156,7 +156,7 @@ def test_continuation_pins_remaining_contracts_and_terminal_custody():
 
 def test_authored_seeds_render_at_max_effort_with_section_twenty_only():
     spec = load_spec(REPO / "specs" / "implement.md")
-    plan = (REPO / PLAN_FILE).read_text()
+    plan = (REPO / "tests/fixtures/squatch_plan_v1.md").read_text()
     limit = int(RENDER_BOUND_CHARS["max"] * REQ_RENDER_HEADROOM)
     for stem in ROW:
         ticket = _ticket(stem)

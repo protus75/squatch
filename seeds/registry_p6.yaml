@@ -1,0 +1,26 @@
+phase: 6
+admissions:
+  - [core-renderer, core-drift-classifier]
+  - [core-drift-activation, migrate-config]
+  - [host-contract-doc, fixture-host-scaffold]
+  - [bug-gate-grammar, report-inbox-triage]
+  - [escape-column]
+  - [supervised-merge-hold]
+  - [go-grade-machinery, go-grade-run]
+  - [exit-receipt-machinery]
+  - [phase6-exit]
+seeds:
+  core-renderer: {cite: [8, 15], fence: [squatch/hostfiles.py, tests/test_hostfiles.py, squatch/__main__.py, tests/test_cli.py], does: "Managed-block renderer, first adoption, byte-idempotent, no git or commit; core CLI registration."}
+  core-drift-classifier: {cite: [8], depends: [core-renderer], fence: [squatch/hostfiles.py, tests/test_hostfiles.py], does: "Pure DRIFT classification, unreachable from production gates."}
+  core-drift-activation: {cite: [7, 8], depends: [core-drift-classifier], fence: [squatch/hostfiles.py, squatch/gates.py, squatch/config.py, squatch/merge.py, squatch/providers.py, squatch/__main__.py, tests/test_hostfiles.py, tests/test_gates.py, tests/test_merge.py, tests/test_providers.py, tests/test_cli.py], does: "core_drift hard gate in the merge-time rerun set over the shared resolver; replaces the classifier-unreachable assertion."}
+  migrate-config: {cite: [15], depends: [core-renderer], fence: [squatch/config.py, squatch/__main__.py, tests/test_config.py, tests/test_cli.py], does: "MIGRATE-CONFIG contract."}
+  host-contract-doc: {cite: [15], depends: [migrate-config], fence: [docs/host-contract.md, tests/test_host_contract.py], does: "The host-contract doc; no production code."}
+  fixture-host-scaffold: {depends: [host-contract-doc, core-drift-activation], fence: [hosts/fixture/, tests/test_fixture_host.py], does: "The fixture host as listed in Deliverables; no engine module."}
+  bug-gate-grammar: {cite: [7, 13], depends: [fixture-host-scaffold], fence: [squatch/tickets.py, squatch/gates.py, squatch/stages.py, tests/test_tickets.py, tests/test_gates.py, tests/test_bug_gate.py], does: "kind: bug, mandatory ## Regression, head-pass/base-with-carries-overlay-fail hard gate; a test missing at base is never defect evidence."}
+  report-inbox-triage: {cite: [12], depends: [bug-gate-grammar], fence: [squatch/inbox.py, squatch/box.py, squatch/triage.py, squatch/author.py, squatch/daemon.py, squatch/serve.py, tests/test_box.py, tests/test_triage.py, tests/test_author.py, tests/test_serve.py, tests/test_inbox.py], does: "The report inbox with every seam owned; daemon and live serve consumers wired."}
+  escape-column: {cite: [10, 14], depends: [bug-gate-grammar, report-inbox-triage], fence: [squatch/scorecard.py, squatch/git.py, squatch/retro.py, squatch/__main__.py, tests/test_scorecard.py, tests/test_git.py, tests/test_retro.py, tests/test_cli.py, tests/test_mergequeue.py], does: "ESCAPE contract; the scorecard stays pure."}
+  supervised-merge-hold: {deep: true, cite: [9, 12], depends: [escape-column], fence: [squatch/merge.py, squatch/mergequeue.py, squatch/serve.py, squatch/restart.py, squatch/baseline.py, squatch/control.py, squatch/__main__.py, squatch/stages.py, squatch/drain.py, squatch/runner.py, eval/daemon_soak.py, tests/test_merge.py, tests/test_mergequeue.py, tests/test_serve.py, tests/test_restart_timers.py, tests/test_baseline.py, tests/test_control_cli.py, tests/test_cli.py, tests/test_drain.py, tests/test_daemon_soak_runner.py, tests/test_supervised_merge_hold.py], does: "HOLD contract inside daemon-mode MergeQueue admission (after integration, before main moves), reconstructed by restart; the soak runner reads the candidate-base regate identity."}
+  go-grade-machinery: {cite: [12, 13], depends: [supervised-merge-hold, fixture-host-scaffold], fence: [eval/harness.py, eval/fixtures/, squatch/artifacts.py, squatch/stages.py, squatch/llm.py, squatch/providers.py, tests/test_eval_harness.py, tests/test_stages.py, tests/test_providers.py, tests/test_go_grade.py], does: "GO-GRADE machinery: fixtures, closed review-baseline-report.json schema/registration/writer, per-call ceiling, partial-report rule, Author-graph artifact, gated --record-go."}
+  go-grade-run: {depends: [go-grade-machinery], fence: [tickets/go-grade-run/review-baseline-report.json], does: "No code: one scored run into its OUTBOX, recording its verdict signal."}
+  exit-receipt-machinery: {depends: [go-grade-run], fence: [squatch/artifacts.py, squatch/stages.py, eval/host_loop.py, tests/test_host_loop.py, tests/test_gates.py, tests/test_stages.py, hosts/fixture/], does: "Closed host-loop-report.json and exit-receipt.json schemas, registration, writers, and the host-loop runner driving supervised fixture serve."}
+  phase6-exit: {exit: true, depends: [exit-receipt-machinery], fence: [tickets/phase6-exit/host-loop-report.json, tickets/phase6-exit/exit-receipt.json, tests/test_phase6_exit.py], does: "Runs eval/host_loop.py, reads the committed GO-grade report, commits the RECEIPT; no seeds, no engine edit."}
